@@ -1,0 +1,143 @@
+open arithmeticTheory;
+open dividesTheory; (* prime *)
+open whileTheory; (* LEAST *)
+open numLib; (* LEAST_ELIM_TAC *)
+
+(* Copied from tutorial  *)
+Theorem less_add_1:
+  ∀n. n < n + 1
+Proof
+  decide_tac
+QED
+
+(* Copied from tutorial *)
+Theorem less_eq_mult:
+∀n:num. n <= n * n
+Proof
+  Induct_on ‘n’
+  >- decide_tac
+  >- (asm_simp_tac bool_ss [MULT]
+    >> decide_tac)
+QED
+
+(* How does arithmetic work *)
+Theorem the_meaning_of_life:
+  6 * 7 = 42
+Proof
+  decide_tac
+QED
+
+(* How does arithmetic work *)
+Theorem one_plus_one:
+  1 + 1 = 2
+Proof
+  decide_tac
+QED
+
+(* Implication test *)
+ Theorem implication_test:
+  ∀n. (n > 3 ⇒ n + 1 > 4)
+Proof
+  decide_tac
+QED
+
+(* Incorrect theorem test *)
+Theorem nine_plus_ten:
+  9 + 10 = 21
+Proof
+  decide_tac
+QED
+
+
+
+(***************************************************************************)
+(* Testing how HOL works with regards to formatting nested >- operators    *)
+(* Apparently you need to use parentheses to help format the >- operators  *)
+(* Otherwise the following theorem doesn't compile                         *)
+(***************************************************************************)
+Theorem test_subgoals:
+  T
+Proof
+  sg ‘T’
+    >- (sg ‘T’
+      >- decide_tac)
+QED
+
+Theorem all_numbers_above_eight_constructible:
+  ∀n. n >= 8 ⇒ ∃a. ∃b. a * 3 + b * 5 = n
+Proof
+  Induct_on ‘n’
+    >- (full_simp_tac std_ss [] >> strip_tac
+    >> Cases_on ‘n >= 9’
+      >- (full_simp_tac std_ss []
+      >> sg ‘n >= 8’
+        >- decide_tac
+	>- (full_simp_tac std_ss []
+        >> Cases_on ‘b’
+	  >- (full_simp_tac std_ss [] >> pop_assum kall_tac
+          >> sg ‘a * 3 >= 9’
+	    >- decide_tac
+	    >- sg ‘a >= 3’
+	      >- decide_tac
+	      >- Cases_on ‘a’
+	        >> full_simp_tac std_ss []
+		>> Cases_on ‘n'’
+		  >> full_simp_tac std_ss []
+		  >> Cases_on ‘n''’
+		    >> full_simp_tac std_ss [] >> qexists_tac ‘n'’
+		    >> qexists_tac ‘2’ >> decide_tac)
+                >- (qexists_tac ‘a + 2’ >> qexists_tac ‘n'’ >> decide_tac))
+                  >- (sg ‘(n = 7) ∨ (n = 8)’
+		    >- full_simp_tac std_ss [] >> decide_tac
+      >- qexists_tac ‘1’ >> qexists_tac ‘1’ >> decide_tac
+		>- qexists_tac ‘3’ >> qexists_tac ‘0’ >> decide_tac))
+QED
+
+Theorem cancel_mult_both_sides:
+  ∀a b c. ¬(c = 0) ⇒ (c * a = c * b ⇒ a = b)
+Proof
+  full_simp_tac arith_ss []
+QED
+
+Definition sum_first_n_def:
+  (sum_first_n 0 = 0) ∧
+  (sum_first_n (SUC n) = (SUC n) + sum_first_n n)
+End
+
+Theorem foo:
+  ∀a b c. a = b ⇒ a DIV c = b DIV c
+Proof
+  full_simp_tac arith_ss []
+QED
+
+Theorem sum_of_natural_numbers:
+  ∀n. sum_first_n n = (n * (n + 1)) DIV 2
+Proof
+  Induct_on ‘n’
+    >- asm_simp_tac arith_ss [sum_first_n_def]
+    >- (asm_simp_tac arith_ss [sum_first_n_def]
+      >> pop_assum kall_tac
+      >> sg ‘(n + 1) + n * (n + 1) DIV 2 = (n + 1) * (n + 2) DIV 2’
+      >- **rotate_assum** full_simp_tac arith_ss [ADD1]
+      >- (sg ‘(2 * n + 2) DIV 2 + n * (n + 1) DIV 2 = (n + 1) * (n + 2) DIV 2’
+        >- **rotate_assum** full_simp_tac arith_ss []
+        >- (sg ‘(2 * n + 2 + n * (n + 1)) DIV 2 = (n + 1) * (n + 2) DIV 2’
+          >- **rotate_assum** full_simp_tac arith_ss [ADD_DIV_RWT]
+          >- (‘2 * n + 2 + n * (n + 1) = (n + 1) * (n + 2)’ by full_simp_tac arith_ss []
+          >> ‘(2 * n + 2 + n * (n + 1)) DIV 2 = ((n + 1) * (n + 2)) DIV 2’ by full_simp_tac arith_ss [foo]
+QED
+
+(* Based on pre-existing prime functionality/theorems, which did most of the work for me*)
+Theorem exists_arbitrarily_large_primes:
+  ∀n. ∃p. prime p ∧ p > n
+Proof
+  rpt strip_tac
+  >> qspec_then ‘n’ assume_tac NEXT_LARGER_PRIME
+  >> full_simp_tac arith_ss []
+  >> pop_assum kall_tac
+  >> qexists ‘PRIMES i’
+  >> full_simp_tac arith_ss []
+  >> pop_assum kall_tac
+  >> full_simp_tac arith_ss [primePRIMES]
+QED
+
