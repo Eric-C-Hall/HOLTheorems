@@ -2,6 +2,7 @@ open arithmeticTheory;
 open dividesTheory; (* prime *)
 open whileTheory; (* LEAST *)
 open numLib; (* LEAST_ELIM_TAC *)
+open realTheory;
 
 (* Copied from tutorial  *)
 Theorem less_add_1:
@@ -141,4 +142,53 @@ Proof
   >> full_simp_tac arith_ss [primePRIMES]
 QED
 
+Theorem triangle_inequality:
+  ∀x y. ABS_DIFF (x + y) 0 <= ABS_DIFF x 0 + ABS_DIFF y 0
+Proof
+  full_simp_tac arith_ss []
+QED
 
+(* simple theorem about the real numbers *)
+Theorem test_real_theorem:
+  ∀x: real. 2 * x = x + x
+Proof
+  rpt strip_tac
+  >> ‘2 = 1 + 1’ by full_simp_tac arith_ss [REAL_ADD]
+  >> ‘2 * x = 1 * x + 1 * x’ by full_simp_tac arith_ss [REAL_RDISTRIB, REAL_ADD_RDISTRIB]
+  >> full_simp_tac arith_ss [REAL_ADD, REAL_RDISTRIB, REAL_ADD_RDISTRIB, REAL_MUL_LID]
+QED
+
+Theorem power_test:
+  2 EXP 3 = 8
+Proof
+  full_simp_tac arith_ss []
+QED
+
+Theorem mod_test:
+  11 MOD 7 = 4
+Proof
+  full_simp_tac arith_ss []
+QED
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* This proof of Fermat's little theorem is based on the proof given in       *)
+(* Discrete Mathematics with Applications by Susanna Epp, fourth edition,     *)
+(* page 494 Theorem 8.4.10                                                    *)
+(* -------------------------------------------------------------------------- *)
+
+
+Theorem fermats_little_theorem_lemma1:
+  ∀s r a p : num. prime p ⇒ 1 <= r ∧ r < s ∧ s <= p - 1 ⇒ (s * a) MOD p = (r * a) MOD p ⇒ divides p (s * a - r * a) 
+Proof
+
+
+
+Theorem fermats_little_theorem:
+  ∀a p :num. (¬(divides p a) ⇒ (a ** p) MOD p = a)
+Proof
+  rpt strip_tac
+  sg ‘2 * x = 1 * x + 1 * x’
+  full_simp_tac arith_ss []
+QED
