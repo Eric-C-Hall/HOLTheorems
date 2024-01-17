@@ -10,6 +10,7 @@ open whileTheory; (* LEAST *)
 open numLib; (* LEAST_ELIM_TAC *)
 open realTheory;
 open gcdTheory;
+open pairTheory;
 
 (* Copied from tutorial  *)
 Theorem less_add_1:
@@ -148,6 +149,20 @@ Proof
   EVAL_TAC
 QED
 
+assume_tac NPRODUCT_FACT
+
+(*Theorem nproduct_test:
+  nproduct (1n .. 3n) (λm. m) = 6
+Proof
+  EVAL_TAC
+QED*)
+
+Theorem tuple_test:
+  el 1 (1, 2) = 1
+Proof
+  simp[el_DEF]
+  EVAL_TAC
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* This proof of Fermat's little theorem is based on the proof given in       *)
@@ -157,64 +172,41 @@ QED
 
 (* No two choices of a, 2a, 3a ... (p - 1)a are congruent modulo op*)
 
-
-print_match [] “1 MOD n”
-
 Theorem fermats_little_theorem_lemma1:
-  ∀ s r p : num.
+  ∀ s r p a : num.
     prime p ∧ ¬divides p a ∧ 1 <= s ∧ s <= r ∧ r <= (p - 1) ∧
     s * a MOD p = r * a MOD p ⇒ s = r
-Proof:
-  rpt strip_tac
-  >> ‘(s - r) * a MOD p = 0’ by asm_simp_tac arith_ss []
-  >> ‘divides p a ∨ gcd p a = 1’ by metis_tac [P_EUCLIDES, PRIME_GCD]
-  >> full_simp_tac arith_ss [] (* 2 *) >> simp []
-  >- (
-  >> sg ‘divides p a’
-  >> asm_simp_tac arith_ss [compute_divides]
-  >- CCONTR_TAC
-  >> sg ‘divides p (s - r)’ CCONTR_TAC
-
-metis_tac [P_EUCLIDES, PRIME_GCD]
-  sg ‘(s - r) MOD P = 0’
-  sg ‘gcd a p = 1’
-  metis_tac [P_EUCLIDES, PRIME_GCD]
+Proof
+  rpt strip_tac >> gvs[compute_divides]
 QED
 
+Definition FLT_Product_Def:
+  FLT_Product a 0 = 1 ∧ FLT_Product a (SUC n) = a * (SUC n) * FLT_Product a n
+End
 
-Theorem fermats_little_theorem_lemma1:
-  ∀a p : num. prime p ⇒ 0 < a ∧ a < p ⇒
+(* nproduct (1 .. n) (λm. a * m) = nproduct (1 .. n) (λm. m) *)
+
+
 
 Theorem fermats_little_theorem_lemma2:
-  ∀p : num. prime p ⇒ (FACT (p - 1)) MOD p = 1
+  ∀ p a n : num.
+    FLT_Product a (p-1) = FACT (p - 1)
 Proof
   rpt strip_tac
-  >> Induct_on ‘(p - 1) : num’
-  >- (rpt strip_tac >> CCONTR_TAC
-    >> ‘p = 0 ∨ p = 1’ by asm_simp_tac arith_ss []
-    >- assume_tac NOT_PRIME_0
-    >> metis_tac []
-    >- assume_tac NOT_PRIME_1
+  >> Induct_on `p`
+  >- EVAL_TAC
+  >- simp[]
+    >> 
 
->> metis_tac [])
-  >- rpt strip_tac
-  >> ‘FACT 0 = 1’ by EVAL_TAC
-  >> ‘FACT (p - 1) = 1’ by metis_tac []
-  >> metis_tac [ONE_MOD]
-  >> sg ‘1 < p’ full_simp_tac arith_ss []
-  >>
-  >> sg ‘1 MOD p = 1’ by EVAL_TAC
-  >> metis_tac
+Cases_on `p - 1 = 0`
+  >- `p = 1 ∨ p = 0` by (simp[] >> metis_tac [NOT_PRIME_1, NOT_PRIME_0])
+  >- gvs[]
 
->>
->> asm_simp_tac arith_ss [] EVAL_TAC
-  >- rpt strip_tac
-  >> full_simp_tac arith_ss []
+gvs[NOT_PRIME_1, NOT_PRIME_0]
 QED
 
-
 Theorem fermats_little_theorem:
-  ∀a p :num. (prime p ⇒ ¬(divides p a) ⇒ (a ** p) MOD p = a)
+  ∀a p :num. (prime p ∧ ¬(divides p a) ⇒ (a ** p) MOD p = a)
 Proof
   rpt strip_tac
   sg ‘2 * x = 1 * x + 1 * x’
