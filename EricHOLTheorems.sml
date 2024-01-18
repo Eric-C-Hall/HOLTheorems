@@ -168,17 +168,102 @@ QED
 (* This proof of Fermat's little theorem is based on the proof given in       *)
 (* Discrete Mathematics with Applications by Susanna Epp, fourth edition,     *)
 (* page 494 Theorem 8.4.10                                                    *)
+(*                                                                            *)
+(* Goal: for p prime, for a not divisible by p, a ^ p mod p = 1               *)
+(*                                                                            *)
+(* Proof sketch:                                                              *)
+(*                                                                            *)
+(* Consider l1 = [a mod p, 2a mod p, 3a mod p, ... (p-1)a mod p]              *)
+(*                                                                            *)
+(* By Lemma 1 (below), no two elements of this list are equal                 *)
+(*                                                                            *)
+(* Thus, we have                                                              *)
+(*                                                                            *)
+(*                                                                            *)
+(* Thus the identity function is an injection from this list to               *)
+(*   l2 = [1, 2, 3, ..., p-1]                                                 *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* Since these lists are finite and the same size as each other, this         *)
+(*   function is a bijection.  (See Lemma 2)                                  *)
+(*                                                                            *)
+(* Therefore the product of the elements in l1 is equal to the product of the *)
+(* elements in l2 (See Lemma 3)                                               *)
+(*                                                                            *)
+(* Therefore a^(p-1) * (p-1)! mod p = (p-1)! mod p                            *)
+(*                                                                            *)
+(* Therefore a^(p-1) mod p = 1                                                *)
+(*                                                                            *)
+(* QED                                                                        *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* Lemma 1:                                                                   *)
+(* (r * a) mod p = (s * a) mod p, p prime, p does not divide a,               *)
+(*    and 1 <= s <= r <= (p - 1) ==> s = r                                    *)
+(*                                                                            *)
+(* Proof:                                                                     *)
+(* ((r * a) - (s * a)) mod p = 0                                              *)
+(* (r - s) * a mod p = 0                                                      *)
+(* p divides ((r - s) * a)                                                    *)
+(* p divides (r - s) by assumption p prime, p does not divide a               *)
+(* s mod p = r mod p                                                          *)
+(* s = r by assumption 1 <= s <= r <= (p - 1)                                 *)
+(*                                                                            *)
+(* Defintion:                                                                 *)
+(*   is_injection f l1 l2 <=>                                                 *)
+(* End                                                                        *)
+(*                                                                            *)
+(* Definition                                                                 *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* Lemma 2:                                                                   *)
+(*                                                                            *)
+(* if there is an injection from a finite list to another list of the same    *)
+(*   size, then there is a bijection between them                             *)
+(*                                                                            *)
+(* Proof:                                                                     *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* QED                                                                        *)
+(*                                                                            *)
+(* Lemma 3:                                                                   *)
+(*                                                                            *)
+(* if there is a bijection between two lists, then their product is equal     *)
+(*                                                                            *)
+(* Proof                                                                      *)
+(*                                                                            *)
+(* Induct on elements of list 1                                               *)
+(* Base case: if both lists are empty, trivial                                *)
+(* Inductive case: The first element of list 1 is in bijection with some      *)
+(* element of list 2.                                                         *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* QED                                                                        *)
+(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
+
 
 (* No two choices of a, 2a, 3a ... (p - 1)a are congruent modulo op*)
 
 Theorem fermats_little_theorem_lemma1:
   ∀ s r p a : num.
     prime p ∧ ¬divides p a ∧ 1 <= s ∧ s <= r ∧ r <= (p - 1) ∧
-    s * a MOD p = r * a MOD p ⇒ s = r
+    (s * a) MOD p = (r * a) MOD p ⇒ s = r
 Proof
   rpt strip_tac >> gvs[compute_divides]
 QED
+
 
 Definition FLT_Product_Def:
   FLT_Product a 0 = 1 ∧ FLT_Product a (SUC n) = a * (SUC n) * FLT_Product a n
@@ -187,6 +272,14 @@ End
 (* nproduct (1 .. n) (λm. a * m) = nproduct (1 .. n) (λm. m) *)
 
 
+(*For every factor of FACT (p - 1), this is a factor of  FLT_Product
+
+(* The terms are exactly the same but reordered *
+(* For each term in FLT_Product, there is exactly one term in FACT it is equal to*)
+(* For each term in FACT, there is exactly one term in FLT_Product it is equal to *)
+
+(*WTP: Prime factors are exactly the same *)
+(* *)
 
 Theorem fermats_little_theorem_lemma2:
   ∀ p a n : num.
@@ -205,13 +298,24 @@ Cases_on `p - 1 = 0`
 gvs[NOT_PRIME_1, NOT_PRIME_0]
 QED
 
+
+
 Theorem fermats_little_theorem:
-  ∀a p :num. (prime p ∧ ¬(divides p a) ⇒ (a ** p) MOD p = a)
+  ∀a p :num. (prime p ∧ ¬(divides p a) ⇒ (a ** p) MOD p = 1)
 Proof
   rpt strip_tac
   sg ‘2 * x = 1 * x + 1 * x’
 
   full_simp_tac arith_ss []
+QED
+
+(* Suppose we have a function which maps pigeons to pigeonholes.              *)
+(* Suppose there are more pigeons than pigeonholes.                           *)
+(* Then there is at least one pigeonhole which is mapped to by at least two   *)
+(* pigeons.                                                                   *)
+Theorem pigeonhole_principle:
+  ???
+Proof
 QED
 
 val _ = export_theory();
