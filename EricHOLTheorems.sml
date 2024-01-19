@@ -10,7 +10,7 @@ open whileTheory; (* LEAST *)
 open numLib; (* LEAST_ELIM_TAC *)
 open realTheory;
 open gcdTheory;
-open pairTheory;
+open listTheory;
 
 (* Copied from tutorial  *)
 Theorem less_add_1:
@@ -177,19 +177,10 @@ QED
 (*                                                                            *)
 (* By Lemma 1 (below), no two elements of this list are equal                 *)
 (*                                                                            *)
-(* Thus, we have                                                              *)
+(* By Lemma 2 (below), this function is a reordering of [1, 2, ..., (p-1)]    *)
 (*                                                                            *)
-(*                                                                            *)
-(* Thus the identity function is an injection from this list to               *)
-(*   l2 = [1, 2, 3, ..., p-1]                                                 *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* Since these lists are finite and the same size as each other, this         *)
-(*   function is a bijection.  (See Lemma 2)                                  *)
-(*                                                                            *)
-(* Therefore the product of the elements in l1 is equal to the product of the *)
-(* elements in l2 (See Lemma 3)                                               *)
+(* Therefore, the product of the elements in l1 is equal to the product of    *)
+(* the elements in l2 (See Lemma 3)                                           *)
 (*                                                                            *)
 (* Therefore a^(p-1) * (p-1)! mod p = (p-1)! mod p                            *)
 (*                                                                            *)
@@ -211,18 +202,60 @@ QED
 (* s mod p = r mod p                                                          *)
 (* s = r by assumption 1 <= s <= r <= (p - 1)                                 *)
 (*                                                                            *)
-(* Defintion:                                                                 *)
-(*   is_injection f l1 l2 <=>                                                 *)
+(* Definition                                                                 *)
+(*   is_reordering l1 l2 = (len l1 = len l2 /\                                *)
+(*   ∃f.∀i. 1 <= i <= size l1 ==> el i l1 = el (f i) l2)                     *)
 (* End                                                                        *)
 (*                                                                            *)
 (* Definition                                                                 *)
 (*                                                                            *)
-(*                                                                            *)
+(* End                                                                        *)
 (*                                                                            *)
 (* Lemma 2:                                                                   *)
+(* if each element of a list l is unique and within [1, len l],               *)
+(* then it is a reordering of [1, 2, 3, ..., len l]                           *)
 (*                                                                            *)
-(* if there is an injection from a finite list to another list of the same    *)
-(*   size, then there is a bijection between them                             *)
+(* Proof:                                                                     *)
+(* Induct on the list                                                         *)
+(* Base case: empty list is trivially a reordering of the empty list          *)
+(* Inductive step: Consider all elements in the list smaller than len l.      *)
+(*   Only at most one element will be removed. Thus we obtain a sublist       *)
+(*   of length (l - 1) with all elements within [1, len l - 1], and we can    *)
+(*   use the inductive hypothesis.                                            *)
+(*                                                                            *)
+(* Thus, we have a map from every element except one to [1, len l - 1], and   *)
+(*   the element we did not map can be mapped to len l.                       *)
+(*                                                                            *)
+(* Thus, we have obtained a mapping from the list to [1, len l]               *)
+(*                                                                            *)
+(* QED                                                                        *)
+(*                                                                            *)
+(* Lemma 3:                                                                   *)
+(*                                                                            *)
+(* if two lists are a reordering of each other, then their product is equal   *)
+(*                                                                            *)
+(* Proof                                                                      *)
+(*                                                                            *)
+(* Induct on elements of list 1                                               *)
+(* Base case: if both lists are empty, trivial                                *)
+(* Inductive case: Move the first element of list 1 out the front, and move   *)
+(* the corresponding element of list 2 out the front (the ability to do this  *)
+(* is itself a lemma)                                                         *)
+(*                                                                            *)
+(* The remainder of the list is a reordering, so the remaining product is     *)
+(* equal                                                                      *)
+(*                                                                            *)
+(* Thus the product as a whole is equal.                                      *)
+(*                                                                            *)
+(* QED                                                                        *)
+(*                                                                            *)
+(* Lemma 1 has an issue where it requires a subtraction, but dealing with     *)
+(*   subtraction in the natural numbers can be tricky. This motivates the     *)
+(*   following, reworked proof sketch                                         *)
+(*                                                                            *)
+(* Lemma 1:                                                                   *)
+(* (r * a) mod p = (s * a) mod p, p prime, p does not divide a,               *)
+(*    and 1 <= s <= r <= (p - 1) ==> s = r                                    *)
 (*                                                                            *)
 (* Proof:                                                                     *)
 (*                                                                            *)
@@ -230,56 +263,70 @@ QED
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
+(* r * a - s * a = 0                                                          *)
 (*                                                                            *)
-(* QED                                                                        *)
-(*                                                                            *)
-(* Lemma 3:                                                                   *)
-(*                                                                            *)
-(* if there is a bijection between two lists, then their product is equal     *)
-(*                                                                            *)
-(* Proof                                                                      *)
-(*                                                                            *)
-(* Induct on elements of list 1                                               *)
-(* Base case: if both lists are empty, trivial                                *)
-(* Inductive case: The first element of list 1 is in bijection with some      *)
-(* element of list 2.                                                         *)
+(* p |                                                                        *)
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
-(* QED                                                                        *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
+f "asdf"
 
 (* No two choices of a, 2a, 3a ... (p - 1)a are congruent modulo op*)
+
+Theorem DIVIDES_MOD0:
+  ∀a b : num. 0 < b ⇒ a MOD b = 0 ⇒ divides b a
+Proof
+  rpt strip_tac
+  >> gvs[MOD_EQ_0_DIVISOR, divides_def]
+QED
+
+Theorem MOD_MUL:
+  ∀a b m : num. (a * b) MOD m = (a MOD m * b MOD m) MOD m
+Proof
+  
+QED
+
+print_match [] ``(_ + _) MOD _``
 
 Theorem fermats_little_theorem_lemma1:
   ∀ s r p a : num.
     prime p ∧ ¬divides p a ∧ 1 <= s ∧ s <= r ∧ r <= (p - 1) ∧
     (s * a) MOD p = (r * a) MOD p ⇒ s = r
 Proof
-  rpt strip_tac >> gvs[compute_divides]
+  rpt strip_tac
+  (* Here I want to prove that ((r - s) * a) MOD p = 0. It seems like
+     there should be an easy way to do this, but I have to go through
+     a whole bunch of steps to do this. How should I do this? *)
+  >> `((s * a) MOD p) - ((r * a) MOD p) = 0` by gvs[]
+  >> qspecl_then [``] assume_tac MOD_SUB 
+  >> sg `((s * a) - (r * a)) MOD p = 0`
+  >> sg `((r - s) * a) MOD p = 0`
+  >> metis_tac[MOD_SUB, ADD_MOD, ADD_MODULUS_LEFT, ADD_MODULUS_RIGHT]
+  >> qpat_x_assum `_ MOD _ = _ MOD _` kall_tac
+  >> `divides p (s - r)` by gvs[DIVIDES_MOD0] (* DIVIDES_MOD0 defined above *)
+  >> drule DIVIDES_LEQ_OR_ZERO
+  >> strip_tac
+  >> gvs[]
+  >> drule SUB_EQ_0
 QED
 
+print_match [] ``_ MOD _          ``
+
+irule MOD_SUB
 
 Definition FLT_Product_Def:
   FLT_Product a 0 = 1 ∧ FLT_Product a (SUC n) = a * (SUC n) * FLT_Product a n
 End
-
-(* nproduct (1 .. n) (λm. a * m) = nproduct (1 .. n) (λm. m) *)
-
-
-(*For every factor of FACT (p - 1), this is a factor of  FLT_Product
-
-(* The terms are exactly the same but reordered *
-(* For each term in FLT_Product, there is exactly one term in FACT it is equal to*)
-(* For each term in FACT, there is exactly one term in FLT_Product it is equal to *)
-
-(*WTP: Prime factors are exactly the same *)
-(* *)
 
 Theorem fermats_little_theorem_lemma2:
   ∀ p a n : num.
@@ -293,12 +340,10 @@ Proof
 
 Cases_on `p - 1 = 0`
   >- `p = 1 ∨ p = 0` by (simp[] >> metis_tac [NOT_PRIME_1, NOT_PRIME_0])
-  >- gvs[]
+  >- bgvs[]
 
 gvs[NOT_PRIME_1, NOT_PRIME_0]
 QED
-
-
 
 Theorem fermats_little_theorem:
   ∀a p :num. (prime p ∧ ¬(divides p a) ⇒ (a ** p) MOD p = 1)
