@@ -279,8 +279,6 @@ QED
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
-f "asdf"
-
 (* No two choices of a, 2a, 3a ... (p - 1)a are congruent modulo op*)
 
 Theorem DIVIDES_MOD0:
@@ -290,13 +288,76 @@ Proof
   >> gvs[MOD_EQ_0_DIVISOR, divides_def]
 QED
 
-Theorem MOD_MUL:
-  ∀a b m : num. (a * b) MOD m = (a MOD m * b MOD m) MOD m
+(* Is there an easier way to split an iff than creating my own helper thorem? I tried using irule [EQ_IMP_THM] and looking in the documentation for the relevant tactic but I didn't find anything *)
+Theorem IMP_IMP_IMP_IFF:
+  ∀a b : bool. ((a ⇒ b) ∧ (b ⇒ a)) ⇒ (a ⇔ b)
 Proof
-  
+  gvs[EQ_IMP_THM]
 QED
 
-print_match [] ``(_ + _) MOD _``
+(* MODEQ_INTRO_CONG *)
+
+Theorem MOD_SIMPLIFY:
+  ∀a m : num. m > 0 ⇒ ∃a'. a' < m ∧ (a MOD m) = (a' MOD m)
+Proof
+  rpt strip_tac
+  >> qspecl_then [`a`, `m`] assume_tac DA
+  >> gs[]
+  >> qexists `r`
+  >> gs[]
+QED
+
+Theorem MOD_ADDITIVE_INVERSE:
+  ∀a m : num. m > 0 ⇒ ∃a'. (a + a') MOD m = 0 ∧ a' < m
+Proof
+  rpt strip_tac
+  >> qspecl_then [`a`, `m`] assume_tac DA
+  >> gs[]
+  >> Cases_on `r = 0`
+  >- (qexists `0` >> gs[])
+  >> (qexists `m - r` >> gs[])
+QED
+
+Theorem MODEQ_SUB:
+  ∀a b m : num. MODEQ m a b ⇒ MODEQ m (a - b) 0
+Proof
+  rpt strip_tac
+
+  sg `∀a b m : num. a MOD m > b MOD m ⇒ a MOD m = b MOD m ⇒ ((a - b) MOD m = 0)`
+  >- 
+
+
+  Either: b >= a, in which case trivial
+  Or: a > b. Then we have:
+  a + mk = b + nk
+  a + mk = b WLOG
+  (a + mk) - b = 0
+  (a - b) + mk = 0 by LESS_EQ_ADD_SUB
+  
+
+
+  a + mk = b + nk
+
+  a + mk = b WLOG
+
+  (a + mk) - b = 0
+  
+
+
+
+  rpt strip_tac
+  completeInduct_on `b` >> rpt strip_tac
+  >- gvs[]
+  >> 
+
+  rpt strip_tac
+  Cases_on `b >= a`
+  >- (`a - b = 0` by gvs[]
+      >> metis_tac [ZERO_MOD, MOD_0])
+  >-  
+QED
+
+n ``_ =_ ⇒ (_ - _) = 0n``
 
 Theorem fermats_little_theorem_lemma1:
   ∀ s r p a : num.
@@ -320,7 +381,7 @@ Proof
   >> drule SUB_EQ_0
 QED
 
-print_match [] ``_ MOD _          ``
+print_match [] ``_ MOD _``
 
 irule MOD_SUB
 
@@ -340,7 +401,7 @@ Proof
 
 Cases_on `p - 1 = 0`
   >- `p = 1 ∨ p = 0` by (simp[] >> metis_tac [NOT_PRIME_1, NOT_PRIME_0])
-  >- bgvs[]
+  >- gvs[]
 
 gvs[NOT_PRIME_1, NOT_PRIME_0]
 QED
