@@ -310,7 +310,22 @@ Proof
   gvs[EQ_IMP_THM]
 QED
 
-(* MODEQ_INTRO_CONG *)
+(* converse of MODEQ_INTRO_CONG. I feel like the name should be the opposite  *)
+(* of what it is, but I chose the name I chose for consistency  *)
+(* I have found in the past that irule doesn't work with an iff but does      *)
+(* work with an implication, which is why I wrote this.                       *)
+(*                                                                            *)
+(* Looking at the documentation, I think maybe I should try using             *)
+(* iff{LR,RL} theorem. Maybe this would avoid having to write this new        *)
+(* theorem. Upon further inspection, this function is of the form             *)
+(* _ => (_ <=> _), and I think this is why it isn't discovering the inner iff.*)
+(* My attempts to use iffLR and iffRL didn't work, but maybe there's a way    *)
+Theorem MODEQ_ELIM_CONG:
+  ∀n e0 e1. 0 < n ⇒ e0 MOD n = e1 MOD n ⇒ MODEQ n e0 e1
+Proof
+  rpt strip_tac
+  >> simp[MODEQ_NONZERO_MODEQUALITY]
+QED
 
 Theorem MOD_SIMPLIFY:
   ∀a m : num. 0 < m ⇒ ∃a'. a' < m ∧ (a MOD m) = (a' MOD m)
@@ -322,8 +337,8 @@ Proof
   >> gs[]
 QED
 
-Theorem MOD_ADDITIVE_INVERSE:
-  ∀a m : num. 0 < m ⇒ ∃a'. (a + a') MOD m = 0 ∧ a' < m
+Theorem MOD_ADDITIVE_INVERSE_EXISTS:
+  ∀a m : num. 0 < m ⇒ ∃a'. a' < m ∧ (a + a') MOD m = 0
 Proof
   rpt strip_tac
   >> qspecl_then [`a`, `m`] assume_tac DA
@@ -331,6 +346,18 @@ Proof
   >> Cases_on `r = 0`
   >- (qexists `0` >> gs[])
   >> (qexists `m - r` >> gs[])
+QED
+
+Theorem MODEQ_ADDITIVE_INVERSE_EXISTS:
+  ∀a m : num. 0 < m ⇒ ∃a'. a' < m ∧ MODEQ m (a + a') 0
+Proof
+  rpt strip_tac
+  >> qspecl_then [`a`, `m`] assume_tac MOD_ADDITIVE_INVERSE_EXISTS
+  >> gvs[]
+  >> qexists `a'`
+  >> gvs[]
+  >> irule MODEQ_ELIM_CONG
+  >> gvs[]
 QED
 
 Theorem MUL_GREATER_EQ:
@@ -374,105 +401,196 @@ Proof
   >> gvs[]
 QED
 
-n ``_ MOD (m : num) = _ ⇔ _``
-
-(* converse of MODEQ_INTRO_CONG *)
-(* I have found in the past that irule doesn't work with an iff but does      *)
-(* work with an implication, which is why I wrote this.                       *)
-(*                                                                            *)
-(* Looking at the documentation, I think maybe I should try using             *)
-(* iff{LR,RL} theorem. Maybe this would avoid having to write this new        *)
-(* theorem. Upon further inspection, this function is of the form             *)
-(* _ => (_ <=> _), and I think this is why it isn't discovering the inner iff.*)
-(* My attempts to use iffLR and iffRL didn't work, but maybe there's a way    *)
-Theorem MODEQ_ELIM_CONG:
-  ∀n e0 e1. 0 < n ⇒ e0 MOD n = e1 MOD n ⇒ MODEQ n e0 e1
+Theorem MODEQ_SUB_lemma:
+  ∀a b m : num. a < m ⇒ b < m ⇒ MODEQ m a b ⇒ MODEQ m (a - b) 0
 Proof
   rpt strip_tac
-  >> simp[MODEQ_NONZERO_MODEQUALITY]
+  >> irule MODEQ_ELIM_CONG
+  >> simp[]
+  >> `a MOD m = b MOD m` by simp[MODEQ_INTRO_CONG]
+  >> qpat_x_assum `MODEQ _ _ _` kall_tac
+  >> gvs[LESS_MOD]
+QED
+
+Theorem MOD_MODEQ_LEFT:
+  ∀a b m a' : num. 0 < m ∧ MODEQ m a b ∧ a MOD m = a' MOD m ⇒ MODEQ m a' b
+Proof
+  rpt strip_tac
+  >> drule_all MODEQ_ELIM_CONG >> strip_tac
+  >> metis_tac[MODEQ_REFL, MODEQ_SYM, MODEQ_TRANS]
+QED
+
+Theorem MOD_MODEQ_RIGHT:
+  ∀a b m b' : num. 0 < m ∧ MODEQ m a b ∧ b MOD m = b' MOD m ⇒ MODEQ m a b'
+Proof
+  rpt strip_tac
+  >> metis_tac[MOD_MODEQ_LEFT, MODEQ_REFL, MODEQ_SYM, MODEQ_TRANS]
+QED
+
+Theorem MODEQ_SIMPLIFY_LEFT:
+  ∀a b m : num. 0 < m ⇒ MODEQ m a b ⇒ ∃a'. a' < m ∧ (a MOD m) = (a' MOD m) ∧ MODEQ m a' b
+Proof
+  rpt strip_tac
+  >> drule_all MODEQ_INTRO_CONG >> strip_tac
+  >> drule_all MOD_SIMPLIFY >> strip_tac
+  >> pop_assum $ qspec_then `a` assume_tac
+  >> qpat_x_assum `_ MOD _ = _ MOD _` kall_tac
+  >> gs[]
+  >> qexists `a'`
+  >> gs[]
+  >> `a MOD m = a'` by gs[]
+  >> qpat_x_assum `b MOD _ = _` kall_tac
+  >> irule MOD_MODEQ_LEFT
+  >> gs[]
+  >> qexists `a`
+  >> gs[]
+QED
+
+Theorem MODEQ_SIMPLIFY_RIGHT:
+  ∀a b m : num. 0 < m ⇒ MODEQ m a b ⇒ ∃b'. b' < m ∧ (b MOD m) = (b' MOD m) ∧ MODEQ m b' b
+Proof
+  rpt strip_tac
+  >> `MODEQ m b a` by simp[MODEQ_SYM]
+  >> qpat_x_assum `MODEQ m a b` kall_tac
+  >> drule_all MODEQ_SIMPLIFY_LEFT >> strip_tac
+  >> qabbrev_tac `b'=a'` >> pop_assum kall_tac
+  >> qexists `b'`
+  >> gs[]
+  >> irule MOD_MODEQ_LEFT
+  >> gs[]
+  >> qexists `b`
+  >> gs[MODEQ_REFL]
+QED
+
+Theorem MODEQ_SUC:
+  ∀ a b m : num.
+  0 < m ⇒
+  MODEQ m (SUC a) (SUC b) ⇒
+  MODEQ m a b
+Proof
+  rpt strip_tac
+  >> irule MODEQ_ELIM_CONG
+  >> gs[]
+  >> drule_all MODEQ_INTRO_CONG >> strip_tac
+  >> metis_tac[SUC_MOD]
+QED
+
+Theorem MODEQ_ADD_LCANCEL:
+  ∀ a b c m : num.
+    0 < m ⇒
+    MODEQ m (c + a) (c + b) ⇒
+    MODEQ m a b
+Proof
+  rpt strip_tac
+  >> Induct_on `c`
+  >- gs[]
+  >> strip_tac
+  >> drule MODEQ_SUC >> strip_tac
+  >> `∀n. SUC c + n = SUC (c + n)` by gvs[]
+  >> metis_tac[]
+QED
+
+(*
+  Proof sketch of following theorem:
+  (b + b') MOD m = (b - b) MOD m
+  Can add same amount to both sides:
+  (a + (b + b')) MOD m = (a + (b - b)) MOD m
+  ((a + b) + b') MOD m = ((a + b) - b) MOD m
+  (b + (a + b')) MOD m = ((b + a) - b) MOD m
+  (b + (a + b')) MOD m = (b + (a - b)) MOD m (since a > b)
+  Can remove the same amount from both sides: 
+*)
+Theorem MODEQ_SUB_ADDITIVE_INVERSE:
+  ∀a b b' m : num.
+    0 < m ⇒
+    a > b ⇒
+    b' < m ⇒
+    MODEQ m (b + b') 0 ⇒
+    MODEQ m (a - b) (a + b')
+Proof
+  rpt strip_tac
+  >> `(b + (a - b)) MOD m = (b + (a + b')) MOD m` by gs[]
+  >> qspecl_then [`a - b`, `a + b'`, `b`, `m`] assume_tac MODEQ_ADD_LCANCEL
+  >> pop_assum $ drule >> strip_tac
+  >> drule_all MODEQ_ELIM_CONG >> strip_tac
+  >> metis_tac[]
+QED
+
+Theorem MODEQ_UNSIMPLIFY:
+  ∀a b a' b' m : num. 0 < m ⇒ a MOD m = a' MOD m ⇒ b MOD m = b' MOD m ⇒ MODEQ m a' b' ⇒ MODEQ m a b
+Proof
+  rpt strip_tac
+  >> irule MODEQ_ELIM_CONG
+  >> gvs[]
 QED
 
 Theorem MODEQ_SUB:
   ∀a b m : num. 0 < m ⇒ MODEQ m a b ⇒ MODEQ m (a - b) 0
 Proof
   rpt strip_tac
-  >> Cases_on `b >= a`
-  >- (`a - b = 0` by gvs[]
-      >> simp[MODEQ_REFL])
-  >> `a > b` by gvs[]
+  >> qspecl_then [`b`, `m`] assume_tac MODEQ_ADDITIVE_INVERSE_EXISTS
+  >> gs[]
+  >> qabbrev_tac `bInv = a'` >> pop_assum kall_tac
+  >> Cases_on `a > b`
+  >- (`MODEQ m (a + bInv) (b + bInv)` by (irule MODEQ_PLUS_CONG >> gvs[MODEQ_REFL])
+      >> `MODEQ m (a + bInv) 0` by metis_tac[MODEQ_TRANS, MODEQ_SYM, MODEQ_REFL, MODEQ_SUB_ADDITIVE_INVERSE, ADD_COMM]
+      >> qspecl_then [`a`, `b`, `bInv`, `m`] assume_tac MODEQ_SUB_ADDITIVE_INVERSE
+      >> gvs[]
+      >> metis_tac[MODEQ_TRANS, MODEQ_SYM, MODEQ_REFL, MODEQ_SUB_ADDITIVE_INVERSE, ADD_COMM])
+  >> `a - b = 0` by gvs[]
+  >> metis_tac[MODEQ_REFL]
+QED
+
+Theorem MODEQ_0_DIVIDES:
+  ∀ a m : num.
+    0 < m ⇒
+    MODEQ m a 0 ⇒
+    divides m a
+Proof
+  rpt strip_tac
+  >> drule_all MODEQ_INTRO_CONG >> pop_assum kall_tac >> strip_tac
+  >> gvs[]
+  >> irule DIVIDES_MOD0
+  >> gvs[]
+QED
+
+Theorem DIVIDES_MODEQ_0:
+  ∀ a m : num.
+  0 < m ⇒
+  divides m a ⇒
+  MODEQ m a 0
+Proof
+  rpt strip_tac
+  >> qspecl_then [`m`, `a`] assume_tac divides_def
   >> gvs[]
   >> irule MODEQ_ELIM_CONG
   >> gvs[]
-  >> drule MODEQ_INTRO_CONG
-  >> strip_tac
-  >> pop_assum $ qspecl_then [`b`, `a`] assume_tac
-  >> pop_assum drule
-  >> strip_tac
-  >> qpat_x_assum `MODEQ _ _ _` kall_tac
-  >> qspecl_then [`b`, `m`] assume_tac MOD_ADDITIVE_INVERSE
-  >> pop_assum drule
-  >> strip_tac
-  >> qabbrev_tac `b'=a'`
-  >> pop_assum kall_tac
-  >> `a MOD m + b' MOD m = b MOD m + b' MOD m` by gvs[]
-  >> qpat_x_assum `_ MOD _ = _ MOD _` kall_tac
-  >> qspecl_then [`m`] assume_tac MOD_PLUS
-  >> pop_assum drule >> strip_tac
-  >> last_assum $ qspecl_then [`a`, `b'`] assume_tac
-  >> first_x_assum $ qspecl_then [`b`, `b'`] assume_tac
-  >> `(a + b') MOD m = 0` by metis_tac[]
-  >> qpat_x_assum `(_ MOD _ + _ MOD _) = _` kall_tac
-  >> rpt $ qpat_x_assum `(_ MOD _ + _ MOD _) MOD _ = _` kall_tac
-
-assume_tac MOD_PLUS
-  >> PURE_REWRITE_TAC[MOD_PLUS]
-
-n ``$MOD``
-
-  Either: b >= a, in which case trivial
-  Or: a > b. Then we have:
-  a + mk = b + nk
-  a + mk = b WLOG
-  (a + mk) - b = 0
-  (a - b) + mk = 0 by LESS_EQ_ADD_SUB
-  
-
-
-  a + mk = b + nk
-
-  a + mk = b WLOG
-
-  (a + mk) - b = 0
-  
 QED
-
-n ``_ =_ ⇒ (_ - _) = 0n``
 
 Theorem fermats_little_theorem_lemma1:
   ∀ s r p a : num.
     prime p ∧ ¬divides p a ∧ 1 <= s ∧ s <= r ∧ r <= (p - 1) ∧
-    (s * a) MOD p = (r * a) MOD p ⇒ s = r
+    MODEQ p (s * a) (r * a) ⇒ s = r
 Proof
   rpt strip_tac
-  (* Here I want to prove that ((r - s) * a) MOD p = 0. It seems like
-     there should be an easy way to do this, but I have to go through
-     a whole bunch of steps to do this. How should I do this? *)
-  >> `((s * a) MOD p) - ((r * a) MOD p) = 0` by gvs[]
-  >> qspecl_then [``] assume_tac MOD_SUB 
-  >> sg `((s * a) - (r * a)) MOD p = 0`
-  >> sg `((r - s) * a) MOD p = 0`
-  >> metis_tac[MOD_SUB, ADD_MOD, ADD_MODULUS_LEFT, ADD_MODULUS_RIGHT]
-  >> qpat_x_assum `_ MOD _ = _ MOD _` kall_tac
-  >> `divides p (s - r)` by gvs[DIVIDES_MOD0] (* DIVIDES_MOD0 defined above *)
-  >> drule DIVIDES_LEQ_OR_ZERO
-  >> strip_tac
+  >> qspecl_then [`r*a`, `s*a`, `p`] assume_tac MODEQ_SUB
+  >> gvs[MODEQ_SYM]
+  >> qpat_x_assum `MODEQ p (a * r) _` kall_tac
+  >> `MODEQ p (a * r - a * s) 0` by gvs[MODEQ_SYM]
+  >> qpat_x_assum `MODEQ p 0 _` kall_tac
+  >> `0 < p` by gvs[]
+  >> drule_all MODEQ_0_DIVIDES >> pop_assum kall_tac >> pop_assum kall_tac >> strip_tac
+  >> `divides p (a * (r - s))` by gvs[LEFT_SUB_DISTRIB]
+  >> drule_all P_EUCLIDES >> pop_assum kall_tac >> pop_assum kall_tac >> strip_tac
+  >> `0 < p` by gvs[] >> drule_all DIVIDES_MODEQ_0
+  >> pop_assum kall_tac >> pop_assum kall_tac >> strip_tac
+  >> `0 < p` by gvs[] >> drule_all MODEQ_INTRO_CONG
+  >> pop_assum kall_tac >> pop_assum kall_tac >> strip_tac
+  >> `r - s < p` by gvs[] >> drule LESS_MOD
+  >> pop_assum kall_tac >> strip_tac
+  >> `r - s = 0` by gvs[]
   >> gvs[]
-  >> drule SUB_EQ_0
 QED
-
-print_match [] ``_ MOD _``
-
-irule MOD_SUB
 
 Definition FLT_Product_Def:
   FLT_Product a 0 = 1 ∧ FLT_Product a (SUC n) = a * (SUC n) * FLT_Product a n
