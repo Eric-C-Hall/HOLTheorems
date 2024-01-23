@@ -149,21 +149,6 @@ Proof
   EVAL_TAC
 QED
 
-assume_tac NPRODUCT_FACT
-
-(*Theorem nproduct_test:
-  nproduct (1n .. 3n) (λm. m) = 6
-Proof
-  EVAL_TAC
-QED*)
-
-Theorem tuple_test:
-  el 1 (1, 2) = 1
-Proof
-  simp[el_DEF]
-  EVAL_TAC
-QED
-
 (* -------------------------------------------------------------------------- *)
 (* This proof of Fermat's little theorem is based on the proof given in       *)
 (* Discrete Mathematics with Applications by Susanna Epp, fourth edition,     *)
@@ -675,7 +660,13 @@ Proof
   >> 
 QED*)
 
-Theorem FOLDL_MUL_TO_FRONT:
+(* Theorem IS_PERMUTATION_TRANS:
+  ∀l1 l2 l3 : num list.
+    is_permutation l1 l2 ⇒ is_permutation l2 l3 ⇒ is_permutation l1 l3
+Proof
+QED*)
+
+Theorem FOLDL_MUL_FROM_HEAD_TO_FRONT:
   ∀n i : num. ∀l : num list.
     FOLDL ($*) i (n::l) = n * FOLDL ($*) i l
 Proof
@@ -683,30 +674,39 @@ Proof
   (rpt strip_tac
    >> pop_assum $ qspecl_then [`l`, `n`, `i`] assume_tac
    >> gvs[])
-
   >> strip_tac
   >> Induct_on `l` >> rpt strip_tac >> gvs[]
 QED
 
-Theorem
-  ∀l1 : num list. ∀i : num.
-    l1 = 
+Theorem FOLDL_MUL_TO_FRONT:
+  ∀l1 l2 : num list. ∀n : num.
+    FOLDL ($*) 1 (l1 ⧺ n::l2) = n * FOLDL ($*) 1 (l1 ⧺ l2)
 Proof
+  rpt strip_tac
+  >> Induct_on `l1`
+  >- gvs[FOLDL_MUL_FROM_HEAD_TO_FRONT]
+  >> rpt strip_tac
+  >> simp[FOLDL_MUL_FROM_HEAD_TO_FRONT]
 QED
 
-n ``_::_``
-
-n ``_ ⧺ _::_``
+Theorem IS_PERMUTATION_HEAD:
+  ∀l1 l2 : num list.
+    (l1 != []) ⇒
+    (is_permutation l1 l2) ⇒
+    ∃l2' l2'' : num list.
+      l2 = l2' ⧺ ((HEAD l1) :: l2'')
+Proof
+QED
 
 Theorem LIST_PERMUTATION_PRODUCT:
   ∀l1 l2 : num list.
     is_permutation l1 l2 ⇒
-    FOLDL ($*) 1 l1 = FOLDL ($*) 1 l2 
+    FOLDL ($*) 1 l1 = FOLDL ($*) 1 l2
 Proof
   strip_tac
   >> Induct_on `l1` >> rpt strip_tac
   >- gvs[is_permutation_def]
-  >> simp[FOLDL_MUL_TO_FRONT]
+  >> simp[FOLDL_MUL_FROM_HEAD_TO_FRONT]
   >> drule $ iffLR is_permutation_def >> pop_assum kall_tac >> rpt strip_tac
   >> sg ``
 
