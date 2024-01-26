@@ -11,6 +11,9 @@ open numLib; (* LEAST_ELIM_TAC *)
 open realTheory;
 open gcdTheory;
 open listTheory;
+open sortingTheory;
+open pred_setTheory;
+open rich_listTheory;
 
 (* Copied from tutorial  *)
 Theorem less_add_1:
@@ -577,95 +580,6 @@ Proof
   >> gvs[]
 QED
 
-Definition is_permutation_def:
-  is_permutation l1 l2 ⇔
-  (∃perm : num list.
-    (* Permutation must map elements to identical elements *)
-    (∀i : num. i < LENGTH perm ⇒ EL (EL i perm) l1 = EL i l2) ∧
-    (* Permutation may not map two elements to the same element *)
-    (∀x y : num. x < LENGTH perm ⇒ y < LENGTH perm ⇒ ¬(x = y) ⇒ ¬(EL x perm = EL y perm)) ∧
-    (* Permutation must map all elements to some element *)
-    LENGTH perm = LENGTH l1 ∧
-    (* Permutation must be between two lists of the same length *)
-    LENGTH l1 = LENGTH l2
-)
-End
-
-Definition identity_perm_def:
-  (identity_perm 0n = []) ∧
-  (identity_perm (SUC n) = SNOC n (identity_perm n))
-End
-
-Theorem IDENTITY_PERM_LENGTH:
-  ∀n : num.
-  LENGTH (identity_perm n) = n
-Proof
-  rpt strip_tac
-  >> Induct_on `n` >> gvs[identity_perm_def]
-QED
-
-Theorem IDENTITY_PERM_EL:
-  ∀i n : num.
-    i < n ⇒
-    EL i (identity_perm n) = i
-Proof
-  strip_tac >> strip_tac
-  >> `∀i : num. i < n ⇒ EL i (identity_perm n) = i` suffices_by gvs[]
-  >> Induct_on `n`
-  >- gvs[]
-  >> rpt strip_tac
-  >> simp[identity_perm_def]
-  >> Cases_on `i = n`
-  >- (`i = LENGTH (identity_perm i)` by gvs[IDENTITY_PERM_LENGTH]
-      >> gvs[]
-      >> metis_tac[EL_LENGTH_SNOC])
-  >> `i < n` by gvs[]
-  >> gvs[]
-  >> first_x_assum $ qspec_then `i` assume_tac
-  >> gvs[]
-  >> `EL i (SNOC n (identity_perm n)) = EL i (identity_perm n)` suffices_by simp[]
-  >> irule EL_SNOC
-  >> metis_tac[IDENTITY_PERM_LENGTH]
-QED
-
-Theorem IS_PERMUTATION_REFL:
-  ∀l : num list.
-    is_permutation l l
-Proof
-  strip_tac
-  >> irule $ iffRL is_permutation_def
-  >> qexists `identity_perm (LENGTH l)`
-  >> gvs[]
-  >> conj_tac
-  >- (rpt strip_tac
-      >> qspecl_then [`i`, `LENGTH l`] assume_tac IDENTITY_PERM_EL
-      >> gvs[IDENTITY_PERM_LENGTH])
-  >> conj_tac
-  >- (rpt strip_tac
-      >> gvs[IDENTITY_PERM_EL, IDENTITY_PERM_LENGTH])
-  >- gvs[IDENTITY_PERM_LENGTH]
-QED
-
-(*Definition inverse_perm_def:
-  inverse_perm perm*)
-
-
-(*Theorem IS_PERMUTATION_SYM:
-  ∀l1 l2 : num list.
-    is_permutation l1 l2 ⇒ is_permutation l2 l1
-Proof
-  rpt strip_tac
-  >> drule $ iffLR is_permutation_def >> pop_assum kall_tac >> rpt strip_tac
-  >> irule $ iffRL is_permutation_def
-  >> 
-QED*)
-
-(* Theorem IS_PERMUTATION_TRANS:
-  ∀l1 l2 l3 : num list.
-    is_permutation l1 l2 ⇒ is_permutation l2 l3 ⇒ is_permutation l1 l3
-Proof
-QED*)
-
 Theorem FOLDL_MUL_FROM_HEAD_TO_FRONT:
   ∀n i : num. ∀l : num list.
     FOLDL ($*) i (n::l) = n * FOLDL ($*) i l
@@ -678,6 +592,16 @@ Proof
   >> Induct_on `l` >> rpt strip_tac >> gvs[]
 QED
 
+(* ---------------------------------------------------------------------------*)
+(* Initially I was using FOLDL, but as suggested by Michael Norrish, FOLDR    *)
+(* is often  more convenient for proofs because                               *)
+(* FOLDR ($* ) i (l::ls) = l * FOLDR ($* ) i ls, whereas                      *)
+(* FOLDL ($* ) i (l::ls) = FOLDL ($* ) (l*i) ls,                              *)
+(* and so in the case of FOLDL, calculation is performed inside an argument   *)
+(* to the FOLDL function, where it is trapped, whereas in the case of         *)
+(* FOLDR, calculation is done outside the FOLDR function, which is often      *)
+(* more convenient                                                            *)
+(* ---------------------------------------------------------------------------*)
 Theorem FOLDL_MUL_TO_FRONT:
   ∀l1 l2 : num list. ∀n : num.
     FOLDL ($*) 1 (l1 ⧺ n::l2) = n * FOLDL ($*) 1 (l1 ⧺ l2)
@@ -689,54 +613,122 @@ Proof
   >> simp[FOLDL_MUL_FROM_HEAD_TO_FRONT]
 QED
 
-Theorem IS_PERMUTATION_HEAD:
-  ∀l1 l2 : num list.
-    (l1 != []) ⇒
-    (is_permutation l1 l2) ⇒
-    ∃l2' l2'' : num list.
-      l2 = l2' ⧺ ((HEAD l1) :: l2'')
-Proof
-QED
-
-Theorem LIST_PERMUTATION_PRODUCT:
-  ∀l1 l2 : num list.
-    is_permutation l1 l2 ⇒
-    FOLDL ($*) 1 l1 = FOLDL ($*) 1 l2
+Theorem FOLDL_FOLDR_MUL:
+  ∀l1 : num list. ∀i : num.
+    FOLDL ($*) i l1 = FOLDR ($*) i l1
 Proof
   strip_tac
-  >> Induct_on `l1` >> rpt strip_tac
-  >- gvs[is_permutation_def]
-  >> simp[FOLDL_MUL_FROM_HEAD_TO_FRONT]
-  >> drule $ iffLR is_permutation_def >> pop_assum kall_tac >> rpt strip_tac
-  >> sg ``
-
-gvs[]
-
-sg `h * FOLDL $* 1n l1 = FOLDL $* 1n l2` suffices_by gvs[]
+  >> Induct_on `l1`
+  >- gvs[]
+  >> rpt strip_tac
+  >> gvs[FOLDL_MUL_FROM_HEAD_TO_FRONT]
 QED
 
-n ``$FOLDL``
+Theorem PERM_FOLDR_MUL:
+  ∀l1 l2 : num list. PERM l1 l2 ⇒
+          FOLDR $* 1 l1 = FOLDR $* 1 l2
+Proof
+  Induct_on ‘PERM’ >> rpt strip_tac >> simp[]
+QED 
 
-Definition FLT_Product_Def:
-  FLT_Product a 0 = 1 ∧ FLT_Product a (SUC n) = a * (SUC n) * FLT_Product a n
-End
+(* PERM_TO_APPEND_SIMPS *)
+
+Theorem FILTER_IDENTITY_IMPLIES_INVERSE_FILTER_EMPTY:
+  ∀l1 : α list.
+  ∀ f : α -> bool.
+  FILTER f l1 = l1 ⇒ FILTER (λx. ¬(f x)) l1 = []
+Proof
+  rpt strip_tac
+  >> Induct_on `l1`
+  >- gvs[FILTER]
+  >> rpt strip_tac
+  >> gvs[FILTER]
+  >> Cases_on `f h` >> gvs[FILTER, LENGTH_FILTER_LESS]
+  >> `LENGTH (FILTER f (h::l1)) < LENGTH (h::l1)` by gvs[LENGTH_FILTER_LESS]
+  >> gvs[]
+QED
+
+Theorem EVERY_WEAKEN:
+  ∀P Q : α -> bool.
+  ∀ls : α list.
+  (∀a : α. P a ⇒ Q a) ⇒
+  EVERY P ls ⇒
+  EVERY Q ls
+Proof
+  rpt strip_tac
+  >> Induct_on `ls` >> gvs[]
+QED  
+
+Theorem LESS_LENGTH_PERM_COUNT_LIST:
+  ∀l1 : num list.
+    FILTER (λx. x < (LENGTH l1)) l1 = l1 ⇒
+    ALL_DISTINCT l1 ⇒
+    PERM l1 (COUNT_LIST (LENGTH l1))
+Proof
+  rpt strip_tac
+  >> gvs[PERM_DEF]
+  >> rpt strip_tac
+  >> drule FILTER_IDENTITY_IMPLIES_INVERSE_FILTER_EMPTY >> strip_tac
+  >> Cases_on `x < LENGTH l1` >> gvs[]
+  >- (sg `FILTER ($= x) (COUNT_LIST (LENGTH l1))`
+
+sg `FILTER ($= x) l1 = [x]`
+      >- irule $ iffLR ALL_DISTINCT_FILTER
+      >> gvs[]
+      >> MEM
+  >- (gvs[FILTER_EQ_NIL, EVERY_DEF]
+      >> `∀n : num. n < LENGTH l1 ⇒ ¬(n = x)` by gvs[]
+      >> qspecl_then [`λn. n < LENGTH l1`, `λn. ¬(x = n)`, `l1`] assume_tac EVERY_WEAKEN
+      >> gvs[FILTER_EQ_NIL]
+      >> `FILTER ($= x) l1 = []` by gvs[FILTER_EQ_NIL]
+      >> gvs[]
+      >> last_x_assum kall_tac >> last_x_assum kall_tac >> last_x_assum kall_tac >> first_x_assum kall_tac >> first_x_assum kall_tac
+      >> `∀n : num. n < LENGTH l1 ⇒ ¬(n = x)` by gvs[]
+      >> qspecl_then [`λn. n < LENGTH l1`, `λn. ¬(x = n)`, `COUNT_LIST (LENGTH l1)`] assume_tac EVERY_WEAKEN
+      >> gvs[]
+      >> qspecl_then [`λn. n < LENGTH l1`, `LENGTH l1`] assume_tac (iffRL every_count_list)
+      >> gvs[]
+      >> pop_assum kall_tac
+      >> irule (iffRL FILTER_EQ_NIL)
+      >> gvs[])
+
+
+
+gvs[FILTER_NEQ_ID, FILTER_EQ_ID]
+  >> qspecl_then [`λx'. ¬(x' < LENGTH l1)`, `l1`] assume_tac FILTER_EQ_ID
+  drule $ iffLR FILTER_EQ_ID >> strip_tac
+  >> drule $ iffRL FILTER_NEQ_ID
+
+simp [ALL_DISTINCT_FILTER]
+
+FILTER_NEQ_ID
+FILTER_EQ_ID
+
+FILTER_EQ_NIL
+
+PERM_SPLIT
+PERM_SPLIT_IF
+
+
+
+  >- sg `l1 = []`
+  >- FILTER_DEF gvs[]
+
+sg `FILTER ($= x) [] = FILTER ($= x) (COUNT_LIST (LENGTH []))` by gvs[COUNT_LIST_def]
+QED
 
 Theorem fermats_little_theorem_lemma2:
   ∀ p a n : num.
-    FLT_Product a (p-1) = FACT (p - 1)
+    prime p ⇒
+    PERM (GENLIST (λx. a * (SUC x) MOD p) (p - 1)) (GENLIST SUC (p - 1))
 Proof
   rpt strip_tac
-  >> Induct_on `p`
-  >- EVAL_TAC
-  >- simp[]
-    >> 
-
-Cases_on `p - 1 = 0`
-  >- `p = 1 ∨ p = 0` by (simp[] >> metis_tac [NOT_PRIME_1, NOT_PRIME_0])
-  >- gvs[]
-
-gvs[NOT_PRIME_1, NOT_PRIME_0]
+  >> Induct_on `PERM`
 QED
+
+
+
+PERM_BIJ_IFF
 
 Theorem fermats_little_theorem:
   ∀a p :num. (prime p ∧ ¬(divides p a) ⇒ (a ** p) MOD p = 1)
@@ -745,15 +737,6 @@ Proof
   sg ‘2 * x = 1 * x + 1 * x’
 
   full_simp_tac arith_ss []
-QED
-
-(* Suppose we have a function which maps pigeons to pigeonholes.              *)
-(* Suppose there are more pigeons than pigeonholes.                           *)
-(* Then there is at least one pigeonhole which is mapped to by at least two   *)
-(* pigeons.                                                                   *)
-Theorem pigeonhole_principle:
-  ???
-Proof
 QED
 
 val _ = export_theory();
