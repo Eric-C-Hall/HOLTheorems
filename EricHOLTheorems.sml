@@ -659,63 +659,164 @@ Proof
   >> Induct_on `ls` >> gvs[]
 QED  
 
+Theorem FILTER_COUNT_LIST:
+  ∀x l : num.
+  FILTER ($= x) (COUNT_LIST l) = if x < l then [x] else []
+Proof
+  rpt strip_tac
+  >> Induct_on `l`
+  >- gvs[COUNT_LIST_def]
+  >> Cases_on `x < SUC l` >> gvs[COUNT_LIST_SNOC, FILTER_SNOC]
+  >> Cases_on `x = l` >> gvs[]
+QED
+
+Theorem FINITE_SURJ_BIJ_EXISTS:
+  ∀s : α -> bool.
+  ∀t : β -> bool.
+  FINITE s ⇒
+  CARD s = CARD t ⇒
+  (∃ f : α -> β. SURJ f s t) ⇒
+  ∃ g : α -> β.
+  BIJ g s t
+Proof
+  rpt strip_tac
+  >> drule FINITE_SURJ_BIJ >> strip_tac
+  >> pop_assum $ qspecl_then [`t`, `f`] assume_tac
+  >> gvs[]
+  >> qexists `f`
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If two finite sets have the same cardinality, than if there is an          *)
+(* injection between them, there must be a bijection between them.            *)
+(*                                                                            *)
+(* Proof sketch:                                                              *)
+(* By BIJ_SYM, it is sufficient to show the existence of a bijection in the   *)
+(*   opposite direction.                                                      *)
+(* By FINITE_SURJ_BIJ, it is sufficient to show that there is a surjection    *)
+(*   in the opposite direction                                                *)
+(* By inj_surj, if there is an injection in one direction then there is a     *)
+(*   surjection in the opposite direction                                     *)
+(* QED.                                                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem FINITE_INJ_BIJ_EXISTS:
+  ∀f : α -> β.
+  ∀s : α -> bool.
+  ∀t : β -> bool.
+  FINITE s ⇒
+  FINITE t ⇒
+  CARD s = CARD t ⇒
+  INJ f s t ⇒
+  (∃g : α -> β. BIJ g s t)
+Proof
+  rpt strip_tac
+  >> qspecl_then [`s`, `t`] irule (iffRL BIJ_SYM)
+  >> irule FINITE_SURJ_BIJ_EXISTS
+  >> gvs[]
+  >> drule inj_surj
+  >> strip_tac
+  >- (qexists `arb` >> gvs[SURJ_EMPTY])
+  >> qexists `f'` >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Unfortunately, FINITE_INJ_BIJ_EXISTS turned out not to be good enough      *)
+(* because we needed that the initial injective function was bijective, not   *)
+(* just that there existed a bijective function. Thus, we use a different     *)
+(* method of proof that allows us to prove that the initial injective         *)
+(* function is bijective, not just that there exists a bijection.             *)
+(* -------------------------------------------------------------------------- *)
+(* Proof sketch:                                                              *)
+(* By INJ_IMAGE_BIJ, f is bijective on its image.                             *)
+(* Its image has CARD s = CARD t, and is a finite subset of t, therefore it   *)
+(* equals t. QED.                                                             *)
+(* -------------------------------------------------------------------------- *)
+
+Theorem FINITE_INJ_BIJ:
+  ∀f : α -> β.
+  ∀s : α -> bool.
+  ∀t : β -> bool.
+  FINITE s ⇒
+  FINITE t ⇒
+  CARD s = CARD t ⇒
+  INJ f s t ⇒
+  BIJ f s t
+Proof
+  rpt strip_tac
+  >> sg `BIJ f s (IMAGE f s)`
+  >- (qspecl_then [`s`, `f`] assume_tac INJ_IMAGE_BIJ
+      >> pop_assum irule
+      >> qexists `t`
+      >> gvs[])
+  >> sg `(IMAGE f s) ⊆ t`
+  >- (drule $ iffLR INJ_DEF >> strip_tac
+      >> pop_assum kall_tac
+      >> irule $ iffRL SUBSET_DEF
+      >> rpt strip_tac
+      >> gvs[IMAGE_DEF])
+  >> qspecl_then [`(IMAGE f s)`] assume_tac SUBSET_EQ_CARD
+  >> `FINITE (IMAGE f s)` by gvs[IMAGE_FINITE]
+  >> gvs[]
+  >> pop_assum $ qspec_then `t` assume_tac
+  >> gvs[]
+  >> sg `IMAGE f s = t`
+  >- (pop_assum irule
+      >> drule_all INJ_CARD_IMAGE_EQ >> strip_tac
+      >> gvs[])
+  >> gvs[]
+QED
+
+Theorem MAP_EL_COUNT_LIST:
+  ∀ls : α list.
+  MAP (λn. EL n ls) (COUNT_LIST (LENGTH ls)) = ls
+Proof
+  gvs[GENLIST_ID, MAP_COUNT_LIST]
+QED
+
 Theorem LESS_LENGTH_PERM_COUNT_LIST:
   ∀l1 : num list.
-    FILTER (λx. x < (LENGTH l1)) l1 = l1 ⇒
+    EVERY (λx. x < (LENGTH l1)) l1 ⇒
     ALL_DISTINCT l1 ⇒
     PERM l1 (COUNT_LIST (LENGTH l1))
 Proof
   rpt strip_tac
-  >> gvs[PERM_DEF]
-  >> rpt strip_tac
-  >> drule FILTER_IDENTITY_IMPLIES_INVERSE_FILTER_EMPTY >> strip_tac
-  >> Cases_on `x < LENGTH l1` >> gvs[]
-  >- (sg `FILTER ($= x) (COUNT_LIST (LENGTH l1))`
-
-sg `FILTER ($= x) l1 = [x]`
-      >- irule $ iffLR ALL_DISTINCT_FILTER
-      >> gvs[]
-      >> MEM
-  >- (gvs[FILTER_EQ_NIL, EVERY_DEF]
-      >> `∀n : num. n < LENGTH l1 ⇒ ¬(n = x)` by gvs[]
-      >> qspecl_then [`λn. n < LENGTH l1`, `λn. ¬(x = n)`, `l1`] assume_tac EVERY_WEAKEN
-      >> gvs[FILTER_EQ_NIL]
-      >> `FILTER ($= x) l1 = []` by gvs[FILTER_EQ_NIL]
-      >> gvs[]
-      >> last_x_assum kall_tac >> last_x_assum kall_tac >> last_x_assum kall_tac >> first_x_assum kall_tac >> first_x_assum kall_tac
-      >> `∀n : num. n < LENGTH l1 ⇒ ¬(n = x)` by gvs[]
-      >> qspecl_then [`λn. n < LENGTH l1`, `λn. ¬(x = n)`, `COUNT_LIST (LENGTH l1)`] assume_tac EVERY_WEAKEN
-      >> gvs[]
-      >> qspecl_then [`λn. n < LENGTH l1`, `LENGTH l1`] assume_tac (iffRL every_count_list)
-      >> gvs[]
-      >> pop_assum kall_tac
-      >> irule (iffRL FILTER_EQ_NIL)
-      >> gvs[])
-
-
-
-gvs[FILTER_NEQ_ID, FILTER_EQ_ID]
-  >> qspecl_then [`λx'. ¬(x' < LENGTH l1)`, `l1`] assume_tac FILTER_EQ_ID
-  drule $ iffLR FILTER_EQ_ID >> strip_tac
-  >> drule $ iffRL FILTER_NEQ_ID
-
-simp [ALL_DISTINCT_FILTER]
-
-FILTER_NEQ_ID
-FILTER_EQ_ID
-
-FILTER_EQ_NIL
-
-PERM_SPLIT
-PERM_SPLIT_IF
-
-
-
-  >- sg `l1 = []`
-  >- FILTER_DEF gvs[]
-
-sg `FILTER ($= x) [] = FILTER ($= x) (COUNT_LIST (LENGTH []))` by gvs[COUNT_LIST_def]
+  >> sg `INJ (λn. EL n l1) (count (LENGTH l1)) (count (LENGTH l1))`
+  >- (gvs[INJ_DEF]
+      >- (conj_tac
+          >- (rpt strip_tac
+              >> drule $ iffLR EVERY_EL >> rpt strip_tac
+              >> pop_assum $ qspec_then `n` assume_tac
+              >> gvs[])
+          >- (rpt strip_tac
+              >> qspecl_then [`l1`] assume_tac EL_ALL_DISTINCT_EL_EQ
+              >> gvs[])))
+  >> `FINITE (count (LENGTH l1))` by gvs[FINITE_COUNT]
+  >> qspecl_then [`λn. EL n l1`, `count (LENGTH l1)`, `count (LENGTH l1)`] assume_tac FINITE_INJ_BIJ
+  >> gvs[]
+  >> qspecl_then [`λn. EL n l1`, `count (LENGTH l1)`, `count (LENGTH l1)`] assume_tac PERM_BIJ_SET_TO_LIST
+  >> gvs[]
+  >> `PERM (SET_TO_LIST (count (LENGTH l1))) (COUNT_LIST (LENGTH l1))` by gvs[PERM_SET_TO_LIST_count_COUNT_LIST]
+  >> `PERM (MAP (λn. EL n l1) (SET_TO_LIST (count (LENGTH l1)))) (MAP (λn. EL n l1) (COUNT_LIST (LENGTH l1)))` by gvs[PERM_MAP]
+  >>metis_tac[PERM_REFL, PERM_SYM, PERM_TRANS, MAP_EL_COUNT_LIST]
 QED
+
+(* --- Old proof attempt for LESS_LENTH_PERM_COUNT_LIST
+  >> sg `∃f : num -> num. INJ f (count (LENGTH l1)) (set l1)` 
+  >- (qexists `λn. EL n l1`
+      >> irule $ iffRL INJ_DEF
+      >> rpt strip_tac
+      >- gvs[ALL_DISTINCT_EL_IMP]
+      >> gvs[MEM_EL]
+      >> qexists `x`
+      >> gvs[])
+  >> `FINITE (count (LENGTH l1))` by gvs[FINITE_COUNT]
+  >> `FINITE (set l1)` by gvs[FINITE_LIST_TO_SET]
+  >> `CARD (set l1) = CARD(count (LENGTH l1))` by gvs[CARD_COUNT, ALL_DISTINCT_CARD_LIST_TO_SET]
+  >> qspecl_then [`f`, `count (LENGTH l1)`, `set l1`] assume_tac FINITE_INJ_BIJ
+  >> gvs[]
+  >> qspecl_then [`f`, `count (LENGTH l1)`, `count (LENGTH l1)`] assume_tac PERM_BIJ_SET_TO_LIST
+  >> gvs[]*)
 
 Theorem fermats_little_theorem_lemma2:
   ∀ p a n : num.

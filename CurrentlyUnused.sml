@@ -145,3 +145,55 @@ Proof
   >> rpt strip_tac
   >> simp[FOLDL_MUL_FROM_HEAD_TO_FRONT]
 QED
+
+(* 
+Theorem CARD_0_FINITE:
+  ∀s : α -> bool.
+  CARD s = 0 ⇒ FINITE s
+Proof
+  Cases_on `CARD`
+
+  rpt strip_tac
+  >> irule $ iffRL FINITE_DEF
+  >> rpt strip_tac
+
+  >> Cases_on `s` >> gvs[]
+  >> gvs[CARD_INSERT]
+  >> strip_tac
+  gvs[]
+  >- gvs[]
+QED
+
+Theorem CARD_0_EMPTY:
+  ∀s : α -> bool.
+  CARD s = 0 ⇒ s = ∅
+Proof
+QED*)
+
+(* -------------------------------------------------------------------------- *)
+(* Since every element of l1 is less than length l1, we have                  *)
+(* l1 is a subset of [0, ..., (length l1) - 1]                                *)
+(*                                                                            *)
+(* Consider EL [0, ... l - 1] to [0, ... l - 1] - [x]. Since CARD t < CARD s  *)
+(* we can use pred_setTheory.PHP (the pigeonhole principle for sets) to prove *)
+(* that f is not injective.                                                   *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+(*Theorem EVERY_LESS_LENGTH_ALL_DISTINCT_IMPLIES_MEM:
+  ∀x : num.
+  EVERY (λx. x < (LENGTH l1)) l1 ⇒
+  ALL_DISTINCT l1 ⇒
+  x < (LENGTH l1) ⇒
+  MEM x l1
+Proof
+  rpt strip_tac >>
+  qspecl_then [``, `λx : num. x < `] assume_tac FINITE_INJ_BIJ
+
+FILTER (λx. )
+
+  (λi : num. EL i l1)
+
+  (* not member implies identity has smaller domain
+  
+QED*)
