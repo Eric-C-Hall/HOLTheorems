@@ -14,6 +14,7 @@ open listTheory;
 open sortingTheory;
 open pred_setTheory;
 open rich_listTheory;
+open combinTheory;
 
 (* Copied from tutorial  *)
 Theorem less_add_1:
@@ -555,9 +556,10 @@ Proof
   >> gvs[]
 QED
 
-Theorem fermats_little_theorem_lemma1:
+Theorem fermats_little_theorem_lemma1_helper:
   ∀ s r p a : num.
-    prime p ∧ ¬divides p a ∧ 1 <= s ∧ s <= r ∧ r <= (p - 1) ∧
+    prime p ∧ ¬divides p a ∧
+    s < r ∧ r <= (p - 1) ∧
     MODEQ p (s * a) (r * a) ⇒ s = r
 Proof
   rpt strip_tac
@@ -578,6 +580,38 @@ Proof
   >> pop_assum kall_tac >> strip_tac
   >> `r - s = 0` by gvs[]
   >> gvs[]
+QED
+
+Theorem fermats_little_theorem_lemma1:
+  ∀ s r p a : num.
+  prime p ∧ ¬divides p a ∧
+  s <= (p - 1) ∧
+  r <= (p - 1) ∧
+  MODEQ p (s * a) (r * a) ⇒
+  s = r
+Proof
+  rpt strip_tac
+  >> Cases_on `s < r`
+  >- (qspecl_then [`s`, `r`, `p`, `a`] assume_tac fermats_little_theorem_lemma1_helper
+      >> gvs[])
+  >> Cases_on `s > r`
+  >- (qspecl_then [`r`, `s`, `p`, `a`] assume_tac fermats_little_theorem_lemma1_helper
+      >> gvs[MODEQ_SYM])
+  >> gvs[]
+QED
+
+Theorem MODEQ_PRIME_NOT_DIVIDES:
+  ∀s p a : num.
+  prime p ∧ ¬(divides p a) ∧
+  MODEQ p (s * a) 0 ⇒
+  MODEQ p s 0
+Proof
+  rpt strip_tac
+  >> `¬(p = 0)` by metis_tac[NOT_PRIME_0]
+  >> `0 < p` by gvs[]
+  >> drule_all MODEQ_0_DIVIDES >> strip_tac
+  >> drule_all P_EUCLIDES >> strip_tac
+  >> gvs[DIVIDES_MODEQ_0]
 QED
 
 Theorem FOLDL_MUL_FROM_HEAD_TO_FRONT:
@@ -776,7 +810,7 @@ QED
 
 Theorem LESS_LENGTH_PERM_COUNT_LIST:
   ∀l1 : num list.
-    EVERY (λx. x < (LENGTH l1)) l1 ⇒
+    EVERY (λn. n < (LENGTH l1)) l1 ⇒
     ALL_DISTINCT l1 ⇒
     PERM l1 (COUNT_LIST (LENGTH l1))
 Proof
@@ -818,23 +852,151 @@ QED
   >> qspecl_then [`f`, `count (LENGTH l1)`, `count (LENGTH l1)`] assume_tac PERM_BIJ_SET_TO_LIST
   >> gvs[]*)
 
-Theorem fermats_little_theorem_lemma2:
-  ∀ p a n : num.
-    prime p ⇒
-    PERM (GENLIST (λx. a * (SUC x) MOD p) (p - 1)) (GENLIST SUC (p - 1))
+(* Not sure what the best way to handle the contrapositive is, but this works.*)
+Theorem contrapositive:
+  ∀a b : bool.
+  (a ⇒ b) ⇒ (¬b ⇒ ¬a)
 Proof
-  rpt strip_tac
-  >> Induct_on `PERM`
+  gvs[]
 QED
 
+(* MODEQ_THM doesn't use a forall which makes qspecl_then not work on it.
+   This version has a forall. *)
+Theorem MODEQ_THM_FORALL:
+  ∀n m1 m2 : num.
+  MODEQ n m1 m2 ⇔ (n = 0 ∧ m1 = m2) ∨ (0 < n ∧ m1 MOD n = m2 MOD n)
+Proof
+  rpt strip_tac
+  >> gvs[MODEQ_THM]
+QED
 
+Theorem fermats_little_theorem_lemma2:
+  ∀ p a : num.
+    prime p ⇒
+    ¬(divides p a) ⇒
+    PERM (GENLIST (λn. (a * (SUC n)) MOD p) (p - 1)) (GENLIST SUC (p - 1))
+Proof
+  rpt strip_tac
+  >> `GENLIST SUC (p - 1) = MAP SUC (COUNT_LIST (p - 1))` by gvs[MAP_COUNT_LIST]
+  >> sg `EVERY (λn. n < p) (GENLIST (λn. (a * (SUC n)) MOD p) (p - 1))`
+  >- (irule $ iffRL EVERY_EL >> rpt strip_tac >> gvs[])
+  >> sg `ALL_DISTINCT (GENLIST (λn. (a * (SUC n)) MOD p) (p - 1))`
+  >- (irule $ iffRL EL_ALL_DISTINCT_EL_EQ
+      >> rpt strip_tac
+      >> gvs[]
+      >> irule IMP_ANTISYM_AX
+      >> conj_tac >> gvs[]
+      >> qspecl_then [`SUC n1`, `SUC n2`, `p`, `a`] assume_tac fermats_little_theorem_lemma1
+      >> gvs[]
+      >> strip_tac
+      >> first_x_assum irule
+      >> gvs[MODEQ_THM])
+  >> qmatch_goalsub_abbrev_tac `PERM l1 l2`
+  >> `PERM (MAP (λx : num. x - 1) l1) (MAP (λx : num. x - 1) l2)` suffices_by
+     (strip_tac
+      >>qspecl_then [`λx : num. x + 1`] drule PERM_MAP
+      >> pop_assum kall_tac >> strip_tac
+      >> gvs[(Ntimes MAP_MAP_o 2)]
+      >> qmatch_goalsub_abbrev_tac `PERM l1 l2`
+      >> `∀l : num list. ¬(MEM 0 l) ⇒ MAP ((λx : num. x + 1) ∘ (λx. x - 1)) l = l` by (rpt strip_tac >> Induct_on `l` >> gvs[])
+      >> sg `¬(MEM 0 l1)`
+      >- (qspecl_then [`l1`, `0`] assume_tac (iffLR MEM_EL)
+          >> drule contrapositive >> pop_assum kall_tac
+          >> strip_tac >> pop_assum irule
+          >> rpt strip_tac
+          >> unabbrev_all_tac
+          >> simp[EL_GENLIST]
+          >> rfs[EL_GENLIST]
+          >> `MODEQ p (a * SUC n) 0` by gvs[MODEQ_THM]
+          >> qspecl_then [`SUC n`, `p`, `a`] assume_tac MODEQ_PRIME_NOT_DIVIDES
+          >> gvs[]
+          >> drule $ iffLR MODEQ_THM
+          >> rpt strip_tac
+          >- gvs[NOT_PRIME_0]
+          >> `SUC n < p` by gvs[]
+          >> gvs[LESS_MOD])
+      >> sg `¬(MEM 0 l2)`
+      >- (qspecl_then [`l2`, `0`] assume_tac (iffLR MEM_EL)
+          >> drule contrapositive >> pop_assum kall_tac
+          >> strip_tac >> pop_assum irule
+          >> rpt strip_tac
+          >> unabbrev_all_tac
+          >> `n < (p - 1)` by gvs[LENGTH_COUNT_LIST]
+          >> gvs[el_map_count])
+      >> metis_tac[])
+  >> `MAP (λx : num. x - 1) l2 = COUNT_LIST (p - 1)` by gvs[MAP_MAP_o, o_DEF]
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac `PERM l3 _`
+  >> `PERM l3 (COUNT_LIST (LENGTH l3))` suffices_by
+     (`LENGTH l3 = p - 1` suffices_by metis_tac[]
+      >> unabbrev_all_tac
+      >> gvs[LENGTH_MAP, LENGTH_GENLIST])
+  >> irule LESS_LENGTH_PERM_COUNT_LIST
+  >> sg `EVERY (λn. n > 0) l1`
+  >- (irule $ iffRL EVERY_EL
+      >> rpt strip_tac
+      >> simp[Abbr `l1`]
+      >> gvs[EL_GENLIST]
+      >> `¬(MODEQ p (a * SUC n) 0)` suffices_by
+         (strip_tac
+          >> qspecl_then [`p`, `(a * SUC n)`, `0`] assume_tac (iffRL MODEQ_THM_FORALL)
+          >> drule contrapositive >> pop_assum kall_tac >> strip_tac
+          >> gvs[])
+      >> CCONTR_TAC
+      >> gvs[]
+      >> `MODEQ p (SUC n) 0` by metis_tac[MODEQ_PRIME_NOT_DIVIDES, MULT_COMM]
+      >> `SUC n < p` by gvs[]
+      >> gvs[MODEQ_THM, LESS_MOD])
+  >> conj_tac
+  >- (simp[Abbr `l3`]
+      >> irule ALL_DISTINCT_MAP_INJ
+      >> gvs[]
+      >> rpt strip_tac
+      >> `∀n : num. MEM n l1 ⇒ n > 0` by gvs[EVERY_MEM]
+      >> `x > 0 ∧ y > 0` by gvs[]
+      >> gvs[CANCEL_SUB])
+  >> gvs[Abbr `l3`]
+  >> gvs[EVERY_MAP]
+  >> sg `LENGTH l1 = (p - 1)`
+  >- (unabbrev_all_tac
+      >> gvs[LENGTH_GENLIST])
+  >> gvs[]
+  >> `¬(p = 0) ∧ ¬(p = 1)` by metis_tac[NOT_PRIME_0, NOT_PRIME_1]
+  >> gvs[]
+QED
 
-PERM_BIJ_IFF
+Theorem FOLDR_MUL_GENLIST_SUC:
+  ∀n : num.
+  FOLDR ($* ) 1n (GENLIST SUC n) = FACT n
+Proof
+  rpt strip_tac
+  >> Induct_on `n` >> gvs[]
+  >- EVAL_TAC
+  >> gvs[GENLIST]
+  >~ [`FOLDR _ _ l1`]
+  gvs[FOLDL_FOLDR_MUL]
+  >> 
+QED
 
 Theorem fermats_little_theorem:
   ∀a p :num. (prime p ∧ ¬(divides p a) ⇒ (a ** p) MOD p = 1)
 Proof
   rpt strip_tac
+  >> drule_all fermats_little_theorem_lemma2
+  >> qmatch_goalsub_abbrev_tac `PERM l1 l2 ⇒ _`
+  >> strip_tac
+  >> `FOLDR ($* ) 1 l1 = FOLDR ($* ) 1 l2` by gvs[PERM_FOLDR_MUL]
+  >> qmatch_asmsub_abbrev_tac `m1 = m2`
+  >> sg `m2 = FACT p`
+  >- (`SUC (p - 1) = p` by
+         (`(p - 1) + 1 = p` suffices_by gvs[]
+          >> irule SUB_ADD
+          >> `¬(p = 0)` by metis_tac[NOT_PRIME_0]
+          >> gvs[])
+      >>
+      
+  >> gvs[]
+  >> sg ``
   sg ‘2 * x = 1 * x + 1 * x’
 
   full_simp_tac arith_ss []
