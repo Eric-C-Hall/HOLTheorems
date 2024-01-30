@@ -965,41 +965,81 @@ Proof
   >> gvs[]
 QED
 
-Theorem FOLDR_MUL_GENLIST_SUC:
+Theorem FOLDR_MUL_GENLIST_FACT:
   ∀n : num.
   FOLDR ($* ) 1n (GENLIST SUC n) = FACT n
 Proof
   rpt strip_tac
   >> Induct_on `n` >> gvs[]
   >- EVAL_TAC
+  >> qmatch_goalsub_abbrev_tac `FOLDR _ _ l1`
+  >> `FOLDL $* 1 l1 = FACT (SUC n)` suffices_by gvs[FOLDL_FOLDR_MUL]
+  >> unabbrev_all_tac
   >> gvs[GENLIST]
-  >~ [`FOLDR _ _ l1`]
-  gvs[FOLDL_FOLDR_MUL]
-  >> 
+  >> gvs[FOLDL_SNOC]
+  >> gvs[FOLDL_FOLDR_MUL]
+  >> gvs[FACT, MULT_COMM]
+QED
+
+(* If we take the modulo both before and after multiplying a list of numbers
+   together, this is equivalent to just taking the modulo after multiplying
+   the numbers together *)
+Theorem mod_list_product:
+  ∀p : num.
+  ∀l1 : num list.
+  p > 0 ⇒
+  MODEQ p (FOLDR $* 1 (MAP (λn : num. n MOD p) l1)) (FOLDR $* 1 l1) 
+Proof
+  rpt strip_tac
+  >> gvs[MODEQ_THM]
+  >> Induct_on `l1` >> rpt strip_tac >> gvs[]
+  >> qmatch_goalsub_abbrev_tac `(h * a1) MOD p = (h * a2) MOD p`
+  >> `((h MOD p) * (a1 MOD p)) MOD p = ((h MOD p) * (a2 MOD p)) MOD p` suffices_by gvs[MOD_TIMES2]
+  >> gvs[]
+QED
+
+Theorem split_list_product_of_products:
+  ∀f g : α -> num.
+  ∀ l1 : α list.
+  FOLDR $* 1n (MAP (λa : α. f a *  g a) l1) = (FOLDR $* 1n (MAP (λa : α. f a) l1)) * (FOLDR $* 1n (MAP (λa : α. g a) l1))
+Proof
+  rpt strip_tac
+  >> Induct_on `l1` >> rpt strip_tac >> gvs[]
 QED
 
 Theorem fermats_little_theorem:
-  ∀a p :num. (prime p ∧ ¬(divides p a) ⇒ (a ** p) MOD p = 1)
+  ∀a p :num. (prime p ∧ ¬(divides p a) ⇒ (a ** (p - 1)) MOD p = 1)
 Proof
   rpt strip_tac
   >> drule_all fermats_little_theorem_lemma2
   >> qmatch_goalsub_abbrev_tac `PERM l1 l2 ⇒ _`
   >> strip_tac
   >> `FOLDR ($* ) 1 l1 = FOLDR ($* ) 1 l2` by gvs[PERM_FOLDR_MUL]
+  >> qpat_x_assum `PERM _ _` kall_tac
   >> qmatch_asmsub_abbrev_tac `m1 = m2`
-  >> sg `m2 = FACT p`
-  >- (`SUC (p - 1) = p` by
-         (`(p - 1) + 1 = p` suffices_by gvs[]
-          >> irule SUB_ADD
-          >> `¬(p = 0)` by metis_tac[NOT_PRIME_0]
-          >> gvs[])
-      >>
-      
-  >> gvs[]
-  >> sg ``
-  sg ‘2 * x = 1 * x + 1 * x’
+  >> `m2 = FACT (p - 1)` by gvs[Abbr `m2`, Abbr `l2`, FOLDR_MUL_GENLIST_FACT]
+  >> sg `MODEQ p m1 (a ** (p - 1) * FACT (p - 1))`
+  >- (`m1 MOD p = m2 MOD p` by gvs[]
+      >> qpat_x_assum `m1 = m2` kall_tac
+      >> `(λn : num. (a * SUC n) MOD p) = (λn : num. n MOD p) ∘ (λn : num. (a * SUC n))` by gvs[o_DEF]
+      >> gvs[]
+      >> pop_assum kall_tac
+      >> qmatch_asmsub_abbrev_tac `GENLIST (f2 ∘ f1) _`
+      >> `l1 = MAP f2 (GENLIST f1 (p - 1))` by gvs[MAP_GENLIST]
+      >> qpat_x_assum `Abbrev (l1 = (GENLIST _ _))` kall_tac
+      >> `MODEQ p m1 (FOLDR $* 1 (GENLIST f1 (p - 1)))` by
+         (`¬(p = 0)` by metis_tac[NOT_PRIME_0]
+          >> gvs[Abbr `m1`, Abbr `f2`]
+          >> gvs[mod_list_product])
+      >> `MODEQ p m1 (FOLDR $* 1 (MAP f1 (COUNT_LIST (p - 1))))` by gvs[MAP_COUNT_LIST]
+      >> qpat_x_assum `MODEQ _ _ (FOLDR _ _ (GENLIST _ _))` kall_tac
+      >> qmatch_asmsub_abbrev_tac `MAP f1 cl`
+      >> `FOLDR $* 1n (MAP f1 cl) = (FOLDR $* 1n (MAP (λn : num. a) cl)) * (FOLDR $* 1n (MAP (λn : num. SUC n) cl))` by gvs[Abbr `f1`, split_list_product_of_products]
+      >> gvs[]
+      >> pop_assum kall_tac
+      >> sg
 
-  full_simp_tac arith_ss []
+
 QED
 
 val _ = export_theory();
