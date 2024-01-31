@@ -270,11 +270,18 @@ QED
 
 (* No two choices of a, 2a, 3a ... (p - 1)a are congruent modulo op*)
 
-Theorem DIVIDES_MOD0:
+Theorem MOD0_DIVIDES:
   ∀a b : num. 0 < b ⇒ a MOD b = 0 ⇒ divides b a
 Proof
   rpt strip_tac
   >> gvs[MOD_EQ_0_DIVISOR, divides_def]
+QED
+
+Theorem DIVIDES_MOD0:
+  ∀a b : num. 0 < b ⇒ divides b a ⇒ a MOD b = 0
+Proof
+  rpt strip_tac
+  >> gvs[compute_divides]
 QED
 
 Theorem DIV_MOD_ADD:
@@ -467,16 +474,19 @@ QED
 Theorem MODEQ_ADD_LCANCEL:
   ∀ a b c m : num.
     0 < m ⇒
-    MODEQ m (c + a) (c + b) ⇒
-    MODEQ m a b
+    (MODEQ m (c + a) (c + b) ⇔ MODEQ m a b)
 Proof
   rpt strip_tac
-  >> Induct_on `c`
-  >- gs[]
-  >> strip_tac
-  >> drule MODEQ_SUC >> strip_tac
-  >> `∀n. SUC c + n = SUC (c + n)` by gvs[]
-  >> metis_tac[]
+  >> irule IMP_IMP_IMP_IFF
+  >> conj_tac
+  >- (Induct_on `c`
+      >- gs[]
+      >> strip_tac
+      >> drule MODEQ_SUC >> strip_tac
+      >> `∀n. SUC c + n = SUC (c + n)` by gvs[]
+      >> metis_tac[])
+  >> rpt strip_tac
+  >> gvs[MODEQ_THM, ADD_MOD]
 QED
 
 (*
@@ -499,7 +509,7 @@ Theorem MODEQ_SUB_ADDITIVE_INVERSE:
 Proof
   rpt strip_tac
   >> `(b + (a - b)) MOD m = (b + (a + b')) MOD m` by gs[]
-  >> qspecl_then [`a - b`, `a + b'`, `b`, `m`] assume_tac MODEQ_ADD_LCANCEL
+  >> qspecl_then [`a - b`, `a + b'`, `b`, `m`] assume_tac (iffLR MODEQ_ADD_LCANCEL)
   >> pop_assum $ drule >> strip_tac
   >> drule_all MODEQ_ELIM_CONG >> strip_tac
   >> metis_tac[]
@@ -539,7 +549,7 @@ Proof
   rpt strip_tac
   >> drule_all MODEQ_INTRO_CONG >> pop_assum kall_tac >> strip_tac
   >> gvs[]
-  >> irule DIVIDES_MOD0
+  >> irule MOD0_DIVIDES
   >> gvs[]
 QED
 
@@ -981,6 +991,36 @@ Proof
   >> gvs[FACT, MULT_COMM]
 QED
 
+Theorem FOLDR_MUL_GENLIST_POW:
+  ∀a len : num.
+  FOLDR ($* ) 1n (GENLIST (λn. a) len) = a ** len
+Proof
+  rpt strip_tac
+  >> Induct_on `len` >> gvs[EXP]
+  >> gvs[GENLIST]
+  >> qmatch_goalsub_abbrev_tac `FOLDR $* 1 ls = RHS`
+  >> `FOLDL $* 1n ls = RHS` suffices_by gvs[FOLDL_FOLDR_MUL]
+  >> unabbrev_all_tac
+  >> gvs[FOLDL_SNOC]
+  >> Cases_on `a = 0` >> gvs[FOLDL_FOLDR_MUL]
+QED
+
+Theorem MODEQ_MUL:
+  ∀p a a' b b' : num.
+  MODEQ p a a' ⇒
+  MODEQ p b b' ⇒
+  MODEQ p (a * b) (a' * b')
+Proof
+  rpt strip_tac
+  >> Cases_on `p = 0`
+  >- gvs[MODEQ_DEF]
+  >> gvs[MODEQ_THM]
+  >> `0 < p` by gvs[]
+  >> drule MOD_TIMES2 >> strip_tac
+  >> pop_assum $ qspecl_then [`a`, `b`] assume_tac
+  >> gvs[]
+QED
+
 (* If we take the modulo both before and after multiplying a list of numbers
    together, this is equivalent to just taking the modulo after multiplying
    the numbers together *)
@@ -1007,6 +1047,122 @@ Proof
   >> Induct_on `l1` >> rpt strip_tac >> gvs[]
 QED
 
+Theorem MODEQ_MUL_0_CANCEL:
+  ∀a b p : num.
+  prime p ∧ ¬(divides p b) ∧ MODEQ p (a * b) 0 ⇒
+  MODEQ p a 0
+Proof
+  rpt strip_tac
+  >> `¬(p = 0)` by metis_tac[NOT_PRIME_0]
+  >> `0 < p` by gvs[]
+  >> gvs[]
+  >> gvs[MODEQ_THM]
+  >> irule DIVIDES_MOD0
+  >> gvs[]
+  >> drule_all MOD0_DIVIDES >> strip_tac
+  >> metis_tac[P_EUCLIDES]
+QED
+
+Theorem MOD_MUL_0_CANCEL:
+  ∀a b p : num.
+  prime p ∧ ¬(divides p b) ∧ (a * b) MOD p = 0 ⇒
+  a MOD p = 0
+Proof
+  rpt strip_tac
+  >> `¬(p = 0)` by metis_tac[NOT_PRIME_0]
+  >> `0 < p` by gvs[]
+  >> gvs[]
+  >> `MODEQ p (a * b) 0` by metis_tac[LESS_MOD, MODEQ_THM]
+  >> drule_all MODEQ_MUL_0_CANCEL >> strip_tac
+  >>  gvs[MODEQ_THM]
+QED
+
+Theorem MODEQ_ADD_RCANCEL:
+  ∀a b c m : num.
+  0 < m ⇒
+  (MODEQ m (a + c) (b + c) ⇔ MODEQ m a b)
+Proof
+  rpt strip_tac
+  >> metis_tac[iffLR MODEQ_ADD_LCANCEL, iffRL MODEQ_ADD_LCANCEL, ADD_SYM]
+QED
+
+Theorem MODEQ_SUB2:
+  ∀a b m.
+  0 < m ⇒
+  b < a ⇒
+  MODEQ m (a - b) 0 ⇒
+  MODEQ m a b
+Proof
+  rpt strip_tac
+  >> `MODEQ m ((a - b) + b) (0 + b)` by gvs[MODEQ_ADD_RCANCEL]
+  >> gvs[]
+QED
+
+Theorem MODEQ_MUL_CANCEL:
+  ∀a b c p : num.
+  prime p ⇒
+  ¬(divides p c) ⇒
+  MODEQ p (a * c) (b * c) ⇒
+  MODEQ p a b
+Proof
+  rpt strip_tac
+  >> `¬(p = 0)` by metis_tac[NOT_PRIME_0]
+  >> `0 < p` by gvs[]
+  >> gvs[]
+  >> sg `∀n m : num. n > m ⇒ MODEQ p (n * c) (m * c) ⇒ MODEQ p n m`
+  >- (rpt strip_tac
+      >> `MODEQ p ((n * c) - (m * c)) 0` by gvs[MODEQ_SUB]
+      >> gvs[MODEQ_THM]
+      >> `((n - m) * c) MOD p = 0` by gvs[RIGHT_SUB_DISTRIB]
+      >> `(n - m) MOD p = 0` by metis_tac[MOD_MUL_0_CANCEL]
+      >> `MODEQ p (n - m) 0` by gvs[MODEQ_THM]
+      >> `m < n` by gvs[]
+      >> drule_all MODEQ_SUB2
+      >> gvs[MODEQ_THM])
+  >> Cases_on `a > b` >> gvs[]
+  >> Cases_on `b > a` >> gvs[MULT_COMM, MODEQ_SYM]
+  >> `a = b` by gvs[]
+  >> gvs[MODEQ_REFL]
+QED
+
+Theorem PRIME_LESS_NOT_DIVIDES:
+  ∀p n : num.
+  prime p ⇒
+  n < p ⇒
+  ¬(n = 1) ⇒
+  ¬(divides n p)
+Proof
+  rpt strip_tac
+  >> qspecl_then [`n`] assume_tac PRIME_FACTOR
+  >> gvs[]
+  >> `divides p' p` by metis_tac[DIVIDES_TRANS]
+  >> Cases_on `n = 0`
+  >- gvs[ZERO_DIVIDES] 
+  >> `p' <= n` by gvs[DIVIDES_LE, ONE_LT_PRIME]
+  >> sg `p' < p`
+  >- gvs[]
+  >> qspecl_then [`p'`, `p`] assume_tac prime_divides_only_self
+  >> gvs[]
+QED
+
+Theorem PRIME_LESS_FACT_NOT_DIVIDES:
+  ∀p n : num.
+  prime p ⇒
+  n < p ⇒
+  ¬(n = 1) ⇒
+  ¬(divides p (FACT n))
+Proof
+  rpt strip_tac
+  >> Induct_on `n` >> gvs[FACT] >> rpt strip_tac >> gvs[ONE_LT_PRIME]
+  >> qspecl_then [`p`, `FACT n`, `SUC n`] assume_tac P_EUCLIDES
+  >> gvs[]
+  >- (`FACT 1 = 1` by EVAL_TAC
+      >> gvs[])
+  >> Cases_on `n = 1` >> gvs[]
+  >- (`p = 2` by gvs[PRIME_2, prime_divides_only_self] >> gvs[])
+  >> gvs[NOT_LT_DIVIDES]
+QED
+
 Theorem fermats_little_theorem:
   ∀a p :num. (prime p ∧ ¬(divides p a) ⇒ (a ** (p - 1)) MOD p = 1)
 Proof
@@ -1019,8 +1175,9 @@ Proof
   >> qmatch_asmsub_abbrev_tac `m1 = m2`
   >> `m2 = FACT (p - 1)` by gvs[Abbr `m2`, Abbr `l2`, FOLDR_MUL_GENLIST_FACT]
   >> sg `MODEQ p m1 (a ** (p - 1) * FACT (p - 1))`
-  >- (`m1 MOD p = m2 MOD p` by gvs[]
-      >> qpat_x_assum `m1 = m2` kall_tac
+  >- (qpat_x_assum `m1 = m2` kall_tac
+      >> qpat_x_assum `m2 = FACT _` kall_tac
+      >> simp[Abbr `l2`, Abbr `m2`]
       >> `(λn : num. (a * SUC n) MOD p) = (λn : num. n MOD p) ∘ (λn : num. (a * SUC n))` by gvs[o_DEF]
       >> gvs[]
       >> pop_assum kall_tac
@@ -1031,15 +1188,41 @@ Proof
          (`¬(p = 0)` by metis_tac[NOT_PRIME_0]
           >> gvs[Abbr `m1`, Abbr `f2`]
           >> gvs[mod_list_product])
+      >> qpat_x_assum `Abbrev (m1 = _)` kall_tac
       >> `MODEQ p m1 (FOLDR $* 1 (MAP f1 (COUNT_LIST (p - 1))))` by gvs[MAP_COUNT_LIST]
       >> qpat_x_assum `MODEQ _ _ (FOLDR _ _ (GENLIST _ _))` kall_tac
       >> qmatch_asmsub_abbrev_tac `MAP f1 cl`
       >> `FOLDR $* 1n (MAP f1 cl) = (FOLDR $* 1n (MAP (λn : num. a) cl)) * (FOLDR $* 1n (MAP (λn : num. SUC n) cl))` by gvs[Abbr `f1`, split_list_product_of_products]
       >> gvs[]
       >> pop_assum kall_tac
-      >> sg
-
-
+      >> qmatch_asmsub_abbrev_tac `MODEQ p m1 (fold1 * fold2)`
+      >> sg `MODEQ p fold1 (a ** (p - 1))`
+      >- (qpat_x_assum `MODEQ p m1 _` kall_tac
+          >> unabbrev_all_tac
+          >> gvs[FOLDR_MUL_GENLIST_POW, MAP_COUNT_LIST, MODEQ_REFL])
+      >> sg `MODEQ p fold2 (FACT (p - 1))`
+      >- (qpat_x_assum `MODEQ p m1 _` kall_tac
+          >> unabbrev_all_tac
+          >> `(λn : num. SUC n) = SUC` by (EVAL_TAC >> gvs[])
+          >> gvs[FOLDR_MUL_GENLIST_FACT, MAP_COUNT_LIST, MODEQ_REFL])
+      >> qmatch_goalsub_abbrev_tac `MODEQ p m1 (n1 * n2)`
+      >> qspecl_then [`p`, `n2`, `fold1`, `n1`, `fold2`] assume_tac MODEQ_MUL
+      >> gvs[]
+      >> metis_tac[MODEQ_MUL, MODEQ_SYM, MULT_COMM, MODEQ_TRANS]
+      )
+  >> `MODEQ p (1 * FACT (p - 1)) (a ** (p - 1) * FACT(p - 1))` by gvs[]
+  >> sg `MODEQ p 1 (a ** (p - 1))`
+  >- (qspecl_then [`1`, `a ** (p - 1)`, `FACT (p - 1)`, `p`] assume_tac MODEQ_MUL_CANCEL
+      >> gvs[]
+      >> `¬(divides p (FACT (p - 1)))` suffices_by gvs[]
+      >> pop_assum kall_tac >> pop_assum kall_tac >> pop_assum kall_tac >> pop_assum kall_tac >> pop_assum kall_tac >> pop_assum kall_tac >> pop_assum kall_tac
+      >>`p - 1 < p` by (Cases_on `p = 0` >> gvs[ONE_LT_PRIME])
+      >>Cases_on `p = 2` >> gvs[]
+      >- (`FACT 1 = 1` by EVAL_TAC >> gvs[DIVIDES_ONE])
+      >> `p - 1 ≠ 1` by gvs[]
+      >> gvs[PRIME_LESS_FACT_NOT_DIVIDES]
+      )
+  >> gvs[MODEQ_THM, EQ_SYM, LESS_MOD, ONE_LT_PRIME]
 QED
 
 val _ = export_theory();
