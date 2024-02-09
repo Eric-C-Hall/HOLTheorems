@@ -119,6 +119,7 @@ Proof
   >> gvs[]
 QED
 
+(* TODO: x ∉ s ∧ x ∉ t can be weakened to x ∈ s ⇔ x ∈ t *)
 Theorem INSERT_INJECTIVE:
   ∀x : α. ∀s t : α -> bool.
   x ∉ s ∧ x ∉ t ⇒
@@ -167,23 +168,21 @@ Proof
   >> gvs[]
   >> gvs[code_to_subset_def]
   >> Cases_on `h` >> gvs[]
-  >> 
-  
-  
-  
-
-  >> Cases_on `h`
-  >- (gvs[code_to_subset_def]
-      >> Cases_on `h'`
-      >- (gvs[]
-
-conj_tac
-  >- (gvs[code_to_subset_def]
-      >> 
-
-gvs[code_to_subset_def]
+  >> qspecl_then [`bs`] assume_tac code_to_subset_returns_subset
+  >> gvs[POW_DEF]
+  >> sg `(LENGTH t) ∉ (code_to_subset bs)`
+  >- (gvs[SUBSET_DEF]
+      >> pop_assum $ qspecl_then [`LENGTH t`] assume_tac
+      >> gvs[])
+  >> qspecl_then [`t`] assume_tac code_to_subset_returns_subset
+  >> gvs[POW_DEF]
+  >> sg `LENGTH t ∉ (code_to_subset t)`
+  >- (gvs[SUBSET_DEF]
+      >> pop_assum $ qspecl_then [`LENGTH t`] assume_tac
+      >> gvs[])
+  >> drule_all INSERT_INJECTIVE >> strip_tac
+  >> gvs[]
 QED
-  
 
 (* -------------------------------------------------------------------------- *)
 (* The set of length n codes can be viewed as corresponding to the power set  *)
