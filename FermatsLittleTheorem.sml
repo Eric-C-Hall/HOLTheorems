@@ -2,7 +2,7 @@
 
 open HolKernel Parse boolLib bossLib;
 
-val _ = new_theory "EricHOLTheorems";
+val _ = new_theory "fermats_little_theorem";
 
 open arithmeticTheory;
 open dividesTheory; (* prime *)
