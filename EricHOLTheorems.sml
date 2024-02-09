@@ -39,7 +39,7 @@ QED
 
 (* How does arithmetic work *)
 Theorem one_plus_one:
-  1 + 1 = 2
+  1n + 1n = 2n
 Proof
   simp[]
 QED
@@ -130,7 +130,7 @@ Theorem test_real_theorem:
   ∀x: real. 2 * x = x + x
 Proof
   rpt strip_tac
-  >> ‘2 = 1 + 1’ by full_simp_tac arith_ss [REAL_ADD]
+  >> ‘2r = 1r + 1r’ by gvs[REAL_ADD]
   >> ‘2 * x = 1 * x + 1 * x’ by full_simp_tac arith_ss [REAL_RDISTRIB, REAL_ADD_RDISTRIB]
   >> full_simp_tac arith_ss [REAL_ADD, REAL_RDISTRIB, REAL_ADD_RDISTRIB, REAL_MUL_LID]
 QED
