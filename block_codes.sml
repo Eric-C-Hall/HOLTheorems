@@ -92,14 +92,116 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Given a binary code of length n, construct a corresponding subset of       *)
+(* {0, 1, ..., n - 1}, given by including the element i if and only if the    *)
+(* (n - 1 - i)th element of the binary code is true.                          *)
+(* -------------------------------------------------------------------------- *)
+Definition code_to_subset_def:
+  code_to_subset [] = ∅ ∧
+  code_to_subset (b::bs) = if b then ((LENGTH bs) INSERT (code_to_subset bs)) else (code_to_subset bs)
+End
+
+Theorem code_to_subset_returns_subset:
+  ∀bs : bool list.
+  code_to_subset bs ∈ POW (count (LENGTH bs))
+Proof
+  rpt strip_tac
+  >> Induct_on `bs`
+  >- gvs[EMPTY_IN_POW, code_to_subset_def]
+  >> rpt strip_tac
+  >> gvs[code_to_subset_def]
+  >> Cases_on `h`
+  >> gvs[]
+  >> gvs[POW_DEF]
+  >> gvs[SUBSET_DEF]
+  >> rpt strip_tac
+  >> first_x_assum $ qspecl_then [`x`] assume_tac
+  >> gvs[]
+QED
+
+Theorem INSERT_INJECTIVE:
+  ∀x : α. ∀s t : α -> bool.
+  x ∉ s ∧ x ∉ t ⇒
+  x INSERT s = x INSERT t ⇒
+  s = t
+Proof
+  rpt strip_tac
+  >> irule EQ_EXT
+  >> rpt strip_tac
+  >> `x' ∈ s ⇔ x' ∈ t` suffices_by gvs[IN_DEF]
+  >> Cases_on `x' ∈ s`
+  >- (`x' ∈ x INSERT s` by gvs[]
+      >> `x' ∈ x INSERT t` by metis_tac[]
+      >> Cases_on `x' = x` >> gvs[])
+  >> Cases_on `x' = x` >> gvs[]
+  >> `x' ∉ x INSERT s` by gvs[]
+  >> `x' ∉ x INSERT t` by metis_tac[]
+  >> gvs[INSERT_DEF]
+QED
+
+Theorem code_to_subset_injective:
+  ∀bs cs : bool list.
+  LENGTH bs = LENGTH cs ⇒
+  code_to_subset bs = code_to_subset cs ⇒ bs = cs
+Proof
+  strip_tac
+  >> Induct_on `bs`
+  >- gvs[]
+  >> rpt strip_tac
+  >> Cases_on `cs`
+  >- gvs[]
+  >> first_x_assum $ qspecl_then [`t`] assume_tac
+  >> gvs[]
+  >> sg `h ⇔ h'`
+  >- (Cases_on `h` >> Cases_on `h'` >> gvs[]
+      >- (gvs[code_to_subset_def]
+          >> qspecl_then [`t`] assume_tac code_to_subset_returns_subset
+          >> `LENGTH t INSERT (code_to_subset bs) ∈ POW (count (LENGTH t))` by gvs[]
+          >> last_x_assum kall_tac >> last_x_assum kall_tac >> last_x_assum kall_tac >> last_x_assum kall_tac
+          >> gvs[POW_DEF])
+      >- (gvs[code_to_subset_def]
+          >> qspecl_then [`bs`] assume_tac code_to_subset_returns_subset
+          >> `LENGTH t INSERT (code_to_subset t) ∈ POW (count (LENGTH t))` by gvs[]
+          >> last_x_assum kall_tac >> last_x_assum kall_tac >> last_x_assum kall_tac >> last_x_assum kall_tac
+          >> gvs[POW_DEF]))
+  >> gvs[]
+  >> gvs[code_to_subset_def]
+  >> Cases_on `h` >> gvs[]
+  >> 
+  
+  
+  
+
+  >> Cases_on `h`
+  >- (gvs[code_to_subset_def]
+      >> Cases_on `h'`
+      >- (gvs[]
+
+conj_tac
+  >- (gvs[code_to_subset_def]
+      >> 
+
+gvs[code_to_subset_def]
+QED
+  
+
+(* -------------------------------------------------------------------------- *)
 (* The set of length n codes can be viewed as corresponding to the power set  *)
 (* of a set of cardinality n                                                  *)
 (* -------------------------------------------------------------------------- *)
 Theorem length_n_codes_power_set_bijection:
   ∀n : num.
-  ∃f : bool list ⇒ (num -> bool).
+  ∃f : bool list -> (num -> bool).
   BIJ f (length_n_codes n) (POW (count n))
 Proof
+  rpt strip_tac
+  >> qexists `code_to_subset`
+  >> gvs[BIJ_DEF]
+  >> conj_tac
+  >- (gvs[INJ_DEF]
+      >> rpt strip_tac
+      >- gvs[length_n_codes_def, code_to_subset_returns_subset]
+      >> g
 QED
 
 Theorem length_n_codes_finite:
