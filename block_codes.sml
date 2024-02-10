@@ -300,6 +300,20 @@ Proof
   >> unabbrev_all_tac
   >> gvs[FINITE_COUNT, FINITE_POW]
 QED
+
+Theorem length_n_codes_cardinality:
+  ∀n : num.
+  CARD (length_n_codes n) = 2 ** n
+Proof
+  rpt strip_tac
+  >> qspec_then `n` assume_tac length_n_codes_power_set_bijection
+  >> qmatch_asmsub_abbrev_tac `BIJ f s t`
+  >> `∃g. BIJ g t s` by (irule $ iffLR BIJ_SYM >> qexists `f` >> gvs[])
+  >> `CARD t = 2 ** n` by gvs[CARD_POW, CARD_COUNT, Abbr `t`]
+  >> `FINITE t` suffices_by (strip_tac >> drule_all FINITE_BIJ >> gvs[])
+  >> unabbrev_all_tac
+  >> gvs[FINITE_COUNT, FINITE_POW]
+QED
   
 (* ------------------------------------------------------- *)
 (* Potentially useful here:                                *)
@@ -313,9 +327,11 @@ Proof
   rpt strip_tac
   >> gvs[length_n_codes_prob_space_def]
   >> irule uniform_distribution_finite_prob_space
-  >> 
+  >> qspecl_then [`n`] assume_tac length_n_codes_finite
+  >> qspecl_then [`n`] assume_tac length_n_codes_cardinality
+  >> qspecl_then [`n`, `1`] assume_tac ZERO_LESS_EXP
+  >> asm_simp_tac arith_ss []
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* Takes an input probability distribution and returns the output probability *)
