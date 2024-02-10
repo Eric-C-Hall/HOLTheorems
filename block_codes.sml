@@ -292,18 +292,13 @@ Theorem length_n_codes_finite:
   ∀n : num.
   FINITE (length_n_codes n)
 Proof
-  
-
-  Induct_on `n`
-  >> gvs[length_n_codes_def]
-  >> 
-  >> sg `{c | c = []} = ∅`
-  >> sg `(λc. c = []) = {c | c = []}`
-  gvs[]
-  >> sg `(λc. c = []) = {[]}`
-  >> gvs[]
-  >> qsuff_tac `FINITE {[]}` >> strip_tac
-
+  rpt strip_tac
+  >> qspec_then `n` assume_tac length_n_codes_power_set_bijection
+  >> qmatch_asmsub_abbrev_tac `BIJ f s t`
+  >> `∃g. BIJ g t s` by (irule $ iffLR BIJ_SYM >> qexists `f` >> gvs[])
+  >> `FINITE t` suffices_by (strip_tac >> drule_all FINITE_BIJ >> gvs[])
+  >> unabbrev_all_tac
+  >> gvs[FINITE_COUNT, FINITE_POW]
 QED
   
 (* ------------------------------------------------------- *)
