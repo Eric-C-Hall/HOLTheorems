@@ -1,3 +1,63 @@
+Definition subset_to_code_def:
+  subset_to_code 0n (s : num -> bool) (acc : bool list) = acc ∧
+  subset_to_code (SUC i) (s : num -> bool) (acc : bool list) =
+    if (i ∈ s) then (SNOC T (subset_to_code i s acc)) else (SNOC F (subset_to_code i s acc))
+End
+
+Theorem code_to_subset_SNOC:
+  ∀b : bool. ∀bs : bool list.
+  code_to_subset (SNOC b bs) =
+    let s = (code_to_subset bs) ∘ (λn : num. n - 1) in
+    if b then (0 INSERT s) else (s DIFF {0})
+Proof
+  rpt strip_tac
+  >> gvs[]
+  >> Induct_on `bs`
+  >- (gvs[code_to_subset_def]
+      >> `∀f : num -> num. ∅ ∘ f = ∅` by gvs[EQ_EXT]
+      >> pop_assum $ qspecl_then [`λn : num. n - 1`] assume_tac
+      >> gvs[])
+  >> gvs[code_to_subset_def]
+  >> rpt strip_tac
+  >> Cases_on `h` >> gvs[]
+  >> 
+ 
+Cases_on `b` >> gvs[]
+  >> Cases_on `b` >> gvs[] >> rpt strip_tac
+  >> 
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* helper function used by subset_to_code                                     *)
+(* subset_to_code_helper l i s                                                *)
+(* l: length of code                                                          *)
+(* i: current element being tested for                                        *)
+(* s: input subset                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition subset_to_code_helper_def:
+  subset_to_code_helper (l : num) 0n (∅ : num -> bool) = acc ∧
+  subset_to_code_helper (SUC i) (s : num -> bool) (acc : bool list) =
+
+
+Theorem subset_to_code_is_right_inverse:
+  ∀n s : num -> bool.
+  s ∈ POW(count n) ⇒
+  code_to_subset (subset_to_code n s []) = s
+Proof
+  strip_tac
+  >> Induct_on `n`
+  >- (gvs[POW_EQNS, code_to_subset_def, subset_to_code_def])
+  >> rpt strip_tac
+  >> simp[subset_to_code_def]
+  >> last_x_assum $ qspec_then `s` assume_tac
+  >> Cases_on `s ∈ POW (count n)` >> gvs[]
+  >> Cases_on `n ∈ s` >> gvs[code_to_subset_def]
+
+(* TODO *)
+QED
+
+
 
 (* Takes a starting number a and an ending number b and returns the list of
   consecutive numbers between a and b (inclusive of a, exclusive of b) *)

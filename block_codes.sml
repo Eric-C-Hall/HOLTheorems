@@ -101,6 +101,78 @@ Definition code_to_subset_def:
   code_to_subset (b::bs) = if b then ((LENGTH bs) INSERT (code_to_subset bs)) else (code_to_subset bs)
 End
 
+(* -------------------------------------------------------------------------- *)
+(* (subset_to_code n s) is the inverse function of (code_to_subset bs) for    *)
+(* length n codes                                                             *)
+(* -------------------------------------------------------------------------- *)
+Definition subset_to_code_def:
+  subset_to_code 0 s = [] ∧
+  subset_to_code (SUC i) s = (i ∈ s)::(subset_to_code i s)
+End
+
+Theorem subset_to_code_length:
+  ∀n : num. ∀s : num -> bool.
+  LENGTH (subset_to_code n s) = n
+Proof
+  strip_tac
+  >> Induct_on `n` >> gvs[subset_to_code_def]
+QED
+
+Theorem subset_to_code_restrict:
+  ∀n : num. ∀s : num -> bool.
+  subset_to_code n s = subset_to_code n (s ∩ count n)
+Proof
+  strip_tac
+  >> Induct_on `n`
+  >- gvs[subset_to_code_def]
+  >> rpt strip_tac
+  >> PURE_REWRITE_TAC [subset_to_code_def]
+  >> first_assum $ qspec_then `s` assume_tac
+  >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
+  >> pop_assum $ qspec_then `s ∩ count1 n` assume_tac
+  >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
+  >> gvs[]
+  >> `count1 n ∩ count n = count n` by gvs[INTER_DEF, count_def, EQ_EXT]
+  >> metis_tac[INTER_ASSOC]
+QED
+
+Theorem subset_to_code_is_right_inverse:
+  ∀n : num. ∀s : num -> bool.
+  s ∈ POW(count n) ⇒
+  code_to_subset (subset_to_code n s) = s
+Proof
+  strip_tac
+  >> Induct_on `n`
+  >- gvs[POW_DEF, subset_to_code_def, code_to_subset_def]
+  >> rpt strip_tac
+  >> gvs[subset_to_code_def]
+  >> gvs[code_to_subset_def]
+  >> Cases_on `n ∈ s` >> gvs[]
+  >- (gvs[subset_to_code_length]
+      >> last_x_assum $ qspec_then `s ∩ count n` assume_tac
+      >> gvs[POW_DEF]
+      >> PURE_REWRITE_TAC [Once subset_to_code_restrict]
+      >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
+      >> irule $ iffRL EXTENSION
+      >> rpt strip_tac
+      >> Cases_on `x > n`
+      >- (gvs[]
+          >> CCONTR_TAC
+          >> gvs[]
+          >> gvs[SUBSET_DEF]
+          >> first_x_assum $ qspec_then `x` assume_tac
+          >> gvs[])
+      >> Cases_on `x = n` >> gvs[])
+  >> first_x_assum $ qspec_then `s` assume_tac
+  >> gvs[POW_DEF]
+  >> pop_assum irule
+  >> gvs[SUBSET_DEF]
+  >> rpt strip_tac
+  >> first_x_assum $ qspec_then `x` assume_tac
+  >> gvs[]
+  >> Cases_on `x = n` >> gvs[]
+QED
+
 Theorem code_to_subset_returns_subset:
   ∀bs : bool list.
   code_to_subset bs ∈ POW (count (LENGTH bs))
@@ -184,29 +256,44 @@ Proof
   >> gvs[]
 QED
 
+Theorem code_to_subset_surjective:
+  ∀n : num.
+  ∀s : num -> bool.
+  s ∈ POW (count n) ⇒
+  ∃bs : bool list. LENGTH bs = n ∧ code_to_subset bs = s
+Proof
+  rpt strip_tac
+  >> qexists `subset_to_code n s`
+  >> gvs[subset_to_code_is_right_inverse, subset_to_code_length]
+QED
+  
 (* -------------------------------------------------------------------------- *)
 (* The set of length n codes can be viewed as corresponding to the power set  *)
 (* of a set of cardinality n                                                  *)
 (* -------------------------------------------------------------------------- *)
 Theorem length_n_codes_power_set_bijection:
   ∀n : num.
-  ∃f : bool list -> (num -> bool).
-  BIJ f (length_n_codes n) (POW (count n))
+  BIJ code_to_subset (length_n_codes n) (POW (count n))
 Proof
   rpt strip_tac
-  >> qexists `code_to_subset`
   >> gvs[BIJ_DEF]
   >> conj_tac
   >- (gvs[INJ_DEF]
       >> rpt strip_tac
       >- gvs[length_n_codes_def, code_to_subset_returns_subset]
-      >> g
+      >> gvs[length_n_codes_def, code_to_subset_injective])
+  >> gvs[SURJ_DEF]
+  >> rpt strip_tac
+  >- gvs[length_n_codes_def, code_to_subset_returns_subset]
+  >> gvs[length_n_codes_def, code_to_subset_surjective]
 QED
 
 Theorem length_n_codes_finite:
   ∀n : num.
   FINITE (length_n_codes n)
 Proof
+  
+
   Induct_on `n`
   >> gvs[length_n_codes_def]
   >> 
