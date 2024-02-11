@@ -15,6 +15,9 @@ open measureTheory;
 open sigma_algebraTheory;
 open extreal_baseTheory;
 open cardinalTheory;
+open extrealTheory;
+open combinTheory; (* o_DEF *)
+open realTheory;
 
 (* -------------------------------------------------------------------------- *)
 (* Notes on relevant theorems, etc                                            *)
@@ -37,8 +40,8 @@ Definition length_n_codes_def:
   length_n_codes n = {c : bool list | LENGTH c = n}
 End
 
-Definition length_n_codes_prob_space_def:
-  length_n_codes_prob_space (n : num) =
+Definition length_n_codes_uniform_prob_space_def:
+  length_n_codes_uniform_prob_space (n : num) =
     let s = length_n_codes n in
     let a = POW s in
     let p = uniform_distribution (s, a) in
@@ -320,12 +323,12 @@ QED
 (* prob_on_finite_set                                      *)
 (* uniform_distribution_prob_space                         *)
 (* ------------------------------------------------------- *)
-Theorem length_n_codes_prob_space_is_prob_space:
+Theorem length_n_codes_uniform_prob_space_is_prob_space:
   ∀n : num.
-  prob_space (length_n_codes_prob_space n)
+  prob_space (length_n_codes_uniform_prob_space n)
 Proof
   rpt strip_tac
-  >> gvs[length_n_codes_prob_space_def]
+  >> gvs[length_n_codes_uniform_prob_space_def]
   >> irule uniform_distribution_finite_prob_space
   >> qspecl_then [`n`] assume_tac length_n_codes_finite
   >> qspecl_then [`n`] assume_tac length_n_codes_cardinality
@@ -333,12 +336,129 @@ Proof
   >> asm_simp_tac arith_ss []
 QED
 
+Definition length_n_codes_degenerate_prob_space_def:
+  length_n_codes_degenerate_prob_space (n : num) (bs : bool list) =
+    let s = length_n_codes n in
+    let a = POW s in
+    let p = (λt : bool list -> bool. if bs ∈ t then 1 else 0) in
+    (s, a, p)
+End
+
+Theorem DISJOINT_IN:
+  ∀s t : α -> bool.
+  ∀x : α.
+  DISJOINT s t ∧ x ∈ s ⇒ x ∉ t
+Proof
+  rpt strip_tac
+  >> gvs[DISJOINT_DEF]
+  >> gvs[INTER_DEF]
+  >> drule $ iffLR EXTENSION >> strip_tac
+  >> pop_assum $ qspec_then `x` assume_tac
+  >> gvs[]
+QED
+
+Theorem SET_REMOVE_ELEMENT:
+  ∀s : α -> bool.
+  ∀x : α.
+  x ∈ s ⇒ s = {x} ∪ (s DIFF {x})
+Proof
+  rpt strip_tac
+  >> gvs[UNION_DEF, DIFF_DEF]
+  >> irule EQ_EXT
+  >> rpt strip_tac
+  >> gvs[IN_DEF]
+  >> Cases_on `x' = x` >> gvs[]
+QED
+
+Theorem length_n_codes_degenerate_prob_space_is_prob_space:
+  ∀n : num. ∀bs : bool list.
+  prob_space (length_n_codes_degenerate_prob_space n bs)
+Proof
+  rpt strip_tac
+  >> gvs[length_n_codes_degenerate_prob_space_def]
+  >> gvs[prob_space_def]
+  >> conj_tac
+  >- (gvs[measure_space_def]
+      >> conj_tac
+      >- gvs[POW_SIGMA_ALGEBRA] (* Proof of sigma algebra *)
+      >> conj_tac
+      >- (gvs[positive_def] (* Proof of nonnegative measure *)
+          >> rpt strip_tac
+          >> Cases_on `bs ∈ s` >> gvs[])
+      >- (gvs[countably_additive_def]
+          >> rpt strip_tac
+          >> qmatch_goalsub_abbrev_tac `(if c1 then _ else _) = _`
+          >> qmatch_goalsub_abbrev_tac `suminf(g ∘ f)`
+          >> sg `∀n. 0 ≤ (g ∘ f) n`
+          >- (strip_tac
+              >> gvs[o_DEF]
+              >> Cases_on `bs ∈ f n'` >> gvs[Abbr `g`])
+          >> gvs[ext_suminf_def]
+          >> simp[o_DEF]
+          >> Cases_on `∃n : num. bs ∈ f n`
+          >- (gvs[]
+              >> `g (f n') = 1` by gvs[Abbr `g`]
+              >> sg `∀n. n ≠ n' ⇒ g (f n) = 0`
+              >- (rpt strip_tac
+                  >> last_x_assum $ qspecl_then [`n'`, `n''`] assume_tac
+                  >> gvs[]
+                  >> `bs ∉ f n''` by (irule DISJOINT_IN >> qexists `f n'` >> gvs[])
+                  >> gvs[Abbr `g`])
+              >> sg `(λn''. ∑ (λx. g (f x)) (count n'')) = (λn''.if n' < n'' then 1 else 0)`
+              >- (irule EQ_EXT
+                  >> rpt strip_tac >> gvs[]
+                  >> qmatch_goalsub_abbrev_tac `∑ h t = _`
+                  >> Cases_on `n' < x` >> gvs[]
+                  >- (sg `∑ h t = (∑ h {n'}) + (∑ h (t DIFF {n'}))`
+                      >> (qspecl_then [`t`, `n'`] assume_tac SET_REMOVE_ELEMENT
+                          >> `n' ∈ t` by (gvs[Abbr `t`] >> Cases_on `n' = x` >> gvs[])
+                          >> last_x_assum drule >> strip_tac
+                          >> qpat_x_assum `t = _` (fn th => PURE_REWRITE_TAC [Once th])
+                          >> `FINITE (t DIFF {n'})` by gvs[FINITE_COUNT, FINITE_DIFF, Abbr `t`]
+                          >> qspecl_then [`{n'}`, `t DIFF {n'}`] assume_tac EXTREAL_SUM_IMAGE_DISJOINT_UNION
+                          >> gvs [DISJOINT_DIFF]
+                          >> first_x_assum $ qspec_then `h` assume_tac
+                          >> gvs[]
+                          >> pop_assum irule
+                          >> gvs[Abbr `h`]
+                          >> disj1_tac
+                          >> strip_tac >> strip_tac
+                          >> gvs[Abbr `g`])
+                      >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
+                      >> gvs[]
+                      >> `∑ h (t DIFF {n'}) = 0` suffices_by gvs[]
+                      >> irule EXTREAL_SUM_IMAGE_0
+                      >> gvs[]
+                      >> gvs[FINITE_DIFF, Abbr `t`, FINITE_COUNT])
+                  >> `x ≤ n'` by gvs[]
+                  >> gvs[]
+                  >> irule EXTREAL_SUM_IMAGE_0
+                  >> gvs[FINITE_COUNT, Abbr `t`])
+              >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
+              >> qmatch_goalsub_abbrev_tac `sup s`
+              >> sg `s = {0} ∪ {1}`
+              >- (gvs[UNION_DEF, Abbr `s`]
+                  >> irule (iffRL EXTENSION)
+                  >> strip_tac
+                  >> gvs[IMAGE_DEF]
+                  >> Cases_on `x = 0 ∨ x = 1`
+                  >- (gvs[]
+                      >- (qexists `n'` >> gvs[])
+                      >- (qexists `n' + 1` >> gvs[]))
+                  >> gvs[]
+                  >> strip_tac
+                  >> Cases_on `n' < n''` >> gvs[])
+              >> gvs[extreal_sup_def]
+              >> `{0} `
+QED
+
+
 (* -------------------------------------------------------------------------- *)
 (* Takes an input probability distribution and returns the output probability *)
 (* distribution with errors randomly added                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition symmetric_error_channel_def:
-  symmetric_error_channel p
+  symmetric_error_channel n p 
 
 End
 
