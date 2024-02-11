@@ -18,6 +18,7 @@ open cardinalTheory;
 open extrealTheory;
 open combinTheory; (* o_DEF *)
 open realTheory;
+open iterateTheory; (* why does this contain SUP_UNION *)
 
 (* -------------------------------------------------------------------------- *)
 (* Notes on relevant theorems, etc                                            *)
@@ -368,6 +369,61 @@ Proof
   >> rpt strip_tac
   >> gvs[IN_DEF]
   >> Cases_on `x' = x` >> gvs[]
+QED
+
+Theorem EXTREAL_SUP_UNION:
+  ∀s t : extreal -> bool.
+  sup (s ∪ t) = max (sup s) (sup t)
+Proof
+  rpt strip_tac
+  >> gvs[Once extreal_sup_def]
+  >> qmatch_goalsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
+  >> Cases_on `c1`
+  >- (gvs[Abbr `c2`]
+      >> pop_assum $ qspecl_then [`max (sup s) (sup t)`] assume_tac
+      >> pop_assum irule
+      >> rpt strip_tac
+      >> metis_tac[le_max1, le_max2, le_sup_imp', le_trans])
+  >> last_x_assum kall_tac
+  >> gvs[]
+  >> Cases_on `c2`
+  >- (gvs[]
+      >> `sup s = −∞ ∧ sup t = −∞` suffices_by gvs[]
+      >> `∀s t : extreal -> bool. (∀x. x ∈ s ∨ x ∈ t ⇒ x = −∞) ⇒ sup s = −∞` suffices_by (strip_tac
+          >> last_assum drule
+          >> PURE_REWRITE_TAC [Once DISJ_COMM]
+          >> first_x_assum $ qspecl_then [`t`, `s`] assume_tac
+          >> gvs[] >> strip_tac
+          >> first_x_assum irule
+          >> gvs[DISJ_COMM]
+          >> rpt strip_tac
+          >> first_x_assum $ qspecl_then [`x`] assume_tac
+          >> gvs[])
+      >> pop_assum kall_tac
+      >> rpt strip_tac
+      >> gvs[extreal_sup_def]
+      >> qmatch_goalsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
+      >> Cases_on `c1`
+      >- (gvs[Abbr `c2`]
+          >> pop_assum $ qspec_then `0` assume_tac
+          >> gvs[]
+          >> first_x_assum $ qspec_then `y` assume_tac
+          >> gvs[IN_DEF])
+      >> gvs[]
+      >> Cases_on `c2` >> gvs[]
+      >> last_x_assum $ qspec_then `x'` assume_tac
+      >> gvs[IN_DEF])
+  >> simp[]
+  >> pop_assum kall_tac
+  >> qmatch_goalsub_abbrev_tac `Normal (sup (u))`
+  >> sg `u = Normal s ∪ Normal r`
+  >- Cases_on `sup s` >> gvs[]
+QED
+
+Theorem :
+
+ ⇒ countably_additive _
+Proof
 QED
 
 Theorem length_n_codes_degenerate_prob_space_is_prob_space:
