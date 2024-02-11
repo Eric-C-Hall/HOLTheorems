@@ -19,6 +19,7 @@ open extrealTheory;
 open combinTheory; (* o_DEF *)
 open realTheory;
 open iterateTheory; (* why does this contain SUP_UNION *)
+open realaxTheory;
 
 (* -------------------------------------------------------------------------- *)
 (* Notes on relevant theorems, etc                                            *)
@@ -371,53 +372,441 @@ Proof
   >> Cases_on `x' = x` >> gvs[]
 QED
 
+Theorem EXTREAL_SUP_POSITIVE_INFINITY:
+  ∀s : extreal -> bool.
+  sup s = +∞ ⇔ (∀x. ((∀y. y∈s ⇒ y ≤ x) ⇒ x = +∞))
+Proof
+  strip_tac
+  >> Cases_on `sup s = +∞`
+  >- (gvs[]
+      >> gvs[extreal_sup_def]
+      >> qmatch_asmsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
+      >> Cases_on `c1` >> gvs[IN_DEF]
+      >> Cases_on `c2` >> gvs[])
+  >> qmatch_goalsub_abbrev_tac `_ ⇔ c1`
+  >> gvs[]
+  >> CCONTR_TAC
+  >> gvs[]
+  >> sg `sup s = +∞`
+  >- (PURE_REWRITE_TAC [Once extreal_sup_def]
+      >> gvs[IN_DEF])
+QED
+
+Theorem EXTREAL_SUP_NEGATIVE_INFINITY:
+  ∀s : extreal -> bool.
+  sup s = −∞ ⇔ ∀x. x ∈s ⇒ x = −∞
+Proof
+  strip_tac
+  >> Cases_on `sup s = −∞`
+  >- (gvs[extreal_sup_def]
+      >> qmatch_asmsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
+      >> Cases_on `c1` >> gvs[]
+      >> Cases_on `c2` >> gvs[IN_DEF])
+  >> qmatch_goalsub_abbrev_tac `_ ⇔ c1`
+  >> gvs[]
+  >> CCONTR_TAC
+  >> gvs[]
+  >> sg `sup s = −∞`
+  >- (PURE_REWRITE_TAC [Once extreal_sup_def]
+      >> qmatch_goalsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
+      >> Cases_on `c1`
+      >- (gvs[]
+          >> first_x_assum $ qspecl_then [`0 : extreal`] assume_tac
+          >> gvs[]
+          >> first_x_assum $ qspec_then `y` assume_tac
+          >> gvs[Abbr `c2`, IN_DEF])
+      >> gvs[Abbr `c2`, IN_DEF])
+QED
+
+Theorem EXTREAL_SUP_NEGATIVE_INFINITY_EMPTY_OR_SINGLETON:
+  ∀s : extreal -> bool.
+  sup s = −∞ ⇒ s = ∅ ∨ s = {−∞}
+Proof
+  rpt strip_tac
+  >> CCONTR_TAC
+  >> gvs[]
+  >> drule (iffLR EXTREAL_SUP_NEGATIVE_INFINITY) >> strip_tac >> last_x_assum kall_tac
+  >> qspecl_then [`s`, `∅`] assume_tac (iffRL EXTENSION)
+  >> `s = ∅` suffices_by gvs[]
+  >> gvs[]
+  >> first_assum drule >> strip_tac
+  >> last_x_assum kall_tac
+  >> qspecl_then [`s`, `{−∞}`] assume_tac (iffRL EXTENSION)
+  >> `s = {−∞}` suffices_by gvs[]
+  >> gvs[]
+  >> first_x_assum $ qspec_then `x` assume_tac
+  >> Cases_on `x ∈ s` >> gvs[]
+QED
+
+Theorem EXTREAL_SUP_NOT_POSITIVE_INFINITY:
+  ∀s : extreal -> bool.
+  sup s ≠ +∞ ⇒ ∃x. (∀y. y ∈ s ⇒ y ≤ x) ∧ x ≠ +∞
+Proof
+  rpt strip_tac
+  >> qexists `sup s + 1`
+  >> conj_tac >> gvs[add_not_infty]
+  >> rpt strip_tac
+  >> drule le_sup_imp' >> strip_tac
+  >> `0 : extreal ≤ 1` by gvs[]
+  >> `y + 0 ≤ sup s + 1` by gvs[le_add2]
+  >> gvs[]
+QED
+
+Theorem EXTREAL_SUP_NOT_NEGATIVE_INFINITY:
+  ∀s : extreal -> bool.
+  sup s ≠ −∞ ⇒ ∃x. x ∈ s ∧ x ≠ −∞
+Proof
+  rpt strip_tac
+  >> gvs[extreal_sup_def]
+  >> qmatch_asmsub_abbrev_tac `if c1 then _ else (if c2 then _ else v)`
+  >> Cases_on `c1`
+  >- (gvs[]
+      >> first_x_assum $ qspec_then `0` assume_tac
+      >> gvs[]
+      >> qexists `y`
+      >> CCONTR_TAC
+      >> gvs[IN_DEF])
+  >> gvs[]
+  >> Cases_on `c2` >> gvs[]
+  >> qexists `x'`
+  >> gvs[IN_DEF]
+QED
+
+Theorem EXTREAL_SUP_NORMAL:
+  ∀s : extreal -> bool.
+  ∀r : real.
+  sup s = Normal r ⇒ sup (PREIMAGE Normal s) = r
+Proof
+  rpt strip_tac
+  >> gvs[extreal_sup_def]
+  >> qmatch_asmsub_abbrev_tac `if c1 then _ else (if c2 then _ else v)`
+  >> Cases_on `c1` >> gvs[]
+  >> Cases_on `c2` >> gvs[]
+  >> AP_TERM_TAC
+  >> gvs[PREIMAGE_def]
+  >> irule EQ_EXT
+  >> rpt strip_tac
+  >> gvs[IN_DEF]
+QED
+
+Theorem MAX_NORMAL:
+  ∀r r' : real.
+  max (Normal r) (Normal r') = Normal (max r r')
+Proof
+  rpt strip_tac
+  >> gvs[extreal_max_def]
+  >> gvs[real_max]
+  >> Cases_on `r ≤ r'` >> gvs[]
+QED
+
 Theorem EXTREAL_SUP_UNION:
   ∀s t : extreal -> bool.
   sup (s ∪ t) = max (sup s) (sup t)
 Proof
   rpt strip_tac
-  >> gvs[Once extreal_sup_def]
-  >> qmatch_goalsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
-  >> Cases_on `c1`
-  >- (gvs[Abbr `c2`]
-      >> pop_assum $ qspecl_then [`max (sup s) (sup t)`] assume_tac
-      >> pop_assum irule
+  (* Strategy: Prove for all cases where sup s/sup t is +∞/-∞. Then in the
+     case where each is finite, prove that sup (s ∪ t) is finite. Then
+     convert to real and use existing proof for the real version *)
+  (* Handle case where either of the supremums is infinity *)
+  >> sg `∀s t : extreal -> bool. sup s = +∞ ⇒ sup (s ∪ t) = max (sup s) (sup t)`
+  >- (rpt strip_tac
+      >> drule (iffLR EXTREAL_SUP_POSITIVE_INFINITY)
       >> rpt strip_tac
-      >> metis_tac[le_max1, le_max2, le_sup_imp', le_trans])
-  >> last_x_assum kall_tac
-  >> gvs[]
-  >> Cases_on `c2`
-  >- (gvs[]
-      >> `sup s = −∞ ∧ sup t = −∞` suffices_by gvs[]
-      >> `∀s t : extreal -> bool. (∀x. x ∈ s ∨ x ∈ t ⇒ x = −∞) ⇒ sup s = −∞` suffices_by (strip_tac
-          >> last_assum drule
-          >> PURE_REWRITE_TAC [Once DISJ_COMM]
-          >> first_x_assum $ qspecl_then [`t`, `s`] assume_tac
-          >> gvs[] >> strip_tac
-          >> first_x_assum irule
-          >> gvs[DISJ_COMM]
-          >> rpt strip_tac
-          >> first_x_assum $ qspecl_then [`x`] assume_tac
-          >> gvs[])
-      >> pop_assum kall_tac
-      >> rpt strip_tac
-      >> gvs[extreal_sup_def]
+      >> gvs[]
+      >> PURE_REWRITE_TAC[Once extreal_sup_def]
       >> qmatch_goalsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
-      >> Cases_on `c1`
-      >- (gvs[Abbr `c2`]
-          >> pop_assum $ qspec_then `0` assume_tac
+      >> `c1` suffices_by gvs[]
+      >> gvs[Abbr `c1`, Abbr `c2`]
+     )
+  >> Cases_on `sup s = +∞` >> gvs[]
+  >> Cases_on `sup t = +∞`
+  >- (first_x_assum $ qspecl_then [`t`, `s`] assume_tac >> gvs[UNION_COMM])
+  >> last_x_assum kall_tac
+  (* Handle case where either of the supremums is negative infinity *)
+  >> sg `∀s t : extreal -> bool. sup s = −∞ ⇒ sup (s ∪ t) = max (sup s) (sup t)`
+  >- (rpt (pop_assum kall_tac)
+      >> rpt strip_tac
+      >> gvs[]
+      >> PURE_REWRITE_TAC[Ntimes extreal_sup_def 2]
+      >> qmatch_goalsub_abbrev_tac `(if c1 then _ else (if c2 then _ else e1)) = (if c3 then _ else (if c4 then _ else e2))`
+      >> `c1 = c3 ∧ c2 = c4 ∧ e1 = e2` suffices_by gvs[]
+      >> conj_tac
+      >- (unabbrev_all_tac
+          >> qmatch_goalsub_abbrev_tac `b1 ⇔ b2`
+          >> Cases_on `b1` >> Cases_on `b2` >> gvs[]
+          >- (last_x_assum $ qspec_then `x` assume_tac
+              >> gvs[]
+              >> last_x_assum $ qspec_then `y` assume_tac
+              >> gvs[IN_DEF]
+              >> drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
+              >> pop_assum $ qspec_then `y` assume_tac
+              >> gvs[IN_DEF])
+          >> pop_assum $ qspec_then `x` assume_tac
           >> gvs[]
           >> first_x_assum $ qspec_then `y` assume_tac
+          >> gvs[]
+          >> drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
+          >> pop_assum $ qspec_then `x` assume_tac
           >> gvs[IN_DEF])
-      >> gvs[]
-      >> Cases_on `c2` >> gvs[]
-      >> last_x_assum $ qspec_then `x'` assume_tac
+      >> conj_tac
+      >- (unabbrev_all_tac
+          >> qmatch_goalsub_abbrev_tac `b1 ⇔ b2`
+          >> Cases_on `b1` >> Cases_on `b2` >> gvs[]
+          >- (first_x_assum $ qspec_then `x` assume_tac
+              >> gvs[IN_DEF])
+          >- (drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
+              >> pop_assum $ qspec_then `x` assume_tac >> gvs[IN_DEF])
+          >> pop_assum $ qspec_then `x` assume_tac >> gvs[IN_DEF])
+      >> unabbrev_all_tac
+      >> drule EXTREAL_SUP_NEGATIVE_INFINITY_EMPTY_OR_SINGLETON >> strip_tac
       >> gvs[IN_DEF])
-  >> simp[]
-  >> pop_assum kall_tac
-  >> qmatch_goalsub_abbrev_tac `Normal (sup (u))`
-  >> sg `u = Normal s ∪ Normal r`
-  >- Cases_on `sup s` >> gvs[]
+  >> Cases_on `sup s = −∞` >> gvs[]
+  >> Cases_on `sup t = −∞`
+  >- (first_x_assum $ qspecl_then [`t`, `s`] assume_tac
+      >> gvs[UNION_COMM])
+  >> qpat_x_assum `∀a b. _` kall_tac
+  >> Cases_on `sup (s ∪ t) = +∞`
+  >- (drule (iffLR EXTREAL_SUP_POSITIVE_INFINITY) >> strip_tac
+      >> drule EXTREAL_SUP_NOT_POSITIVE_INFINITY >> strip_tac
+      >> qspec_then `s` assume_tac EXTREAL_SUP_NOT_POSITIVE_INFINITY
+      >> gvs[]
+      >> last_x_assum $ qspec_then `max x x'` assume_tac
+      >> Cases_on `max x x' = +∞`
+      >- (gvs[extreal_max_def] >> Cases_on `x ≤ x'` >> gvs[])
+      >> gvs[]
+      >> first_x_assum $ qspec_then `y` assume_tac
+      >> first_x_assum $ qspec_then `y` assume_tac
+      >> gvs[]
+      >> gvs[le_max])
+  >> Cases_on `sup (s ∪ t) = −∞`
+  >- (drule (iffLR EXTREAL_SUP_NEGATIVE_INFINITY) >> strip_tac
+      >> `sup s = −∞` suffices_by gvs[]
+      >> irule (iffRL EXTREAL_SUP_NEGATIVE_INFINITY)
+      >> gvs[])
+  >> qmatch_goalsub_abbrev_tac `a = max b c`
+  >> Cases_on `a` >> gvs[]
+  >> Cases_on `b` >> gvs[]
+  >> Cases_on `c` >> gvs[]
+  >> qspecl_then [`s ∪ t`, `r`] assume_tac EXTREAL_SUP_NORMAL
+  >> qspecl_then [`s`, `r'`] assume_tac EXTREAL_SUP_NORMAL
+  >> qspecl_then [`t`, `r''`] assume_tac EXTREAL_SUP_NORMAL
+  >> gvs[]
+  >> gvs[MAX_NORMAL]
+  >> gvs[PREIMAGE_UNION]
+  >> irule SUP_UNION
+  >> gvs[]
+  >> conj_tac
+  >- (qexists `sup (PREIMAGE Normal s)`
+      >> rpt strip_tac
+      >> `Normal x ≤ Normal (sup (PREIMAGE Normal s))` suffices_by gvs[]
+      >> `Normal x ≤ sup s` suffices_by gvs[]
+      >> gvs[le_sup_imp'])
+  >> conj_tac
+  >- (qexists `sup (PREIMAGE Normal t)`
+      >> rpt strip_tac
+      >> `Normal x ≤ Normal (sup (PREIMAGE Normal t))` suffices_by gvs[]
+      >> `Normal x ≤ sup t` suffices_by gvs[]
+      >> gvs[le_sup_imp'])
+  >> qspecl_then [`s`] assume_tac EXTREAL_SUP_NOT_NEGATIVE_INFINITY
+  >> gvs[]
+  >> qspecl_then [`s`] assume_tac :
+  ∀s : extreal -> bool.
+  sup s ≠ +∞ ⇒ ∃x. (∀y. y ∈ s ⇒ y ≤ x) ∧ x ≠ +∞
+Proof
+  rpt strip_tac
+  >> qexists `sup s + 1`
+  >> conj_tac >> gvs[add_not_infty]
+  >> rpt strip_tac
+  >> drule le_sup_imp' >> strip_tac
+  >> `0 : extreal ≤ 1` by gvs[]
+  >> `y + 0 ≤ sup s + 1` by gvs[le_add2]
+  >> gvs[]
+QED
+
+Theorem EXTREAL_SUP_NOT_NEGATIVE_INFINITY:
+  ∀s : extreal -> bool.
+  sup s ≠ −∞ ⇒ ∃x. x ∈ s ∧ x ≠ −∞
+Proof
+  rpt strip_tac
+  >> gvs[extreal_sup_def]
+  >> qmatch_asmsub_abbrev_tac `if c1 then _ else (if c2 then _ else v)`
+  >> Cases_on `c1`
+  >- (gvs[]
+      >> first_x_assum $ qspec_then `0` assume_tac
+      >> gvs[]
+      >> qexists `y`
+      >> CCONTR_TAC
+      >> gvs[IN_DEF])
+  >> gvs[]
+  >> Cases_on `c2` >> gvs[]
+  >> qexists `x'`
+  >> gvs[IN_DEF]
+QED
+
+Theorem EXTREAL_SUP_NORMAL:
+  ∀s : extreal -> bool.
+  ∀r : real.
+  sup s = Normal r ⇒ sup (PREIMAGE Normal s) = r
+Proof
+  rpt strip_tac
+  >> gvs[extreal_sup_def]
+  >> qmatch_asmsub_abbrev_tac `if c1 then _ else (if c2 then _ else v)`
+  >> Cases_on `c1` >> gvs[]
+  >> Cases_on `c2` >> gvs[]
+  >> AP_TERM_TAC
+  >> gvs[PREIMAGE_def]
+  >> irule EQ_EXT
+  >> rpt strip_tac
+  >> gvs[IN_DEF]
+QED
+
+Theorem MAX_NORMAL:
+  ∀r r' : real.
+  max (Normal r) (Normal r') = Normal (max r r')
+Proof
+  rpt strip_tac
+  >> gvs[extreal_max_def]
+  >> gvs[real_max]
+  >> Cases_on `r ≤ r'` >> gvs[]
+QED
+
+Theorem EXTREAL_SUP_UNION:
+  ∀s t : extreal -> bool.
+  sup (s ∪ t) = max (sup s) (sup t)
+Proof
+  rpt strip_tac
+  (* Strategy: Prove for all cases where sup s/sup t is +∞/-∞. Then in the
+     case where each is finite, prove that sup (s ∪ t) is finite. Then
+     convert to real and use existing proof for the real version *)
+  (* Handle case where either of the supremums is infinity *)
+  >> sg `∀s t : extreal -> bool. sup s = +∞ ⇒ sup (s ∪ t) = max (sup s) (sup t)`
+  >- (rpt strip_tac
+      >> drule (iffLR EXTREAL_SUP_POSITIVE_INFINITY)
+      >> rpt strip_tac
+      >> gvs[]
+      >> PURE_REWRITE_TAC[Once extreal_sup_def]
+      >> qmatch_goalsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
+      >> `c1` suffices_by gvs[]
+      >> gvs[Abbr `c1`, Abbr `c2`]
+     )
+  >> Cases_on `sup s = +∞` >> gvs[]
+  >> Cases_on `sup t = +∞`
+  >- (first_x_assum $ qspecl_then [`t`, `s`] assume_tac >> gvs[UNION_COMM])
+  >> last_x_assum kall_tac
+  (* Handle case where either of the supremums is negative infinity *)
+  >> sg `∀s t : extreal -> bool. sup s = −∞ ⇒ sup (s ∪ t) = max (sup s) (sup t)`
+  >- (rpt (pop_assum kall_tac)
+      >> rpt strip_tac
+      >> gvs[]
+      >> PURE_REWRITE_TAC[Ntimes extreal_sup_def 2]
+      >> qmatch_goalsub_abbrev_tac `(if c1 then _ else (if c2 then _ else e1)) = (if c3 then _ else (if c4 then _ else e2))`
+      >> `c1 = c3 ∧ c2 = c4 ∧ e1 = e2` suffices_by gvs[]
+      >> conj_tac
+      >- (unabbrev_all_tac
+          >> qmatch_goalsub_abbrev_tac `b1 ⇔ b2`
+          >> Cases_on `b1` >> Cases_on `b2` >> gvs[]
+          >- (last_x_assum $ qspec_then `x` assume_tac
+              >> gvs[]
+              >> last_x_assum $ qspec_then `y` assume_tac
+              >> gvs[IN_DEF]
+              >> drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
+              >> pop_assum $ qspec_then `y` assume_tac
+              >> gvs[IN_DEF])
+          >> pop_assum $ qspec_then `x` assume_tac
+          >> gvs[]
+          >> first_x_assum $ qspec_then `y` assume_tac
+          >> gvs[]
+          >> drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
+          >> pop_assum $ qspec_then `x` assume_tac
+          >> gvs[IN_DEF])
+      >> conj_tac
+      >- (unabbrev_all_tac
+          >> qmatch_goalsub_abbrev_tac `b1 ⇔ b2`
+          >> Cases_on `b1` >> Cases_on `b2` >> gvs[]
+          >- (first_x_assum $ qspec_then `x` assume_tac
+              >> gvs[IN_DEF])
+          >- (drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
+              >> pop_assum $ qspec_then `x` assume_tac >> gvs[IN_DEF])
+          >> pop_assum $ qspec_then `x` assume_tac >> gvs[IN_DEF])
+      >> unabbrev_all_tac
+      >> drule EXTREAL_SUP_NEGATIVE_INFINITY_EMPTY_OR_SINGLETON >> strip_tac
+      >> gvs[IN_DEF])
+  >> Cases_on `sup s = −∞` >> gvs[]
+  >> Cases_on `sup t = −∞`
+  >- (first_x_assum $ qspecl_then [`t`, `s`] assume_tac
+      >> gvs[UNION_COMM])
+  >> qpat_x_assum `∀a b. _` kall_tac
+  >> Cases_on `sup (s ∪ t) = +∞`
+  >- (drule (iffLR EXTREAL_SUP_POSITIVE_INFINITY) >> strip_tac
+      >> drule EXTREAL_SUP_NOT_POSITIVE_INFINITY >> strip_tac
+      >> qspec_then `s` assume_tac EXTREAL_SUP_NOT_POSITIVE_INFINITY
+      >> gvs[]
+      >> last_x_assum $ qspec_then `max x x'` assume_tac
+      >> Cases_on `max x x' = +∞`
+      >- (gvs[extreal_max_def] >> Cases_on `x ≤ x'` >> gvs[])
+      >> gvs[]
+      >> first_x_assum $ qspec_then `y` assume_tac
+      >> first_x_assum $ qspec_then `y` assume_tac
+      >> gvs[]
+      >> gvs[le_max])
+  >> Cases_on `sup (s ∪ t) = −∞`
+  >- (drule (iffLR EXTREAL_SUP_NEGATIVE_INFINITY) >> strip_tac
+      >> `sup s = −∞` suffices_by gvs[]
+      >> irule (iffRL EXTREAL_SUP_NEGATIVE_INFINITY)
+      >> gvs[])
+  >> qmatch_goalsub_abbrev_tac `a = max b c`
+  >> Cases_on `a` >> gvs[]
+  >> Cases_on `b` >> gvs[]
+  >> Cases_on `c` >> gvs[]
+  >> qspecl_then [`s ∪ t`, `r`] assume_tac EXTREAL_SUP_NORMAL
+  >> qspecl_then [`s`, `r'`] assume_tac EXTREAL_SUP_NORMAL
+  >> qspecl_then [`t`, `r''`] assume_tac EXTREAL_SUP_NORMAL
+  >> gvs[]
+  >> gvs[MAX_NORMAL]
+  >> gvs[PREIMAGE_UNION]
+  >> irule SUP_UNION
+  >> gvs[]
+  >> conj_tac
+  >- (qexists `sup (PREIMAGE Normal s)`
+      >> rpt strip_tac
+      >> `Normal x ≤ Normal (sup (PREIMAGE Normal s))` suffices_by gvs[]
+      >> `Normal x ≤ sup s` suffices_by gvs[]
+      >> gvs[le_sup_imp'])
+  >> conj_tac
+  >- (qexists `sup (PREIMAGE Normal t)`
+      >> rpt strip_tac
+      >> `Normal x ≤ Normal (sup (PREIMAGE Normal t))` suffices_by gvs[]
+      >> `Normal x ≤ sup t` suffices_by gvs[]
+      >> gvs[le_sup_imp'])
+  >> conj_tac
+  >- (qspecl_then [`s`] assume_tac EXTREAL_SUP_NOT_NEGATIVE_INFINITY
+      >> gvs[]
+      >> qspecl_then [`s`] assume_tac EXTREAL_SUP_NOT_POSITIVE_INFINITY
+      >> gvs[]
+      >> first_x_assum $ qspec_then `x` assume_tac
+      >> gvs[]
+      >> `x ≠ +∞` by (CCONTR_TAC >> gvs[le_infty])
+      >> Cases_on `x` >> gvs[]
+      >> gvs[PREIMAGE_def]
+      >> CCONTR_TAC
+      >> gvs[]
+      >> drule (iffLR EXTENSION) >> strip_tac
+      >> pop_assum $ qspec_then `r` assume_tac
+      >> gvs[])
+  >- (qspecl_then [`t`] assume_tac EXTREAL_SUP_NOT_NEGATIVE_INFINITY
+      >> gvs[]
+      >> qspecl_then [`t`] assume_tac EXTREAL_SUP_NOT_POSITIVE_INFINITY
+      >> gvs[]
+      >> first_x_assum $ qspec_then `x` assume_tac
+      >> gvs[]
+      >> `x ≠ +∞` by (CCONTR_TAC >> gvs[le_infty])
+      >> Cases_on `x` >> gvs[]
+      >> gvs[PREIMAGE_def]
+      >> CCONTR_TAC
+      >> gvs[]
+      >> drule (iffLR EXTENSION) >> strip_tac
+      >> pop_assum $ qspec_then `r` assume_tac
+      >> gvs[])
 QED
 
 Theorem :
