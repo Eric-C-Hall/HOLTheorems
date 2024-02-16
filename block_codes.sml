@@ -20,6 +20,7 @@ open combinTheory; (* o_DEF *)
 open realTheory;
 open iterateTheory; (* why does this contain SUP_UNION *)
 open realaxTheory;
+open bitstringTheory;
 
 (* -------------------------------------------------------------------------- *)
 (* Notes on relevant theorems, etc                                            *)
@@ -820,14 +821,36 @@ Theorem length_n_codes_degenerate_prob_space_is_prob_space:
 Proof
   gvs[length_n_codes_degenerate_prob_space_def, degenerate_distribution_is_prob_space]
 QED
+   
+
+(* -------------------------------------------------------------------------- *)
+(* Takes ns, a list of booleans that describe whether or not to apply noise   *)
+(* at each position, and takes bs, the original bitstring, and returns the    *)
+(* bitstring which has had noise applied in each of the appropriate positions *)
+(* -------------------------------------------------------------------------- *)
+Definition apply_noise_def:
+  apply_noise (ns : bool list) (bs : bool list) = bxor ns bs
+End
+
+Definition m
+
+Definition symmetric_noise_distribution_def:
+  symmetric_noise_distribution (n : num) (p : extreal) (bs : bool list) = p ** LENGTH (FILTER (λx. x) bs) + (1 - p) ** 
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Takes an input probability distribution and returns the output probability *)
 (* distribution with errors randomly added                                    *)
 (* -------------------------------------------------------------------------- *)
-Definition symmetric_error_channel_def:
-  symmetric_error_channel n p 
+Definition symmetric_error_channel_distribution_def:
+  symmetric_error_channel_distribution (n : num) (p : extreal) (bs : bool list) (cs : bool list) =
 
+
+
+
+(* Representation of the probability distribution over possible errors in 
+Definition length_n_code_error_distribution_def:
+  length_n_code_error_distribution (p : extreal) (bs : bool list) = 
 End
 
 
