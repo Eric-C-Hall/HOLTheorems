@@ -837,7 +837,7 @@ Definition num_errors_def:
 End
         
 Definition symmetric_noise_distribution_def:
-  symmetric_noise_distribution (n : num) (p : extreal) = ∑ (λns : bool list. p pow (num_errors ns) + (1 - p) pow (n - num_errors ns))
+  symmetric_noise_distribution (n : num) (p : extreal) = ∑ (λns : bool list. p pow (num_errors ns) * (1 - p) pow (n - num_errors ns))
 End
 
 Definition symmetric_noise_prob_space_def:
@@ -871,11 +871,6 @@ Theorem extreal_sum_countably_additive:
   ∀s a f. (∀n. 0 ≤ ∑ f n) ⇒ countably_additive(s, a, ∑ f)
 Proof
 QED*)
-
-
-
-finite_additivity_sufficient_for_finite_spaces
-finite_additivity_sufficient_for_finite_spaces2
         
 Theorem symmetric_noise_distribution_prob_space:
   ∀n p.
@@ -909,7 +904,7 @@ Proof
           >> qmatch_goalsub_abbrev_tac ‘r ≠ −∞’
           >> ‘0 ≤ r’ suffices_by (Cases_on ‘r’ >> gvs[])
           >> gvs[Abbr ‘r’]
-          >> irule le_add
+          >> irule le_mul
           >> conj_tac >> gvs[pow_pos_le])
       >- (gvs[positive_def]
           >> conj_tac >> gvs[symmetric_noise_distribution_def]
@@ -920,11 +915,12 @@ Proof
           >- metis_tac[FINITE_IN_POW, length_n_codes_finite]
           >> rpt strip_tac
           >> gvs[]
-          >> irule le_add
+          >> irule le_mul
           >> conj_tac >> gvs[pow_pos_le])
       >> gvs[POW_SIGMA_ALGEBRA])
   >> gvs[symmetric_noise_distribution_def]
-  >>
+  >> Induct_on ‘n’
+                >> gvs[length_n_codes_def, num_errors_def]
         
   (*>> gvs[measure_space_def]
   >> rpt conj_tac
