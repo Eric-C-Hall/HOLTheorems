@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -821,37 +822,124 @@ Theorem length_n_codes_degenerate_prob_space_is_prob_space:
 Proof
   gvs[length_n_codes_degenerate_prob_space_def, degenerate_distribution_is_prob_space]
 QED
-   
 
 (* -------------------------------------------------------------------------- *)
-(* Takes ns, a list of booleans that describe whether or not to apply noise   *)
-(* at each position, and takes bs, the original bitstring, and returns the    *)
-(* bitstring which has had noise applied in each of the appropriate positions *)
+(* Takes bs, an initial bitstring, and ns, a list of booleans that describe   *)
+(* whether or not to apply noise at each position, and returns the bitstring  *)
+(* which has had noise applied in each of the appropriate positions           *)
 (* -------------------------------------------------------------------------- *)
 Definition apply_noise_def:
-  apply_noise (ns : bool list) (bs : bool list) = bxor ns bs
+  apply_noise (bs : bool list) (ns : bool list) = bxor bs ns
 End
 
-Definition m
-
+Definition num_errors_def:
+  num_errors (ns : bool list) = LENGTH (FILTER (λx.x) ns)
+End
+        
 Definition symmetric_noise_distribution_def:
-  symmetric_noise_distribution (n : num) (p : extreal) (bs : bool list) = p ** LENGTH (FILTER (λx. x) bs) + (1 - p) ** 
+  symmetric_noise_distribution (n : num) (p : extreal) = ∑ (λns : bool list. p pow (num_errors ns) + (1 - p) pow (n - num_errors ns))
 End
 
+Definition symmetric_noise_prob_space_def:
+  symmetric_noise_prob_space n p = (length_n_codes n, POW (length_n_codes n), symmetric_noise_distribution n p)
+End
+
+Theorem le_not_posinf:
+  ∀x y : extreal. x ≤ y ∧ y ≠ +∞ ⇒ x ≠ +∞
+Proof
+  rpt strip_tac >> gvs[]
+  >> Cases_on ‘y’ >> gvs[]
+QED
+
+Theorem le_not_neginf:
+  ∀x y : extreal. y ≤ x ∧ y ≠ −∞ ⇒ x ≠ −∞
+Proof
+  rpt strip_tac >> gvs[]
+  >> Cases_on ‘y’ >> gvs[]
+QED
+        
+(* It doesn't seem to me that countably_additive should be dependent on the
+   measure being nonnegative everywhere, but it is, because it depends on
+   suminf, which has the condition of nonnegativity everywhere. I'm not
+   convinced that suminf needs the condition of nonnegativity everywhere,
+   but under the current definition of suminf, which uses a supremum instead
+   of a limit, it is necessary to ensure that the infinite sum has the right
+   value. Ideally it wold use the limit definition of an infinite sum instead,
+   so that it can handle negative values.*)
+(* The following theorem only makes sense on finite choices of the state space, since ∑ is only defined on finite sets.
+Theorem extreal_sum_countably_additive:
+  ∀s a f. (∀n. 0 ≤ ∑ f n) ⇒ countably_additive(s, a, ∑ f)
+Proof
+QED*)
+
+
+
+finite_additivity_sufficient_for_finite_spaces
+finite_additivity_sufficient_for_finite_spaces2
+        
+Theorem symmetric_noise_distribution_prob_space:
+  ∀n p.
+  0 ≤ p ∧ p ≤ 1 ⇒
+  prob_space (symmetric_noise_prob_space n p)
+Proof
+  rpt strip_tac
+  >> gvs[prob_space_def, symmetric_noise_prob_space_def]
+  >> gvs[measure_space_def]
+  >> rpt conj_tac
+  >- gvs[POW_SIGMA_ALGEBRA]
+  >- (gvs[positive_def]
+      >> gvs[symmetric_noise_distribution_def]
+      >> rpt strip_tac
+      >> irule EXTREAL_SUM_IMAGE_POS
+      >> irule $ iffLR CONJ_SYM
+      >> conj_tac
+      >- metis_tac[FINITE_POW, FINITE_IN_POW, length_n_codes_finite]
+      >> rpt strip_tac
+      >> gvs[]
+      >> irule le_add
+      >> conj_tac >> irule pow_pos_le
+      >> gvs[]
+      >> irule $ iffLR sub_zero_le
+      >> gvs[le_not_infty]
+      >> irule le_not_posinf
+      >> qexists ‘1’
+      >> gvs[])
+  >- (gvs[countably_additive_def]
+      >> rpt strip_tac
+      >> PURE_REWRITE_TAC [symmetric_noise_distribution_def]
+      >> qmatch_goalsub_abbrev_tac ∑ g s
+
+      ‘∃f : symmetric_noise_distribution n p = ∑ f s’ by gvs
+      >> gvs[symmetric_noise_distribution_def]
+QED
+             
+Theorem apply_noise_is_random_variable:
+  random_variable apply_noise ()
+Proof
+QED
+        
+Definition apply_noise_to_bitstring_random_variable_def:
+  apply_noise_s
+        
+(* f: noise_distribution
+   g: *)
+Definition apply_noise_distribution_to_code_distribution_def:
+  code_with_symmetric_noise_distribution (n : num) (noise_dist : bool list -> extreal) (code_dist : bool list -> extreal) (bs : bool list) = apply_noise
+End
+
+
+apply_noise 
 (* -------------------------------------------------------------------------- *)
 (* Takes an input probability distribution and returns the output probability *)
 (* distribution with errors randomly added                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition symmetric_error_channel_distribution_def:
-  symmetric_error_channel_distribution (n : num) (p : extreal) (bs : bool list) (cs : bool list) =
-
-
-
-
-(* Representation of the probability distribution over possible errors in 
-Definition length_n_code_error_distribution_def:
-  length_n_code_error_distribution (p : extreal) (bs : bool list) = 
+  symmetric_error_channel_distribution (n : num) (p : bool list -> extreal) (bs : bool list) =
 End
+
+
+
+(* m_space *)
 
 
 
