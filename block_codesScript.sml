@@ -55,7 +55,7 @@ End
 Theorem FINITE_IN_POW:
   ∀s : α -> bool.
   ∀ s' : α -> bool.
-  FINITE s ⇒
+  FINITE s ∧
   s' ∈ POW s ⇒
   FINITE s'
 Proof
@@ -883,8 +883,50 @@ Theorem symmetric_noise_distribution_prob_space:
   prob_space (symmetric_noise_prob_space n p)
 Proof
   rpt strip_tac
+  >> sg ‘0 ≤ (1 - p)’
+  >- (irule le_sub_imp >> gvs[le_not_infty]
+      >> irule le_not_posinf
+      >> qexists ‘1’
+      >> gvs[])
   >> gvs[prob_space_def, symmetric_noise_prob_space_def]
-  >> gvs[measure_space_def]
+  >> conj_tac
+  >- (irule finite_additivity_sufficient_for_finite_spaces2
+      >> rpt conj_tac >> gvs[]
+      >- gvs[length_n_codes_finite]
+      >- (gvs[additive_def]
+          >> rpt strip_tac
+          >> gvs[symmetric_noise_distribution_def]
+          >> irule EXTREAL_SUM_IMAGE_DISJOINT_UNION
+          >> gvs[]
+          >> rpt conj_tac
+          >- metis_tac[FINITE_IN_POW, length_n_codes_finite]
+          >- metis_tac[FINITE_IN_POW, length_n_codes_finite]
+          >> disj1_tac
+          >> strip_tac
+          >> qmatch_goalsub_abbrev_tac ‘_ ⇒ g’
+          >> ‘g’ suffices_by gvs[]
+          >> gvs[Abbr ‘g’]
+          >> qmatch_goalsub_abbrev_tac ‘r ≠ −∞’
+          >> ‘0 ≤ r’ suffices_by (Cases_on ‘r’ >> gvs[])
+          >> gvs[Abbr ‘r’]
+          >> irule le_add
+          >> conj_tac >> gvs[pow_pos_le])
+      >- (gvs[positive_def]
+          >> conj_tac >> gvs[symmetric_noise_distribution_def]
+          >> rpt strip_tac
+          >> irule EXTREAL_SUM_IMAGE_POS
+          >> irule $ iffLR CONJ_COMM
+          >> conj_tac
+          >- metis_tac[FINITE_IN_POW, length_n_codes_finite]
+          >> rpt strip_tac
+          >> gvs[]
+          >> irule le_add
+          >> conj_tac >> gvs[pow_pos_le])
+      >> gvs[POW_SIGMA_ALGEBRA])
+  >> gvs[symmetric_noise_distribution_def]
+  >>
+        
+  (*>> gvs[measure_space_def]
   >> rpt conj_tac
   >- gvs[POW_SIGMA_ALGEBRA]
   >- (gvs[positive_def]
@@ -910,7 +952,7 @@ Proof
       >> qmatch_goalsub_abbrev_tac ∑ g s
 
       ‘∃f : symmetric_noise_distribution n p = ∑ f s’ by gvs
-      >> gvs[symmetric_noise_distribution_def]
+      >> gvs[symmetric_noise_distribution_def]*)
 QED
              
 Theorem apply_noise_is_random_variable:
