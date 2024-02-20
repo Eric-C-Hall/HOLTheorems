@@ -986,27 +986,71 @@ Theorem length_n_codes_suc:
   ∀n : num.
     length_n_codes (SUC n) = (IMAGE (CONS F) (length_n_codes n)) ∪ (IMAGE (CONS T) (length_n_codes n))
 Proof
-  irule $ iffRL EXTENSION
+  strip_tac
+  >> irule $ iffRL EXTENSION
   >> rpt strip_tac
   >> qmatch_goalsub_abbrev_tac ‘b1 ⇔ b2’ >> Cases_on ‘b2’ >> gvs[Abbr ‘b1’]
   >- gvs[length_n_codes_def]
   >- gvs[length_n_codes_def]
   >> CCONTR_TAC
+  >> Cases_on ‘x’
+  >- gvs[length_n_codes_def]
+  >> rpt $ first_x_assum $ qspec_then ‘t’ assume_tac
   >> gvs[]
-  >> 
+  >> Cases_on ‘h’ >> gvs[length_n_codes_def]
 QED
 
-Theorem length_n_codes_extreal_sum_induct_helper:
+(*
+(IMAGE g s )
+*)
+
+(*Theorem extreal_sum_image_union:
+  ∑ f ((IMAGE g s) ∪ (IMAGE h s)) = 
+Proof
+QED*)
+
+Theorem extreal_sum_length_n_codes_suc:
   ∀f : bool list -> extreal.
     ∀n : num.
-      ∑ (λbs : bool list. ∑ f {T::bs; F::bs}) (length_n_codes n) = ∑ f (length_n_codes (SUC n))
+      (∀cs. cs ∈ (length_n_codes (SUC n)) ⇒ f cs ≠ −∞) ∨ (∀cs. cs ∈ (length_n_codes (SUC n)) ⇒ f cs ≠ +∞) ⇒
+      ∑ f (length_n_codes (SUC n)) = ∑ (λbs : bool list. ∑ f {T::bs; F::bs}) (length_n_codes n)
 Proof
-  sg ‘∀s. FINITE s ⇒ ∀n. s = length_n_codes n ⇒ ∑ (λbs. ∑ f {T::bs; F::bs}) s = ∑ f (length_n_codes (SUC n))’
-  >- (strip_tac
-      >> Induct_on ‘s’ using FINITE_INDUCT
-      >> rpt conj_tac >> rpt strip_tac
-      >- gvs[length_n_codes_def, length_n_codes_empty]
-      >> 
+  rpt gen_tac
+  >> DISCH_TAC
+  >> simp[length_n_codes_suc]
+  >> qmatch_goalsub_abbrev_tac ‘u1 ∪ u2’
+  >> sg ‘∑ f (u1 ∪ u2) = ∑ f u1 + ∑ f u2’
+  >- (irule EXTREAL_SUM_IMAGE_DISJOINT_UNION
+      >> conj_tac
+      >- gvs[IMAGE_FINITE, length_n_codes_finite, Abbr ‘u1’, Abbr ‘u2’]
+      >> conj_tac
+      >- gvs[IMAGE_FINITE, length_n_codes_finite, Abbr ‘u1’, Abbr ‘u2’]
+      >> conj_tac
+      >- (simp[DISJOINT_DEF, INTER_DEF]
+          >> irule $ iffRL EXTENSION
+          >> strip_tac
+          >> Cases_on ‘x ∈ ∅’
+          >- gvs[]
+          >> simp[]
+          >> Cases_on ‘x’
+          >- (unabbrev_all_tac >> gvs[IMAGE_DEF, length_n_codes_def])
+          >> Cases_on ‘h’ >> unabbrev_all_tac >> gvs[IMAGE_DEF, length_n_codes_def])
+      >> gvs[]
+      >- (disj1_tac
+          >> gen_tac >> DISCH_TAC
+          >> last_x_assum irule
+          >> gvs[Abbr ‘u1’, Abbr ‘u2’, IMAGE_DEF, length_n_codes_def])
+      >> disj2_tac
+      >> gen_tac >> DISCH_TAC
+      >> last_x_assum irule
+      >> gvs[Abbr ‘u1’, Abbr ‘u2’, IMAGE_DEF, length_n_codes_def])
+  >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
+  >> ∑ (λx. ∑ f x) 
+
+       unabbrev_all_tac
+  >> 
+
+  ∑ (f : α -> extreal) _ + ∑ f _
 QED
 
 Theorem symmetric_noise_prob_space_is_prob_space:
