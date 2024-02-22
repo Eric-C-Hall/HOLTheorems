@@ -943,9 +943,9 @@ Proof
   >> Cases_on ‘sym_noise_dist n p s’ >> gvs[]
 QED
 
-Theorem sym_noise_mass_func_sym_noise_dist:
+Theorem sym_noise_dist_singleton:
   ∀n p x. 0 ≤ p ∧ p ≤ 1 ⇒
-          sym_noise_mass_func n p x = sym_noise_dist n p {x}
+          sym_noise_dist n p {x} = sym_noise_mass_func n p x
 Proof
   rpt strip_tac >> gvs[sym_noise_dist_def]
 QED
@@ -954,14 +954,14 @@ Theorem sym_noise_mass_func_pos:
   ∀n p x. 0 ≤ p ∧ p ≤ 1 ⇒
           0 ≤ sym_noise_mass_func n p x
 Proof
-  gvs[sym_noise_mass_func_sym_noise_dist, sym_noise_dist_pos]
+  gvs[GSYM sym_noise_dist_singleton, sym_noise_dist_pos]
 QED
 
 Theorem sym_noise_mass_func_not_neginf:
   ∀n p x. 0 ≤ p ∧ p ≤ 1 ⇒
           sym_noise_mass_func n p x ≠ −∞
 Proof
-  gvs[sym_noise_mass_func_sym_noise_dist, sym_noise_dist_not_neginf]
+  gvs[GSYM sym_noise_dist_singleton, sym_noise_dist_not_neginf]
 QED
 
 Theorem sym_noise_dist_union:
@@ -1027,7 +1027,7 @@ QED
 
 Theorem length_n_codes_suc:
   ∀n : num.
-    length_n_codes (SUC n) = (IMAGE (CONS F) (length_n_codes n)) ∪ (IMAGE (CONS T) (length_n_codes n))
+    length_n_codes (SUC n) = (IMAGE (CONS T) (length_n_codes n)) ∪ (IMAGE (CONS F) (length_n_codes n))
 Proof
   strip_tac
   >> irule $ iffRL EXTENSION
@@ -1197,13 +1197,19 @@ Proof
   >> gvs[]
 QED
 
-Theorem sym_noise_dist_suc:
+Theorem sym_noise_dist_empty:
+  ∀n p.
+    sym_noise_dist n p ∅ = 0
+Proof
+  gvs[sym_noise_dist_def]
+QED
+
+Theorem sym_noise_dist_suc_singleton:
   ∀n p bs.
     0 ≤ p ∧ p ≤ 1 ∧ bs ∈ length_n_codes n ⇒
     sym_noise_dist (SUC n) p {T::bs; F::bs} = sym_noise_dist n p {bs}
 Proof
   rpt strip_tac
-  >> drule_all complement_prob >> strip_tac
   >> gvs[sym_noise_dist_def]
   >> DEP_PURE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DOUB]
   >> rpt conj_tac
@@ -1211,6 +1217,65 @@ Proof
   >- (CCONTR_TAC >> gvs[sym_noise_mass_func_not_neginf])
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM sym_noise_mass_func_suc]
   >> gvs[length_n_codes_def]
+QED
+
+Theorem sym_noise_dist_suc_general:
+  ∀n p s.
+    0 ≤ p ∧ p ≤ 1 ∧ s ⊆ length_n_codes n ⇒
+    sym_noise_dist (SUC n) p (IMAGE (CONS T) s ∪ IMAGE (CONS F) s) = sym_noise_dist n p s
+Proof
+  rpt gen_tac
+  >> qmatch_goalsub_abbrev_tac ‘g’
+  >> qsuff_tac ‘FINITE s ⇒ g’
+  >- (gvs[Abbr ‘g’]
+      >> rpt strip_tac
+      >> last_x_assum irule
+      >> metis_tac[SUBSET_FINITE, length_n_codes_finite])
+  >>unabbrev_all_tac
+  >> Induct_on ‘s’ using FINITE_INDUCT
+  >> gvs[]
+  >> conj_tac
+  >- gvs[sym_noise_dist_def]
+  >> rpt strip_tac
+  >> gvs[INSERT_UNION]
+  >> DEP_PURE_ONCE_REWRITE_TAC[sym_noise_dist_insert]
+  >> gvs[]
+  >> PURE_REWRITE_TAC[Once UNION_COMM]
+  >> gvs[INSERT_UNION]
+  >> DEP_PURE_ONCE_REWRITE_TAC[add_comm]
+  >> gvs[sym_noise_dist_not_neginf]
+  >> DEP_PURE_ONCE_REWRITE_TAC[sym_noise_dist_insert]
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘a + b + c = d’
+  >> ‘a ≠ −∞’ by (unabbrev_all_tac >> gvs[sym_noise_dist_not_neginf])
+  >> ‘b ≠ −∞’ by (unabbrev_all_tac >> gvs[sym_noise_dist_not_neginf])
+  >> ‘c ≠ −∞’ by (unabbrev_all_tac >> gvs[sym_noise_dist_not_neginf])
+  >> ‘d ≠ −∞’ by (unabbrev_all_tac >> gvs[sym_noise_dist_not_neginf])
+  >> qsuff_tac ‘c + a + b = d’
+  >- (NTAC 11 $ last_x_assum kall_tac
+      >> unabbrev_all_tac >> metis_tac[add_comm, add_assoc])
+  >> gvs[Abbr ‘a’, Abbr ‘c’]
+  >> gvs[sym_noise_dist_singleton]
+  >> DEP_PURE_REWRITE_TAC[GSYM sym_noise_mass_func_suc]
+  >> gvs[]
+  >> conj_tac >- gvs[length_n_codes_def]
+  >> rpt $ qpat_x_assum ‘sym_noise_mass_func _ _ _ ≠ −∞’ kall_tac
+  >> gvs[UNION_COMM]
+  >> qpat_x_assum ‘sym_noise_dist (SUC n) _ (_ ∪ _) = _’ kall_tac
+  >> gvs[Abbr ‘d’]
+  >> DEP_PURE_ONCE_REWRITE_TAC[sym_noise_dist_insert]
+  >> gvs[sym_noise_dist_singleton]
+QED
+
+Theorem sym_noise_dist_suc:
+  ∀n p bs.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    sym_noise_dist (SUC n) p (length_n_codes (SUC n)) = sym_noise_dist n p (length_n_codes n)
+Proof
+  rpt strip_tac
+  >> gvs[length_n_codes_suc]
+  >> irule sym_noise_dist_suc_general
+  >> gvs[]
 QED
 
 Theorem sym_noise_prob_space_is_prob_space:
@@ -1233,89 +1298,12 @@ Proof
   >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
   (* The probability of the two bitstrings [0, 1, 0] and [1, 1, 0]
      corresponds to the probability of the bitstring [1, 0], for example *)
-  >> assume_tac sym_noise_dist_suc
-  >> 
-  >> sg ‘∀s. FINITE s ⇒ s ⊆ (length_n_codes n) ⇒ sym_noise_dist n p s = ∑ (λbs. sym_noise_dist (SUC n) p {T::bs; F::bs}) s’
-  >- (Induct_on ‘s’ using FINITE_INDUCT
-      >> gvs[]
-      >> rpt strip_tac
-      >- gvs[sym_noise_dist_def]
-      >> qmatch_goalsub_abbrev_tac ‘_ = ∑ f _’
-      >> qspec_then ‘f’ assume_tac EXTREAL_SUM_IMAGE_THM >> gvs[]
-      >> pop_assum $ qspecl_then [‘e’, ‘s’] assume_tac
-      >> gvs[]
-      >> qmatch_asmsub_abbrev_tac ‘premises ⇒ _’
-      >> sg ‘premises’
-      >- (gvs[Abbr ‘premises’]
-          >> disj2_tac
-          >> gvs[Abbr ‘f’]
-          >> strip_tac
-          >> qmatch_goalsub_abbrev_tac ‘_ ⇒ v ≠ _’
-          >> ‘0 ≤ v’ suffices_by (gvs[le_not_infty])
-          >> gvs[Abbr ‘v’]
-          >> irule sym_noise_dist_pos
-          >> gvs[])
-      >> gvs[]
-      >> pop_assum kall_tac
-      >> pop_assum kall_tac
-      >> gvs[DELETE_NON_ELEMENT]
-      >> qpat_x_assum ‘_ = ∑ _ _’ assume_tac
-      >> drule EQ_SYM >> pop_assum kall_tac >> strip_tac
-      >> pop_assum $ (fn th => PURE_REWRITE_TAC[th])
-      >> PURE_REWRITE_TAC[sym_noise_dist_def]
-      >> qmatch_goalsub_abbrev_tac ‘∑ g _’
-      >> qspec_then ‘g’ assume_tac EXTREAL_SUM_IMAGE_THM
-      >> gvs[]
-      >> pop_assum $ qspecl_then [‘e’, ‘s’] assume_tac
-      >> qpat_x_assum ‘_ DELETE _ = _’ assume_tac
-      >> drule EQ_SYM >> pop_assum kall_tac >> strip_tac
-      >> ‘∑ g s = ∑ g (s DELETE e)’ by (pop_assum $ (fn th => PURE_REWRITE_TAC[Once th]) >> gvs[])
-      >> pop_assum $ (fn th => PURE_REWRITE_TAC[Once th])
-      >> pop_assum kall_tac
-      >> pop_assum irule
-      >> gvs[]
-      >> disj2_tac
-      >> strip_tac
-      >> ‘g x ≠ −∞’ suffices_by gvs[]
-      >> gvs[Abbr ‘g’]
-      >> qmatch_goalsub_abbrev_tac ‘val ≠ −∞’
-      >> ‘0 ≤ val’ suffices_by gvs[le_not_infty]
-      >> unabbrev_all_tac
-      >> irule le_mul
-      >> gvs[pow_pos_le])
-  >> pop_assum $ qspec_then ‘length_n_codes n’ mp_tac
-  >> pop_assum kall_tac >> strip_tac
-  >> gvs[length_n_codes_finite]
-  >> pop_assum kall_tac
-  >> gvs[sym_noise_dist_def]
-  >> 
+  >> gvs[sym_noise_dist_suc]
 QED
 
-∑ ((λx. ∑ _ _) : α -> extreal) _
-
-Theorem foo:
-  ∀s : bool list -> bool. ∀ n : bool list. FINITE s ⇒ n INSERT s = s
-Proof
-  rpt strip_tac
-      Induct_on ‘s’ using FINITE_INDUCT
-QED
-
-Theorem apply_noise_is_random_variable:
-  random_variable apply_noise ()
-Proof
-QED
-
-Definition apply_noise_to_bitstring_random_variable_def:
-  apply_noise_s
-  
-(* f: noise_distribution
-   g: *)
-Definition apply_noise_distribution_to_code_distribution_def:
-           code_with_sym_noise_dist (n : num) (noise_dist : bool list -> extreal) (code_dist : bool list -> extreal) (bs : bool list) = apply_noise
-End
 
 
-apply_noise 
+
 (* -------------------------------------------------------------------------- *)
 (* Takes an input probability distribution and returns the output probability *)
 (* distribution with errors randomly added                                    *)
@@ -1323,11 +1311,6 @@ apply_noise
 Definition sym_error_channel_distribution_def:
   sym_error_channel_distribution (n : num) (p : bool list -> extreal) (bs : bool list) =
 End
-
-
-(* m_space *)
-
-
 
 val _ = export_theory();
 
