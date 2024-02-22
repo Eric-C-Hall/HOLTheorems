@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -24,6 +23,8 @@ open realaxTheory;
 open bitstringTheory;
 open rich_listTheory;
 
+open dep_rewrite
+
 (* -------------------------------------------------------------------------- *)
 (* Notes on relevant theorems, etc                                            *)
 (*                                                                            *)
@@ -47,10 +48,10 @@ End
 
 Definition length_n_codes_uniform_prob_space_def:
   length_n_codes_uniform_prob_space (n : num) =
-    let s = length_n_codes n in
+  let s = length_n_codes n in
     let a = POW s in
-    let p = uniform_distribution (s, a) in
-    (s, a, p)
+      let p = uniform_distribution (s, a) in
+        (s, a, p)
 End
 
 Theorem FINITE_IN_POW:
@@ -68,9 +69,9 @@ QED
 
 Theorem uniform_distribution_finite_prob_space:
   ∀s : α -> bool.
-  FINITE s ⇒
-  CARD s ≠ 0 ⇒
-  prob_space (s, POW s, uniform_distribution (s, POW s))
+    FINITE s ⇒
+    CARD s ≠ 0 ⇒
+    prob_space (s, POW s, uniform_distribution (s, POW s))
 Proof
   rpt strip_tac
   >> irule $ iffRL prob_on_finite_set
@@ -120,7 +121,7 @@ End
 
 Theorem subset_to_code_length:
   ∀n : num. ∀s : num -> bool.
-  LENGTH (subset_to_code n s) = n
+              LENGTH (subset_to_code n s) = n
 Proof
   strip_tac
   >> Induct_on `n` >> gvs[subset_to_code_def]
@@ -841,13 +842,18 @@ Definition num_errors_def:
   num_errors (ns : bool list) = LENGTH (FILTER (λx.x) ns)
 End
 
-(* Should I include the condition 0 ≤ p ≤ 1 here somehow? *)
-Definition symmetric_noise_distribution_def:
-  symmetric_noise_distribution (n : num) (p : extreal) = ∑ (λns : bool list. p pow (num_errors ns) * (1 - p) pow (n - num_errors ns))
+(* Symmetric noise mass function *)
+Definition sym_noise_mass_func_def:
+  sym_noise_mass_func (n : num) (p : extreal) = (λns : bool list. p pow (num_errors ns) * (1 - p) pow (n - num_errors ns))
 End
 
-Definition symmetric_noise_prob_space_def:
-  symmetric_noise_prob_space n p = (length_n_codes n, POW (length_n_codes n), symmetric_noise_distribution n p)
+(* Should I include the condition 0 ≤ p ≤ 1 here somehow? *)
+Definition sym_noise_dist_def:
+  sym_noise_dist (n : num) (p : extreal) = ∑ (sym_noise_mass_func n p)
+End
+
+Definition sym_noise_prob_space_def:
+  sym_noise_prob_space n p = (length_n_codes n, POW (length_n_codes n), sym_noise_dist n p)
 End
 
 Theorem le_not_posinf:
@@ -871,12 +877,20 @@ QED
    but under the current definition of suminf, which uses a supremum instead
    of a limit, it is necessary to ensure that the infinite sum has the right
    value. Ideally it would use the limit definition of an infinite sum instead,
-   so that it can handle negative values.*)
-(* The following theorem only makes sense on finite choices of the state space, since ∑ is only defined on finite sets.
-Theorem extreal_sum_countably_additive:
-  ∀s a f. (∀n. 0 ≤ ∑ f n) ⇒ countably_additive(s, a, ∑ f)
-Proof
-QED*)
+   so that it can handle negative values.
+   -------------
+   
+   We discussed this issue. It seems to not be such a big problem since
+   a measure is always supposed to be nonnegative everywhere. Using the
+   alternative definition, we would have to constantly check that the sum
+   converges, which may be more of a nuisance. Using the current version of
+   suminf, we can be sure that the sum converges to some value (possibly
+   infinity), by the monotone convergence theorem, and the fact that the
+   sum applied to positive values is monotone.
+
+   Still, under certain circumstances, maybe it'll be useful to discuss
+   countably additive functions which are not strictly positive?
+ *)
 
 Theorem le_1_not_posinf:
   ∀e : extreal. e ≤ 1 ⇒ e ≠ +∞
@@ -898,77 +912,106 @@ Proof
   >> gvs[]
 QED
 
-Theorem symmetric_noise_distribution_pos:
-  ∀n p s. 0 ≤ p ∧ p ≤ 1 ∧ FINITE s ⇒
-          0 ≤ symmetric_noise_distribution n p s
+Theorem sym_noise_mass_func_pos:
+  ∀n p x. 0 ≤ p ∧ p ≤ 1 ⇒
+          0 ≤ sym_noise_mass_func n p x
 Proof
   rpt strip_tac
   >> drule_all complement_prob >> strip_tac
-  >- (gvs[symmetric_noise_distribution_def]
-      >> irule EXTREAL_SUM_IMAGE_POS
-      >> rpt strip_tac
-      >- (gvs[]
-          >> irule le_mul
-          >> gvs[pow_pos_le])
-      >> gvs[])
+  >> gvs[sym_noise_mass_func_def, le_mul, pow_pos_le]   
 QED
 
-Theorem symmetric_noise_prob_space_additive:
-  ∀n p.
-    0 ≤ p ∧ p ≤ 1 ⇒ additive (symmetric_noise_prob_space n p)
+Theorem sym_noise_dist_pos:
+  ∀n p s. 0 ≤ p ∧ p ≤ 1 ∧ FINITE s ⇒
+          0 ≤ sym_noise_dist n p s
 Proof
   rpt strip_tac
   >> drule_all complement_prob >> strip_tac
-  >> gvs[symmetric_noise_prob_space_def]
-  >> gvs[additive_def]
+  >> gvs[sym_noise_dist_def]
+  >> irule EXTREAL_SUM_IMAGE_POS
   >> rpt strip_tac
-  >> gvs[symmetric_noise_distribution_def]
+  >> gvs[sym_noise_mass_func_pos]
+QED
+
+Theorem sym_noise_dist_not_neginf:
+  ∀n p s. 0 ≤ p ∧ p ≤ 1 ∧ FINITE s ⇒
+          sym_noise_dist n p s ≠ −∞
+Proof
+  rpt strip_tac
+  >> drule_all sym_noise_dist_pos >> rpt strip_tac
+  >> pop_assum $ qspec_then ‘n’ assume_tac
+  >> Cases_on ‘sym_noise_dist n p s’ >> gvs[]
+QED
+
+Theorem sym_noise_mass_func_sym_noise_dist:
+  ∀n p x. 0 ≤ p ∧ p ≤ 1 ⇒
+          sym_noise_mass_func n p x = sym_noise_dist n p {x}
+Proof
+  rpt strip_tac >> gvs[sym_noise_dist_def]
+QED
+
+Theorem sym_noise_mass_func_pos:
+  ∀n p x. 0 ≤ p ∧ p ≤ 1 ⇒
+          0 ≤ sym_noise_mass_func n p x
+Proof
+  gvs[sym_noise_mass_func_sym_noise_dist, sym_noise_dist_pos]
+QED
+
+Theorem sym_noise_mass_func_not_neginf:
+  ∀n p x. 0 ≤ p ∧ p ≤ 1 ⇒
+          sym_noise_mass_func n p x ≠ −∞
+Proof
+  gvs[sym_noise_mass_func_sym_noise_dist, sym_noise_dist_not_neginf]
+QED
+
+Theorem sym_noise_dist_union:
+  ∀n p s t.
+    0 ≤ p ∧ p ≤ 1 ∧ FINITE s ∧ FINITE t ∧ DISJOINT s t ⇒
+    sym_noise_dist n p (s ∪ t) = sym_noise_dist n p s + sym_noise_dist n p t
+Proof
+  rpt strip_tac
+  >> gvs[sym_noise_dist_def]
   >> irule EXTREAL_SUM_IMAGE_DISJOINT_UNION
   >> gvs[]
-  >> rpt conj_tac
-  >- metis_tac[FINITE_IN_POW, length_n_codes_finite]
-  >- metis_tac[FINITE_IN_POW, length_n_codes_finite]
-  >> disj1_tac
-  >> strip_tac  
-  >> gvs[symmetric_noise_distribution_def]
-  >> qmatch_goalsub_abbrev_tac ‘b ⇒ g’
-  >> ‘g’ suffices_by gvs[] >> unabbrev_all_tac
-  >> qmatch_goalsub_abbrev_tac ‘e ≠ −∞’
-  >> ‘0 ≤ e’ suffices_by gvs[le_not_infty] >> unabbrev_all_tac
-  >> irule le_mul
-  >> gvs[pow_pos_le]
+  >> disj1_tac >> gvs[sym_noise_mass_func_not_neginf]
 QED
 
-Theorem symmetric_noise_prob_space_positive:
+Theorem sym_noise_prob_space_additive:
   ∀n p.
-    0 ≤ p ∧ p ≤ 1 ⇒
-    positive (symmetric_noise_prob_space n p)
+    0 ≤ p ∧ p ≤ 1 ⇒ additive (sym_noise_prob_space n p)
 Proof
   rpt strip_tac
-  >> gvs[symmetric_noise_prob_space_def]
-  >> drule complement_prob >> strip_tac
-  >> gvs[positive_def]
-  >> conj_tac >> gvs[symmetric_noise_distribution_def]
+  >> drule_all complement_prob >> strip_tac
+  >> gvs[additive_def, sym_noise_prob_space_def]
   >> rpt strip_tac
-  >> irule EXTREAL_SUM_IMAGE_POS
-  >> irule $ iffLR CONJ_COMM
-  >> conj_tac
-  >- metis_tac[FINITE_IN_POW, length_n_codes_finite]
-  >> rpt strip_tac
-  >> gvs[]
-  >> irule le_mul
-  >> conj_tac >> gvs[pow_pos_le]
+  >> DEP_REWRITE_TAC[sym_noise_dist_union]
+  >> metis_tac[FINITE_IN_POW, length_n_codes_finite]
 QED
 
-Theorem symmetric_noise_prob_space_measure_space:
+Theorem sym_noise_prob_space_positive:
   ∀n p.
     0 ≤ p ∧ p ≤ 1 ⇒
-    measure_space (symmetric_noise_prob_space n p)
+    positive (sym_noise_prob_space n p)
+Proof
+  rpt strip_tac
+  >> drule complement_prob >> strip_tac
+  >> gvs[positive_def, sym_noise_prob_space_def]
+  >> conj_tac >- gvs[sym_noise_dist_def]
+  >> rpt strip_tac
+  >> DEP_REWRITE_TAC[sym_noise_dist_pos]
+  >> gvs[]
+  >> metis_tac[FINITE_IN_POW, length_n_codes_finite]
+QED
+
+Theorem sym_noise_prob_space_measure_space:
+  ∀n p.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    measure_space (sym_noise_prob_space n p)
 Proof
   rpt strip_tac
   >> irule finite_additivity_sufficient_for_finite_spaces2
-  >> simp[symmetric_noise_prob_space_additive, symmetric_noise_prob_space_positive]
-  >> gvs[symmetric_noise_prob_space_def, length_n_codes_finite, POW_SIGMA_ALGEBRA]
+  >> simp[sym_noise_prob_space_additive, sym_noise_prob_space_positive]
+  >> simp[sym_noise_prob_space_def, length_n_codes_finite, POW_SIGMA_ALGEBRA]
 QED
 
 Theorem length_n_codes_empty:
@@ -1000,16 +1043,48 @@ Proof
   >> Cases_on ‘h’ >> gvs[length_n_codes_def]
 QED
 
-(*
-(IMAGE g s )
-*)
+Theorem INSERT_UNION_EQ2:
+  ∀x : α.
+    ∀s t : α -> bool.
+      s ∪ (x INSERT t) = x INSERT (s ∪ t)
+Proof
+  rpt strip_tac
+  >> metis_tac[UNION_COMM, INSERT_UNION_EQ]
+QED
 
 (*Theorem extreal_sum_image_union:
-  ∑ f ((IMAGE g s) ∪ (IMAGE h s)) = 
+  ∀f : α -> extreal.
+    ∀ g h : β -> α.
+      ∀s : β -> bool.
+        FINITE s ∧
+        DISJOINT (IMAGE g s) (IMAGE h s) ∧
+        ((∀x. x ∈ IMAGE g s ∪ IMAGE h s ⇒ f x ≠ +∞) ∨ (∀x. x ∈ IMAGE g s ∪ IMAGE h s ⇒ f x ≠ −∞)) ⇒
+        ∑ f ((IMAGE g s) ∪ (IMAGE h s)) = ∑ (λbs. (f ∘ g) bs + (f ∘ h) bs) s
 Proof
+  rpt gen_tac
+  >> disch_tac >> rpt (pop_assum $ CONJUNCTS_THEN assume_tac)
+  >> Induct_on ‘s’
+  >> gvs[]
+  >> rpt (rpt gen_tac >> disch_tac)
+  >> fs[]
+  >> first_x_assum $ CONJUNCTS_THEN assume_tac
+  >> gvs[INSERT_UNION_EQ, INSERT_UNION_EQ2]
+  >> qspec_then ‘f’ assume_tac EXTREAL_SUM_IMAGE_THM
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘∑ f (g e INSERT t)’
+  >> first_assum $ qspecl_then [‘g e’, ‘t’] assume_tac
+  >> qmatch_asmsub_abbrev_tac ‘premises ⇒ goal’
+  >> sg ‘goal’
+  >- (first_x_assum irule
+      >> gvs[Abbr ‘premises’]
+      >> conj_tac
+      >- gvs[Abbr ‘t’]
+      >> disj2_tac
+      >> gen_tac
+      >> disch_tac
 QED*)
 
-Theorem extreal_sum_length_n_codes_suc:
+(*Theorem extreal_sum_length_n_codes_suc:
   ∀f : bool list -> extreal.
     ∀n : num.
       (∀cs. cs ∈ (length_n_codes (SUC n)) ⇒ f cs ≠ −∞) ∨ (∀cs. cs ∈ (length_n_codes (SUC n)) ⇒ f cs ≠ +∞) ⇒
@@ -1019,6 +1094,9 @@ Proof
   >> DISCH_TAC
   >> simp[length_n_codes_suc]
   >> qmatch_goalsub_abbrev_tac ‘u1 ∪ u2’
+  >>
+
+  
   >> sg ‘∑ f (u1 ∪ u2) = ∑ f u1 + ∑ f u2’
   >- (irule EXTREAL_SUM_IMAGE_DISJOINT_UNION
       >> conj_tac
@@ -1051,12 +1129,94 @@ Proof
   >> 
 
   ∑ (f : α -> extreal) _ + ∑ f _
+QED*)
+
+Theorem sym_noise_dist_insert:
+  ∀n p x s.
+    0 ≤ p ∧ p ≤ 1 ∧ FINITE s ∧ x ∉ s ⇒
+    sym_noise_dist n p (x INSERT s) = sym_noise_dist n p {x} + sym_noise_dist n p s
+Proof
+  rpt strip_tac
+  >> gvs[Once INSERT_SING_UNION]
+  >> gvs[sym_noise_dist_union]
 QED
 
-Theorem symmetric_noise_prob_space_is_prob_space:
+Theorem num_errors_cons:
+  ∀bs.
+    num_errors (T::bs) = 1 + num_errors bs∧ num_errors(F::bs) = num_errors bs
+Proof
+  gvs[num_errors_def]
+QED
+
+Theorem num_errors_length:
+  ∀x. num_errors x ≤ LENGTH x
+Proof
+  rpt strip_tac
+  >> gvs[num_errors_def]
+  >> gvs[LENGTH_FILTER_LEQ]
+QED
+
+Theorem sym_noise_mass_func_suc:
+  ∀n p x.
+    0 ≤ p ∧ p ≤ 1 ∧ LENGTH x = n ⇒
+    sym_noise_mass_func n p x = sym_noise_mass_func (SUC n) p (T::x) + sym_noise_mass_func (SUC n) p (F::x)
+Proof
+  rpt strip_tac
+  >> drule_all complement_prob >> strip_tac
+  >> gvs[sym_noise_mass_func_def, ADD1, num_errors_cons, pow_add]
+  >> PURE_REWRITE_TAC[Once ADD_COMM]
+  >> DEP_PURE_REWRITE_TAC[LESS_EQ_ADD_SUB]
+  >> gvs[num_errors_length]
+  >> gvs[pow_add]
+  >> qmatch_goalsub_abbrev_tac ‘pow1 * pow2’
+  >> qmatch_goalsub_abbrev_tac ‘_ * a1 * _ + _ * (a2 * _)’
+  >> gvs[AC mul_comm mul_assoc]
+  >> sg ‘a1 + a2 = 1’
+  >- (gvs[Abbr ‘a2’]
+      >> metis_tac[sub_add2, le_not_infty, le_1_not_posinf])
+  >> metis_tac[add_rdistrib, mul_lone]
+QED
+
+
+Theorem EXTREAL_SUM_IMAGE_DOUB:
+  ∀f : α -> extreal.
+    ∀a b : α.
+      a ≠ b ∧
+      ¬((f a = +∞ ∧ f b = −∞) ∨ (f a = −∞ ∧ f b = +∞)) ⇒
+      ∑ f {a; b} = f a + f b
+Proof
+  rpt strip_tac
+  >> gvs[EXTREAL_SUM_IMAGE_DEF]
+  >> DEP_PURE_ONCE_REWRITE_TAC[ITSET_def]
+  >> gvs[REST_DEF, DELETE_DEF]
+  >> Cases_on ‘CHOICE {a; b} = a’ >> gvs[]
+  >- (Cases_on ‘f a’ >> Cases_on ‘f b’ >> gvs[extreal_add_def, REAL_ADD_SYM])
+  >> Cases_on ‘CHOICE {a; b} = b’ >> gvs[]
+  >> ‘CHOICE {a; b} ∉ {a; b}’ suffices_by gvs[CHOICE_DEF]
+  >> CCONTR_TAC
+  >> gvs[]
+QED
+
+Theorem sym_noise_dist_suc:
+  ∀n p bs.
+    0 ≤ p ∧ p ≤ 1 ∧ bs ∈ length_n_codes n ⇒
+    sym_noise_dist (SUC n) p {T::bs; F::bs} = sym_noise_dist n p {bs}
+Proof
+  rpt strip_tac
+  >> drule_all complement_prob >> strip_tac
+  >> gvs[sym_noise_dist_def]
+  >> DEP_PURE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DOUB]
+  >> rpt conj_tac
+  >- gvs[]
+  >- (CCONTR_TAC >> gvs[sym_noise_mass_func_not_neginf])
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM sym_noise_mass_func_suc]
+  >> gvs[length_n_codes_def]
+QED
+
+Theorem sym_noise_prob_space_is_prob_space:
   ∀n p.
     0 ≤ p ∧ p ≤ 1 ⇒
-    prob_space (symmetric_noise_prob_space n p)
+    prob_space (sym_noise_prob_space n p)
 Proof
   rpt strip_tac
   >> drule_all complement_prob >> strip_tac
@@ -1065,66 +1225,21 @@ Proof
   >> ‘1 - p ≠ −∞’ by gvs[le_not_infty]
   >> ‘1 - p ≠ +∞’ by gvs[le_1_not_posinf]
   >> gvs[prob_space_def]
-  >> gvs[symmetric_noise_prob_space_measure_space]
-  >> gvs[symmetric_noise_prob_space_def]
+  >> gvs[sym_noise_prob_space_measure_space]
+  >> gvs[sym_noise_prob_space_def]
   >> Induct_on ‘n’
-  >- gvs[symmetric_noise_distribution_def, length_n_codes_def, num_errors_def]
+  >- gvs[sym_noise_dist_def, length_n_codes_def, num_errors_def, sym_noise_mass_func_def]
   >> drule EQ_SYM >> pop_assum kall_tac >> strip_tac
   >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
   (* The probability of the two bitstrings [0, 1, 0] and [1, 1, 0]
      corresponds to the probability of the bitstring [1, 0], for example *)
-  >> sg ‘∀bs : bool list. bs ∈ length_n_codes n ⇒ symmetric_noise_distribution (SUC n) p {T::bs; F::bs} = symmetric_noise_distribution n p {bs}’ 
-  >- (rpt strip_tac
-      >> gvs[symmetric_noise_distribution_def]
-      >> qmatch_goalsub_abbrev_tac ‘∑ f _ = e’
-      >> qspecl_then [‘f’] assume_tac EXTREAL_SUM_IMAGE_THM
-      >> gvs[]
-      >> pop_assum $ qspecl_then [‘T::bs’, ‘{F::bs}’] assume_tac
-      >> gvs[]
-      >> qmatch_asmsub_abbrev_tac ‘premise ⇒ conclusion’
-      >> sg ‘premise’
-      >- (gvs[Abbr ‘premise’]
-          >> disj2_tac
-          >> rpt strip_tac
-          >> gvs[Abbr ‘f’]
-          >> qmatch_asmsub_abbrev_tac ‘v = −∞’
-          >> ‘0 ≤ v’ suffices_by gvs[]
-          >> qpat_x_assum ‘v = −∞’ kall_tac
-          >> unabbrev_all_tac
-          >> irule le_mul
-          >> gvs[pow_pos_le])
-      >> gvs[]
-      >> (pop_assum kall_tac
-          >> pop_assum kall_tac
-          >> ‘T::bs ∉ {F::bs}’ by gvs[]
-          >> gvs[DELETE_NON_ELEMENT]
-          >> pop_assum kall_tac
-          >> unabbrev_all_tac
-          >> gvs[]
-          >> gvs[num_errors_def]
-          >> gvs[extreal_pow]
-          >> gvs[SUB]
-          >> sg ‘LENGTH (FILTER (λx. x) bs) ≤ n’
-          >- (‘LENGTH bs ≤ n’ by gvs[length_n_codes_def]
-              >> qspecl_then [‘LENGTH (FILTER (λx. x) bs)’, ‘LENGTH bs’, ‘n’] assume_tac LESS_EQ_TRANS
-              >> pop_assum irule
-              >> gvs[LENGTH_FILTER_LEQ])
-          >> gvs[]
-          >> pop_assum kall_tac
-          >> gvs[extreal_pow]
-          >> gvs[mul_comm, mul_assoc]
-          >> qmatch_goalsub_abbrev_tac ‘_ = t1 * t2’
-          >> qmatch_goalsub_abbrev_tac ‘_ = t3’
-          >> ‘p * t3 + (1 - p) * t3 = t3’ suffices_by gvs[mul_assoc, Abbr ‘t3’]
-          >> ‘(p + (1 - p)) * t3 = t3’ suffices_by gvs[add_rdistrib, add_ldistrib]
-          >> ‘p + (1 - p) = 1’ suffices_by gvs[]
-          >> ‘(1 - p) + p = 1’ suffices_by gvs[add_comm]
-          >> gvs[sub_add]))
-  >> sg ‘∀s. FINITE s ⇒ s ⊆ (length_n_codes n) ⇒ symmetric_noise_distribution n p s = ∑ (λbs. symmetric_noise_distribution (SUC n) p {T::bs; F::bs}) s’
+  >> assume_tac sym_noise_dist_suc
+  >> 
+  >> sg ‘∀s. FINITE s ⇒ s ⊆ (length_n_codes n) ⇒ sym_noise_dist n p s = ∑ (λbs. sym_noise_dist (SUC n) p {T::bs; F::bs}) s’
   >- (Induct_on ‘s’ using FINITE_INDUCT
       >> gvs[]
       >> rpt strip_tac
-      >- gvs[symmetric_noise_distribution_def]
+      >- gvs[sym_noise_dist_def]
       >> qmatch_goalsub_abbrev_tac ‘_ = ∑ f _’
       >> qspec_then ‘f’ assume_tac EXTREAL_SUM_IMAGE_THM >> gvs[]
       >> pop_assum $ qspecl_then [‘e’, ‘s’] assume_tac
@@ -1138,7 +1253,7 @@ Proof
           >> qmatch_goalsub_abbrev_tac ‘_ ⇒ v ≠ _’
           >> ‘0 ≤ v’ suffices_by (gvs[le_not_infty])
           >> gvs[Abbr ‘v’]
-          >> irule symmetric_noise_distribution_pos
+          >> irule sym_noise_dist_pos
           >> gvs[])
       >> gvs[]
       >> pop_assum kall_tac
@@ -1147,7 +1262,7 @@ Proof
       >> qpat_x_assum ‘_ = ∑ _ _’ assume_tac
       >> drule EQ_SYM >> pop_assum kall_tac >> strip_tac
       >> pop_assum $ (fn th => PURE_REWRITE_TAC[th])
-      >> PURE_REWRITE_TAC[symmetric_noise_distribution_def]
+      >> PURE_REWRITE_TAC[sym_noise_dist_def]
       >> qmatch_goalsub_abbrev_tac ‘∑ g _’
       >> qspec_then ‘g’ assume_tac EXTREAL_SUM_IMAGE_THM
       >> gvs[]
@@ -1172,7 +1287,7 @@ Proof
   >> pop_assum kall_tac >> strip_tac
   >> gvs[length_n_codes_finite]
   >> pop_assum kall_tac
-  >> gvs[symmetric_noise_distribution_def]
+  >> gvs[sym_noise_dist_def]
   >> 
 QED
 
@@ -1196,7 +1311,7 @@ Definition apply_noise_to_bitstring_random_variable_def:
 (* f: noise_distribution
    g: *)
 Definition apply_noise_distribution_to_code_distribution_def:
-           code_with_symmetric_noise_distribution (n : num) (noise_dist : bool list -> extreal) (code_dist : bool list -> extreal) (bs : bool list) = apply_noise
+           code_with_sym_noise_dist (n : num) (noise_dist : bool list -> extreal) (code_dist : bool list -> extreal) (bs : bool list) = apply_noise
 End
 
 
@@ -1205,8 +1320,8 @@ apply_noise
 (* Takes an input probability distribution and returns the output probability *)
 (* distribution with errors randomly added                                    *)
 (* -------------------------------------------------------------------------- *)
-Definition symmetric_error_channel_distribution_def:
-  symmetric_error_channel_distribution (n : num) (p : bool list -> extreal) (bs : bool list) =
+Definition sym_error_channel_distribution_def:
+  sym_error_channel_distribution (n : num) (p : bool list -> extreal) (bs : bool list) =
 End
 
 
