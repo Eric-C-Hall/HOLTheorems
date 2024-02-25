@@ -1305,6 +1305,34 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Takes an input probability distribution and returns the output probability *)
 (* distribution with errors randomly added                                    *)
+(* ---                                                                        *)
+(* Note: there was an error in the way this was defined, but it turns out to  *)
+(* be equivalent and provides a simpler definition, so I kept it that way.    *)
+(*                                                                            *)
+(* Given an original bitstring bs, the probability of a given output          *)
+(* bitstring should be calculated as the probability of choosing a noise      *)
+(* bitstring such that applying the noise bitstring to the original bistring  *)
+(* results in the output bitstring.                                           *)
+(*                                                                            *)
+(* This function instead treats the output bitstring as noise (which it isn't)*)
+(* , then it applies it as noise to the original bitstring, and checks what   *)
+(* the probability of the resulting bitstring being chosen as noise is.       *)
+(*                                                                            *)
+(* However, this is equivalent, because there is exactly one choice of noise  *)
+(* that, when applied to the original bitstring, returns the output bitstring,*)
+(* and this choice of noise is precisely that obtained by applying the output *)
+(* bitstring to the original bitstring. This follows from the fact that       *)
+(* apply_noise is its own inverse, and so if we let bs denote the original    *)
+(* bitstring and we let cs denote the output bitstring, we have               *)
+(* apply_noise bs (apply_noise bs cs) = cs, and so the unique choice of noise *)
+(* returning the output bitstring is when applied to the original bistring is *)
+(* precisely that which is obtained by applying the original bitstring to the *)
+(* output bitstring.                                                          *)
+(*                                                                            *)
+(* The equivalence of these definitions is formally proven in                 *)
+(* sym_err_chan_prob_space_apply_noise_distribution, which proves that        *)
+(* sym_err_chan_prob_space is the resulting distribution when applying noise  *)
+(* derived from the distribution sym_noise_dist to a certain bitstring        *)
 (* -------------------------------------------------------------------------- *)
 Definition sym_err_chan_mass_func_def:
   sym_err_chan_mass_func (n : num) (p : extreal) (bs : bool list) = (sym_noise_mass_func n p) ∘ (apply_noise bs)
@@ -1465,10 +1493,7 @@ QED
    distribution_prob_space
  *)
 
-
-
-
-Theorem sym_err_chan_prob_space_is_prob_space:
+(*Theorem sym_err_chan_prob_space_is_prob_space:
   ∀n p bs.
     0 ≤ p ∧ p ≤ 1 ∧
     bs ∈ length_n_codes n ⇒
@@ -1493,9 +1518,60 @@ Proof
           >> gvs[POW_DEF]
           >> gvs[apply_noise_image_length_n_codes])
          
+QED*)
+
+Theorem apply_noise_random_variable:
+  ∀n p bs.
+    LENGTH bs = n ⇒
+    random_variable (apply_noise bs) (sym_noise_prob_space n p) (measurable_space (sym_err_chan_prob_space n p bs))
+Proof
+  rpt strip_tac
+  >> gvs[random_variable_def]
+  >> gvs[measurable_def]
+  >> gvs[IN_DEF]
+  >> rpt strip_tac
+  >- gvs[sym_noise_prob_space_def, sym_err_chan_prob_space_def, p_space_def, length_n_codes_def, apply_noise_length]
+  >> gvs[sym_noise_prob_space_def, sym_err_chan_prob_space_def, events_def, p_space_def]
 QED
 
+Theorem apply_noise_preimage_length_n_codes:
+  ∀n bs s.
+    LENGTH bs = n ∧ s ⊆ length_n_codes n ⇒
+    (PREIMAGE (apply_noise bs) s) ∩ length_n_codes n = IMAGE (apply_noise bs) s
+Proof
+  rpt strip_tac
+  >> irule $ iffRL EXTENSION
+  >> rpt strip_tac
+  >> EQ_TAC >> strip_tac
+  >- (gvs[PREIMAGE_def]
+      >> qexists ‘apply_noise bs x’
+      >> gvs[]
+      >> DEP_PURE_REWRITE_TAC[apply_noise_inv]
+      >> gvs[length_n_codes_def])
+  >> gvs[PREIMAGE_def]
+  >> conj_tac
+  >- (DEP_PURE_REWRITE_TAC[apply_noise_inv]
+      >> gvs[length_n_codes_def, SUBSET_DEF])
+  >> gvs[SUBSET_DEF]
+  >> last_x_assum $ qspec_then ‘x'’ assume_tac
+  >> gvs[]
+  >> DEP_PURE_REWRITE_TAC[apply_noise_length_n_codes]
+  >> gvs[length_n_codes_def]
+QED
 
+Theorem sym_err_chan_prob_space_apply_noise_distribution:
+  ∀n p bs s.
+    0 ≤ p ∧ p ≤ 1 ∧ LENGTH bs = n ∧ s ⊆ length_n_codes n ⇒
+    distribution (sym_noise_prob_space n p) (apply_noise bs) s = sym_err_chan_dist n p bs s
+Proof
+  rpt strip_tac
+  >> gs[distribution_def, sym_noise_prob_space_def, prob_def, p_space_def]
+  >> DEP_PURE_REWRITE_TAC[sym_err_chan_dist_sym_noise_dist]
+  >> gs[]
+  >> conj_tac >- gs[length_n_codes_def]
+  >> AP_TERM_TAC
+  >> gvs[apply_noise_preimage_length_n_codes]
+QED
 
 val _ = export_theory();
 
