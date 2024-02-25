@@ -22,6 +22,7 @@ open iterateTheory; (* why does this contain SUP_UNION *)
 open realaxTheory;
 open bitstringTheory;
 open rich_listTheory;
+open pairTheory;
 
 open dep_rewrite
 
@@ -835,7 +836,7 @@ QED
 (* which has had noise applied in each of the appropriate positions           *)
 (* -------------------------------------------------------------------------- *)
 Definition apply_noise_def:
-  apply_noise (bs : bool list) (ns : bool list) = bxor bs ns
+  apply_noise = bxor
 End
 
 Definition num_errors_def:
@@ -1301,16 +1302,200 @@ Proof
   >> gvs[sym_noise_dist_suc]
 QED
 
-
-
-
 (* -------------------------------------------------------------------------- *)
 (* Takes an input probability distribution and returns the output probability *)
 (* distribution with errors randomly added                                    *)
 (* -------------------------------------------------------------------------- *)
-Definition sym_error_channel_distribution_def:
-  sym_error_channel_distribution (n : num) (p : bool list -> extreal) (bs : bool list) =
+Definition sym_err_chan_mass_func_def:
+  sym_err_chan_mass_func (n : num) (p : extreal) (bs : bool list) = (sym_noise_mass_func n p) ∘ (apply_noise bs)
 End
+
+Definition sym_err_chan_dist_def:
+  sym_err_chan_dist n p bs = ∑ (sym_err_chan_mass_func n p bs)
+End
+
+Definition sym_err_chan_prob_space_def:
+  sym_err_chan_prob_space n p bs = (length_n_codes n, POW (length_n_codes n), sym_err_chan_dist n p bs)
+End
+
+(* Provide a nicer interpretation of bitwise than its original definition *)
+Theorem bitwise_el:
+  ∀f bs cs x.
+    LENGTH bs = LENGTH cs ∧ x < LENGTH bs ⇒
+    ((EL x (bitwise f bs cs)) ⇔ f (EL x bs) (EL x cs))
+Proof
+  rpt strip_tac
+  >> gvs[bitwise_def, EL_MAP, EL_ZIP]
+QED
+
+Theorem bitwise_length:
+  ∀f bs cs.
+    LENGTH (bitwise f bs cs) = MAX (LENGTH bs) (LENGTH cs)
+Proof
+  simp[bitwise_def]
+QED
+
+Theorem bitwise_eq:
+  ∀f bs cs ds.
+    LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds ⇒
+    (bitwise f bs cs = ds ⇔ (∀x. x < LENGTH bs ⇒ f (EL x bs) (EL x cs) = EL x ds))
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >- (irule EQ_SYM
+      >> irule bitwise_el
+      >> gvs[])
+  >> irule $ iffRL LIST_EQ_REWRITE
+  >> REVERSE conj_tac
+  >> gvs[bitwise_length]
+  >> rpt strip_tac
+  >> first_x_assum $ qspec_then ‘x’ (fn th => gvs[GSYM th])
+  >> irule bitwise_el
+  >> gvs[]
+QED
+
+Theorem NOT_IFF_INV:
+  ∀ b c.
+    (b ⇎ (b ⇎ c)) ⇔ c
+Proof
+  rpt strip_tac
+  >> Cases_on ‘b’ >> gvs[]
+QED
+
+Theorem bxor_inv:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    bxor bs (bxor bs cs) = cs
+Proof
+  rpt strip_tac
+  >> gvs[bxor_def]
+  >> irule $ iffRL bitwise_eq
+  >> gvs[bitwise_length]
+  >> rpt strip_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC [bitwise_el]
+  >> gvs[NOT_IFF_INV]
+QED
+
+Theorem bxor_length:
+  ∀bs cs.
+    LENGTH (bxor bs cs) = MAX (LENGTH bs) (LENGTH cs)
+Proof
+  simp[bxor_def, bitwise_length]
+QED
+
+Theorem bxor_inj:
+  ∀bs. INJ (bxor bs) (length_n_codes (LENGTH bs)) (length_n_codes (LENGTH bs))
+Proof
+  rpt strip_tac
+  >> gvs[INJ_DEF]
+  >> rpt strip_tac
+  >- gvs[length_n_codes_def, bxor_length]
+  >> qspecl_then [‘bs’, ‘x’] assume_tac bxor_inv
+  >> qspecl_then [‘bs’, ‘y’] assume_tac bxor_inv
+  >> gvs[length_n_codes_def]
+QED
+
+Theorem apply_noise_inj:
+  ∀bs.
+    INJ (apply_noise bs) (length_n_codes (LENGTH bs)) (length_n_codes (LENGTH bs))
+Proof
+  gvs[apply_noise_def, bxor_inj]
+QED
+
+Theorem apply_noise_inv:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    apply_noise bs (apply_noise bs cs) = cs
+Proof
+  gvs[apply_noise_def, bxor_inv]
+QED
+
+Theorem sym_err_chan_dist_sym_noise_dist:
+  ∀n p bs s.
+    0 ≤ p ∧ p ≤ 1 ∧ bs ∈ length_n_codes n ∧ s ⊆ length_n_codes n ⇒
+    sym_err_chan_dist n p bs s = sym_noise_dist n p (IMAGE (apply_noise bs) s)
+Proof
+  rpt strip_tac
+  >> gvs[sym_err_chan_dist_def, sym_err_chan_mass_func_def, sym_noise_dist_def]
+  >> irule $ GSYM EXTREAL_SUM_IMAGE_IMAGE
+  >> conj_tac
+  >- metis_tac[SUBSET_FINITE, length_n_codes_finite]
+  >> gvs[]
+  >> rpt strip_tac
+  >- (disj1_tac >> gvs[sym_noise_mass_func_not_neginf])
+  >> irule INJ_IMAGE
+  >> qexists ‘length_n_codes n’
+  >> irule INJ_SUBSET
+  >> qexistsl [‘length_n_codes n’, ‘length_n_codes n’]
+  >> gvs[apply_noise_inj, length_n_codes_def]
+QED
+
+Theorem apply_noise_length:
+  ∀n bs cs.
+    LENGTH (apply_noise bs cs) = MAX (LENGTH bs) (LENGTH cs)
+Proof
+  rpt strip_tac
+  >> gvs[apply_noise_def, bxor_length]
+QED
+
+Theorem apply_noise_length_n_codes:
+  ∀n bs cs.
+    bs ∈ length_n_codes n ∧ cs ∈ length_n_codes n ⇒
+    apply_noise bs cs ∈ length_n_codes n
+Proof
+  simp[length_n_codes_def, apply_noise_length]
+QED
+
+Theorem apply_noise_image_length_n_codes:
+  ∀n bs s.
+    bs ∈ length_n_codes n ∧ s ⊆ length_n_codes n ⇒
+    IMAGE (apply_noise bs) s ⊆ length_n_codes n
+Proof
+  rpt strip_tac
+  >> gvs[IMAGE_DEF]
+  >> gvs[SUBSET_DEF]
+  >> rpt strip_tac
+  >> gvs[apply_noise_length_n_codes]
+QED
+
+(* measure_preserving *)
+(* distribution_def
+   distr_def
+   measure_space_distr
+   distribution_prob_space
+ *)
+
+
+
+
+Theorem sym_err_chan_prob_space_is_prob_space:
+  ∀n p bs.
+    0 ≤ p ∧ p ≤ 1 ∧
+    bs ∈ length_n_codes n ⇒
+    prob_space (sym_err_chan_prob_space n p bs)
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘n’, ‘p’] assume_tac sym_noise_prob_space_is_prob_space
+  >> gvs[]
+  >> gvs[sym_err_chan_prob_space_def, sym_noise_prob_space_def, prob_space_def, measure_space_def]
+  >> DEP_PURE_REWRITE_TAC[sym_err_chan_dist_sym_noise_dist]
+  >> gvs[]
+  >> conj_tac
+  >- (conj_tac
+      >- (gvs[positive_def]
+          >> gvs[sym_err_chan_dist_sym_noise_dist]
+          >> rpt strip_tac
+          >> DEP_PURE_REWRITE_TAC[sym_err_chan_dist_sym_noise_dist]
+          >> gvs[]
+          >> conj_tac >- gvs[POW_DEF]
+          >> first_x_assum $ qspec_then ‘IMAGE (apply_noise bs) s’ assume_tac
+          >> first_x_assum irule
+          >> gvs[POW_DEF]
+          >> gvs[apply_noise_image_length_n_codes])
+         
+QED
+
+
 
 val _ = export_theory();
 
