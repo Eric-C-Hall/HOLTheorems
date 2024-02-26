@@ -1486,40 +1486,6 @@ Proof
   >> gvs[apply_noise_length_n_codes]
 QED
 
-(* measure_preserving *)
-(* distribution_def
-   distr_def
-   measure_space_distr
-   distribution_prob_space
- *)
-
-(*Theorem sym_err_chan_prob_space_is_prob_space:
-  ∀n p bs.
-    0 ≤ p ∧ p ≤ 1 ∧
-    bs ∈ length_n_codes n ⇒
-    prob_space (sym_err_chan_prob_space n p bs)
-Proof
-  rpt strip_tac
-  >> qspecl_then [‘n’, ‘p’] assume_tac sym_noise_prob_space_is_prob_space
-  >> gvs[]
-  >> gvs[sym_err_chan_prob_space_def, sym_noise_prob_space_def, prob_space_def, measure_space_def]
-  >> DEP_PURE_REWRITE_TAC[sym_err_chan_dist_sym_noise_dist]
-  >> gvs[]
-  >> conj_tac
-  >- (conj_tac
-      >- (gvs[positive_def]
-          >> gvs[sym_err_chan_dist_sym_noise_dist]
-          >> rpt strip_tac
-          >> DEP_PURE_REWRITE_TAC[sym_err_chan_dist_sym_noise_dist]
-          >> gvs[]
-          >> conj_tac >- gvs[POW_DEF]
-          >> first_x_assum $ qspec_then ‘IMAGE (apply_noise bs) s’ assume_tac
-          >> first_x_assum irule
-          >> gvs[POW_DEF]
-          >> gvs[apply_noise_image_length_n_codes])
-         
-QED*)
-
 Theorem apply_noise_random_variable:
   ∀n p bs.
     LENGTH bs = n ⇒
@@ -1571,6 +1537,96 @@ Proof
   >> conj_tac >- gs[length_n_codes_def]
   >> AP_TERM_TAC
   >> gvs[apply_noise_preimage_length_n_codes]
+QED
+
+(* measure_preserving *)
+(* distribution_def
+   distr_def
+   measure_space_distr
+   distribution_prob_space
+ *)
+
+Theorem algebra_space_in_subsets:
+  ∀a. algebra a ⇒ space a ∈ subsets a
+Proof
+  rpt strip_tac
+  >> gvs[algebra_def]
+  >> last_x_assum $ qspec_then ‘∅’ assume_tac
+  >> gvs[]
+QED
+
+Theorem measure_space_is_measurable:
+  ∀s a p.
+    measure_space (s, a, p) ⇒ s ∈ a
+Proof
+  rpt strip_tac
+  >> gvs[measure_space_def, sigma_algebra_def]
+  >> drule algebra_space_in_subsets
+  >> gvs[]
+QED
+
+Theorem sample_space_is_event:
+  ∀s a p.
+    prob_space (s, a, p) ⇒ s ∈ a
+Proof
+  rpt strip_tac
+  >> drule EVENTS_ALGEBRA >> strip_tac
+  >> gvs[p_space_def, events_def]
+  >> drule algebra_space_in_subsets
+  >> gvs[]
+QED
+
+(* similar in spirit to measure_space_cong *)
+Theorem prob_space_cong:
+  ∀s a p1 p2.
+    (∀x. x ∈ a ⇒ p1 x = p2 x) ⇒
+    (prob_space (s, a, p1) ⇔ prob_space (s, a, p2))
+Proof
+  rpt strip_tac
+  >> gvs[prob_space_def]
+  >> irule AND_CONG
+  >> conj_tac
+  >- (disch_tac
+      >> first_x_assum $ qspec_then ‘s’ assume_tac
+      >> drule measure_space_is_measurable
+      >> gvs[])
+  >> disch_tac
+  >> irule measure_space_cong
+  >> gvs[]
+QED
+
+Theorem sym_err_chan_prob_space_is_prob_space:
+  ∀n p bs.
+    0 ≤ p ∧ p ≤ 1 ∧
+    bs ∈ length_n_codes n ⇒
+    prob_space (sym_err_chan_prob_space n p bs)
+Proof
+  rpt strip_tac
+  >> gvs[sym_err_chan_prob_space_def]
+  >> DEP_PURE_REWRITE_TAC[GSYM sym_err_chan_prob_space_apply_noise_distribution]
+
+                         distribution_prob_space
+
+
+
+  >> qspecl_then [‘n’, ‘p’] assume_tac sym_noise_prob_space_is_prob_space
+  >> gvs[]
+  >> gvs[sym_err_chan_prob_space_def, sym_noise_prob_space_def, prob_space_def, measure_space_def]
+  >> DEP_PURE_REWRITE_TAC[sym_err_chan_dist_sym_noise_dist]
+  >> gvs[]
+  >> conj_tac
+  >- (conj_tac
+      >- (gvs[positive_def]
+          >> gvs[sym_err_chan_dist_sym_noise_dist]
+          >> rpt strip_tac
+          >> DEP_PURE_REWRITE_TAC[sym_err_chan_dist_sym_noise_dist]
+          >> gvs[]
+          >> conj_tac >- gvs[POW_DEF]
+          >> first_x_assum $ qspec_then ‘IMAGE (apply_noise bs) s’ assume_tac
+          >> first_x_assum irule
+          >> gvs[POW_DEF]
+          >> gvs[apply_noise_image_length_n_codes])
+         
 QED
 
 val _ = export_theory();
