@@ -1603,30 +1603,26 @@ Theorem sym_err_chan_prob_space_is_prob_space:
 Proof
   rpt strip_tac
   >> gvs[sym_err_chan_prob_space_def]
-  >> DEP_PURE_REWRITE_TAC[GSYM sym_err_chan_prob_space_apply_noise_distribution]
-
-                         distribution_prob_space
-
-
-
-  >> qspecl_then [‘n’, ‘p’] assume_tac sym_noise_prob_space_is_prob_space
-  >> gvs[]
-  >> gvs[sym_err_chan_prob_space_def, sym_noise_prob_space_def, prob_space_def, measure_space_def]
-  >> DEP_PURE_REWRITE_TAC[sym_err_chan_dist_sym_noise_dist]
-  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘prob_space (s, a, p1)’
+  >> qspecl_then [‘s’, ‘a’, ‘p1’, ‘distribution (sym_noise_prob_space n p) (apply_noise bs)’] assume_tac prob_space_cong
+  >> pop_assum $ (fn th => DEP_PURE_REWRITE_TAC [th])
+  >> rpt strip_tac
+  >- (unabbrev_all_tac
+      >> irule $ GSYM sym_err_chan_prob_space_apply_noise_distribution
+      >> gvs[POW_DEF, length_n_codes_def])
+  >> gvs[Abbr ‘p1’]
+  >> qspecl_then [‘sym_noise_prob_space n p’, ‘apply_noise bs’, ‘measurable_space (sym_err_chan_prob_space n p bs)’] assume_tac distribution_prob_space
+  >> gvs[sym_err_chan_prob_space_def]
+  >> pop_assum irule
   >> conj_tac
-  >- (conj_tac
-      >- (gvs[positive_def]
-          >> gvs[sym_err_chan_dist_sym_noise_dist]
-          >> rpt strip_tac
-          >> DEP_PURE_REWRITE_TAC[sym_err_chan_dist_sym_noise_dist]
-          >> gvs[]
-          >> conj_tac >- gvs[POW_DEF]
-          >> first_x_assum $ qspec_then ‘IMAGE (apply_noise bs) s’ assume_tac
-          >> first_x_assum irule
-          >> gvs[POW_DEF]
-          >> gvs[apply_noise_image_length_n_codes])
-         
+  >- gvs[sym_noise_prob_space_is_prob_space]
+  >> conj_tac
+  >- (unabbrev_all_tac >> gvs[POW_SIGMA_ALGEBRA])
+  >> unabbrev_all_tac
+  >> gs[length_n_codes_def]
+  >> drule apply_noise_random_variable
+  >> rpt strip_tac
+  >> gvs[sym_err_chan_prob_space_def, length_n_codes_def]
 QED
 
 val _ = export_theory();
