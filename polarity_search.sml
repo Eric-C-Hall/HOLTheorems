@@ -2,12 +2,15 @@
 
 (* Michael Norrish wrote the basis for dest_polarity, dtc', although there was also some modification *)
 
-open HolKernel Parse DB;
+open HolKernel Parse DB Hol_pp;
 
 val test_term : term = (concl $ fst $ snd $ hd $ matchp (fn th => true) [])
 val test_term_2 : term = (concl $ fst $ snd $ el 3 $ matchp (fn th => true) [])
 val test_term_3 : term = concl $ arithmeticTheory.DIV_DIV_DIV_MULT
-val test_term_4 : term = concl $ ConseqConv.COND_CLAUSES_TF
+val test_term_4 : term = concl $ arithmeticTheory.LESS_SUC_NOT
+val test_term_5 : term = concl $ arithmeticTheory.LESS_ANTISYM
+val test_term_6 : term = concl $ arithmeticTheory.num_CASES
+val test_term_7 : term = concl $ quotientTheory.RIGHT_RES_FORALL_REGULAR
 
 fun dtc' (t : term) =
     let val {Thy, Name, ...} = dest_thy_const t in
@@ -19,7 +22,15 @@ fun tuple_list_map (f : 'a -> 'b) (tuple : 'a list * 'a list) =
       val (t1, t2) = tuple
     in
       (map f t1, map f t2)
-    end    
+    end
+
+fun tuple_list_concat tuple_1 tuple_2 : 'a list * 'a list =
+    let
+        val (a1, a2) = tuple_1
+        val (b1, b2) = tuple_2
+    in
+        (a1 @ b1, a2 @ b2)
+    end
 
 (* -------------------------------------------------------------------------- *)
 (* dest_polarity:                                                             *)
@@ -63,52 +74,61 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
             end)
         | SOME ("bool", "~") =>
             (let
-                val (
+                val recursive_result = dest_polarity (dest_neg t) (not polarity)
             in
-          
+                (* tuple_list_map (mk_neg) *)
+                recursive_result
             end)
-        | SOME ("bool", "/\\") => ([t], [])
-        | SOME ("bool", "\\/") => ([t], [])
-        | SOME ("bool", "==>") => ([t], [])
-        | NONE => ([t], [])
-        | _ => ([t], [])
-    end
+        | SOME ("bool", "/\\") =>
+            (let
+                val (t1, t2) = dest_conj t
+                val recursive_result_1 = dest_polarity t1 polarity
+                val recursive_result_2 = dest_polarity t2 polarity
+            in
+                tuple_list_concat recursive_result_1 recursive_result_2                
+            end)
+        | SOME ("bool", "\\/") =>
+            (let
+                val (t1, t2) = dest_disj t
+                val recursive_result_1 = dest_polarity t1 polarity
+                val recursive_result_2 = dest_polarity t2 polarity
+            in
+                tuple_list_concat recursive_result_1 recursive_result_2
+            end)
+        | SOME ("min", "==>") =>
+            (let
+                val (t1, t2) = dest_imp t
+                val recursive_result_1 = dest_polarity t1 polarity
+                val recursive_result_2 = dest_polarity t2 polarity
+                val swapped_recursive_result_1 = (snd recursive_result_1, fst recursive_result_1)
+            in
+                tuple_list_concat swapped_recursive_result_1 recursive_result_2
+            end)
+        | NONE => if polarity then ([t], []) else ([], [t])
+        | _ => if polarity then ([t], []) else ([], [t])
+    end handle HOL_ERR _ => (print("Error occurred destructing term: "); print (term_to_string t); print("\n"); if polarity then ([t], []) else ([], [t]))
 
-dest_polarity test_term true
-dest_polarity test_term_3 true
+dest_polarity test_term true;
+dest_polarity test_term_2 true;
+dest_polarity test_term_3 true;
+dest_polarity test_term_4 true;
+dest_polarity test_term_5 true;
+dest_polarity test_term_6 true;
+dest_polarity test_term_7 true;
 
-
-snd $ dest_forall $ snd $ dest_forall test_term_3
-mk_forall $ dest_forall test_term_3
-
-dtc' $ fst $ strip_comb $ hd $ snd $ strip_comb test_term_3
-
-    (*case (total dest_forall t) of
-    NONE =>
-       (case (total dest_exists t) of
-        NONE =>
-           (case (total dest_conj t) of
-            NONE =>
-               (case (total dest_disj t) of
-                NONE =>
-                   (case (total dest_disj t) of
-                    NONE => ([], [])
-                    | SOME (t1 : term, t2 : term) => dest_polarity t1 polarity)
-                | SOME (t1 : term, t2 : term) => dest_polarity t1 polarity)
-            | SOME (t1 : term, t2 : term) => dest_polarity t1 polarity)
-        | SOME (t1 : term, t2 : term) => dest_polarity t2 polarity)
-    | SOME (t1 : term, t2 : term) => dest_polarity t2 polarity *)
-
-fun polarity_match (match_term : term) (th : thm) =
-    let
+fun polarity_match (polarity : bool) (match_term : term) (th : thm) =
+    (let
       val theorem_term = concl th
-      val WIP = dest_polarity_wip theorem_term
+      val polarity_terms = dest_polarity theorem_term true
       val match_predicate = can ((ho_match_term [] empty_tmset) match_term)
+      val match_results = map (can (find_term match_predicate)) (if polarity then fst polarity_terms else snd polarity_terms)
     in
-        can (find_term match_predicate) WIP
-    end
+         List.exists (fn x => x) match_results
+    end)
 
-(*HolKernal.sml, DB.sml, Hol_pp.sml *)
+matchp (polarity_match true (Term`x ==> z ==> foo ==> k  ==> y`) ) []
+
+
 
 (* -------------------------------------------------------------------------- *)
 (* Useful match-related functions:                                            *)
@@ -143,16 +163,10 @@ fun polarity_match (match_term : term) (th : thm) =
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
-can (find_term (can ((ho_match_term [] empty_tmset) pat))) (concl th) ;
-
 (*
 val match_primitive = ho_match_term [] empty_tmset
 *)
 
 (* matcher match_primitive [] (Term`a = SUC b`);*)
-
-
-
-DB.match_primitive
 
 (* matchp (fn th => can (find_term (can (match_primitive (Term`a = SUC b`)))) (concl th)) []; *)
