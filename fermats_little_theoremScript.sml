@@ -270,6 +270,7 @@ QED
 
 (* No two choices of a, 2a, 3a ... (p - 1)a are congruent modulo op*)
 
+(* Unnecessary: we already have DIVIDES_MOD_0*)
 Theorem MOD0_DIVIDES:
   ∀a b : num. 0 < b ⇒ a MOD b = 0 ⇒ divides b a
 Proof
@@ -277,6 +278,7 @@ Proof
   >> gvs[MOD_EQ_0_DIVISOR, divides_def]
 QED
 
+(* Unnecessary: we already have DIVIDES_MOD_0 *)
 Theorem DIVIDES_MOD0:
   ∀a b : num. 0 < b ⇒ divides b a ⇒ a MOD b = 0
 Proof
@@ -284,6 +286,7 @@ Proof
   >> gvs[compute_divides]
 QED
 
+(* Unnecessary: we already have DIVISION, although this form may be more convenient? *)
 Theorem DIV_MOD_ADD:
   ∀a b: num. 0 < b ⇒ (a DIV b) * b + a MOD b = a
 Proof
@@ -291,6 +294,7 @@ Proof
   >> gvs[DIVISION]
 QED
 
+(* Unnecessary: we already have DIVISION, although it may be hard to search for this theorem, because it isn't in the form given here? *)        
 Theorem MOD_MUL_ADD:
   ∀a m r : num. 0 < m ⇒ a MOD m = r ⇒ ∃b. a = b * m + r
 Proof
@@ -300,6 +304,7 @@ Proof
 QED
 
 (* Is there an easier way to split an iff than creating my own helper thorem? I tried using irule [EQ_IMP_THM] and looking in the documentation for the relevant tactic but I didn't find anything.*)
+(* Yes, use EQ_TAC or IFF_TAC instead *)
 Theorem IMP_IMP_IMP_IFF:
   ∀a b : bool. ((a ⇒ b) ∧ (b ⇒ a)) ⇒ (a ⇔ b)
 Proof
@@ -316,17 +321,24 @@ QED
 (* theorem. Upon further inspection, this function is of the form             *)
 (* _ => (_ <=> _), and I think this is why it isn't discovering the inner iff.*)
 (* My attempts to use iffLR and iffRL didn't work, but maybe there's a way    *)
+(*                                                                            *)
+(* ----                                                                       *)
+(*                                                                            *)
+(* It should, in fact, be possible to use iffLR/iffRL                         *)
 Theorem MODEQ_ELIM_CONG:
   ∀n e0 e1. 0 < n ⇒ e0 MOD n = e1 MOD n ⇒ MODEQ n e0 e1
 Proof
   rpt strip_tac
   >> simp[MODEQ_NONZERO_MODEQUALITY]
 QED
-
+     
+(*  *)
 Theorem MOD_SIMPLIFY:
   ∀a m : num. 0 < m ⇒ ∃a'. a' < m ∧ (a MOD m) = (a' MOD m)
 Proof
   rpt strip_tac
+  >> qexists ‘a MOD M’
+                >> 
   >> qspecl_then [`a`, `m`] assume_tac DA
   >> gs[]
   >> qexists `r`
@@ -360,9 +372,7 @@ Theorem MUL_GREATER_EQ:
   ∀a a' b : num. a' >= a ⇒ a' * b >= a * b
 Proof
   rpt strip_tac
-  >> Induct_on `b`
-  >- gvs[]
-  >> `(a' : num) * b + a' >= a * b + a` suffices_by gvs[MULT_CLAUSES]
+  >> irule $ iffRL GREATER_EQ
   >> gvs[]
 QED
 
@@ -863,6 +873,7 @@ QED
   >> gvs[]*)
 
 (* Not sure what the best way to handle the contrapositive is, but this works.*)
+(* Identical to MONO_NOT and NOT_IMPLIES *)
 Theorem contrapositive:
   ∀a b : bool.
   (a ⇒ b) ⇒ (¬b ⇒ ¬a)
