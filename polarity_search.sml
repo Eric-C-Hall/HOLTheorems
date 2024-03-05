@@ -126,8 +126,14 @@ fun polarity_match (polarity : bool) (match_term : term) (th : thm) =
          List.exists (fn x => x) match_results
     end)
 
-fun polarity_search (polarity : bool) (match_term : term) =
-    matchp (polarity_match polarity match_term) []
+signature polarity_search = sig
+    val polarity_search : bool -> term -> public_data list
+end
+
+structure polarity_search :> polarity_search = struct
+    fun polarity_search (polarity : bool) (match_term : term) =
+        matchp (polarity_match polarity match_term) []
+end
 
 (* -------------------------------------------------------------------------- *)
 (* Useful match-related functions:                                            *)
@@ -157,9 +163,6 @@ fun polarity_search (polarity : bool) (match_term : term) =
 (*                                                                            *)
 (* fun matches pat th =                                                       *)
 (*   can (find_term (can (match_primitive pat))) (concl th) ;                 *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
 (*
