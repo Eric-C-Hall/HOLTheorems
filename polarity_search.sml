@@ -74,10 +74,11 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
             (let
                 val (bound_variable, quantified_expression) = dest_forall t
                 val recursive_result  = dest_polarity quantified_expression polarity
-                (*val (positive_terms, negative_terms) = recursive_result*)
+                val (positive_terms, negative_terms) = recursive_result
+                val mk_exists' = (curry mk_exists) bound_variable
+                val mk_forall' = (curry mk_forall) bound_variable
             in
-                (*(map mk_forall positive_terms, map mk_exists negative_terms)*)
-                tuple_list_map ((curry mk_exists) bound_variable) recursive_result
+                (map mk_forall' positive_terms, map mk_exists' negative_terms)
             end)
         (* ----------------------------------------------------------------- *)
         (* Exists case:                                                      *)
@@ -98,8 +99,11 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
             (let
                 val (bound_variable, quantified_expression) = dest_exists t
                 val recursive_result = dest_polarity quantified_expression polarity
+                val (positive_terms, negative_terms) = recursive_result
+                val mk_exists' = (curry mk_exists) bound_variable
+                val mk_forall' = (curry mk_forall) bound_variable
             in
-                tuple_list_map ((curry mk_exists) bound_variable) recursive_result          
+                (map mk_exists' positive_terms, map mk_forall' negative_terms)
             end)
         (* ----------------------------------------------------------------- *)
         (* Not case:                                                         *)
