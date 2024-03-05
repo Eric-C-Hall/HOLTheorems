@@ -108,7 +108,10 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
         (* ----------------------------------------------------------------- *)
         (* Not case:                                                         *)
         (*                                                                   *)
-        (*                                                                   *)
+        (* Applying a not simply changes the polarity of the term            *)
+        (* Note that the not doesn't need to added to the output term,       *)
+        (* because it has already been taken into account by the changed     *)
+        (* polarity.                                                         *)
         (* ----------------------------------------------------------------- *)
         | SOME ("bool", "~") =>
             (let
