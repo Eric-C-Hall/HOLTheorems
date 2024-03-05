@@ -106,7 +106,7 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
             end)
         | NONE => if polarity then ([t], []) else ([], [t])
         | _ => if polarity then ([t], []) else ([], [t])
-    end handle HOL_ERR _ => (print("Error occurred destructing term: "); print (term_to_string t); print("\n"); if polarity then ([t], []) else ([], [t]))
+    end handle HOL_ERR _ => (print("Error occurred destructing term: "); print (term_to_string t); print("\n"); if polarity then ([t], []) else ([], [t]));
 
 dest_polarity test_term true;
 dest_polarity test_term_2 true;
@@ -126,9 +126,8 @@ fun polarity_match (polarity : bool) (match_term : term) (th : thm) =
          List.exists (fn x => x) match_results
     end)
 
-matchp (polarity_match true (Term`x ==> z ==> foo ==> k  ==> y`) ) []
-
-
+fun polarity_search (polarity : bool) (match_term : term) =
+    matchp (polarity_match polarity match_term) []
 
 (* -------------------------------------------------------------------------- *)
 (* Useful match-related functions:                                            *)
