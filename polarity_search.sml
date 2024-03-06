@@ -45,13 +45,26 @@ fun tuple_list_concat tuple_1 tuple_2 : 'a list * 'a list =
 (* "negative" terms. (Thanks to Michael Norrish for this idea. I'm not sure   *)
 (* whether or not he himself got the idea from someplace else). "positive"    *)
 (* terms are essentially those which stand in the conclusion (e.g. p),        *)
-(* whereas "negative" terms are essentially those for which the negation      *)(* stands in the conclusion (e.g. ¬p). This characterisation derives from the *)
-(*fact that a ==> b can be transformed into b \/ ¬a. Also, if we have a as a  *)(* premise, we can use the contrapositive to derive a theorem with ¬a in the  *)(*  conclusion, and similarly, if we have ¬a in the conclusion, we can use    *)(* the contrapositive to derive a theorem with a in the premises.             *)
+(* whereas "negative" terms are essentially those for which the negation      *)
+(* stands in the conclusion (e.g. ¬p). This characterisation derives from the *)
+(* fact that a ==> b can be transformed into b \/ ¬a. Also, if we have a as a *)
+(* premise, we can use the contrapositive to derive a theorem with ¬a in the  *)
+(* conclusion, and similarly, if we have ¬a in the conclusion, we can use     *)
+(* the contrapositive to derive a theorem with a in the premises.             *)
+(*                                                                            *)
+(* The positive terms are in a conjunction with each other (i.e. it is        *)
+(* possible to prove a /\ b /\ c ... using the theorem.                       *)
+(*                                                                            *)
+(* The negative terms are in a disjunction with each other (i.e. it is        *)
+(* possible to prove something meaningful if you know a \/ b \/ c ...         *)
 (*                                                                            *)
 (* Thanks also to Michael Norrish for writing the basis for the code for this *)
 (* function and related functions                                             *)
 (*                                                                            *)
 (* Term -> Term List * Term List                                              *)
+(*                                                                            *)
+(* The first term list contains the positive terms, while the second term     *)
+(* list contains the negative terms.                                          *)
 (* -------------------------------------------------------------------------- *)
 fun dest_polarity (t : term) (polarity : bool) : term list * term list =
     let
@@ -120,6 +133,18 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
                 (* tuple_list_map (mk_neg) *)
                 recursive_result
             end)
+        (* ----------------------------------------------------------------- *)
+        (* And case:                                                         *)
+        (*                                                                   *)
+        (* Consider a => a' /\ b => b'. We ought to have the seperate terms  *)
+        (* a and b as premises and the terms a' and b' as conclusions. If    *)
+        (* either a or b is valid, we can deduce something meaningful. It is *)
+        (* also possible to deduce either a' or b' given the correct premises*)
+        (*                                                                   *)
+        (* Thus, the resulting positive terms should include all positive    *)
+        (* terms from each operand, and the resulting negative terms should  *)
+        (* include all negative terms from each operand                      *)
+        (* ------------------------------------------------------------------*)
         | SOME ("bool", "/\\") =>
             (let
                 val (t1, t2) = dest_conj t
@@ -128,6 +153,20 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
             in
                 tuple_list_concat recursive_result_1 recursive_result_2                
             end)
+        (* ----------------------------------------------------------------- *)
+        (* Or case:                                                          *)
+        (*                                                                   *)
+        (* Consider a => a' \/ b => b'.                                      *)
+        (*                                                                   *)
+        (*                                                                   *)
+        (*                                                                   *)
+        (*                                                                   *)
+        (*                                                                   *)
+        (*                                                                   *)
+        (*                                                                   *)
+        (*                                                                   *)
+        (*                                                                   *)
+        (* ----------------------------------------------------------------- *)
         | SOME ("bool", "\\/") =>
             (let
                 val (t1, t2) = dest_disj t
