@@ -58,13 +58,42 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
         val (f, xs) = strip_comb t
     in
         case (dtc' f) of
+        (* ------------------------------------------------------------------*)
+        (* Forall case:                                                      *)
+        (*                                                                   *)
+        (* Consider ∀x. (P(x) ⇒ Q(x)). The conclusion is true for all x.    *)
+        (* The premises hold if there exists an x. So negative terms         *)
+        (* should have ∃ appended to them while positive terms should        *)
+        (* have ∀ appended to them.                                          *)
+        (*                                                                   *)
+        (* Consider also ∀x. ¬P(x). This can be treated as ∀x. P(x) ⇒ F.    *)
+        (* Thus, we can derive false if there exists an x such that P(x).    *)
+        (* So adding an ∃ also makes sense in this case.                     *)
+        (* ------------------------------------------------------------------*)
         SOME ("bool", "!") =>
             (let
                 val (bound_variable, quantified_expression) = dest_forall t
                 val recursive_result  = dest_polarity quantified_expression polarity
+                (*val (positive_terms, negative_terms) = recursive_result*)
             in
-                tuple_list_map ((curry mk_forall) bound_variable) recursive_result
-            end) 
+                (*(map mk_forall positive_terms, map mk_exists negative_terms)*)
+                tuple_list_map ((curry mk_exists) bound_variable) recursive_result
+            end)
+        (* ----------------------------------------------------------------- *)
+        (* Exists case:                                                      *)
+        (*                                                                   *)
+        (* Consider ∃x. (P(x) ⇒ Q(x)). There exists an x such that the      *)
+        (* conclusion is true. We cannot guarantee that the premises are     *)
+        (* true unless we know that for all x, P(x) holds. If we only know   *)
+        (* P(x) for one choice of x, that isn't sufficient, because we might *)
+        (* not have P(x) for the correct choice of x, as defined by the ∃    *)
+        (* quantifier.                                                       *)
+        (*                                                                   *)
+        (* Consider ∃x. ¬P(x). This can be traeted as ∃x. P(x) ⇒ F.         *)
+        (* Thus, we can derive F if we know that P(x) holds for every choice *)
+        (* of x (but we cannot derive it if we know that it holds for just   *)
+        (* one choice of x.)                                                 *)
+        (* ----------------------------------------------------------------- *)
         | SOME ("bool", "?") =>
             (let
                 val (bound_variable, quantified_expression) = dest_exists t
@@ -72,6 +101,11 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
             in
                 tuple_list_map ((curry mk_exists) bound_variable) recursive_result          
             end)
+        (* ----------------------------------------------------------------- *)
+        (* Not case:                                                         *)
+        (*                                                                   *)
+        (*                                                                   *)
+        (* ----------------------------------------------------------------- *)
         | SOME ("bool", "~") =>
             (let
                 val recursive_result = dest_polarity (dest_neg t) (not polarity)
