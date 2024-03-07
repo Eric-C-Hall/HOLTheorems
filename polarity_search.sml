@@ -39,7 +39,7 @@ fun tuple_list_concat tuple_1 tuple_2 : 'a list * 'a list =
 (* and its premises.                                                          *)
 (*                                                                            *)
 (* This function will be used to allow the user to search for theorems        *)
-(* matching a certain pattern in either the premises or in the conclusion.   *)
+(* matching a certain pattern in either the premises or in the conclusion.    *)
 (*                                                                            *)
 (* More precisely, it splits a term into a set of "positive" terms and        *)
 (* "negative" terms. (Thanks to Michael Norrish for this idea. I'm not sure   *)
@@ -57,6 +57,10 @@ fun tuple_list_concat tuple_1 tuple_2 : 'a list * 'a list =
 (*                                                                            *)
 (* The negative terms are in a disjunction with each other (i.e. it is        *)
 (* possible to prove something meaningful if you know a \/ b \/ c ...         *)
+(*                                                                            *)
+(* Alternative general idea for the search function: break down into          *)
+(* conjunctive normal form, negated terms are premises, non-negated terms are *)
+(* conclusions.                                                               *)
 (*                                                                            *)
 (* Thanks also to Michael Norrish for writing the basis for the code for this *)
 (* function and related functions                                             *)
@@ -144,6 +148,9 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
         (* Thus, the resulting positive terms should include all positive    *)
         (* terms from each operand, and the resulting negative terms should  *)
         (* include all negative terms from each operand                      *)
+        (*                                                                   *)
+        (* Note: we could treat this as two separate theorms that are both   *)
+        (* true.                                                             *)
         (* ------------------------------------------------------------------*)
         | SOME ("bool", "/\\") =>
             (let
@@ -158,9 +165,9 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
         (*                                                                   *)
         (* Consider a => a' \/ b => b'.                                      *)
         (*                                                                   *)
+        (* This is equivalent to ¬(¬a' => ¬a /\ ¬b' => ¬b)                   *)
         (*                                                                   *)
-        (*                                                                   *)
-        (*                                                                   *)
+        (* Thus, a is a positive term, and a' is a negative term             *)
         (*                                                                   *)
         (*                                                                   *)
         (*                                                                   *)
@@ -214,6 +221,8 @@ structure polarity_search :> polarity_search = struct
     fun polarity_search (polarity : bool) (match_term : term) =
         matchp (polarity_match polarity match_term) []
 end
+
+polarity_search true `
 
 (* -------------------------------------------------------------------------- *)
 (* Useful match-related functions:                                            *)
