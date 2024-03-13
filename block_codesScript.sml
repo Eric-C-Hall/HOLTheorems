@@ -25,6 +25,8 @@ open rich_listTheory;
 open pairTheory;
 open relationTheory;
 open wellorderTheory;
+open martingaleTheory;
+open lebesgueTheory;
 
 open dep_rewrite
 
@@ -1698,21 +1700,75 @@ QED
 
 Definition n_repetition_code_inverse_def:
   n_repetition_code_inverse n ([] : bool list) = [] ∧
-  n_repetition_code_inverse n bs = (n_repetition_bit_inverse 0 0 (TAKE n bs))::(n_repetition_code_inverse n (DROP n bs))
+  n_repetition_code_inverse 0 bs = [] ∧
+  n_repetition_code_inverse (SUC n) bs = (n_repetition_bit_inverse 0 0 (TAKE (SUC n) bs))::(n_repetition_code_inverse (SUC n) (DROP (SUC n) bs))
 End
   
 
 (* Proof of termination for the above definition *)
 Proof
-  qexists ‘(λbs cs. (LENGTH (snd bs) < LENGTH (snd cs)))’
+  qexists ‘(λbs cs. (LENGTH (SND bs) < LENGTH (SND cs)))’
   >> conj_tac
-
-
-  >- (
-  >> gvs[WF_DEF]
+  >- (qspecl_then [‘$< : num -> num -> bool’, ‘(LENGTH ∘ SND) : num # bool list -> num’] assume_tac WF_IMAGE
+      >> gvs[WF_num])
   >> rpt strip_tac
-  >> qexi
+  >> gvs[]
 QED
+
+(*Definition probability_correctly_decoded_def:
+  probability_correctly_decoded n code_fn S = (metric S) {bs | code_fn bs}
+End*)
+
+Theorem prob_space_prod_measure:
+  ∀p1 p2.
+    prob_space p1 ∧
+    prob_space p2 ⇒
+    prod_measure p1 p2 (m_space p1 × m_space p2) = 1
+Proof
+  rpt strip_tac
+  >> gvs[prod_measure_def]
+        >> gvs[pos_fn_integral_def]
+QED
+
+Theorem prod_prob_space:
+  ∀p1 p2.
+    prob_space p1 ∧
+    prob_space p2 ⇒
+    prob_space (p1 × p2)
+Proof
+  rpt strip_tac
+  >> simp[prob_space_def]
+  >> conj_tac
+  >- (irule measure_space_prod_measure
+      >> gvs[sigma_finite_measure_space_def, prob_space_def]
+      >> ‘prob_space p1’ by gvs[prob_space_def]
+      >> ‘prob_space p2’ by gvs[prob_space_def]
+      >> gvs[PROB_SPACE_SIGMA_FINITE])
+  >> gvs[prod_measure_space_def]
+  >> gvs[prod_measure_def]
+QED
+
+Definition q2_sym_prob_space_def:
+  q2_sym_prob_space = ((length_n_codes_uniform_prob_space n) × (sym_noise_prob_space 3 p))
+End
+       
+Definition q2_sym_prob_correctly_decoded_def:
+  q2_sym_prob_correctly_decoded p = (metric (length_n_codes_uniform_prob_space n,  sym_noise_prob_space 3 p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ nearest_code 1 n_repetition_code (apply_noise (n_repetition_code 3 bs)}
+End
+
+
+(* 50% chance of 1, 50% chance of 0 *)
+(* code_fn encodes this into 111 or 000 *)
+(* symmetric noise corrupts this *)
+(* decoded using nearest neighbour method. *)
+(* probability of the result being correct*)
+Theorem 
+()
+Proof
+QED
+
+
+(* 50%
 
 
 Theorem :
