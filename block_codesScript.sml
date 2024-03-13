@@ -1715,6 +1715,14 @@ Proof
   >> gvs[]
 QED
 
+Theorem n_repetition_code_inverse_nearest_code:
+  ∀n bs.
+    n_repetition_code_inverse n bs = nearest_code n (n_repetition_code n) bs
+Proof
+  rpt strip_tac
+  >> 
+QED
+
 (*Definition probability_correctly_decoded_def:
   probability_correctly_decoded n code_fn S = (metric S) {bs | code_fn bs}
 End*)
@@ -1727,7 +1735,11 @@ Theorem prob_space_prod_measure:
 Proof
   rpt strip_tac
   >> gvs[prod_measure_def]
-        >> gvs[pos_fn_integral_def]
+  >> gvs[pos_fn_integral_def]
+  >> gvs[psfis_def]
+  >> gvs[psfs_def]
+  >> gvs[pos_simple_fn_integral_def]
+  >> gvs[pos_simple_fn_def]
 QED
 
 Theorem prod_prob_space:
@@ -1763,12 +1775,9 @@ End
 (* decoded using nearest neighbour method. *)
 (* probability of the result being correct*)
 Theorem 
-()
+
 Proof
 QED
-
-
-(* 50%
 
 
 Theorem :
