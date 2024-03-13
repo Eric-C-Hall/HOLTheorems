@@ -23,6 +23,8 @@ open realaxTheory;
 open bitstringTheory;
 open rich_listTheory;
 open pairTheory;
+open relationTheory;
+open wellorderTheory;
 
 open dep_rewrite
 
@@ -1178,7 +1180,6 @@ Proof
   >> metis_tac[add_rdistrib, mul_lone]
 QED
 
-
 Theorem EXTREAL_SUM_IMAGE_DOUB:
   ∀f : α -> extreal.
     ∀a b : α.
@@ -1623,6 +1624,88 @@ Proof
   >> drule apply_noise_random_variable
   >> rpt strip_tac
   >> gvs[sym_err_chan_prob_space_def, length_n_codes_def]
+QED
+
+(* ----------------------------------------------- *)
+
+Definition n_repetition_bit_def:
+  n_repetition_bit 0 b = [] ∧
+  n_repetition_bit (SUC n) b = b::(n_repetition_bit n b)
+End
+
+Definition n_repetition_code_def:
+  n_repetition_code n [] = [] ∧
+  n_repetition_code n (b::bs) = (n_repetition_bit n b) ⧺ (n_repetition_code n bs)
+End
+
+Definition valid_codes_def:
+  valid_codes n code_fn = IMAGE code_fn (length_n_codes n)
+End
+
+Definition nearest_code_def:
+  nearest_code n code_fn bs =
+  @cs. (cs ∈ valid_codes n code_fn ∧
+        ∀ds. ds ∈ valid_codes n code_fn ⇒ hamming_distance bs cs ≤ hamming_distance bs ds)
+End
+
+Definition n_repetition_bit_inverse_def:
+  (n_repetition_bit_inverse (nT : num) (nF : num) ([] : bool list) = if nT ≤ nF then F else T) ∧
+  n_repetition_bit_inverse nT nF (T::bs) = n_repetition_bit_inverse (nT + 1) nF bs ∧ 
+  n_repetition_bit_inverse nT nF (F::bs) = n_repetition_bit_inverse nT (nF + 1) bs
+End
+
+Theorem WF_LENGTH:
+  WF (λbs cs : α list. LENGTH bs < LENGTH cs)
+Proof
+  gvs[WF_DEF]
+  >> rpt strip_tac
+  >> assume_tac WF_num
+  >> drule $ iffLR WF_DEF >> strip_tac
+  >> first_x_assum $ qspec_then ‘IMAGE (λbs. LENGTH bs) B’ assume_tac
+  >> gvs[]
+  >> rpt strip_tac
+  >> qmatch_asmsub_abbrev_tac ‘p ⇒ g’
+  >> sg ‘p’
+  >- (unabbrev_all_tac >> qexists ‘w’ >> gvs[IN_DEF])
+  >> gvs[]
+  >> pop_assum kall_tac
+  >> qexists ‘bs’
+  >> gvs[IN_DEF]
+QED
+
+Definition n_repetition_code_inverse_def:
+  n_repetition_code_inverse n ([] : bool list) = [] ∧
+  n_repetition_code_inverse n bs = (n_repetition_bit_inverse 0 0 (TAKE n bs))::(n_repetition_code_inverse n (DROP n bs))
+End
+
+Theorem WF_o:
+  ∀R f. WF R ⇒ WF (λx y. R (f x) (f y))
+Proof
+  rpt strip_tac
+  >> gvs[WF_DEF]
+  >> rpt strip_tac
+  >> first_x_assum $ qspec_then ‘IMAGE f B’ assume_tac
+  >> 
+QED
+  
+
+(* Proof of termination for the above definition *)
+Proof
+  qexists ‘(λbs cs. (LENGTH (snd bs) < LENGTH (snd cs)))’
+  >> conj_tac
+
+
+  >- (
+  >> gvs[WF_DEF]
+  >> rpt strip_tac
+  >> qexi
+QED
+
+
+Theorem :
+  ∀n p bs.
+    (measure (sym_err_chan_prob_space n p bs))
+Proof
 QED
 
 val _ = export_theory();
