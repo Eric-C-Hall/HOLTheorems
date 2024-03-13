@@ -165,9 +165,6 @@ fun dest_polarity (t : term) (polarity : bool) : term list * term list =
         (*                                                                   *)
         (* Consider a => a' \/ b => b'.                                      *)
         (*                                                                   *)
-        (* This is equivalent to ¬(¬a' => ¬a /\ ¬b' => ¬b)                   *)
-        (*                                                                   *)
-        (* Thus, a is a positive term, and a' is a negative term             *)
         (*                                                                   *)
         (*                                                                   *)
         (*                                                                   *)
@@ -221,8 +218,6 @@ structure polarity_search :> polarity_search = struct
     fun polarity_search (polarity : bool) (match_term : term) =
         matchp (polarity_match polarity match_term) []
 end
-
-polarity_search true `
 
 (* -------------------------------------------------------------------------- *)
 (* Useful match-related functions:                                            *)
