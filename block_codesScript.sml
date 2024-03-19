@@ -1702,17 +1702,18 @@ Definition n_repetition_code_inverse_def:
   n_repetition_code_inverse n ([] : bool list) = [] ∧
   n_repetition_code_inverse 0 bs = [] ∧
   n_repetition_code_inverse (SUC n) bs = (n_repetition_bit_inverse 0 0 (TAKE (SUC n) bs))::(n_repetition_code_inverse (SUC n) (DROP (SUC n) bs))
+Termination
+  qexists ‘(λbs cs. (LENGTH (SND bs) < LENGTH (SND cs)))’
+  >> conj_tac
+  >- (qspecl_then [‘$< : num -> num -> bool’, ‘(LENGTH ∘ SND) : num # bool list -> num’] assume_tac WF_IMAGE >> gvs[WF_num])
+  >> rpt strip_tac
+  >> gvs[]
 End
   
 
 (* Proof of termination for the above definition *)
 Proof
-  qexists ‘(λbs cs. (LENGTH (SND bs) < LENGTH (SND cs)))’
-  >> conj_tac
-  >- (qspecl_then [‘$< : num -> num -> bool’, ‘(LENGTH ∘ SND) : num # bool list -> num’] assume_tac WF_IMAGE
-      >> gvs[WF_num])
-  >> rpt strip_tac
-  >> gvs[]
+
 QED
 
 Theorem n_repetition_code_inverse_nearest_code:
