@@ -1644,6 +1644,8 @@ Definition valid_codes_def:
   valid_codes n code_fn = IMAGE code_fn (length_n_codes n)
 End
 
+(* What if there are multiple nearest codes? Should we have an is_nearest_code
+   function which returns true for each choice of nearest code? *)
 Definition nearest_code_def:
   nearest_code n code_fn bs =
   @cs. (cs ∈ valid_codes n code_fn ∧
@@ -1709,20 +1711,14 @@ Termination
   >> rpt strip_tac
   >> gvs[]
 End
-  
 
-(* Proof of termination for the above definition *)
-Proof
-
-QED
-
-Theorem n_repetition_code_inverse_nearest_code:
+(*Theorem n_repetition_code_inverse_nearest_code:
   ∀n bs.
     n_repetition_code_inverse n bs = nearest_code n (n_repetition_code n) bs
 Proof
   rpt strip_tac
-  >> 
-QED
+  >> gvs[nearest_code_def]
+QED*)
 
 (*Definition probability_correctly_decoded_def:
   probability_correctly_decoded n code_fn S = (metric S) {bs | code_fn bs}
