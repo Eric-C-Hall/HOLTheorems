@@ -1724,7 +1724,7 @@ QED*)
   probability_correctly_decoded n code_fn S = (metric S) {bs | code_fn bs}
 End*)
 
-Theorem prob_space_prod_measure:
+(*Theorem prob_space_prod_measure:
   ∀p1 p2.
     prob_space p1 ∧
     prob_space p2 ⇒
@@ -1755,15 +1755,15 @@ Proof
       >> gvs[PROB_SPACE_SIGMA_FINITE])
   >> gvs[prod_measure_space_def]
   >> gvs[prod_measure_def]
-QED
+QED*)
 
-Definition q2_sym_prob_space_def:
+(*Definition q2_sym_prob_space_def:
   q2_sym_prob_space = ((length_n_codes_uniform_prob_space n) × (sym_noise_prob_space 3 p))
-End
+End*)
        
-Definition q2_sym_prob_correctly_decoded_def:
+(*Definition q2_sym_prob_correctly_decoded_def:
   q2_sym_prob_correctly_decoded p = (metric (length_n_codes_uniform_prob_space n,  sym_noise_prob_space 3 p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ nearest_code 1 n_repetition_code (apply_noise (n_repetition_code 3 bs)}
-End
+End*)
 
 
 (* 50% chance of 1, 50% chance of 0 *)
@@ -1771,17 +1771,17 @@ End
 (* symmetric noise corrupts this *)
 (* decoded using nearest neighbour method. *)
 (* probability of the result being correct*)
-Theorem 
+(*Theorem 
 
 Proof
-QED
+QED*)
 
 
-Theorem :
+(*Theorem :
   ∀n p bs.
     (measure (sym_err_chan_prob_space n p bs))
 Proof
-QED
+QED*)
 
 val _ = export_theory();
 
