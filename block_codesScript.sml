@@ -1757,14 +1757,24 @@ Proof
   >> gvs[prod_measure_def]
 QED*)
 
-(*Definition q2_sym_prob_space_def:
-  q2_sym_prob_space = ((length_n_codes_uniform_prob_space n) × (sym_noise_prob_space 3 p))
-End*)
-       
-(*Definition q2_sym_prob_correctly_decoded_def:
-  q2_sym_prob_correctly_decoded p = (metric (length_n_codes_uniform_prob_space n,  sym_noise_prob_space 3 p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ nearest_code 1 n_repetition_code (apply_noise (n_repetition_code 3 bs)}
-End*)
+Definition q2_sym_prob_space_def:
+  q2_sym_prob_space p = ((length_n_codes_uniform_prob_space 1) × (sym_noise_prob_space 3 p))
+End
 
+(* Check that after encoding a bitstring, applying a specific choice of
+   noise, and then decoding the bitstring, we get the correct result *)
+Definition code_decodes_correctly_def:
+  code_decodes_correctly (n : num) (bs : bool list) (ns : bool list) (code_fn : bool list -> bool list) : bool
+  = ((nearest_code n code_fn (apply_noise ns (code_fn bs))) = bs)
+End
+
+Definition q2_sym_prob_correctly_decoded_def:
+  q2_sym_prob_correctly_decoded p = (measure (q2_sym_prob_space p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ } 
+End
+
+Definition foo_def:
+  foo (bs : bool list) (ns : bool list) : bool = code_decodes_correctly 1 bs ns (n_repetition_code 3)
+End 
 
 (* 50% chance of 1, 50% chance of 0 *)
 (* code_fn encodes this into 111 or 000 *)
@@ -1782,6 +1792,7 @@ QED*)
     (measure (sym_err_chan_prob_space n p bs))
 Proof
 QED*)
+
 
 val _ = export_theory();
 

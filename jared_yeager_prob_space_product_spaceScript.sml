@@ -1,4 +1,5 @@
 (* This code was written by Jared Yeager *)
+(* Extremely minor modifications by Eric Hall *)
 
 open HolKernel Parse boolLib bossLib;
 
