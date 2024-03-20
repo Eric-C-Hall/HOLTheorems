@@ -1769,12 +1769,17 @@ Definition code_decodes_correctly_def:
 End
 
 Definition q2_sym_prob_correctly_decoded_def:
-  q2_sym_prob_correctly_decoded p = (measure (q2_sym_prob_space p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ } 
+  q2_sym_prob_correctly_decoded p = (measure (q2_sym_prob_space p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ (code_decodes_correctly 1 bs ns (n_repetition_code 3))} 
 End
 
-Definition foo_def:
-  foo (bs : bool list) (ns : bool list) : bool = code_decodes_correctly 1 bs ns (n_repetition_code 3)
-End 
+Theorem q2_sym_prob_correctly_decoded_prob:
+  ∀p.
+    q2_sym_prob_correctly_decoded (p : extreal) = ((1 - p) pow 2) * (2 * p + 1)
+Proof
+  gen_tac
+  >> simp[q2_sym_prob_correctly_decoded_def, q2_sym_prob_space_def]
+  >> simp[]
+QED
 
 (* 50% chance of 1, 50% chance of 0 *)
 (* code_fn encodes this into 111 or 000 *)
