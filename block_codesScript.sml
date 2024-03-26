@@ -1714,47 +1714,11 @@ End
 
 (*Theorem n_repetition_code_inverse_nearest_code:
   ∀n bs.
+    ODD n ⇒
     n_repetition_code_inverse n bs = nearest_code n (n_repetition_code n) bs
 Proof
   rpt strip_tac
   >> gvs[nearest_code_def]
-QED*)
-
-(*Definition probability_correctly_decoded_def:
-  probability_correctly_decoded n code_fn S = (metric S) {bs | code_fn bs}
-End*)
-
-(*Theorem prob_space_prod_measure:
-  ∀p1 p2.
-    prob_space p1 ∧
-    prob_space p2 ⇒
-    prod_measure p1 p2 (m_space p1 × m_space p2) = 1
-Proof
-  rpt strip_tac
-  >> gvs[prod_measure_def]
-  >> gvs[pos_fn_integral_def]
-  >> gvs[psfis_def]
-  >> gvs[psfs_def]
-  >> gvs[pos_simple_fn_integral_def]
-  >> gvs[pos_simple_fn_def]
-QED
-
-Theorem prod_prob_space:
-  ∀p1 p2.
-    prob_space p1 ∧
-    prob_space p2 ⇒
-    prob_space (p1 × p2)
-Proof
-  rpt strip_tac
-  >> simp[prob_space_def]
-  >> conj_tac
-  >- (irule measure_space_prod_measure
-      >> gvs[sigma_finite_measure_space_def, prob_space_def]
-      >> ‘prob_space p1’ by gvs[prob_space_def]
-      >> ‘prob_space p2’ by gvs[prob_space_def]
-      >> gvs[PROB_SPACE_SIGMA_FINITE])
-  >> gvs[prod_measure_space_def]
-  >> gvs[prod_measure_def]
 QED*)
 
 Definition q2_sym_prob_space_def:
@@ -1772,12 +1736,88 @@ Definition q2_sym_prob_correctly_decoded_def:
   q2_sym_prob_correctly_decoded p = (measure (q2_sym_prob_space p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ (code_decodes_correctly 1 bs ns (n_repetition_code 3))} 
 End
 
+Theorem SELECT_WEAKEN_CONDITION:
+  ∀P Q. (∃x. P x) ∧ (∀x. P x ⇒ Q x) ⇒ Q (@x. P x)
+Proof
+  rpt strip_tac
+  >> pop_assum irule
+  >> irule (iffRL SELECT_THM)
+  >> qexists ‘x’
+  >> gvs[]      
+QED
+
+Theorem n_repetition_code_hamming_distance:
+  ∀bs cs n.
+    hamming_distance (n_repetition_code n bs) (n_repetition_code n cs) < n / 2n ⇒ bs = cs
+Proof
+QED
+
+Theorem nearest_code_n_repetition_code_3:
+  ∀bs ns.
+    bs ∈ length_n_codes 1 ∧
+    ns ∈ length_n_codes 3 ⇒
+    (nearest_code 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) = bs ⇔ num_errors ns ≤ 1)
+Proof
+  rpt strip_tac
+  >> REVERSE EQ_TAC >> disch_tac
+  >- (gvs[nearest_code_def]
+      >> qspecl_then [‘λcs. cs ∈ valid_codes 1 (n_repetition_code 3) ∧ ∀ds. ds ∈ valid_codes 1 (n_repetition_code 3) ⇒ hamming_distance (apply_noise ns (n_repetition_code 3 bs)) cs ≤ hamming_distance (apply_noise ns (n_repetition_code 3 bs)) ds’, ‘λx. x = bs’] assume_tac SELECT_WEAKEN_CONDITION
+      >> gvs[] (* TODO: This takes too long. But it works. *)
+      >> pop_assum irule
+      >> conj_tac
+      >- (rpt strip_tac
+          >> CCONTR_TAC
+          >> 
+
+          >>pop_assum irule
+          >> asm_rewrite_tac [] gvs[]
+          >> asm_simp_tac bool_ss []
+          >> rfs[] asm_rewrite_tac bool_ss []
+                simp[]
+          >> irule SELECT_WEAKEN_CONDITION
+          >> sg ‘’
+          >> sg ‘∀P. ((@cs. P cs) = bs ⇒ P (@cs. P cs))’
+       >> gvs[SELECT_THM]
+
+             SELECT_THM
+             
+QED
+
+(*Theorem nearest_code_n_repetition_code:
+  ∀bs ns n.
+    bs ∈ length_n_codes 1 ∧
+    ns ∈ length_n_codes n ⇒
+    nearest_code 1 (n_repetition_code n) *)
+        
+Theorem code_decodes_correctly_n_repetition_code_3:
+  ∀bs ns.
+    ns ∈ length_n_codes 3 ⇒
+    (code_decodes_correctly 1 bs ns (n_repetition_code 3) ⇔ num_errors ns ≤ 1)
+Proof
+  rpt strip_tac
+  >> REVERSE EQ_TAC >> disch_tac
+  >- (gvs[code_decodes_correctly_def]
+      >> gvs[nearest_code_def]
+      >> 
+      >>
+      >> qmatch_goalsub_abbrev_tac ‘ch = bs’
+      >> sg ‘ch ∈ valid_codes 1 (n_repetition_code 3)’
+      >- gvs[Abbr ‘ch’, SELECT_THM]
+      >> sg ‘bs ∈ valid_codes 1 (n_repetition_code 3)’
+      >> sg ‘∀ds. ds ∈ valid_codes 1 (n_repetition_code 3) ⇒
+                  hamming_distance (apply_noise ns (n_repetition_code 3 bs)) cs ≤
+                  hamming_distance (apply_noise ns (n_repetition_code 3 bs)) bs’
+      >> gvs[]
+            
+QED
+       
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
     q2_sym_prob_correctly_decoded (p : extreal) = ((1 - p) pow 2) * (2 * p + 1)
 Proof
   gen_tac
   >> simp[q2_sym_prob_correctly_decoded_def, q2_sym_prob_space_def]
+         
   >> simp[]
 QED
 
