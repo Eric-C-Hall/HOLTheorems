@@ -1746,10 +1746,64 @@ Proof
   >> gvs[]      
 QED
 
-Theorem n_repetition_code_hamming_distance:
-  ∀bs cs n.
-    hamming_distance (n_repetition_code n bs) (n_repetition_code n cs) < n / 2n ⇒ bs = cs
+Theorem hamming_distance_cons:
+  ∀b bs c cs.
+    hamming_distance (b::bs) (c::cs) = hamming_distance [b] [c] + hamming_distance bs cs
 Proof
+  rpt strip_tac
+  >> gvs[hamming_distance_def]
+QED
+
+Theorem hamming_distance_append:
+  ∀bs cs ds es.
+    LENGTH bs = LENGTH ds ⇒
+    hamming_distance (bs ⧺ cs) (ds ⧺ es) = hamming_distance bs ds + hamming_distance cs es
+Proof
+  strip_tac
+  >> Induct_on ‘bs’ >> rpt strip_tac
+  >- gvs[hamming_distance_def]
+  >> Cases_on ‘ds’ >> gvs[]
+  >> PURE_REWRITE_TAC[Once hamming_distance_cons]
+  >> last_x_assum $ qspecl_then [‘cs’, ‘t’, ‘es’] assume_tac
+  >> gvs[]
+  >> pop_assum kall_tac
+  >> qspecl_then [‘h’,‘bs’, ‘h'’, ‘t’] assume_tac hamming_distance_cons
+  >> gvs[]
+QED
+
+Theorem n_repetition_bit_hamming_distance:
+  ∀b b' n.
+    hamming_distance (n_repetition_bit n b) (n_repetition_bit n b') = if b = b' then 0 else n
+Proof
+  rpt strip_tac
+  >> Induct_on ‘n’
+  >- gvs[n_repetition_bit_def, hamming_distance_def]
+  >> Cases_on ‘b = b'’ >> gvs[]
+  >- (gvs[n_repetition_bit_def]
+      >> 
+QED
+
+Theorem n_repetition_code_hamming_distance:
+        ∀bs cs n.
+          LENGTH bs = LENGTH cs ∧
+          hamming_distance (n_repetition_code n bs) (n_repetition_code n cs) < n ⇒
+          bs = cs
+Proof
+  gen_tac
+  >> Induct_on ‘bs’ >> rpt strip_tac
+  >- (Cases_on ‘cs’ >> gvs[])
+  >> Cases_on ‘cs’ >> gvs[]
+  >> gvs[n_repetition_code_def]
+  >> last_x_assum $ qspecl_then [‘t’, ‘n’] assume_tac
+  >> gvs[]
+  >> qspecl_then [‘[h]’, ‘bs’, ‘[h']’, ‘t’] assume_tac hamming_distance_append
+  >> gvs[]
+  >> gvs[Once hamming_distance_cons]
+  >> DEP_PURE_ONCE_ASM_REWRITE_TAC[]
+  >> gvs[]
+  >> pop_assum kall_tac
+  >> DEP_PURE_ONCE_ASM_REWRITE_TAC[hamming_distance_append]
+                                  last_x_assum drule
 QED
 
 Theorem nearest_code_n_repetition_code_3:
@@ -1777,10 +1831,10 @@ Proof
           >> irule SELECT_WEAKEN_CONDITION
           >> sg ‘’
           >> sg ‘∀P. ((@cs. P cs) = bs ⇒ P (@cs. P cs))’
-       >> gvs[SELECT_THM]
+          >> gvs[SELECT_THM]
 
-             SELECT_THM
-             
+                SELECT_THM
+                
 QED
 
 (*Theorem nearest_code_n_repetition_code:
@@ -1788,7 +1842,7 @@ QED
     bs ∈ length_n_codes 1 ∧
     ns ∈ length_n_codes n ⇒
     nearest_code 1 (n_repetition_code n) *)
-        
+          
 Theorem code_decodes_correctly_n_repetition_code_3:
   ∀bs ns.
     ns ∈ length_n_codes 3 ⇒
@@ -1810,7 +1864,7 @@ Proof
       >> gvs[]
             
 QED
-       
+      
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
     q2_sym_prob_correctly_decoded (p : extreal) = ((1 - p) pow 2) * (2 * p + 1)
