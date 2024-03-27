@@ -1640,17 +1640,22 @@ Definition n_repetition_code_def:
   n_repetition_code n (b::bs) = (n_repetition_bit n b) ⧺ (n_repetition_code n bs)
 End
 
-Definition valid_codes_def:
+(*Definition valid_codes_def:
   valid_codes n code_fn = IMAGE code_fn (length_n_codes n)
+End*)
+
+
+Definition decode_nearest_neighbour_def:
+  decode_nearest_neighbour 
 End
 
 (* What if there are multiple nearest codes? Should we have an is_nearest_code
    function which returns true for each choice of nearest code? *)
 Definition nearest_code_def:
   nearest_code n code_fn bs =
-  @cs. (cs ∈ valid_codes n code_fn ∧
-        ∀ds. ds ∈ valid_codes n code_fn ⇒ hamming_distance bs cs ≤ hamming_distance bs ds)
-End
+  @cs. (cs ∈ length_n_codes n ∧
+        ∀ds. ds ∈ length_n_codes n ⇒ hamming_distance (code_fn bs cs ≤ hamming_distance bs ds)
+        End
 
 Definition n_repetition_bit_inverse_def:
   (n_repetition_bit_inverse (nT : num) (nF : num) ([] : bool list) = if nT ≤ nF then F else T) ∧
@@ -1712,15 +1717,6 @@ Termination
   >> gvs[]
 End
 
-(*Theorem n_repetition_code_inverse_nearest_code:
-  ∀n bs.
-    ODD n ⇒
-    n_repetition_code_inverse n bs = nearest_code n (n_repetition_code n) bs
-Proof
-  rpt strip_tac
-  >> gvs[nearest_code_def]
-QED*)
-
 Definition q2_sym_prob_space_def:
   q2_sym_prob_space p = ((length_n_codes_uniform_prob_space 1) × (sym_noise_prob_space 3 p))
 End
@@ -1748,7 +1744,7 @@ QED
 
 Theorem hamming_distance_cons:
   ∀b bs c cs.
-    hamming_distance (b::bs) (c::cs) = hamming_distance [b] [c] + hamming_distance bs cs
+    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
 Proof
   rpt strip_tac
   >> gvs[hamming_distance_def]
@@ -1763,12 +1759,7 @@ Proof
   >> Induct_on ‘bs’ >> rpt strip_tac
   >- gvs[hamming_distance_def]
   >> Cases_on ‘ds’ >> gvs[]
-  >> PURE_REWRITE_TAC[Once hamming_distance_cons]
-  >> last_x_assum $ qspecl_then [‘cs’, ‘t’, ‘es’] assume_tac
-  >> gvs[]
-  >> pop_assum kall_tac
-  >> qspecl_then [‘h’,‘bs’, ‘h'’, ‘t’] assume_tac hamming_distance_cons
-  >> gvs[]
+  >> gvs[hamming_distance_cons]
 QED
 
 Theorem n_repetition_bit_hamming_distance:
@@ -1780,11 +1771,19 @@ Proof
   >- gvs[n_repetition_bit_def, hamming_distance_def]
   >> Cases_on ‘b = b'’ >> gvs[]
   >- (gvs[n_repetition_bit_def]
-      >> 
+      >> gvs[hamming_distance_cons])
+  >> gvs[n_repetition_bit_def, hamming_distance_cons]
+QED
+
+Theorem n_repetition_bit_length:
+  ∀n b. LENGTH (n_repetition_bit n b) = n
+Proof
+  rpt strip_tac
+  >> Induct_on ‘n’ >> gvs[n_repetition_bit_def]
 QED
 
 Theorem n_repetition_code_hamming_distance:
-        ∀bs cs n.
+  ∀bs cs n.
           LENGTH bs = LENGTH cs ∧
           hamming_distance (n_repetition_code n bs) (n_repetition_code n cs) < n ⇒
           bs = cs
@@ -1798,12 +1797,20 @@ Proof
   >> gvs[]
   >> qspecl_then [‘[h]’, ‘bs’, ‘[h']’, ‘t’] assume_tac hamming_distance_append
   >> gvs[]
-  >> gvs[Once hamming_distance_cons]
+  >> gvs[hamming_distance_cons]
+  >> pop_assum kall_tac
   >> DEP_PURE_ONCE_ASM_REWRITE_TAC[]
   >> gvs[]
   >> pop_assum kall_tac
-  >> DEP_PURE_ONCE_ASM_REWRITE_TAC[hamming_distance_append]
-                                  last_x_assum drule
+  >> qspecl_then [‘n_repetition_bit n h’, ‘n_repetition_code n bs’, ‘n_repetition_bit n h'’, ‘n_repetition_code n t’] assume_tac hamming_distance_append
+  >> gvs[n_repetition_bit_length]
+  >> pop_assum kall_tac
+  >> qmatch_asmsub_abbrev_tac ‘a + b < n’
+  >> ‘a < n’ by gvs[]
+  >> unabbrev_all_tac
+  >> qpat_x_assum ‘_ + _ < _’ kall_tac
+  >> gvs[n_repetition_bit_hamming_distance]
+  >> Cases_on ‘h = h'’ >> gvs[]
 QED
 
 Theorem nearest_code_n_repetition_code_3:
@@ -1820,21 +1827,22 @@ Proof
       >> pop_assum irule
       >> conj_tac
       >- (rpt strip_tac
-          >> CCONTR_TAC
-          >> 
+          >> qspecl_then [‘x’, ‘bs’, ‘3’] assume_tac n_repetition_code_hamming_distance
+          >> sg ‘LENGTH x = LENGTH bs’
+          >- (gvs[length_n_codes_def, valid_codes_def]
 
-          >>pop_assum irule
-          >> asm_rewrite_tac [] gvs[]
-          >> asm_simp_tac bool_ss []
-          >> rfs[] asm_rewrite_tac bool_ss []
-                simp[]
-          >> irule SELECT_WEAKEN_CONDITION
-          >> sg ‘’
-          >> sg ‘∀P. ((@cs. P cs) = bs ⇒ P (@cs. P cs))’
-          >> gvs[SELECT_THM]
+              >>pop_assum irule
+              >> asm_rewrite_tac [] gvs[]
+              >> asm_simp_tac bool_ss []
+              >> rfs[] asm_rewrite_tac bool_ss []
+                    simp[]
+              >> irule SELECT_WEAKEN_CONDITION
+              >> sg ‘’
+              >> sg ‘∀P. ((@cs. P cs) = bs ⇒ P (@cs. P cs))’
+              >> gvs[SELECT_THM]
 
-                SELECT_THM
-                
+                    SELECT_THM
+                    
 QED
 
 (*Theorem nearest_code_n_repetition_code:
