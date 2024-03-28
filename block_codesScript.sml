@@ -1640,22 +1640,13 @@ Definition n_repetition_code_def:
   n_repetition_code n (b::bs) = (n_repetition_bit n b) ⧺ (n_repetition_code n bs)
 End
 
-(*Definition valid_codes_def:
-  valid_codes n code_fn = IMAGE code_fn (length_n_codes n)
-End*)
-
-
+(* What if there are multiple nearest neighbours? *)
 Definition decode_nearest_neighbour_def:
-  decode_nearest_neighbour 
-End
-
-(* What if there are multiple nearest codes? Should we have an is_nearest_code
-   function which returns true for each choice of nearest code? *)
-Definition nearest_code_def:
-  nearest_code n code_fn bs =
+  decode_nearest_neighbour n code_fn bs =
   @cs. (cs ∈ length_n_codes n ∧
-        ∀ds. ds ∈ length_n_codes n ⇒ hamming_distance (code_fn bs cs ≤ hamming_distance bs ds)
-        End
+        ∀ds. ds ∈ length_n_codes n ⇒
+             hamming_distance (code_fn bs) (code_fn cs) ≤ hamming_distance (code_fn bs) (code_fn ds))
+End
 
 Definition n_repetition_bit_inverse_def:
   (n_repetition_bit_inverse (nT : num) (nF : num) ([] : bool list) = if nT ≤ nF then F else T) ∧
@@ -1725,7 +1716,7 @@ End
    noise, and then decoding the bitstring, we get the correct result *)
 Definition code_decodes_correctly_def:
   code_decodes_correctly (n : num) (bs : bool list) (ns : bool list) (code_fn : bool list -> bool list) : bool
-  = ((nearest_code n code_fn (apply_noise ns (code_fn bs))) = bs)
+  = ((decode_nearest_neighbour n code_fn (apply_noise ns (code_fn bs))) = bs)
 End
 
 Definition q2_sym_prob_correctly_decoded_def:
@@ -1813,36 +1804,39 @@ Proof
   >> Cases_on ‘h = h'’ >> gvs[]
 QED
 
-Theorem nearest_code_n_repetition_code_3:
+Theorem decode_nearest_neighbour_n_repetition_code_3:
   ∀bs ns.
     bs ∈ length_n_codes 1 ∧
     ns ∈ length_n_codes 3 ⇒
-    (nearest_code 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) = bs ⇔ num_errors ns ≤ 1)
+    (decode_nearest_neighbour 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) = bs ⇔ num_errors ns ≤ 1)
 Proof
   rpt strip_tac
   >> REVERSE EQ_TAC >> disch_tac
-  >- (gvs[nearest_code_def]
-      >> qspecl_then [‘λcs. cs ∈ valid_codes 1 (n_repetition_code 3) ∧ ∀ds. ds ∈ valid_codes 1 (n_repetition_code 3) ⇒ hamming_distance (apply_noise ns (n_repetition_code 3 bs)) cs ≤ hamming_distance (apply_noise ns (n_repetition_code 3 bs)) ds’, ‘λx. x = bs’] assume_tac SELECT_WEAKEN_CONDITION
+  >- (gvs[decode_nearest_neighbour_def]
+      >> qspecl_then [‘λcs. cs ∈ length_n_codes 1 ∧ ∀ds. ds ∈ length_n_codes 1 ⇒ hamming_distance (n_repetition_code 3 (apply_noise ns (n_repetition_code 3 bs))) (n_repetition_code 3 cs) ≤ hamming_distance (n_repetition_code 3 (apply_noise ns (n_repetition_code 3 bs))) (n_repetition_code 3 ds)’, ‘λx. x = bs’] assume_tac SELECT_WEAKEN_CONDITION
       >> gvs[] (* TODO: This takes too long. But it works. *)
       >> pop_assum irule
       >> conj_tac
       >- (rpt strip_tac
           >> qspecl_then [‘x’, ‘bs’, ‘3’] assume_tac n_repetition_code_hamming_distance
-          >> sg ‘LENGTH x = LENGTH bs’
-          >- (gvs[length_n_codes_def, valid_codes_def]
+          >> ‘LENGTH x = LENGTH bs’ by gvs[length_n_codes_def]
+          >> gvs[]
+          >> pop_assum kall_tac
+          >> pop_assum irule
+          >> 
 
-              >>pop_assum irule
-              >> asm_rewrite_tac [] gvs[]
-              >> asm_simp_tac bool_ss []
-              >> rfs[] asm_rewrite_tac bool_ss []
-                    simp[]
-              >> irule SELECT_WEAKEN_CONDITION
-              >> sg ‘’
-              >> sg ‘∀P. ((@cs. P cs) = bs ⇒ P (@cs. P cs))’
-              >> gvs[SELECT_THM]
+          >>pop_assum irule
+          >> asm_rewrite_tac [] gvs[]
+          >> asm_simp_tac bool_ss []
+          >> rfs[] asm_rewrite_tac bool_ss []
+                simp[]
+          >> irule SELECT_WEAKEN_CONDITION
+          >> sg ‘’
+             >> sg ‘∀P. ((@cs. P cs) = bs ⇒ P (@cs. P cs))’
+             >> gvs[SELECT_THM]
 
-                    SELECT_THM
-                    
+                   SELECT_THM
+                   
 QED
 
 (*Theorem nearest_code_n_repetition_code:
@@ -1868,10 +1862,9 @@ Proof
       >> sg ‘bs ∈ valid_codes 1 (n_repetition_code 3)’
       >> sg ‘∀ds. ds ∈ valid_codes 1 (n_repetition_code 3) ⇒
                   hamming_distance (apply_noise ns (n_repetition_code 3 bs)) cs ≤
-                  hamming_distance (apply_noise ns (n_repetition_code 3 bs)) bs’
-      >> gvs[]
+                  hamming_distance (apply_noise ns (n_repetition_code 3 bs)) bs      >> gvs[]
             
-QED
+                                                                                           QED*)
       
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
@@ -1879,6 +1872,7 @@ Theorem q2_sym_prob_correctly_decoded_prob:
 Proof
   gen_tac
   >> simp[q2_sym_prob_correctly_decoded_def, q2_sym_prob_space_def]
+  >> 
          
   >> simp[]
 QED
