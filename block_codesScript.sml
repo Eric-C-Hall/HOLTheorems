@@ -27,6 +27,7 @@ open relationTheory;
 open wellorderTheory;
 open martingaleTheory;
 open lebesgueTheory;
+open prim_recTheory;
 
 open dep_rewrite
 
@@ -1640,12 +1641,17 @@ Definition n_repetition_code_def:
   n_repetition_code n (b::bs) = (n_repetition_bit n b) ⧺ (n_repetition_code n bs)
 End
 
+Definition is_decoded_nearest_neighbour_def:
+  is_decoded_nearest_neighbour n code_fn bs cs =
+  (cs ∈ length_n_codes n ∧
+   ∀ds. ds ∈ length_n_codes n ⇒
+        hamming_distance bs (code_fn cs) ≤ hamming_distance bs (code_fn ds))
+End
+
 (* What if there are multiple nearest neighbours? *)
 Definition decode_nearest_neighbour_def:
   decode_nearest_neighbour n code_fn bs =
-  @cs. (cs ∈ length_n_codes n ∧
-        ∀ds. ds ∈ length_n_codes n ⇒
-             hamming_distance (code_fn bs) (code_fn cs) ≤ hamming_distance (code_fn bs) (code_fn ds))
+  @cs. is_decoded_nearest_neighbour n code_fn bs cs
 End
 
 Definition n_repetition_bit_inverse_def:
@@ -1804,6 +1810,63 @@ Proof
   >> Cases_on ‘h = h'’ >> gvs[]
 QED
 
+Theorem exists_decode_nearest_neighbour_candidate:
+  ∀n code_fn bs.
+    ∃ds. is_decoded_nearest_neighbour n code_fn bs ds
+Proof
+  rpt strip_tac
+  >> gvs[is_decoded_nearest_neighbour_def]
+  >> sg ‘let f n = (λn. hamming_distance bs (code_fn n)) n in WF (λx y. f x < f y)’
+  >- (PURE_REWRITE_TAC[Once LET_THM]
+      >> CONV_TAC BETA_CONV
+      >> irule WF_IMAGE
+      >> gvs[WF_LESS])
+  >> gvs[WF_DEF]
+  >> pop_assum $ qspec_then ‘length_n_codes n’ assume_tac
+  >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
+  >> sg ‘prem’
+  >- (unabbrev_all_tac
+      >> qexists ‘n_repetition_bit n T’
+      >> gvs[length_n_codes_def, n_repetition_bit_length])
+  >> gvs[]
+  >> qexists ‘y’ >> gvs[IN_DEF]
+  >> rpt strip_tac
+  >> first_x_assum $ qspec_then ‘ds’ assume_tac
+  >> gvs[]
+QED
+
+Theorem decode_nearest_neighbour_n_repetition_code_unique:
+  ∀n m bs cs ds.
+    ODD m ∧
+    is_decoded_nearest_neighbour n (n_repetition_code m) bs cs∧
+    is_decoded_nearest_neighbour n (n_repetition_code m) bs ds ⇒
+    cs = ds
+Proof
+  rpt strip_tac >> gvs[is_decoded_nearest_neighbour_def]
+  >> first_assum $ qspec_then ‘cs’ assume_tac
+  >> last_assum $ qspec_then ‘ds’ assume_tac
+  >> qmatch_asmsub_abbrev_tac ‘d1 ≤ d2’
+  >> ‘d1 = d2’ by gvs[]
+  >> NTAC 2 $ qpat_x_assum ‘_ ⇒ _’ kall_tac
+  >> Cases_on ‘hamming_distance (n_repetition_code m cs) (n_repetition_code m ds) < m’
+  >- (qspecl_then [‘cs’, ‘ds’, ‘m’] assume_tac n_repetition_code_hamming_distance
+      >> pop_assum irule
+      >> gvs[length_n_codes_def])
+  >> gs[]
+  >> qmatch_asmsub_abbrev_tac ‘d3 < m’
+  >> ‘m ≤ d3’ by gvs[]
+  >> gs[]
+  >> ‘F’ suffices_by gvs[]
+  >> 
+QED
+
+Theorem length_n_codes_sing_hd:
+  ∀bs.
+    bs ∈ length_n_codes 1 ⇔ bs = [HD bs]
+Proof
+  gvs[SING_HD, length_n_codes_def]
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_3:
   ∀bs ns.
     bs ∈ length_n_codes 1 ∧
@@ -1815,28 +1878,14 @@ Proof
   >- (gvs[decode_nearest_neighbour_def]
       >> SELECT_ELIM_TAC
       >> conj_tac
-      >- (qmatch_goalsub_abbrev_tac ‘_ ∧ _’
-          
-          >- (rpt strip_tac
-              >> qspecl_then [‘x’, ‘bs’, ‘3’] assume_tac n_repetition_code_hamming_distance
-              >> ‘LENGTH x = LENGTH bs’ by gvs[length_n_codes_def]
-              >> gvs[]
-              >> pop_assum kall_tac
-              >> pop_assum irule
-              >> 
-
-              >>pop_assum irule
-              >> asm_rewrite_tac [] gvs[]
-              >> asm_simp_tac bool_ss []
-              >> rfs[] asm_rewrite_tac bool_ss []
-                    simp[]
-              >> irule SELECT_WEAKEN_CONDITION
-              >> sg ‘’
-              >> sg ‘∀P. ((@cs. P cs) = bs ⇒ P (@cs. P cs))’
-              >> gvs[SELECT_THM]
-
-                    SELECT_THM
-                    
+      >- gvs[exists_decode_nearest_neighbour_candidate]
+      >> rpt strip_tac
+      >> drule $ iffLR length_n_codes_sing_hd >> strip_tac
+      >> ‘x = [HD x]’ by gvs[is_decoded_nearest_neighbour_def, length_n_codes_sing_hd]
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
+      >> Cases_on ‘HD x = HD bs’ >> gvs[]
+      >>                   
 QED
 
 (*Theorem nearest_code_n_repetition_code:
