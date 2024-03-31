@@ -28,6 +28,7 @@ open wellorderTheory;
 open martingaleTheory;
 open lebesgueTheory;
 open prim_recTheory;
+open dividesTheory;
 
 open dep_rewrite
 
@@ -1631,7 +1632,7 @@ QED
 
 (* ----------------------------------------------- *)
 
-Definition n_repetition_bit_def:
+Definition n_repetition_bit_def[simp]:
   n_repetition_bit 0 b = [] ∧
   n_repetition_bit (SUC n) b = b::(n_repetition_bit n b)
 End
@@ -1739,7 +1740,7 @@ Proof
   >> gvs[]      
 QED
 
-Theorem hamming_distance_cons:
+Theorem hamming_distance_cons[simp]:
   ∀b bs c cs.
     hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
 Proof
@@ -1767,12 +1768,9 @@ Proof
   >> Induct_on ‘n’
   >- gvs[n_repetition_bit_def, hamming_distance_def]
   >> Cases_on ‘b = b'’ >> gvs[]
-  >- (gvs[n_repetition_bit_def]
-      >> gvs[hamming_distance_cons])
-  >> gvs[n_repetition_bit_def, hamming_distance_cons]
 QED
 
-Theorem n_repetition_bit_length:
+Theorem n_repetition_bit_length[simp]:
   ∀n b. LENGTH (n_repetition_bit n b) = n
 Proof
   rpt strip_tac
@@ -1835,6 +1833,38 @@ Proof
   >> gvs[]
 QED
 
+Theorem n_repetition_code_0[simp]:
+  ∀bs.
+    n_repetition_code 0 bs = []
+Proof
+  Induct_on ‘bs’ >> gvs[n_repetition_code_def, n_repetition_bit_def]
+QED
+
+Theorem hamming_distance_empty[simp]:
+  ∀cs. hamming_distance [] [] = 0
+Proof
+  gvs[hamming_distance_def]
+QED
+
+Theorem n_repetition_code_divides:
+  ∀bs cs n.
+    LENGTH bs = LENGTH cs ⇒
+    divides n (hamming_distance (n_repetition_code n bs) (n_repetition_code n cs))
+Proof
+  strip_tac
+  >> Induct_on ‘bs’ >> rpt strip_tac
+  >- (Cases_on ‘cs’ >> gvs[n_repetition_code_def])
+  >> Cases_on ‘cs’ >> gvs[]
+  >> last_x_assum $ qspecl_then [‘t’, ‘n’] assume_tac
+  >> gvs[n_repetition_code_def, hamming_distance_cons]
+  >> DEP_PURE_ONCE_REWRITE_TAC[hamming_distance_append]
+  >> gvs[n_repetition_bit_length]
+  >> irule DIVIDES_ADD_1 >> gvs[]
+  >> pop_assum kall_tac
+  >> gvs[n_repetition_bit_hamming_distance]
+  >> Cases_on ‘h = h'’ >> gvs[]
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
   ∀n m bs cs ds.
     ODD m ∧
@@ -1856,7 +1886,7 @@ Proof
   >> qmatch_asmsub_abbrev_tac ‘d3 < m’
   >> ‘m ≤ d3’ by gvs[]
   >> gs[]
-  >> ‘F’ suffices_by gvs[]
+  >> ‘divides m d3’
   >> 
 QED
 
