@@ -1925,6 +1925,49 @@ Proof
   >> Cases_on ‘h = h''’ >> Cases_on ‘h' = h’ >> Cases_on ‘h' = h''’ >> gvs[]
 QED
 
+(* MODEQ_REFL has two issues: firstly, it isn't in the simpset, when it would
+   make sense for it to be. Secondly, the variable n isn't bound by a
+   quantifier. *)
+Theorem MODEQ_REFL'[simp]:
+  ∀n x. MODEQ n x x
+Proof
+  gvs[MODEQ_REFL]
+QED
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* Consider the hamming distance between two points p and q via a point r.    *)
+(* Each change made will modify the result by either 1 or -1. These values    *)
+(* are equivalent modulo 2. As a result, the parity of the path between p     *)
+(* and q is the same as the parity of the combined paths between p and r and  *)
+(* r and q.                                                                   *)
+(*                                                                            *)
+(* Note: this only works if the elements making up our lists can only take    *)
+(* two values. If more than two values are possible, a change can be made     *)
+(* which modifies the result by 0, for example, hamming_distance [1] [2]      *)
+(* can be changed to hamming_distance [1] [3]. Thus, we need to specify       *)
+(* our parameters to the hamming distance as "bool list" instead of "α list"  *)
+(* -------------------------------------------------------------------------- *)
+Theorem hamming_distance_modeq_2:
+  ∀bs cs ds : bool list.
+    LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds ⇒
+    MODEQ 2 ((hamming_distance bs cs) + (hamming_distance cs ds)) (hamming_distance bs ds)
+Proof
+  rpt strip_tac
+  >> ‘∀bs ds. LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds ⇒ MODEQ 2 ((hamming_distance bs cs) + (hamming_distance cs ds)) (hamming_distance bs ds)’ suffices_by gvs[]
+  >> rpt $ pop_assum kall_tac
+  >> Induct_on ‘cs’ >> rpt strip_tac >> Cases_on ‘bs’ >> Cases_on ‘ds’ >> gvs[]
+  >> last_x_assum $ qspecl_then [‘t’, ‘t'’] assume_tac
+  >> Cases_on ‘h = h''’ >> Cases_on ‘h' = h’ >> gvs[MODEQ_DEF]
+  >- (qexistsl [‘a’, ‘b’] >> gvs[])
+  >- (qexistsl [‘a’, ‘b’] >> gvs[])
+  >- (qexistsl [‘a’, ‘b’] >> gvs[])
+  >> Cases_on ‘h' = h''’
+  >- (qexistsl [‘a’, ‘b + 1’] >> gvs[])
+  >> Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> gvs[]
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
   ∀n m bs cs ds.
     ODD m ∧
@@ -1951,7 +1994,8 @@ Proof
   >- (CCONTR_TAC
       >> unabbrev_all_tac
       >> gvs[]
-            gs[]
+      >> qspecl_then [‘n_repetition_code m cs’, ‘n_repetition_code m ds’, ‘bs’] assume_tac 
+                     gs[]
 QED
 
 Theorem length_n_codes_sing_hd:
