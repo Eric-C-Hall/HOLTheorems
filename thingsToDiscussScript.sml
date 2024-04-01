@@ -22,5 +22,13 @@ QED
 (* -------------------------------------------------------------------------- *)
 
 
+
+(* -------------------------------------------------------------------------- *)
+(* How to add an existing theorem to the simpset. e.g. I don't think          *)
+(* MODEQ_REFL is in the simpset. It also has the issue that the variable n    *)
+(* isn't bound by a quantifier.                                               *)
+(* -------------------------------------------------------------------------- *)
+
+
 val _ = export_theory();
 
