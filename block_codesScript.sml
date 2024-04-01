@@ -1887,18 +1887,42 @@ QED
 
 Theorem hamming_distance_symmetry:
   ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
     hamming_distance bs cs = hamming_distance cs bs
 Proof
+  strip_tac
+  >> Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+  >> rpt strip_tac
+  >> first_x_assum $ qspec_then ‘t’ assume_tac
+  >> Cases_on ‘h = h'’ >> gvs[EQ_SYM]
 QED
 
+Theorem hamming_distance_same[simp]:
+  ∀bs. hamming_distance bs bs = 0
+Proof
+  rpt strip_tac
+  >> assume_tac hamming_distance_positivity
+  >> pop_assum $ qspecl_then [‘bs’, ‘bs’] assume_tac
+  >> gvs[]
+QED
+
+(* Initially I thought that the hamming distance between two points precisely
+   satisfied the triangle equality if and only if the middle point was one
+   of the endpoints, but this is not necessarily the case.
+
+  hamming (0, 1) (1, 0) = 2
+  hamming (0, 1) (0, 0) + hamming (0, 0) (1, 0) = 1 + 1 = 2 *)
 Theorem hamming_distance_triangle_inequality:
   ∀bs cs ds.
     (LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds) ⇒
-    hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds ∧
-    (hamming_distance bs ds = hamming_distance bs cs + hamming_distance cs ds ⇔ bs = cs ∨ cs = ds)
+    hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds
 Proof
   rpt strip_tac
-  >> 
+  >> ‘∀bs ds. LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds ⇒ hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds’ suffices_by gvs[]
+  >> rpt $ pop_assum kall_tac
+  >> Induct_on ‘cs’ >> rpt strip_tac >> Cases_on ‘bs’ >> Cases_on ‘ds’ >> gvs[]
+  >> first_x_assum $ qspecl_then [‘t’, ‘t'’] assume_tac
+  >> Cases_on ‘h = h''’ >> Cases_on ‘h' = h’ >> Cases_on ‘h' = h''’ >> gvs[]
 QED
 
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
