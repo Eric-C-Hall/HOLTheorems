@@ -27,6 +27,14 @@ QED
 (* How to add an existing theorem to the simpset. e.g. I don't think          *)
 (* MODEQ_REFL is in the simpset. It also has the issue that the variable n    *)
 (* isn't bound by a quantifier.                                               *)
+(*                                                                            *)
+(* Also, I think that adding theorems to the simpset can break proofs because *)
+(* more simplification is occurring, so it may not be possible to add         *)
+(* existing theorems to the simpset in an early library, but if they are      *)
+(* added in a later library, then it shouldn't break any earlier code and all *)
+(* later code will be able to use it in the simpset                           *)
+(*                                                                            *)
+(* ADD1 also isn't in simpset, but maybe it shouldn't be                      *)
 (* -------------------------------------------------------------------------- *)
 
 
