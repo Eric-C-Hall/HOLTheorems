@@ -48,9 +48,39 @@ Definition hamming_distance_def:
   hamming_distance (l1 : α list) (l2 : α list) = FOLDR ($+) 0n (MAP (λpair. if (FST pair = SND pair) then 0n else 1n) (ZIP (l1, l2)))
 End
 
+Definition hamming_distance_alt_def[simp]:
+  hamming_distance_alt [] (l2 : α list) = 0 ∧
+  hamming_distance_alt (h1::t1 : α list) (h2::t2 : α list) = (if (h1 = h2) then 0n else 1n) + hamming_distance_alt t1 t2
+End
+
+Theorem hamming_distance_empty[simp]:
+  ∀cs. hamming_distance [] [] = 0
+Proof
+  gvs[hamming_distance_def]
+QED
+
+Theorem hamming_distance_cons[simp]:
+  ∀b bs c cs.
+    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
+Proof
+  rpt strip_tac
+  >> gvs[hamming_distance_def]
+QED
+
+Theorem hamming_distance_alt_equivalent:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    hamming_distance bs cs = hamming_distance_alt bs cs
+Proof
+  strip_tac
+  >> Induct_on ‘bs’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘cs’  >> gvs[]
+QED
+
 (* The set of all codes of length n *)
 Definition length_n_codes_def:
-  length_n_codes n = {c : bool list | LENGTH c = n}
+           length_n_codes n = {c : bool list | LENGTH c = n}
 End
 
 Definition length_n_codes_uniform_prob_space_def:
@@ -233,8 +263,8 @@ QED
 
 Theorem code_to_subset_injective:
   ∀bs cs : bool list.
-  LENGTH bs = LENGTH cs ⇒
-  code_to_subset bs = code_to_subset cs ⇒ bs = cs
+    LENGTH bs = LENGTH cs ⇒
+    code_to_subset bs = code_to_subset cs ⇒ bs = cs
 Proof
   strip_tac
   >> Induct_on `bs`
@@ -285,7 +315,7 @@ Proof
   >> qexists `subset_to_code n s`
   >> gvs[subset_to_code_is_right_inverse, subset_to_code_length]
 QED
-  
+
 (* -------------------------------------------------------------------------- *)
 (* The set of length n codes can be viewed as corresponding to the power set  *)
 (* of a set of cardinality n                                                  *)
@@ -315,25 +345,25 @@ Proof
   >> qspec_then `n` assume_tac length_n_codes_power_set_bijection
   >> qmatch_asmsub_abbrev_tac `BIJ f s t`
   >> `∃g. BIJ g t s` by (irule $ iffLR BIJ_SYM >> qexists `f` >> gvs[])
-  >> `FINITE t` suffices_by (strip_tac >> drule_all FINITE_BIJ >> gvs[])
-  >> unabbrev_all_tac
-  >> gvs[FINITE_COUNT, FINITE_POW]
+       >> `FINITE t` suffices_by (strip_tac >> drule_all FINITE_BIJ >> gvs[])
+       >> unabbrev_all_tac
+       >> gvs[FINITE_COUNT, FINITE_POW]
 QED
 
 Theorem length_n_codes_cardinality:
   ∀n : num.
-  CARD (length_n_codes n) = 2 ** n
+    CARD (length_n_codes n) = 2 ** n
 Proof
   rpt strip_tac
   >> qspec_then `n` assume_tac length_n_codes_power_set_bijection
   >> qmatch_asmsub_abbrev_tac `BIJ f s t`
   >> `∃g. BIJ g t s` by (irule $ iffLR BIJ_SYM >> qexists `f` >> gvs[])
-  >> `CARD t = 2 ** n` by gvs[CARD_POW, CARD_COUNT, Abbr `t`]
-  >> `FINITE t` suffices_by (strip_tac >> drule_all FINITE_BIJ >> gvs[])
-  >> unabbrev_all_tac
-  >> gvs[FINITE_COUNT, FINITE_POW]
+       >> `CARD t = 2 ** n` by gvs[CARD_POW, CARD_COUNT, Abbr `t`]
+       >> `FINITE t` suffices_by (strip_tac >> drule_all FINITE_BIJ >> gvs[])
+       >> unabbrev_all_tac
+       >> gvs[FINITE_COUNT, FINITE_POW]
 QED
-  
+
 (* ------------------------------------------------------- *)
 (* Potentially useful here:                                *)
 (* prob_on_finite_set                                      *)
@@ -358,16 +388,16 @@ End
 
 Definition length_n_codes_degenerate_prob_space_def:
   length_n_codes_degenerate_prob_space (n : num) (bs : bool list) =
-    let s = length_n_codes n in
+  let s = length_n_codes n in
     let a = POW s in
-    let p = degenerate_distribution bs in
-    (s, a, p)
+      let p = degenerate_distribution bs in
+        (s, a, p)
 End
 
 Theorem DISJOINT_IN:
   ∀s t : α -> bool.
-  ∀x : α.
-  DISJOINT s t ∧ x ∈ s ⇒ x ∉ t
+    ∀x : α.
+      DISJOINT s t ∧ x ∈ s ⇒ x ∉ t
 Proof
   rpt strip_tac
   >> gvs[DISJOINT_DEF]
@@ -509,7 +539,7 @@ QED
 
 Theorem EXTREAL_MAX_REAL_MAX:
   ∀r r' : real.
-  max (Normal r) (Normal r') = Normal (max r r')
+    max (Normal r) (Normal r') = Normal (max r r')
 Proof
   rpt strip_tac
   >> gvs[extreal_max_def]
@@ -527,57 +557,57 @@ Proof
      convert to real and use existing proof for the real version *)
   (* Handle case where either of the supremums is infinity *)
   >> sg `∀s t : extreal -> bool. sup s = +∞ ⇒ sup (s ∪ t) = max (sup s) (sup t)`
-  >- (rpt strip_tac
-      >> drule (iffLR EXTREAL_SUP_POSITIVE_INFINITY)
-      >> rpt strip_tac
-      >> gvs[]
-      >> PURE_REWRITE_TAC[Once extreal_sup_def]
-      >> qmatch_goalsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
-      >> `c1` suffices_by gvs[]
-      >> gvs[Abbr `c1`, Abbr `c2`]
-     )
-  >> Cases_on `sup s = +∞` >> gvs[]
-  >> Cases_on `sup t = +∞`
-  >- (first_x_assum $ qspecl_then [`t`, `s`] assume_tac >> gvs[UNION_COMM])
-  >> last_x_assum kall_tac
-  (* Handle case where either of the supremums is negative infinity *)
-  >> sg `∀s t : extreal -> bool. sup s = −∞ ⇒ sup (s ∪ t) = max (sup s) (sup t)`
-  >- (rpt (pop_assum kall_tac)
-      >> rpt strip_tac
-      >> gvs[]
-      >> PURE_REWRITE_TAC[Ntimes extreal_sup_def 2]
-      >> qmatch_goalsub_abbrev_tac `(if c1 then _ else (if c2 then _ else e1)) = (if c3 then _ else (if c4 then _ else e2))`
-      >> `c1 = c3 ∧ c2 = c4 ∧ e1 = e2` suffices_by gvs[]
-      >> conj_tac
-      >- (unabbrev_all_tac
-          >> qmatch_goalsub_abbrev_tac `b1 ⇔ b2`
-          >> Cases_on `b1` >> Cases_on `b2` >> gvs[]
-          >- (last_x_assum $ qspec_then `x` assume_tac
+          >- (rpt strip_tac
+              >> drule (iffLR EXTREAL_SUP_POSITIVE_INFINITY)
+              >> rpt strip_tac
               >> gvs[]
-              >> last_x_assum $ qspec_then `y` assume_tac
-              >> gvs[IN_DEF]
-              >> drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
-              >> pop_assum $ qspec_then `y` assume_tac
-              >> gvs[IN_DEF])
-          >> pop_assum $ qspec_then `x` assume_tac
-          >> gvs[]
-          >> first_x_assum $ qspec_then `y` assume_tac
-          >> gvs[]
-          >> drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
-          >> pop_assum $ qspec_then `x` assume_tac
-          >> gvs[IN_DEF])
-      >> conj_tac
-      >- (unabbrev_all_tac
-          >> qmatch_goalsub_abbrev_tac `b1 ⇔ b2`
-          >> Cases_on `b1` >> Cases_on `b2` >> gvs[]
-          >- (first_x_assum $ qspec_then `x` assume_tac
-              >> gvs[IN_DEF])
-          >- (drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
-              >> pop_assum $ qspec_then `x` assume_tac >> gvs[IN_DEF])
-          >> pop_assum $ qspec_then `x` assume_tac >> gvs[IN_DEF])
-      >> unabbrev_all_tac
-      >> drule EXTREAL_SUP_NEGATIVE_INFINITY_EMPTY_OR_SINGLETON >> strip_tac
-      >> gvs[IN_DEF])
+              >> PURE_REWRITE_TAC[Once extreal_sup_def]
+              >> qmatch_goalsub_abbrev_tac `if c1 then _ else (if c2 then _ else _)`
+              >> `c1` suffices_by gvs[]
+              >> gvs[Abbr `c1`, Abbr `c2`]
+             )
+          >> Cases_on `sup s = +∞` >> gvs[]
+          >> Cases_on `sup t = +∞`
+          >- (first_x_assum $ qspecl_then [`t`, `s`] assume_tac >> gvs[UNION_COMM])
+          >> last_x_assum kall_tac
+          (* Handle case where either of the supremums is negative infinity *)
+          >> sg `∀s t : extreal -> bool. sup s = −∞ ⇒ sup (s ∪ t) = max (sup s) (sup t)`
+                  >- (rpt (pop_assum kall_tac)
+                      >> rpt strip_tac
+                      >> gvs[]
+                      >> PURE_REWRITE_TAC[Ntimes extreal_sup_def 2]
+                      >> qmatch_goalsub_abbrev_tac `(if c1 then _ else (if c2 then _ else e1)) = (if c3 then _ else (if c4 then _ else e2))`
+                      >> `c1 = c3 ∧ c2 = c4 ∧ e1 = e2` suffices_by gvs[]
+                      >> conj_tac
+                      >- (unabbrev_all_tac
+                          >> qmatch_goalsub_abbrev_tac `b1 ⇔ b2`
+                          >> Cases_on `b1` >> Cases_on `b2` >> gvs[]
+                          >- (last_x_assum $ qspec_then `x` assume_tac
+                              >> gvs[]
+                              >> last_x_assum $ qspec_then `y` assume_tac
+                              >> gvs[IN_DEF]
+                              >> drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
+                              >> pop_assum $ qspec_then `y` assume_tac
+                              >> gvs[IN_DEF])
+                          >> pop_assum $ qspec_then `x` assume_tac
+                          >> gvs[]
+                          >> first_x_assum $ qspec_then `y` assume_tac
+                          >> gvs[]
+                          >> drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
+                          >> pop_assum $ qspec_then `x` assume_tac
+                          >> gvs[IN_DEF])
+                      >> conj_tac
+                      >- (unabbrev_all_tac
+                          >> qmatch_goalsub_abbrev_tac `b1 ⇔ b2`
+                          >> Cases_on `b1` >> Cases_on `b2` >> gvs[]
+                          >- (first_x_assum $ qspec_then `x` assume_tac
+                              >> gvs[IN_DEF])
+                          >- (drule $ iffLR EXTREAL_SUP_NEGATIVE_INFINITY >> strip_tac
+                              >> pop_assum $ qspec_then `x` assume_tac >> gvs[IN_DEF])
+                          >> pop_assum $ qspec_then `x` assume_tac >> gvs[IN_DEF])
+                      >> unabbrev_all_tac
+                      >> drule EXTREAL_SUP_NEGATIVE_INFINITY_EMPTY_OR_SINGLETON >> strip_tac
+                      >> gvs[IN_DEF])
   >> Cases_on `sup s = −∞` >> gvs[]
   >> Cases_on `sup t = −∞`
   >- (first_x_assum $ qspecl_then [`t`, `s`] assume_tac
@@ -1740,14 +1770,6 @@ Proof
   >> gvs[]      
 QED
 
-Theorem hamming_distance_cons[simp]:
-  ∀b bs c cs.
-    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
-Proof
-  rpt strip_tac
-  >> gvs[hamming_distance_def]
-QED
-
 Theorem hamming_distance_append:
   ∀bs cs ds es.
     LENGTH bs = LENGTH ds ⇒
@@ -1840,12 +1862,6 @@ Proof
   Induct_on ‘bs’ >> gvs[n_repetition_code_def, n_repetition_bit_def]
 QED
 
-Theorem hamming_distance_empty[simp]:
-  ∀cs. hamming_distance [] [] = 0
-Proof
-  gvs[hamming_distance_def]
-QED
-
 Theorem n_repetition_code_divides:
   ∀bs cs n.
     LENGTH bs = LENGTH cs ⇒
@@ -1863,6 +1879,33 @@ Proof
   >> pop_assum kall_tac
   >> gvs[n_repetition_bit_hamming_distance]
   >> Cases_on ‘h = h'’ >> gvs[]
+QED
+
+Theorem hamming_distance_positivity:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    0 ≤ hamming_distance bs cs ∧
+    (hamming_distance bs cs = 0 ⇔ bs = cs)
+Proof
+  rpt strip_tac
+  >> gvs[hamming_distance_def]
+  >> 
+QED
+
+Theorem hamming_distance_symmetry:
+  ∀bs cs.
+    hamming_distance bs cs = hamming_distance cs bs
+Proof
+QED
+
+Theorem hamming_distance_triangle_inequality:
+  ∀bs cs ds.
+    (LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds) ⇒
+    hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds ∧
+    (hamming_distance bs ds = hamming_distance bs cs + hamming_distance cs ds ⇔ bs = cs ∨ cs = ds)
+Proof
+  rpt strip_tac
+  >> 
 QED
 
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
@@ -1886,8 +1929,12 @@ Proof
   >> qmatch_asmsub_abbrev_tac ‘d3 < m’
   >> ‘m ≤ d3’ by gvs[]
   >> gs[]
-  >> ‘divides m d3’
-  >> 
+  >> ‘divides m d3’ by (unabbrev_all_tac >> irule n_repetition_code_divides >> gvs[length_n_codes_def])
+  >> sg ‘d3 ≠ m’
+  >- (CCONTR_TAC
+      >> unabbrev_all_tac
+      >> gvs[]
+            gs[]
 QED
 
 Theorem length_n_codes_sing_hd:
