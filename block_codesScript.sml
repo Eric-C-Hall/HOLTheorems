@@ -1770,7 +1770,7 @@ Proof
   >> gvs[]      
 QED
 
-Theorem hamming_distance_append:
+Theorem hamming_distance_append[simp]:
   ∀bs cs ds es.
     LENGTH bs = LENGTH ds ⇒
     hamming_distance (bs ⧺ cs) (ds ⧺ es) = hamming_distance bs ds + hamming_distance cs es
@@ -1812,20 +1812,9 @@ Proof
   >> gvs[n_repetition_code_def]
   >> last_x_assum $ qspecl_then [‘t’, ‘n’] assume_tac
   >> gvs[]
-  >> qspecl_then [‘[h]’, ‘bs’, ‘[h']’, ‘t’] assume_tac hamming_distance_append
-  >> gvs[]
-  >> gvs[hamming_distance_cons]
-  >> pop_assum kall_tac
-  >> DEP_PURE_ONCE_ASM_REWRITE_TAC[]
-  >> gvs[]
-  >> pop_assum kall_tac
-  >> qspecl_then [‘n_repetition_bit n h’, ‘n_repetition_code n bs’, ‘n_repetition_bit n h'’, ‘n_repetition_code n t’] assume_tac hamming_distance_append
-  >> gvs[n_repetition_bit_length]
-  >> pop_assum kall_tac
-  >> qmatch_asmsub_abbrev_tac ‘a + b < n’
-  >> ‘a < n’ by gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘d1 + d2 < n’
+  >> ‘d1 < n’ by gvs[]
   >> unabbrev_all_tac
-  >> qpat_x_assum ‘_ + _ < _’ kall_tac
   >> gvs[n_repetition_bit_hamming_distance]
   >> Cases_on ‘h = h'’ >> gvs[]
 QED
@@ -1888,8 +1877,12 @@ Theorem hamming_distance_positivity:
     (hamming_distance bs cs = 0 ⇔ bs = cs)
 Proof
   rpt strip_tac
-  >> gvs[hamming_distance_def]
-  >> 
+  >- gvs[hamming_distance_def]
+  >> ‘∀cs. LENGTH bs = LENGTH cs ⇒ (hamming_distance bs cs = 0 ⇔ bs = cs)’ suffices_by gvs[]
+  >> pop_assum kall_tac
+  >> Induct_on ‘bs’ >> rpt strip_tac >> Cases_on ‘cs’ >> gvs[]
+  >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >> Cases_on ‘h = h'’ >> gvs[]
 QED
 
 Theorem hamming_distance_symmetry:
@@ -1970,7 +1963,7 @@ QED
     bs ∈ length_n_codes 1 ∧
     ns ∈ length_n_codes n ⇒
     nearest_code 1 (n_repetition_code n) *)
-              
+      
 Theorem code_decodes_correctly_n_repetition_code_3:
   ∀bs ns.
     ns ∈ length_n_codes 3 ⇒
