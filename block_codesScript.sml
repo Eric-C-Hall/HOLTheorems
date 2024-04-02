@@ -2019,28 +2019,26 @@ Proof
 QED*)
 
 Theorem decode_nearest_neighbour_n_repetition_bit_unique:
-  ∃cs. is_decoded_nearest_neighbour 1 (n_repetition_code n) bs ( then n_repetition_bit)
-decode_nearest_neighbour
-Proof
-QED
-
-Theorem decode_nearest_neighbour_n_repetition_code_unique:
   ∀n m bs cs ds.
-    ODD m ∧
-    LENGTH bs = m * LENGTH cs ∧
-    is_decoded_nearest_neighbour n (n_repetition_code m) bs cs ∧
-    is_decoded_nearest_neighbour n (n_repetition_code m) bs ds ⇒
+    ODD n ∧
+    LENGTH bs = n ∧
+    is_decoded_nearest_neighbour 1 (n_repetition_code n) bs cs ∧
+    is_decoded_nearest_neighbour 1 (n_repetition_code n) bs ds ⇒
     cs = ds
 Proof
   rpt strip_tac
-  >> ‘divides m (hamming_distance (n_repetition_code m cs) (n_repetition_code m ds))’ by (irule n_repetition_code_divides >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def])
-  >> gvs[divides_def]
-  >> Cases_on ‘q = 0’
-  >- (qspecl_then [‘n_repetition_code m cs’, ‘n_repetition_code m ds’] assume_tac hamming_distance_positivity
-      >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def]
-      >> qspecl_then [‘m’, ‘cs’, ‘ds’] irule n_repetition_code_inj
+  >> ‘∃n'. n' = n’ by gvs[]
+  >> pop_assum $ (fn th => PURE_ONCE_REWRITE_TAC [th])
+  >> ‘LENGTH bs = n'’ by gvs[]
+        >> qmatch_asmsub_abbrev_tac ‘LENGTH bs = n'’
+        >> ‘divides n (hamming_distance (n_repetition_code n cs) (n_repetition_code n ds))’ by (irule n_repetition_code_divides >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def])
+        >> gvs[divides_def]
+        >> Cases_on ‘q = 0’
+        >- (qspecl_then [‘n_repetition_code n cs’, ‘n_repetition_code n ds’] assume_tac (iffLR $ cj 2 hamming_distance_positivity)
+            >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def]
+            >> qspecl_then [‘n’, ‘cs’, ‘ds’] irule n_repetition_code_inj
       >> gvs[]
-      >> qexists ‘m’
+      >> qexists ‘n’
       >> gvs[]
       >> CCONTR_TAC
       >> gvs[])
@@ -2053,12 +2051,31 @@ Proof
       >> ‘d1 = d2’ by gvs[]
       >> NTAC 2 $ qpat_x_assum ‘_ ⇒ _’ kall_tac
       >> unabbrev_all_tac
-      >> qspecl_then [‘n_repetition_code m cs’, ‘bs’, ‘n_repetition_code m ds’] assume_tac hamming_distance_modeq_2
+      >> qspecl_then [‘n_repetition_code n cs’, ‘bs’, ‘n_repetition_code n ds’] assume_tac hamming_distance_modeq_2
+      >> gvs[]
+            
+      >> first_x_assum $ qspec_then ‘ds’ kall_tac
+      >> last_x_assum kall_tac
+      >> qpat_x_assum ‘hamming_distance _ _ = _’ kall_tac
+      >> gvs[hamming_distance_def]
+
+            
       >> gvs[length_n_codes_def]
       >> gvs[hamming_distance_sym]
-      >> drule $ iffLR MODEQ_THM >> strip_tac >> gvs[]
-      >> gvs[ODD_MOD2_LEM])
-  >> CCONTR_TAC
+                      >> drule $ iffLR MODEQ_THM >> strip_tac >> gvs[]
+                      >> gvs[ODD_MOD2_LEM])
+                  >> CCONTR_TAC
+
+QED
+
+Theorem decode_nearest_neighbour_n_repetition_code_unique:
+  ∀n m bs cs ds.
+    ODD m ∧
+    LENGTH bs = m * LENGTH cs ∧
+    is_decoded_nearest_neighbour n (n_repetition_code m) bs cs ∧
+    is_decoded_nearest_neighbour n (n_repetition_code m) bs ds ⇒
+    cs = ds
+Proof
   >> qsuff_tac ‘q < 2’
   >- (rpt strip_tac
       >> Induct_on ‘q’ >> gvs[])
