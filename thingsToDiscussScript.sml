@@ -38,5 +38,19 @@ QED
 (* -------------------------------------------------------------------------- *)
 
 
+(* At one point, one of my theorems reduced to this form, at which point
+   it fell into an infinite loop. (it was more complicated, and only
+   happened to reach a form similar to this as a result of simplifciation,
+   but this is the minimal example I could find which has this problem. *)
+Theorem infiniteloop:
+  ∀n m.
+    (n = m ∧ m = n ⇒ foo1 n) ⇒
+    F
+Proof
+  rpt strip_tac
+  >> gvs[]
+QED
+
 val _ = export_theory();
+
 
