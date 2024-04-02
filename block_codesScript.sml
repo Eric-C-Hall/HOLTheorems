@@ -29,8 +29,9 @@ open martingaleTheory;
 open lebesgueTheory;
 open prim_recTheory;
 open dividesTheory;
+open bitTheory;
 
-open dep_rewrite
+open dep_rewrite;
 
 (* -------------------------------------------------------------------------- *)
 (* Notes on relevant theorems, etc                                            *)
@@ -1782,7 +1783,7 @@ Proof
   >> gvs[hamming_distance_cons]
 QED
 
-Theorem n_repetition_bit_hamming_distance:
+Theorem n_repetition_bit_hamming_distance[simp]:
   ∀b b' n.
     hamming_distance (n_repetition_bit n b) (n_repetition_bit n b') = if b = b' then 0 else n
 Proof
@@ -1799,7 +1800,20 @@ Proof
   >> Induct_on ‘n’ >> gvs[n_repetition_bit_def]
 QED
 
-Theorem n_repetition_code_hamming_distance:
+Theorem n_repetition_code_hamming_distance[simp]:
+  ∀bs cs n.
+    LENGTH bs = LENGTH cs ⇒
+    hamming_distance (n_repetition_code n bs) (n_repetition_code n cs) = n * hamming_distance bs cs
+Proof
+  strip_tac
+  >> Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+  >> rpt strip_tac
+  >> last_x_assum $ qspecl_then [‘t’, ‘n’] assume_tac
+  >> gvs[]
+  >> Cases_on ‘h' = h’ >> gvs[]
+QED
+
+Theorem n_repetition_code_hamming_distance':
   ∀bs cs n.
     LENGTH bs = LENGTH cs ∧
     hamming_distance (n_repetition_code n bs) (n_repetition_code n cs) < n ⇒
@@ -1885,7 +1899,7 @@ Proof
   >> Cases_on ‘h = h'’ >> gvs[]
 QED
 
-Theorem hamming_distance_symmetry:
+Theorem hamming_distance_sym:
   ∀bs cs.
     LENGTH bs = LENGTH cs ⇒
     hamming_distance bs cs = hamming_distance cs bs
@@ -1905,8 +1919,6 @@ Proof
   >> pop_assum $ qspecl_then [‘bs’, ‘bs’] assume_tac
   >> gvs[]
 QED
-
-
 
 (* -------------------------------------------------------------------------- *)
 (* Initially I thought that the hamming distance between two points precisely *)
@@ -1937,8 +1949,6 @@ Theorem MODEQ_REFL'[simp]:
 Proof
   gvs[MODEQ_REFL]
 QED
-
-
 
 (* -------------------------------------------------------------------------- *)
 (* Consider the hamming distance between two points p and q via a point r.    *)
@@ -1984,35 +1994,79 @@ Proof
   >> gvs[]
 QED
 
+Theorem n_repetition_code_inj:
+  ∀n bs cs.
+    LENGTH bs = LENGTH cs ∧
+    n ≠ 0 ∧
+    n_repetition_code n bs = n_repetition_code n cs ⇒
+    bs = cs
+Proof
+  NTAC 2 strip_tac
+  >> Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+  >> rpt strip_tac
+  >> last_x_assum $ qspec_then ‘t’ assume_tac
+  >> gvs[]
+  >> Cases_on ‘n’ >> gvs[]
+QED
+
+(*Theorem is_decoded_nearest_neighbour_n_repetition_code_hamming_distance:
+  ∀n m bs cs.
+    is_decoded_nearest_neighbour n (n_repetition_code m) bs cs ⇒
+    hamming_distance (n_repetition_code m cs) bs < m * LENGTH bs
+Proof
+  rpt strip_tac
+  >> 
+QED*)
+
+Theorem decode_nearest_neighbour_n_repetition_bit_unique:
+  ∃cs. is_decoded_nearest_neighbour 1 (n_repetition_code n) bs ( then n_repetition_bit)
+decode_nearest_neighbour
+Proof
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
   ∀n m bs cs ds.
     ODD m ∧
-    is_decoded_nearest_neighbour n (n_repetition_code m) bs cs∧
+    LENGTH bs = m * LENGTH cs ∧
+    is_decoded_nearest_neighbour n (n_repetition_code m) bs cs ∧
     is_decoded_nearest_neighbour n (n_repetition_code m) bs ds ⇒
     cs = ds
 Proof
-  rpt strip_tac >> gvs[is_decoded_nearest_neighbour_def]
-  >> first_assum $ qspec_then ‘cs’ assume_tac
-  >> last_assum $ qspec_then ‘ds’ assume_tac
-  >> qmatch_asmsub_abbrev_tac ‘d1 ≤ d2’
-  >> ‘d1 = d2’ by gvs[]
-  >> NTAC 2 $ qpat_x_assum ‘_ ⇒ _’ kall_tac
-  >> Cases_on ‘hamming_distance (n_repetition_code m cs) (n_repetition_code m ds) < m’
-  >- (qspecl_then [‘cs’, ‘ds’, ‘m’] assume_tac n_repetition_code_hamming_distance
-      >> pop_assum irule
-      >> gvs[length_n_codes_def])
-  >> gs[]
-  >> qmatch_asmsub_abbrev_tac ‘d3 < m’
-  >> ‘m ≤ d3’ by gvs[]
-  >> gs[]
-  >> ‘divides m d3’ by (unabbrev_all_tac >> irule n_repetition_code_divides >> gvs[length_n_codes_def])
-  >> sg ‘d3 ≠ m’
-  >- (CCONTR_TAC
+  rpt strip_tac
+  >> ‘divides m (hamming_distance (n_repetition_code m cs) (n_repetition_code m ds))’ by (irule n_repetition_code_divides >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def])
+  >> gvs[divides_def]
+  >> Cases_on ‘q = 0’
+  >- (qspecl_then [‘n_repetition_code m cs’, ‘n_repetition_code m ds’] assume_tac hamming_distance_positivity
+      >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def]
+      >> qspecl_then [‘m’, ‘cs’, ‘ds’] irule n_repetition_code_inj
+      >> gvs[]
+      >> qexists ‘m’
+      >> gvs[]
+      >> CCONTR_TAC
+      >> gvs[])
+  >> Cases_on ‘q = 1’
+  >- (gvs[]
+      >> gvs[is_decoded_nearest_neighbour_def]
+      >> first_assum $ qspec_then ‘cs’ assume_tac
+      >> last_assum $ qspec_then ‘ds’ assume_tac
+      >> qmatch_asmsub_abbrev_tac ‘d1 ≤ d2’
+      >> ‘d1 = d2’ by gvs[]
+      >> NTAC 2 $ qpat_x_assum ‘_ ⇒ _’ kall_tac
       >> unabbrev_all_tac
-      >> gvs[]
-      >> qspecl_then [‘n_repetition_code m cs’, ‘n_repetition_code m ds’, ‘bs’] assume_tac hamming_distance_modeq_2
-      >> gvs[]
-            gs[]
+      >> qspecl_then [‘n_repetition_code m cs’, ‘bs’, ‘n_repetition_code m ds’] assume_tac hamming_distance_modeq_2
+      >> gvs[length_n_codes_def]
+      >> gvs[hamming_distance_sym]
+      >> drule $ iffLR MODEQ_THM >> strip_tac >> gvs[]
+      >> gvs[ODD_MOD2_LEM])
+  >> CCONTR_TAC
+  >> qsuff_tac ‘q < 2’
+  >- (rpt strip_tac
+      >> Induct_on ‘q’ >> gvs[])
+  >> qspecl_then [‘n_repetition_code m cs’, ‘bs’, ‘n_repetition_code m ds’] assume_tac hamming_distance_triangle_inequality
+  >> gvs[]
+  >> ‘LENGTH cs = LENGTH ds’ by gvs[is_decoded_nearest_neighbour_def, length_n_codes_def]
+  >> gvs[]
+  >> gvs[is_decoded_nearest_neighbour_n_repetition_code_hamming_distance, hamming_distance_sym]
 QED
 
 Theorem length_n_codes_sing_hd:
