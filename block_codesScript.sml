@@ -1826,10 +1826,6 @@ Proof
   >> gvs[n_repetition_code_def]
   >> last_x_assum $ qspecl_then [‘t’, ‘n’] assume_tac
   >> gvs[]
-  >> qmatch_asmsub_abbrev_tac ‘d1 + d2 < n’
-  >> ‘d1 < n’ by gvs[]
-  >> unabbrev_all_tac
-  >> gvs[n_repetition_bit_hamming_distance]
   >> Cases_on ‘h = h'’ >> gvs[]
 QED
 
