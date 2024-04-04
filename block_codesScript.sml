@@ -2071,22 +2071,11 @@ Proof
   >> gvs[]
 QED
 
-(* TODO: Theorem to break down is_decoded_nearest_neighbour into chunks of size m, i.e. each individual encoded bit *)
-
-Theorem is_decoded_nearest_neighbour_breakdown:
-  ∀n m bs cs.
-    (∀i. i < n ⇒ is_decoded_nearest_neighbour 1 (n_repetition_code m) (DROP i bs) (DROP (i * m) cs)) ⇒
-    is_decoded_nearest_neighbour n (n_repetition_code m) bs cs
-Proof
-  rpt strip_tac
-  >> gvs[is_decoded_nearest_neighbour_def]
-QED
-
 Theorem is_decoded_nearest_neighbour_cons:
-  ∀n b bs cs1 cs2 code_fn.
-    is_decoded_nearest_neighbour n code_fn bs cs2 ∧
-    is_decoded_nearest_neighbour 1 code_fn [b] cs1 ⇒
-    is_decoded_nearest_neighbour (SUC n) code_fn (b::bs) (cs1 ⧺ cs2)
+  ∀n bs1 bs2 c cs code_fn.
+    is_decoded_nearest_neighbour n code_fn bs2 cs ∧
+    is_decoded_nearest_neighbour 1 code_fn bs1 [c] ⇒
+    is_decoded_nearest_neighbour (SUC n) code_fn (bs1 ⧺ bs2) (c::cs)
 Proof
   rpt strip_tac
   >> gvs[is_decoded_nearest_neighbour_def]
@@ -2141,7 +2130,12 @@ Proof
       >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
       >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
       >> Cases_on ‘HD x = HD bs’ >> gvs[]
-      >>                   
+      >> Cases_on ‘ds’ >> gvs[]
+      >- (?)
+      >> first_x_assum $ qspec_then ‘[h]’ assume_tac
+      >> first_x_assum $ qspec_then ‘t’ assume_tac
+      >> 
+      gvs[]
 QED
 
 (*Theorem nearest_code_n_repetition_code:
