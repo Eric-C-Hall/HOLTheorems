@@ -2074,7 +2074,8 @@ QED
 Theorem is_decoded_nearest_neighbour_cons:
   ∀n bs1 bs2 c cs code_fn.
     is_decoded_nearest_neighbour n code_fn bs2 cs ∧
-    is_decoded_nearest_neighbour 1 code_fn bs1 [c] ⇒
+    is_decoded_nearest_neighbour 1 code_fn bs1 [c] ∧
+    (∀d ds. code_fn (d::ds) = code_fn [d] ⧺ code_fn ds) ⇒
     is_decoded_nearest_neighbour (SUC n) code_fn (bs1 ⧺ bs2) (c::cs)
 Proof
   rpt strip_tac
