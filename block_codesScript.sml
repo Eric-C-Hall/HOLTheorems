@@ -2073,6 +2073,29 @@ QED
 
 (* TODO: Theorem to break down is_decoded_nearest_neighbour into chunks of size m, i.e. each individual encoded bit *)
 
+Theorem is_decoded_nearest_neighbour_breakdown:
+  ∀n m bs cs.
+    (∀i. i < n ⇒ is_decoded_nearest_neighbour 1 (n_repetition_code m) (DROP i bs) (DROP (i * m) cs)) ⇒
+    is_decoded_nearest_neighbour n (n_repetition_code m) bs cs
+Proof
+  rpt strip_tac
+  >> gvs[is_decoded_nearest_neighbour_def]
+QED
+
+Theorem is_decoded_nearest_neighbour_cons:
+  ∀n b bs cs1 cs2 code_fn.
+    is_decoded_nearest_neighbour n code_fn bs cs2 ∧
+    is_decoded_nearest_neighbour 1 code_fn [b] cs1 ⇒
+    is_decoded_nearest_neighbour (SUC n) code_fn (b::bs) (cs1 ⧺ cs2)
+Proof
+  rpt strip_tac
+  >> gvs[is_decoded_nearest_neighbour_def]
+  >> conj_tac
+  >- gvs[length_n_codes_def]
+  >> rpt strip_tac
+  >> 
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
   ∀n m bs cs ds.
     ODD m ∧
@@ -2081,6 +2104,8 @@ Theorem decode_nearest_neighbour_n_repetition_code_unique:
     is_decoded_nearest_neighbour n (n_repetition_code m) bs ds ⇒
     cs = ds
 Proof
+  rpt strip_tac
+  
   >> qsuff_tac ‘q < 2’
   >- (rpt strip_tac
       >> Induct_on ‘q’ >> gvs[])
