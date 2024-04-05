@@ -56,7 +56,14 @@ QED
    tactics. Generally an easy way to obtain the nth assumption *)
 
 (* I found the [simp] tag very helpful! :-). It allows the theorem prover to
-   automatically do a bunch of the work for me. *)
+   automatically do a bunch of the work for me.
+
+   This also helps to to appreciate what you meant by how it is a good idea to
+   prove theorems in iff form rather than implies form. This allows you to
+   use the [simp] tag to automatically rewrite to a simpler form.
+
+   On a related note, how do I temporarily exclude something from the simpset?
+   *)
 
 (* Pattern matching inside a forall fails. *)
 Theorem pattern_match_forall_failure:

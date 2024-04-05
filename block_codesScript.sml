@@ -2166,6 +2166,24 @@ Proof
   >> gvs[]
 QED
 
+Theorem length_n_codes_0[simp]:
+  ∀bs.
+    bs ∈ length_n_codes 0 ⇔ bs = []
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >> gvs[length_n_codes_def]
+QED
+
+Theorem is_decoded_nearest_neighbour_0[simp]:
+  ∀bs cs code_fn.
+    is_decoded_nearest_neighbour 0 code_fn bs cs ⇔ cs = []
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def] 
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
   ∀n m bs cs ds.
     ODD m ∧
@@ -2175,6 +2193,9 @@ Theorem decode_nearest_neighbour_n_repetition_code_unique:
     cs = ds
 Proof
   rpt strip_tac
+  >> Induct_on ‘n’
+  >- gvs[is_decoded_nearest_neighbour_def]
+  
   >> qsuff_tac ‘q < 2’
   >- (rpt strip_tac
       >> Induct_on ‘q’ >> gvs[])
