@@ -55,7 +55,8 @@ QED
    about drule_at and irule_at, but those only work for those specific
    tactics. Generally an easy way to obtain the nth assumption *)
 
-(* I found the [simp] tag very helpful! :-) *)
+(* I found the [simp] tag very helpful! :-). It allows the theorem prover to
+   automatically do a bunch of the work for me. *)
 
 (* Pattern matching inside a forall fails. *)
 Theorem pattern_match_forall_failure:

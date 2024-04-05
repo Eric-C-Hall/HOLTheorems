@@ -2133,7 +2133,7 @@ Theorem is_decoded_nearest_neighbour_cons:
      is_decoded_nearest_neighbour (SUC n) code_fn (bs1 ⧺ bs2) (c::cs)
 Proof
   rpt strip_tac
-  >> donotexpand_tac
+  >> last_x_assum (fn th => qspec_then ‘T’ kall_tac th >> assume_tac th >> donotexpand_tac)
   >> gvs[is_decoded_nearest_neighbour_def]
   >> conj_tac
   >- gvs[length_n_codes_def]
@@ -2147,16 +2147,22 @@ Proof
   >> first_assum $ qspecl_then [‘c’, ‘cs’] assume_tac
   >> first_x_assum $ qspecl_then [‘h’, ‘t’] assume_tac
   >> gvs[]
-  >> NTAC 3 (pop_assum kall_tac)
-  >> NTAC 2 $ DEP_PURE_ONCE_REWRITE_TAC[hamming_distance_append]
-  >> conj_tac
-  >- (*TODO *)
-  >> conj_tac
-  >- (*TODO*)
   >> first_x_assum $ qspec_then ‘[h]’ assume_tac
   >> first_x_assum $ qspec_then ‘t’ assume_tac
   >> ‘t ∈ length_n_codes n’ by gvs[length_n_codes_def]
   >> ‘[h] ∈ length_n_codes 1’ by gvs[length_n_codes_def]
+  >> gvs[]
+QED
+
+Theorem is_decoded_nearest_neighbour_cons_n_repetition_code:
+  ∀n m bs1 bs2 c cs.
+    is_decoded_nearest_neighbour n (n_repetition_code m) bs2 cs ∧
+    is_decoded_nearest_neighbour 1 (n_repetition_code m) bs1 [c] ∧
+    LENGTH bs1 = m ⇒
+    is_decoded_nearest_neighbour (SUC n) (n_repetition_code m) (bs1 ⧺ bs2) (c::cs)
+Proof
+  rpt strip_tac
+  >> irule is_decoded_nearest_neighbour_cons
   >> gvs[]
 QED
 
@@ -2169,7 +2175,6 @@ Theorem decode_nearest_neighbour_n_repetition_code_unique:
     cs = ds
 Proof
   rpt strip_tac
-  
   >> qsuff_tac ‘q < 2’
   >- (rpt strip_tac
       >> Induct_on ‘q’ >> gvs[])
