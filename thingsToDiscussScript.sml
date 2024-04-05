@@ -74,6 +74,8 @@ Proof
   >> qmatch_asmsub_abbrev_tac ‘foo = _’
 QED
 
+(* Select first assumption satisfying a predicate? *)
+
 val _ = export_theory();
 
 
