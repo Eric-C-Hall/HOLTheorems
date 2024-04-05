@@ -2096,6 +2096,18 @@ qmatch_asmsub_abbrev_tac ‘donotexpand_var’
 (* discharge donotexpand-ed assumption to assumptions *)
 >> disch_tac
 
+(* Tactic that undoes the effect of donotexpand_tac *)
+val doexpand_tac =
+(* abbreviate assumption to expand *)
+qmatch_asmsub_abbrev_tac ‘donotexpand donotexpand_var’
+(* move assumption to expand to top *)
+>> qpat_x_assum ‘donotexpand donotexpand_var’ assume_tac
+(* expand assumption*)
+>> ‘donotexpand_var’ by (irule $ iffLR donotexpand_thm >> simp[])
+(* remove unexpanded assumption *)
+>> qpat_x_assum ‘donotexpand donotexpand_var’ kall_tac
+(* unabbreviate assumption *)
+>> simp_tac empty_ss [Abbr ‘donotexpand_var’]
 
 
 Theorem is_decoded_nearest_neighbour_cons:
@@ -2111,7 +2123,8 @@ Proof
   >> conj_tac
   >- gvs[length_n_codes_def]
   >> rpt strip_tac
-  >> gvs[donotexpand_thm]
+  >> doexpand_tac
+  >> 
 QED
 
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
