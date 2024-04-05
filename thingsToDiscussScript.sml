@@ -55,6 +55,24 @@ QED
    about drule_at and irule_at, but those only work for those specific
    tactics. Generally an easy way to obtain the nth assumption *)
 
+(* I found the [simp] tag very helpful! :-) *)
+
+(* Pattern matching inside a forall fails. *)
+Theorem pattern_match_forall_failure:
+  ∀n m. (∀a b. a + a = b) ⇒ 2 * n = m
+Proof
+  rpt strip_tac
+  >> qpat_x_assum ‘_ = _’ kall_tac
+  >> qmatch_asmsub_abbrev_tac ‘foo = _’
+QED
+
+Theorem pattern_match_success:
+  ∀a b. a + a = b ⇒ 2 * a = b
+Proof
+  rpt strip_tac
+  >> qpat_x_assum ‘_ = _’ kall_tac
+  >> qmatch_asmsub_abbrev_tac ‘foo = _’
+QED
 
 val _ = export_theory();
 
