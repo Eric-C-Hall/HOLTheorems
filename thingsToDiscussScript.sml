@@ -51,6 +51,11 @@ Proof
   >> gvs[]
 QED
 
+(* Is there a function for applying a tactic to the nth assumption. I know
+   about drule_at and irule_at, but those only work for those specific
+   tactics. Generally an easy way to obtain the nth assumption *)
+
+
 val _ = export_theory();
 
 
