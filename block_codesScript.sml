@@ -2109,12 +2109,24 @@ qmatch_asmsub_abbrev_tac ‘donotexpand donotexpand_var’
 (* unabbreviate assumption *)
 >> simp_tac empty_ss [Abbr ‘donotexpand_var’]
 
+Theorem hamming_distance_latter_empty:
+  ∀bs. hamming_distance bs [] = 0
+Proof
+  gvs[hamming_distance_def, ZIP_def]
+QED
+
+Theorem hamming_distance_former_empty:
+  ∀bs. hamming_distance [] bs = 0
+Proof
+  gvs[hamming_distance_def, ZIP_def]
+QED
 
 Theorem is_decoded_nearest_neighbour_cons:
   ∀n bs1 bs2 c cs code_fn.
     is_decoded_nearest_neighbour n code_fn bs2 cs ∧
     is_decoded_nearest_neighbour 1 code_fn bs1 [c] ∧
-    (∀d ds. code_fn (d::ds) = code_fn [d] ⧺ code_fn ds) ⇒
+    ((∀d ds. code_fn (d::ds) = code_fn [d] ⧺ code_fn ds) ∧
+     code_fn [] = []) ⇒
     is_decoded_nearest_neighbour (SUC n) code_fn (bs1 ⧺ bs2) (c::cs)
 Proof
   rpt strip_tac
@@ -2123,6 +2135,12 @@ Proof
   >> conj_tac
   >- gvs[length_n_codes_def]
   >> rpt strip_tac
+  >> Cases_on ‘ds’
+  >- (doexpand_tac
+      >> pop_assum $ qspecl_then [‘T’, ‘[]’] assume_tac
+      >> gvs[hamming_distance_latter_empty]
+      >> gvs[length_n_codes_def])
+  >> gvs[]
   >> doexpand_tac
   >> 
 QED
