@@ -2184,6 +2184,23 @@ Proof
   >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def] 
 QED
 
+(* TODO: Combine this theorem with is_decoded_nearest_neighbour_cons,
+   changing it into an iff instead of two implies *)
+Theorem is_decoded_nearest_neighbour_cons_conv:
+  ∀n bs1 bs2 c cs code_fn.
+    ((∀d ds. code_fn (d::ds) = code_fn [d] ⧺ code_fn ds) ∧
+     code_fn [] = [] ∧
+     (∀e f. LENGTH (code_fn [e]) = LENGTH (code_fn [f])) ∧
+     LENGTH bs1 = LENGTH (code_fn [c])
+    ) ∧
+    is_decoded_nearest_neighbour (SUC n) code_fn (bs1 ⧺ bs2) (c::cs) ⇒
+    is_decoded_nearest_neighbour n code_fn bs2 cs ∧
+    is_decoded_nearest_neighbour 1 code_fn bs1 [c] 
+Proof
+  rpt strip_tac
+  >- (
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
   ∀n m bs cs ds.
     ODD m ∧
@@ -2192,10 +2209,14 @@ Theorem decode_nearest_neighbour_n_repetition_code_unique:
     is_decoded_nearest_neighbour n (n_repetition_code m) bs ds ⇒
     cs = ds
 Proof
-  rpt strip_tac
-  >> Induct_on ‘n’
-  >- gvs[is_decoded_nearest_neighbour_def]
-  
+  gen_tac
+  >> Induct_on ‘n’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘cs’ >> Cases_on ‘ds’ >> gvs[]
+  >- gvs[is_decoded_nearest_neighbour_def, length_n_codes_def]
+  >- gvs[is_decoded_nearest_neighbour_def, length_n_codes_def]
+  >> 
+        
   >> qsuff_tac ‘q < 2’
   >- (rpt strip_tac
       >> Induct_on ‘q’ >> gvs[])
