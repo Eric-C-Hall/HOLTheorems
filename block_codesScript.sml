@@ -2029,7 +2029,7 @@ Proof
 QED
 
 Theorem decode_nearest_neighbour_n_repetition_bit_unique:
-  ∀n m bs cs ds.
+  ∀n bs cs ds.
     ODD n ∧
     bs ∈ length_n_codes n ∧
     is_decoded_nearest_neighbour 1 (n_repetition_code n) bs cs ∧
@@ -2219,16 +2219,17 @@ Proof
   >> Cases_on ‘cs’ >> Cases_on ‘ds’ >> gvs[]
   >- gvs[is_decoded_nearest_neighbour_def, length_n_codes_def]
   >- gvs[is_decoded_nearest_neighbour_def, length_n_codes_def]
-  >> 
-  
-  >> qsuff_tac ‘q < 2’
-  >- (rpt strip_tac
-      >> Induct_on ‘q’ >> gvs[])
-  >> qspecl_then [‘n_repetition_code m cs’, ‘bs’, ‘n_repetition_code m ds’] assume_tac hamming_distance_triangle_inequality
+  >> qspecl_then [‘n’, ‘m’, ‘TAKE m bs’, ‘DROP m bs’, ‘h’, ‘t’] assume_tac (iffLR is_decoded_nearest_neighbour_cons_n_repetition_code)
+  >> gvs[TAKE_DROP]
+  >> qspecl_then [‘n’, ‘m’, ‘TAKE m bs’, ‘DROP m bs’, ‘h'’, ‘t'’] assume_tac (iffLR is_decoded_nearest_neighbour_cons_n_repetition_code)
+  >> gvs[TAKE_DROP]
+  >> last_x_assum $ qspecl_then [‘m’, ‘DROP m bs’, ‘t’, ‘t'’] assume_tac
   >> gvs[]
-  >> ‘LENGTH cs = LENGTH ds’ by gvs[is_decoded_nearest_neighbour_def, length_n_codes_def]
+  >> gvs[ADD1]
+  >> qspecl_then [‘m’, ‘TAKE m bs’, ‘[h]’, ‘[h']’] assume_tac decode_nearest_neighbour_n_repetition_bit_unique
   >> gvs[]
-  >> gvs[is_decoded_nearest_neighbour_n_repetition_code_hamming_distance, hamming_distance_sym]
+  >> pop_assum irule
+  >> gvs[length_n_codes_def]
 QED
 
 Theorem length_n_codes_sing_hd:
