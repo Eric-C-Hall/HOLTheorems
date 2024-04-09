@@ -2123,17 +2123,40 @@ QED
 
 Theorem is_decoded_nearest_neighbour_cons:
   ∀n bs1 bs2 c cs code_fn.
-    is_decoded_nearest_neighbour n code_fn bs2 cs ∧
-    is_decoded_nearest_neighbour 1 code_fn bs1 [c] ∧
     ((∀d ds. code_fn (d::ds) = code_fn [d] ⧺ code_fn ds) ∧
      code_fn [] = [] ∧
      (∀e f. LENGTH (code_fn [e]) = LENGTH (code_fn [f])) ∧
      LENGTH bs1 = LENGTH (code_fn [c])
     ) ⇒
-     is_decoded_nearest_neighbour (SUC n) code_fn (bs1 ⧺ bs2) (c::cs)
+    (is_decoded_nearest_neighbour (SUC n) code_fn (bs1 ⧺ bs2) (c::cs) ⇔
+     is_decoded_nearest_neighbour n code_fn bs2 cs ∧
+     is_decoded_nearest_neighbour 1 code_fn bs1 [c])
 Proof
-  rpt strip_tac
-  >> last_x_assum (fn th => qspec_then ‘T’ kall_tac th >> assume_tac th >> donotexpand_tac)
+  rpt strip_tac >> last_x_assum assume_tac >> donotexpand_tac
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >- (gvs[is_decoded_nearest_neighbour_def]
+          >> rpt strip_tac
+          >- gvs[length_n_codes_def]
+          >> first_x_assum $ qspec_then ‘c::ds’ assume_tac
+          >> gvs[length_n_codes_def]
+          >> doexpand_tac
+          >> first_assum $ qspecl_then [‘c’, ‘cs’] assume_tac
+          >> first_x_assum $ qspecl_then [‘c’, ‘ds’] assume_tac
+          >> gvs[])
+      >> gvs[is_decoded_nearest_neighbour_def]
+      >> rpt strip_tac
+      >- gvs[length_n_codes_def]
+      >> first_x_assum $ qspec_then ‘(HD ds)::cs’ assume_tac
+      >> gvs[length_n_codes_def]
+      >> doexpand_tac
+      >> first_assum $ qspecl_then [‘c’, ‘cs’] assume_tac
+      >> first_x_assum $ qspecl_then [‘HD ds’, ‘cs’] assume_tac
+      >> gvs[]
+      >> drule $ iffRL $ cj 2 SING_HD
+      >> rpt strip_tac
+      >> metis_tac[])
+  >> rpt strip_tac
   >> gvs[is_decoded_nearest_neighbour_def]
   >> conj_tac
   >- gvs[length_n_codes_def]
@@ -2182,43 +2205,6 @@ Proof
   rpt strip_tac
   >> EQ_TAC
   >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def] 
-QED
-
-(* TODO: Combine this theorem with is_decoded_nearest_neighbour_cons,
-   changing it into an iff instead of two implies *)
-Theorem is_decoded_nearest_neighbour_cons_converse:
-  ∀n bs1 bs2 c cs code_fn.
-    ((∀d ds. code_fn (d::ds) = code_fn [d] ⧺ code_fn ds) ∧
-     code_fn [] = [] ∧
-     (∀e f. LENGTH (code_fn [e]) = LENGTH (code_fn [f])) ∧
-     LENGTH bs1 = LENGTH (code_fn [c])
-    ) ∧
-    is_decoded_nearest_neighbour (SUC n) code_fn (bs1 ⧺ bs2) (c::cs) ⇒
-    is_decoded_nearest_neighbour n code_fn bs2 cs ∧
-    is_decoded_nearest_neighbour 1 code_fn bs1 [c] 
-Proof
-  rpt strip_tac >> last_x_assum assume_tac >> donotexpand_tac
-  >- (gvs[is_decoded_nearest_neighbour_def]
-      >> rpt strip_tac
-      >- gvs[length_n_codes_def]
-      >> first_x_assum $ qspec_then ‘c::ds’ assume_tac
-      >> gvs[length_n_codes_def]
-      >> doexpand_tac
-      >> first_assum $ qspecl_then [‘c’, ‘cs’] assume_tac
-      >> first_x_assum $ qspecl_then [‘c’, ‘ds’] assume_tac
-      >> gvs[])
-  >> gvs[is_decoded_nearest_neighbour_def]
-  >> rpt strip_tac
-  >- gvs[length_n_codes_def]
-  >> first_x_assum $ qspec_then ‘(HD ds)::cs’ assume_tac
-  >> gvs[length_n_codes_def]
-  >> doexpand_tac
-  >> first_assum $ qspecl_then [‘c’, ‘cs’] assume_tac
-  >> first_x_assum $ qspecl_then [‘HD ds’, ‘cs’] assume_tac
-  >> gvs[]
-  >> drule $ iffRL $ cj 2 SING_HD
-  >> rpt strip_tac
-  >> metis_tac[]
 QED
 
 Theorem decode_nearest_neighbour_n_repetition_code_unique:
