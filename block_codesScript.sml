@@ -2179,14 +2179,12 @@ QED
 
 Theorem is_decoded_nearest_neighbour_cons_n_repetition_code:
   ∀n m bs1 bs2 c cs.
-    is_decoded_nearest_neighbour n (n_repetition_code m) bs2 cs ∧
-    is_decoded_nearest_neighbour 1 (n_repetition_code m) bs1 [c] ∧
     LENGTH bs1 = m ⇒
-    is_decoded_nearest_neighbour (SUC n) (n_repetition_code m) (bs1 ⧺ bs2) (c::cs)
+    (is_decoded_nearest_neighbour (SUC n) (n_repetition_code m) (bs1 ⧺ bs2) (c::cs) ⇔
+       (is_decoded_nearest_neighbour n (n_repetition_code m) bs2 cs ∧
+        is_decoded_nearest_neighbour 1 (n_repetition_code m) bs1 [c]))
 Proof
-  rpt strip_tac
-  >> irule is_decoded_nearest_neighbour_cons
-  >> gvs[]
+  gvs[is_decoded_nearest_neighbour_cons]
 QED
 
 Theorem length_n_codes_0[simp]:
