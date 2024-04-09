@@ -619,7 +619,7 @@ Proof
   >- (drule (iffLR EXTREAL_SUP_POSITIVE_INFINITY) >> strip_tac
       >> drule EXTREAL_SUP_NOT_POSITIVE_INFINITY >> strip_tac
       >> qspec_then `s` assume_tac EXTREAL_SUP_NOT_POSITIVE_INFINITY
-      >> gvs[]
+      >> rfs[]
       >> last_x_assum $ qspec_then `max x x'` assume_tac
       >> Cases_on `max x x' = +∞`
       >- (gvs[extreal_max_def] >> Cases_on `x ≤ x'` >> gvs[])
@@ -672,20 +672,20 @@ Proof
       >> drule (iffLR EXTENSION) >> strip_tac
       >> pop_assum $ qspec_then `r` assume_tac
       >> gvs[])
-  >- (qspecl_then [`t`] assume_tac EXTREAL_SUP_NOT_NEGATIVE_INFINITY
-      >> gvs[]
-      >> qspecl_then [`t`] assume_tac EXTREAL_SUP_NOT_POSITIVE_INFINITY
-      >> gvs[]
-      >> first_x_assum $ qspec_then `x` assume_tac
-      >> gvs[]
-      >> `x ≠ +∞` by (CCONTR_TAC >> gvs[le_infty])
-      >> Cases_on `x` >> gvs[]
-      >> gvs[PREIMAGE_def]
-      >> CCONTR_TAC
-      >> gvs[]
-      >> drule (iffLR EXTENSION) >> strip_tac
-      >> pop_assum $ qspec_then `r` assume_tac
-      >> gvs[])
+  >> qspecl_then [`t`] assume_tac EXTREAL_SUP_NOT_NEGATIVE_INFINITY
+  >> gvs[]
+  >> qspecl_then [`t`] assume_tac EXTREAL_SUP_NOT_POSITIVE_INFINITY
+  >> gvs[]
+  >> first_x_assum $ qspec_then `x` assume_tac
+  >> gvs[]
+  >> `x ≠ +∞` by (CCONTR_TAC >> gvs[le_infty])
+  >> Cases_on `x` >> gvs[]
+  >> gvs[PREIMAGE_def]
+  >> CCONTR_TAC
+  >> gvs[]
+  >> drule (iffLR EXTENSION) >> strip_tac
+  >> pop_assum $ qspec_then `r` assume_tac
+  >> gvs[]
 QED
 
 Theorem SET_PARTITION:
