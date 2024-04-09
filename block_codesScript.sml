@@ -583,7 +583,7 @@ Proof
       >> conj_tac
       >- (unabbrev_all_tac
           >> qmatch_goalsub_abbrev_tac `b1 ⇔ b2`
-          >> Cases_on `b1` >> Cases_on `b2` >> gvs[]
+          >> Cases_on `b1` >> Cases_on `b2` >> rfs[]
           >- (last_x_assum $ qspec_then `x` assume_tac
               >> gvs[]
               >> last_x_assum $ qspec_then `y` assume_tac
