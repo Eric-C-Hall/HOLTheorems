@@ -2239,6 +2239,36 @@ Proof
   gvs[SING_HD, length_n_codes_def]
 QED
 
+Theorem bnot_cons[simp]:
+  ∀b bs.
+    bnot (b::bs) = (¬b)::(bnot bs)
+Proof
+  gvs[bnot_def]
+QED
+
+Theorem hamming_distance_bnot[simp]:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    hamming_distance (bnot bs) (bnot cs) = hamming_distance bs cs
+Proof
+  strip_tac
+  >> Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+  >> rpt strip_tac
+  >> last_x_assum $ qspec_then ‘t’ assume_tac
+  >> gvs[]
+  >> gvs[hamming_distance_cons]
+QED
+
+Theorem apply_noise_bnot_1:
+  ∀ns bs. bnot apply_noise ns bs = apply_noise (bnot ns) bs
+Proof
+QED
+
+Theorem apply_noise_bnot_2:
+  ∀ns bs. bnot apply_noise ns bs = apply_noise ns (bnot bs)
+Proof
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_3:
   ∀bs ns.
     bs ∈ length_n_codes 1 ∧
@@ -2252,17 +2282,28 @@ Proof
       >> conj_tac
       >- gvs[exists_decode_nearest_neighbour_candidate]
       >> rpt strip_tac
-      >> drule $ iffLR length_n_codes_sing_hd >> strip_tac
-      >> ‘x = [HD x]’ by gvs[is_decoded_nearest_neighbour_def, length_n_codes_sing_hd]
-      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
-      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
-      >> Cases_on ‘HD x = HD bs’ >> gvs[]
-      >> Cases_on ‘ds’ >> gvs[]
-      >- (?)
-      >> first_x_assum $ qspec_then ‘[h]’ assume_tac
-      >> first_x_assum $ qspec_then ‘t’ assume_tac
-      >> 
-      gvs[]
+      >> qsuff_tac ‘is_decoded_nearest_neighbour 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) bs’
+      >- (rpt strip_tac
+          >> qspecl_then [‘1’, ‘3’, ‘apply_noise ns (n_repetition_code 3 bs)’, ‘x’, ‘bs’] assume_tac decode_nearest_neighbour_n_repetition_code_unique
+          >> pop_assum irule
+          >> gvs[]
+          >> gvs[apply_noise_length]
+          >> gvs[length_n_codes_def]
+          >> gvs[is_decoded_nearest_neighbour_def, length_n_codes_def])
+      >> pop_assum kall_tac
+      >> gvs[is_decoded_nearest_neighbour_def]
+      >> rpt strip_tac
+      >> Cases_on ‘bs’ >- gvs[length_n_codes_def]
+      >> REVERSE $ Cases_on ‘t’ >- gvs[length_n_codes_def]
+      >> Cases_on ‘ds’ >- gvs[length_n_codes_def]
+      >> REVERSE $ Cases_on ‘t’ >- gvs[length_n_codes_def]
+      >> Cases_on ‘h = h'’ >> gvs[]
+      >> wlog_tac ‘h = T’ [‘h’, ‘h'’]
+      >- (first_assum $ qspecl_then [‘h’, ‘h'’] assume_tac
+          >> gvs[]
+          >> DEP_PURE_ONCE_REWRITE_TAC[GSYM hamming_distance_bnot]
+          >> rewrite_tac [n_repetition_bit_length, apply_noise_length, length_n_codes_def]
+          >> 
 QED
 
 (*Theorem nearest_code_n_repetition_code:
@@ -2270,8 +2311,8 @@ QED
     bs ∈ length_n_codes 1 ∧
     ns ∈ length_n_codes n ⇒
     nearest_code 1 (n_repetition_code n) *)
-      
-Theorem code_decodes_correctly_n_repetition_code_3:
+
+(*Theorem code_decodes_correctly_n_repetition_code_3:
   ∀bs ns.
     ns ∈ length_n_codes 3 ⇒
     (code_decodes_correctly 1 bs ns (n_repetition_code 3) ⇔ num_errors ns ≤ 1)
@@ -2291,10 +2332,10 @@ Proof
                   hamming_distance (apply_noise ns (n_repetition_code 3 bs)) bs      >> gvs[]
                                                                                            
                                                                                            QED*)
-             
+          
 Theorem q2_sym_prob_correctly_decoded_prob:
-        ∀p.
-          q2_sym_prob_correctly_decoded (p : extreal) = ((1 - p) pow 2) * (2 * p + 1)
+  ∀p.
+    q2_sym_prob_correctly_decoded (p : extreal) = ((1 - p) pow 2) * (2 * p + 1)
 Proof
   gen_tac
   >> simp[q2_sym_prob_correctly_decoded_def, q2_sym_prob_space_def]
