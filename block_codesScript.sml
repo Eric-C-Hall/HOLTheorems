@@ -2259,14 +2259,76 @@ Proof
   >> gvs[hamming_distance_cons]
 QED
 
-Theorem apply_noise_bnot_1:
-  ∀ns bs. bnot apply_noise ns bs = apply_noise (bnot ns) bs
+Theorem bitwise_cons[simp]:
+  ∀f b bs c cs.
+    LENGTH bs = LENGTH cs ⇒
+    bitwise f (b::bs) (c::cs) = (f b c)::(bitwise f bs cs)
 Proof
+  gvs[bitwise_def]
+QED
+        
+Theorem bxor_cons[simp]:
+  ∀b bs c cs.
+    LENGTH bs = LENGTH cs ⇒
+    bxor (b::bs) (c::cs) = (b ⇎ c)::(bxor bs cs)
+Proof
+  gvs[bxor_def]
+QED
+        
+Theorem bnot_bxor:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    bnot (bxor bs cs) = bxor (bnot bs) cs
+Proof
+  strip_tac
+  >> Induct_on ‘bs’
+  >> gvs[bnot_def, bxor_def, bitwise_def]
+  >> rpt strip_tac
+  >> gvs[bnot_def]
+  >> Cases_on ‘cs’ >> gvs[]
+  >> Cases_on ‘h’ >> Cases_on ‘h'’ >> gvs[]
+QED
+
+Theorem bxor_comm:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    bxor bs cs = bxor cs bs
+Proof
+  strip_tac
+  >> Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+  >> rpt strip_tac
+  >- (Cases_on ‘h’ >> Cases_on ‘h'’ >> gvs[])
+  >> last_x_assum $ qspec_then ‘t’ assume_tac
+  >> gvs[]
+QED
+
+Theorem bnot_length[simp]:
+  ∀bs.
+    LENGTH (bnot bs) = LENGTH bs
+Proof
+  rpt strip_tac
+  >> Induct_on ‘bs’ >> gvs[bnot_def]
+QED
+
+Theorem apply_noise_bnot_1:
+  ∀ns bs.
+    LENGTH ns = LENGTH bs ⇒
+    bnot (apply_noise ns bs) = apply_noise (bnot ns) bs
+Proof
+  gvs[apply_noise_def, bnot_bxor]
 QED
 
 Theorem apply_noise_bnot_2:
-  ∀ns bs. bnot apply_noise ns bs = apply_noise ns (bnot bs)
+  ∀ns bs.
+    LENGTH ns = LENGTH bs ⇒
+    bnot (apply_noise ns bs) = apply_noise ns (bnot bs)
 Proof
+  gvs[apply_noise_def]
+  >> rpt strip_tac
+  >> qspecl_then [‘ns’, ‘bnot bs’] assume_tac bxor_comm
+  >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[bxor_comm]
+  >> gvs[bnot_bxor]
 QED
 
 Theorem decode_nearest_neighbour_n_repetition_code_3:
