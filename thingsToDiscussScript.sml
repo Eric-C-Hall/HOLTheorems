@@ -5,23 +5,24 @@ open HolKernel Parse boolLib bossLib;
 val _ = new_theory "thingsToDiscuss";
 
 (* -------------------------------------------------------------------------- *)
-
-(* qspec_then does not allow instantiating variables of an abstract type with *)
-(* variables of a specific type. It says "term cannot be constrained"         *)
-Theorem termCannotBeConstrained:
-  (∀x : α. [x] = []) ⇒
-  ∀y : num. [y] = []
-Proof
-  rpt strip_tac
-  >> pop_assum $ qspec_then ‘y’ assume_tac
-QED
-
-(* -------------------------------------------------------------------------- *)
 (* What specifically allows you to temporarily ignore an assumption in calls  *)
 (* to gvs, etc                                                                *)
 (* -------------------------------------------------------------------------- *)
 
+(* -------------------------------------------------------------------------- *)
+(* Similarly, what allows you to temporarily ignore a member of the global    *)
+(* simpset                                                                    *)
+(* -------------------------------------------------------------------------- *)
 
+(* I found the [simp] tag very helpful! :-). It allows the theorem prover to
+   automatically do a bunch of the work for me.
+
+   This also helps to to appreciate what you meant by how it is a good idea to
+   prove theorems in iff form rather than implies form. This allows you to
+   use the [simp] tag to automatically rewrite to a simpler form.
+
+   On a related note, how do I temporarily exclude something from the simpset?
+ *)
 
 (* -------------------------------------------------------------------------- *)
 (* How to add an existing theorem to the simpset. e.g. I don't think          *)
@@ -38,33 +39,19 @@ QED
 (* -------------------------------------------------------------------------- *)
 
 
-(* At one point, one of my theorems reduced to this form, at which point
-   it fell into an infinite loop. (it was more complicated, and only
-   happened to reach a form similar to this as a result of simplifciation,
-   but this is the minimal example I could find which has this problem. *)
-Theorem infiniteloop:
-  ∀n m.
-    (n = m ∧ m = n ⇒ foo1 n) ⇒
-    F
-Proof
-  rpt strip_tac
-  >> gvs[]
-QED
 
+(* -------------------------------------------------------------------------- *)
 (* Is there a function for applying a tactic to the nth assumption. I know
    about drule_at and irule_at, but those only work for those specific
-   tactics. Generally an easy way to obtain the nth assumption *)
+   tactics. Is there generally an easy way to access the nth assumption *)
 
-(* I found the [simp] tag very helpful! :-). It allows the theorem prover to
-   automatically do a bunch of the work for me.
+(* Select first assumption satisfying a predicate? *)
+(* -------------------------------------------------------------------------- *)
 
-   This also helps to to appreciate what you meant by how it is a good idea to
-   prove theorems in iff form rather than implies form. This allows you to
-   use the [simp] tag to automatically rewrite to a simpler form.
 
-   On a related note, how do I temporarily exclude something from the simpset?
-   *)
 
+
+(* -------------------------------------------------------------------------- *)
 (* Pattern matching inside a forall fails. *)
 Theorem pattern_match_forall_failure:
   ∀n m. (∀a b. a + a = b) ⇒ 2 * n = m
@@ -81,8 +68,40 @@ Proof
   >> qpat_x_assum ‘_ = _’ kall_tac
   >> qmatch_asmsub_abbrev_tac ‘foo = _’
 QED
+(* -------------------------------------------------------------------------- *)
 
-(* Select first assumption satisfying a predicate? *)
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* qspec_then does not allow instantiating variables of an abstract type with *)
+(* variables of a specific type. It says "term cannot be constrained"         *)
+Theorem termCannotBeConstrained:
+  (∀x : α. [x] = []) ⇒
+  ∀y : num. [y] = []
+Proof
+  rpt strip_tac
+  >> pop_assum $ qspec_then ‘y’ assume_tac
+QED
+(* -------------------------------------------------------------------------- *)
+
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* At one point, one of my theorems reduced to this form, at which point
+   it fell into an infinite loop. (it was more complicated, and only
+   happened to reach a form similar to this as a result of simplifciation,
+   but this is the minimal example I could find which has this problem. *)
+Theorem infiniteloop:
+  ∀n m.
+    (n = m ∧ m = n ⇒ foo1 n) ⇒
+    F
+Proof
+  rpt strip_tac
+  >> gvs[]
+QED
+(* -------------------------------------------------------------------------- *)
 
 val _ = export_theory();
 
