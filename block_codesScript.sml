@@ -2274,20 +2274,6 @@ Theorem bxor_cons[simp]:
 Proof
   gvs[bxor_def]
 QED
-        
-Theorem bnot_bxor:
-  ∀bs cs.
-    LENGTH bs = LENGTH cs ⇒
-    bnot (bxor bs cs) = bxor (bnot bs) cs
-Proof
-  strip_tac
-  >> Induct_on ‘bs’
-  >> gvs[bnot_def, bxor_def, bitwise_def]
-  >> rpt strip_tac
-  >> gvs[bnot_def]
-  >> Cases_on ‘cs’ >> gvs[]
-  >> Cases_on ‘h’ >> Cases_on ‘h'’ >> gvs[]
-QED
 
 Theorem bxor_comm:
   ∀bs cs.
@@ -2310,12 +2296,38 @@ Proof
   >> Induct_on ‘bs’ >> gvs[bnot_def]
 QED
 
+Theorem bnot_bxor_1:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    bnot (bxor bs cs) = bxor (bnot bs) cs
+Proof
+  strip_tac
+  >> Induct_on ‘bs’
+  >> gvs[bnot_def, bxor_def, bitwise_def]
+  >> rpt strip_tac
+  >> gvs[bnot_def]
+  >> Cases_on ‘cs’ >> gvs[]
+  >> Cases_on ‘h’ >> Cases_on ‘h'’ >> gvs[]
+QED
+
+Theorem bnot_bxor_2:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    bnot (bxor bs cs) = bxor bs (bnot cs)
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘bs’, ‘bnot cs’] assume_tac bxor_comm
+  >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[bxor_comm]
+  >> gvs[bnot_bxor_1]
+QED
+
 Theorem apply_noise_bnot_1:
   ∀ns bs.
     LENGTH ns = LENGTH bs ⇒
     bnot (apply_noise ns bs) = apply_noise (bnot ns) bs
 Proof
-  gvs[apply_noise_def, bnot_bxor]
+  gvs[apply_noise_def, bnot_bxor_1]
 QED
 
 Theorem apply_noise_bnot_2:
@@ -2323,12 +2335,7 @@ Theorem apply_noise_bnot_2:
     LENGTH ns = LENGTH bs ⇒
     bnot (apply_noise ns bs) = apply_noise ns (bnot bs)
 Proof
-  gvs[apply_noise_def]
-  >> rpt strip_tac
-  >> qspecl_then [‘ns’, ‘bnot bs’] assume_tac bxor_comm
-  >> gvs[]
-  >> DEP_PURE_ONCE_REWRITE_TAC[bxor_comm]
-  >> gvs[bnot_bxor]
+  gvs[apply_noise_def, bnot_bxor_2]
 QED
 
 Theorem decode_nearest_neighbour_n_repetition_code_3:
@@ -2365,8 +2372,12 @@ Proof
           >> gvs[]
           >> DEP_PURE_ONCE_REWRITE_TAC[GSYM hamming_distance_bnot]
           >> rewrite_tac [n_repetition_bit_length, apply_noise_length, length_n_codes_def]
-          >> 
+          >> DEP_PURE_ONCE_REWRITE_TAC [apply_noise_bnot_2]
+          >> gvs[length_n_codes_def]
+          >> GEN_REWRITE_TAC (RATOR_CONV o ONCE_DEPTH_CONV)
 QED
+
+(RATOR_CONV o ONCE_DEPTH_CONV) ‘a = b’
 
 (*Theorem nearest_code_n_repetition_code:
   ∀bs ns n.
