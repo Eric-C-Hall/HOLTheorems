@@ -2338,10 +2338,18 @@ Proof
   gvs[apply_noise_def, bnot_bxor_2]
 QED
 
+Theorem bnot_n_repetition_bit[simp]:
+  ∀n b.
+    bnot (n_repetition_bit n b) = n_repetition_bit n (¬b)
+Proof
+  rpt strip_tac
+  >> Induct_on ‘n’ >> gvs[bnot_def]
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_3:
   ∀bs ns.
     bs ∈ length_n_codes 1 ∧
-    ns ∈ length_n_codes 3 ⇒
+    ns ∈ length_n_codes 3 ⇒ 
     (decode_nearest_neighbour 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) = bs ⇔ num_errors ns ≤ 1)
 Proof
   rpt strip_tac
@@ -2374,7 +2382,14 @@ Proof
           >> rewrite_tac [n_repetition_bit_length, apply_noise_length, length_n_codes_def]
           >> DEP_PURE_ONCE_REWRITE_TAC [apply_noise_bnot_2]
           >> gvs[length_n_codes_def]
-          >> GEN_REWRITE_TAC (RATOR_CONV o ONCE_DEPTH_CONV)
+          >> qspecl_then [‘apply_noise ns (n_repetition_bit 3 F)’, ‘n_repetition_bit 3 T’] assume_tac (GSYM hamming_distance_bnot)
+          >> gvs[apply_noise_length, (Excl "hamming_distance_bnot")]
+          >> pop_assum kall_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC [apply_noise_bnot_2]
+          >>
+          >> DEP_PURE_ONE_REWRITE_TAC []
+          >> GEN_REWRITE_TAC (RATOR_CONV o ONCE_DEPTH_CONV) empty_rewrites [GSYM hamming_distance_bnot]
+          >> CONV_TAC (RATOR_CONV o ONCE_DEPTH_CONV)
 QED
 
 (RATOR_CONV o ONCE_DEPTH_CONV) ‘a = b’
