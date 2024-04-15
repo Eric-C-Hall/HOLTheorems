@@ -2363,7 +2363,7 @@ Proof
   >> Cases_on ‘h’ >> gvs[]
 QED
 
-Theorem num_errors_length:
+Theorem num_errors_eq_length:
   ∀bs. num_errors bs = LENGTH bs ⇔ bs = n_repetition_bit (LENGTH bs) T
 Proof
   Induct_on ‘bs’ >> gvs[]
@@ -2371,6 +2371,62 @@ Proof
   >> gvs[ADD1]
   >> REVERSE $ Cases_on ‘h’ >> simp[num_errors_cons]
   >> qspec_then ‘bs’ assume_tac num_errors_length
+  >> gvs[]
+QED
+
+Theorem bxor_empty[simp]:
+  bxor [] [] = []
+Proof
+  EVAL_TAC
+QED
+  
+Theorem apply_noise_n_repetition_bit_T:
+  ∀bs.
+    apply_noise (n_repetition_bit (LENGTH bs) T) bs = bnot bs
+Proof
+  Induct_on ‘bs’ >> gvs[bnot_def, apply_noise_def]
+QED
+
+Theorem bnot_empty[simp]:
+  bnot [] = []
+Proof
+  EVAL_TAC
+QED
+
+Theorem bnot_append[simp]:
+  ∀bs cs.
+    bnot (bs ⧺ cs) = bnot bs ⧺ bnot cs
+Proof
+  Induct_on ‘bs’ >> gvs[]
+QED
+
+Theorem n_repetition_code_bnot[simp]:
+  ∀bs n.
+    n_repetition_code n (bnot bs) = bnot (n_repetition_code n bs)
+Proof
+  Induct_on ‘n’ >> gvs[]
+  >> Induct_on ‘bs’ >> gvs[]
+QED
+
+Theorem NOT_IFF[simp]:
+  ∀b. (¬b ⇔ b) ⇔ F
+Proof
+  Cases_on ‘b’ >> gvs[]
+QED
+
+Theorem hamming_distance_bnot_1[simp]:
+  ∀bs.
+    hamming_distance (bnot bs) bs = LENGTH bs
+Proof
+  Induct_on ‘bs’ >> gvs[]
+QED
+
+Theorem hamming_distance_bnot_2[simp]:
+  ∀bs.
+    hamming_distance bs (bnot bs) = LENGTH bs
+Proof
+  rpt strip_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[hamming_distance_sym]
   >> gvs[]
 QED
 
@@ -2443,38 +2499,33 @@ Proof
   >> gvs[length_n_codes_def]
   >> ‘num_errors ns = 3 ∨ num_errors ns ≤ 2’ by gvs[]
   >- (gvs[]
-      >> Cases_on ‘ns’ >> gvs[]
-      >> Cases_on ‘t’ >> gvs[]
-      >> Cases_on ‘t'’ >> gvs[]
-      >> Cases_on ‘t’ >> gvs[]
-      >> Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> gvs[num_errors_def]
-      >> gvs[apply_noise_def]
-      >- Cases_on ‘num_errors ns = 2’ >> gvs[]
-                                            sg ‘num_errors ns ≤ 1 ∨ num_errors ns = 2’ >> gvs[]
-
-                                                                                             sg ‘num_errors ns ≤ 1 ∨ num_errors ns = 2 ∨ num_errors ns = 3’ metis_tac[] Induct_on ‘num_errors ns’ >> rpt strip_tac >> gvs[]
-                                                                                                                                                                                                                         
-      >> gvs[SELECT_THM]
-      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
-      >- rpt strip_tac
-      >> HO_MATCH_MP_TAC ‘P bs ⇒ _’
-
-
-      >> pop_assum mp_tac
-      >> Q.MATCH_ABBREV_TAC ‘P bs ⇒ _’
-      >> HO_MATCH_MP_TAC ‘(@cs.foo) = bs ⇒ _’
-                         
-      >> qmatch_asmsub_abbrev_tac ‘(@cs.foo) = _’
-      >> sg ‘is_decoded_nearest_neighbour 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) LHS = is_decoded_nearest_neighbour 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) bs’
-      >- (unabbrev_all_tac >> gvs[])
-      >> unabbrev_all_tac
-      >> PURE_REWRITE_TAC [SELECT_THM]
-      >> CONV_TAC SELECT_CONV
-                  
-      >> ‘is_decoded_nearest_neighbour’
+      >> qspec_then ‘ns’ assume_tac num_errors_eq_length
+      >> gvs[]
+      >> pop_assum kall_tac
+      >> gvs[]
+      >> qspec_then ‘n_repetition_code 3 bs’ assume_tac apply_noise_n_repetition_bit_T
+      >> gvs[]
+      >> pop_assum kall_tac
+      >> gvs[is_decoded_nearest_neighbour_def]
+      >> pop_assum $ qspec_then ‘bnot bs’ assume_tac
+      >> gvs[length_n_codes_def])
+  >> gvs[n_repetition_code_bnot]
+  >> Cases_on ‘num_errors ns = 2’ >> gvs[]
+  >> Cases_on ‘ns’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
+  >> Cases_on ‘t'’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
+  >> gvs[is_decoded_nearest_neighbour_def]
+  >> Cases_on ‘bs’ >> gvs[]
+  >> first_x_assum $ qspec_then ‘[¬h''']’ assume_tac
+  >> gvs[length_n_codes_def]
+  >> ‘n_repetition_bit 3 T = [T; T; T]’ by EVAL_TAC
+  >> ‘n_repetition_bit 3 F = [F; F; F]’ by EVAL_TAC
+  >> Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> gvs[num_errors_def]
+  >> Cases_on ‘h'''’ >> gvs[]
+  >> gvs[apply_noise_def]
 QED
 
-(RATOR_CONV o ONCE_DEPTH_CONV) ‘a = b’
 
 (*Theorem nearest_code_n_repetition_code:
   ∀bs ns n.
