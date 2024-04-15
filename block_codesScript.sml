@@ -2526,42 +2526,27 @@ Proof
   >> gvs[apply_noise_def]
 QED
 
-
-(*Theorem nearest_code_n_repetition_code:
-  ∀bs ns n.
-    bs ∈ length_n_codes 1 ∧
-    ns ∈ length_n_codes n ⇒
-    nearest_code 1 (n_repetition_code n) *)
-
-(*Theorem code_decodes_correctly_n_repetition_code_3:
+Theorem code_decodes_correctly_n_repetition_code_3:
   ∀bs ns.
+    bs ∈ length_n_codes 1 ∧
     ns ∈ length_n_codes 3 ⇒
     (code_decodes_correctly 1 bs ns (n_repetition_code 3) ⇔ num_errors ns ≤ 1)
 Proof
   rpt strip_tac
-  >> REVERSE EQ_TAC >> disch_tac
-  >- (gvs[code_decodes_correctly_def]
-      >> gvs[nearest_code_def]
-      >> 
-      >>
-      >> qmatch_goalsub_abbrev_tac ‘ch = bs’
-      >> sg ‘ch ∈ valid_codes 1 (n_repetition_code 3)’
-      >- gvs[Abbr ‘ch’, SELECT_THM]
-      >> sg ‘bs ∈ valid_codes 1 (n_repetition_code 3)’
-      >> sg ‘∀ds. ds ∈ valid_codes 1 (n_repetition_code 3) ⇒
-                  hamming_distance (apply_noise ns (n_repetition_code 3 bs)) cs ≤
-                  hamming_distance (apply_noise ns (n_repetition_code 3 bs)) bs      >> gvs[]
-                                                                                           
-                                                                                           QED*)
-      
+  >> gvs[code_decodes_correctly_def]
+  >> gvs[decode_nearest_neighbour_n_repetition_code_3]
+QED
+             
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
     q2_sym_prob_correctly_decoded (p : extreal) = ((1 - p) pow 2) * (2 * p + 1)
 Proof
   gen_tac
   >> simp[q2_sym_prob_correctly_decoded_def, q2_sym_prob_space_def]
-  >> 
-  
+  >> simp[measure_def, length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
+  >> simp[prod_measure_space_def]
+  >> simp[prod_measure_def]
+        
   >> simp[]
 QED
 
