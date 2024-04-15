@@ -2363,6 +2363,17 @@ Proof
   >> Cases_on ‘h’ >> gvs[]
 QED
 
+Theorem num_errors_length:
+  ∀bs. num_errors bs = LENGTH bs ⇔ bs = n_repetition_bit (LENGTH bs) T
+Proof
+  Induct_on ‘bs’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[ADD1]
+  >> REVERSE $ Cases_on ‘h’ >> simp[num_errors_cons]
+  >> qspec_then ‘bs’ assume_tac num_errors_length
+  >> gvs[]
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_3:
   ∀bs ns.
     bs ∈ length_n_codes 1 ∧
@@ -2421,7 +2432,46 @@ Proof
       >> Cases_on ‘h'’ >> gvs[num_errors_def]
       >> Cases_on ‘h''’ >> gvs[num_errors_def]
       >> EVAL_TAC)
-  >> 
+  >> gvs[decode_nearest_neighbour_def]
+  >> sg ‘is_decoded_nearest_neighbour 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) bs’
+  >- (pop_assum (fn th => assume_tac (GSYM th))
+      >> qmatch_goalsub_abbrev_tac ‘P bs’
+      >> ‘P @cs. P cs’ by (SELECT_ELIM_TAC >> gvs[Abbr ‘P’, exists_decode_nearest_neighbour_candidate])
+      >> gvs[])
+  >> qpat_x_assum ‘_ = _’ kall_tac
+  >> qspec_then ‘ns’ assume_tac num_errors_length
+  >> gvs[length_n_codes_def]
+  >> ‘num_errors ns = 3 ∨ num_errors ns ≤ 2’ by gvs[]
+  >- (gvs[]
+      >> Cases_on ‘ns’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+      >> Cases_on ‘t'’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+      >> Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> gvs[num_errors_def]
+      >> gvs[apply_noise_def]
+      >- Cases_on ‘num_errors ns = 2’ >> gvs[]
+                                            sg ‘num_errors ns ≤ 1 ∨ num_errors ns = 2’ >> gvs[]
+
+                                                                                             sg ‘num_errors ns ≤ 1 ∨ num_errors ns = 2 ∨ num_errors ns = 3’ metis_tac[] Induct_on ‘num_errors ns’ >> rpt strip_tac >> gvs[]
+                                                                                                                                                                                                                         
+      >> gvs[SELECT_THM]
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
+      >- rpt strip_tac
+      >> HO_MATCH_MP_TAC ‘P bs ⇒ _’
+
+
+      >> pop_assum mp_tac
+      >> Q.MATCH_ABBREV_TAC ‘P bs ⇒ _’
+      >> HO_MATCH_MP_TAC ‘(@cs.foo) = bs ⇒ _’
+                         
+      >> qmatch_asmsub_abbrev_tac ‘(@cs.foo) = _’
+      >> sg ‘is_decoded_nearest_neighbour 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) LHS = is_decoded_nearest_neighbour 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) bs’
+      >- (unabbrev_all_tac >> gvs[])
+      >> unabbrev_all_tac
+      >> PURE_REWRITE_TAC [SELECT_THM]
+      >> CONV_TAC SELECT_CONV
+                  
+      >> ‘is_decoded_nearest_neighbour’
 QED
 
 (RATOR_CONV o ONCE_DEPTH_CONV) ‘a = b’
@@ -2452,7 +2502,7 @@ Proof
                   hamming_distance (apply_noise ns (n_repetition_code 3 bs)) bs      >> gvs[]
                                                                                            
                                                                                            QED*)
-          
+      
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
     q2_sym_prob_correctly_decoded (p : extreal) = ((1 - p) pow 2) * (2 * p + 1)
