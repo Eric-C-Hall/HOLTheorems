@@ -2346,6 +2346,23 @@ Proof
   >> Induct_on ‘n’ >> gvs[bnot_def]
 QED
 
+Theorem num_errors_empty[simp]:
+  num_errors [] = 0
+Proof
+  gvs[num_errors_def]
+QED
+
+Theorem num_errors_0[simp]:
+  ∀ns l. ns ∈ length_n_codes l ⇒ (num_errors ns = 0 ⇔ ns = n_repetition_bit l F)
+Proof
+  Induct_on ‘l’ >> Cases_on ‘ns’ >> gvs[length_n_codes_def]
+  >> rpt strip_tac
+  >> first_x_assum $ qspec_then ‘t’ assume_tac
+  >> gvs[]
+  >> EQ_TAC >> rpt strip_tac >> gvs[num_errors_def]
+  >> Cases_on ‘h’ >> gvs[]
+QED
+
 Theorem decode_nearest_neighbour_n_repetition_code_3:
   ∀bs ns.
     bs ∈ length_n_codes 1 ∧
@@ -2386,10 +2403,25 @@ Proof
           >> gvs[apply_noise_length, (Excl "hamming_distance_bnot")]
           >> pop_assum kall_tac
           >> DEP_PURE_ONCE_REWRITE_TAC [apply_noise_bnot_2]
-          >>
-          >> DEP_PURE_ONE_REWRITE_TAC []
-          >> GEN_REWRITE_TAC (RATOR_CONV o ONCE_DEPTH_CONV) empty_rewrites [GSYM hamming_distance_bnot]
-          >> CONV_TAC (RATOR_CONV o ONCE_DEPTH_CONV)
+          >> gvs[])
+      >> gvs[]
+      >> rpt $ qpat_x_assum ‘_ ∈ length_n_codes 1’ kall_tac
+      >> ‘n_repetition_bit 3 T = [T;T;T]’ by EVAL_TAC
+      >> ‘n_repetition_bit 3 F = [F;F;F]’ by EVAL_TAC
+      >> gvs[]
+      >> sg ‘num_errors ns = 0 ∨ num_errors ns = 1’ >> gvs[]
+      >- (drule num_errors_0 >> rpt strip_tac
+          >> gvs[]
+          >> EVAL_TAC)
+      >> Cases_on ‘ns’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[length_n_codes_def]
+      >> Cases_on ‘t'’ >> gvs[length_n_codes_def]
+      >> Cases_on ‘t’ >> gvs[length_n_codes_def]
+      >> Cases_on ‘h’ >> gvs[num_errors_def]
+      >> Cases_on ‘h'’ >> gvs[num_errors_def]
+      >> Cases_on ‘h''’ >> gvs[num_errors_def]
+      >> EVAL_TAC)
+  >> 
 QED
 
 (RATOR_CONV o ONCE_DEPTH_CONV) ‘a = b’
