@@ -2526,6 +2526,27 @@ Proof
   >> gvs[apply_noise_def]
 QED
 
+Theorem decode_nearest_neighbour_is_decoded_nearest_neighbour:
+  ∀n code_fn bs.
+    is_decoded_nearest_neighbour n code_fn bs (decode_nearest_neighbour n code_fn bs)
+Proof
+  rpt strip_tac
+  >> gvs[decode_nearest_neighbour_def]
+  >> SELECT_ELIM_TAC
+  >> gvs[exists_decode_nearest_neighbour_candidate]
+QED
+
+Theorem code_decodes_correctly_is_decoded_nearest_neighbour:
+  ∀n bs ns code_fn.
+    code_decodes_correctly n bs ns code_fn ⇒ is_decoded_nearest_neighbour n code_fn bs (apply_noise ns (code_fn bs))
+Proof
+  rpt strip_tac
+  >> gvs[code_decodes_correctly_def]
+  >> qspecl_then [‘n’, ‘code_fn’, ‘bs’] assume_tac decode_nearest_neighbour_is_decoded_nearest_neighbour
+  >> gvs[]
+  >> gvs[decode_nearest_neighbour_def]
+QED
+
 Theorem code_decodes_correctly_n_repetition_code_3:
   ∀bs ns.
     bs ∈ length_n_codes 1 ∧
@@ -2536,18 +2557,44 @@ Proof
   >> gvs[code_decodes_correctly_def]
   >> gvs[decode_nearest_neighbour_n_repetition_code_3]
 QED
-             
+
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
     q2_sym_prob_correctly_decoded (p : extreal) = ((1 - p) pow 2) * (2 * p + 1)
 Proof
   gen_tac
   >> simp[q2_sym_prob_correctly_decoded_def, q2_sym_prob_space_def]
-  >> simp[measure_def, length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
-  >> simp[prod_measure_space_def]
-  >> simp[prod_measure_def]
-        
-  >> simp[]
+  >> qmatch_goalsub_abbrev_tac ‘measure _ s = _’
+  >> sg ‘s = {([T], [F;F;F]); ([F], [F;F;F]); ([T], [T;F;F]); ([F], [T;F;F]); ([T], [F;T;F]); ([F], [F;T;F]); ([T], [F;F;T]); ([F], [F;F;T]);}’
+  >- (unabbrev_all_tac
+      >> irule $ iffRL EXTENSION
+      >> rpt strip_tac
+      >> REVERSE EQ_TAC
+      >- (rpt strip_tac
+          >> Cases_on ‘x’
+          >> gvs[IN_DEF]
+          >> DEP_PURE_ONCE_REWRITE_TAC [code_decodes_correctly_n_repetition_code_3]
+          >> EVAL_TAC
+          >> gvs[IN_DEF])
+      >> rpt strip_tac
+      >> gvs[IN_DEF]
+      >> Cases_on ‘bs = [T]’ >> gvs[]
+      >- (qspecl_then [‘bs’, ‘ns’] assume_tac code_decodes_correctly_n_repetition_code_3
+          >> gvs[length_n_codes_def, code_decodes_correctly_def, decode_nearest_neighbour_def, is_decoded_nearest_neighbour_def]
+
+
+          >> (gvs[length_n_codes_def, code_decodes_correctly_def, decode_nearest_neighbour_def]
+              >> SELECT_ELIM_TAC
+              >> )
+
+             DEP_PURE_ONCE_REWRITE_TAC [code_decodes_correctly_n_repetition_code_3]
+
+             
+          >> simp[measure_def, length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
+          >> simp[prod_measure_space_def]
+          >> simp[prod_measure_def]
+                 
+          >> simp[]
 QED
 
 (* 50% chance of 1, 50% chance of 0 *)
