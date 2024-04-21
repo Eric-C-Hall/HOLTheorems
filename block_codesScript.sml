@@ -2538,13 +2538,12 @@ QED
 
 Theorem code_decodes_correctly_is_decoded_nearest_neighbour:
   ∀n bs ns code_fn.
-    code_decodes_correctly n bs ns code_fn ⇒ is_decoded_nearest_neighbour n code_fn bs (apply_noise ns (code_fn bs))
+    code_decodes_correctly n bs ns code_fn ⇒ is_decoded_nearest_neighbour n code_fn (apply_noise ns (code_fn bs)) bs
 Proof
   rpt strip_tac
   >> gvs[code_decodes_correctly_def]
-  >> qspecl_then [‘n’, ‘code_fn’, ‘bs’] assume_tac decode_nearest_neighbour_is_decoded_nearest_neighbour
+  >> qspecl_then [‘n’, ‘code_fn’, ‘apply_noise ns (code_fn bs)’] assume_tac decode_nearest_neighbour_is_decoded_nearest_neighbour
   >> gvs[]
-  >> gvs[decode_nearest_neighbour_def]
 QED
 
 Theorem code_decodes_correctly_n_repetition_code_3:
