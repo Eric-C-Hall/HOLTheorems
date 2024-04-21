@@ -31,6 +31,8 @@ open prim_recTheory;
 open dividesTheory;
 open bitTheory;
 
+open jared_yeager_prob_space_product_spaceTheory;
+
 open dep_rewrite;
 open simpLib;
 
@@ -118,10 +120,10 @@ Proof
   >- (gvs[additive_def]
       >> rpt strip_tac
       >> gvs[uniform_distribution_def]
-      >> qsuff_tac `&CARD (s' ∪ t) = &CARD(s') + &CARD(t)`
+      >> qsuff_tac `&CARD (s' ∪ t) : extreal = &CARD(s') + &CARD(t)`
       >- (rpt strip_tac
           >> irule EQ_SYM
-          >> gvs[]
+          >> pop_assum (fn th => PURE_REWRITE_TAC [th])
           >> irule div_add
           >> gvs[extreal_of_num_def])
       >> qspecl_then [`s'`, `t`] assume_tac CARD_DISJOINT_UNION
@@ -1759,7 +1761,7 @@ Definition code_decodes_correctly_def:
 End
 
 Definition q2_sym_prob_correctly_decoded_def:
-  q2_sym_prob_correctly_decoded p = (measure (q2_sym_prob_space p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ (code_decodes_correctly 1 bs ns (n_repetition_code 3))} 
+  q2_sym_prob_correctly_decoded p = (measure (q2_sym_prob_space p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ ns ∈ length_n_codes 3 ∧ (code_decodes_correctly 1 bs ns (n_repetition_code 3))} 
 End
 
 Theorem SELECT_WEAKEN_CONDITION:
@@ -2577,23 +2579,23 @@ Proof
           >> gvs[IN_DEF])
       >> rpt strip_tac
       >> gvs[IN_DEF]
-      >> Cases_on ‘bs = [T]’ >> gvs[]
-      >- (qspecl_then [‘bs’, ‘ns’] assume_tac code_decodes_correctly_n_repetition_code_3
-          >> gvs[length_n_codes_def, code_decodes_correctly_def, decode_nearest_neighbour_def, is_decoded_nearest_neighbour_def]
-
-
-          >> (gvs[length_n_codes_def, code_decodes_correctly_def, decode_nearest_neighbour_def]
-              >> SELECT_ELIM_TAC
-              >> )
-
-             DEP_PURE_ONCE_REWRITE_TAC [code_decodes_correctly_n_repetition_code_3]
-
-             
-          >> simp[measure_def, length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
-          >> simp[prod_measure_space_def]
-          >> simp[prod_measure_def]
-                 
-          >> simp[]
+      >> gvs[length_n_codes_def]
+      >> Cases_on ‘bs’ >> gvs[]
+      >> Cases_on ‘ns’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+      >> Cases_on ‘t'’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+      >> qspecl_then [‘[h]’, ‘[h';h'';h''']’] assume_tac code_decodes_correctly_n_repetition_code_3
+      >> gvs[length_n_codes_def]
+      >> pop_assum kall_tac
+      >> gvs[num_errors_def]
+      >> Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> Cases_on ‘h'''’ >> gvs[])
+  >> gvs[]
+  >> pop_assum kall_tac
+  >> gvs[prod_measure_space_def]
+  >> gvs[prod_measure_def]
+  >> gvs[sym_noise_prob_space_def]
+  >> 
 QED
 
 (* 50% chance of 1, 50% chance of 0 *)
