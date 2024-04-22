@@ -2559,9 +2559,10 @@ Proof
   >> gvs[decode_nearest_neighbour_n_repetition_code_3]
 QED
 
+(*((1 - p) pow 2) * (2 * p + 1)*)
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
-    q2_sym_prob_correctly_decoded (p : extreal) = ((1 - p) pow 2) * (2 * p + 1)
+    0 ≤ p ∧ p ≤ 1 ⇒ q2_sym_prob_correctly_decoded (p : extreal) = (1/2) * (p * p - 2 * p + 1)
 Proof
   gen_tac
   >> simp[q2_sym_prob_correctly_decoded_def, q2_sym_prob_space_def]
@@ -2592,10 +2593,37 @@ Proof
       >> Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> Cases_on ‘h'''’ >> gvs[])
   >> gvs[]
   >> pop_assum kall_tac
-  >> gvs[prod_measure_space_def]
-  >> gvs[prod_measure_def]
-  >> gvs[sym_noise_prob_space_def]
-  >> 
+  >> qmatch_goalsub_abbrev_tac ‘measure _ s = _’
+  >> sg ‘s = {[T]; [F]} × {[F; F; F]; [T; F; F]; [F; T; F]; [F; F; T]}’
+  >- (unabbrev_all_tac
+      >> EVAL_TAC)
+  >> gvs[]
+  >> pop_assum kall_tac
+  >> qmatch_goalsub_abbrev_tac ‘measure (m0 × m1) (s0 × s1) = _’
+  >> qsuff_tac ‘measure m0 s0 = 1 / 2 ∧ measure m1 s1 = p * p - 2 * p + 1’
+  >- (rpt strip_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[prod_measure_cross]
+      >> gvs[]
+      >> unabbrev_all_tac
+      >> conj_tac
+      >- metis_tac[prob_space_def, length_n_codes_uniform_prob_space_is_prob_space]
+      >> conj_tac
+      >- metis_tac[prob_space_def, sym_noise_prob_space_is_prob_space]
+      >> conj_tac
+      >> gvs[measurable_sets_def, length_n_codes_uniform_prob_space_def, POW_DEF, length_n_codes_def, sym_noise_prob_space_def])
+  >> conj_tac
+  >- (unabbrev_all_tac
+      >> EVAL_TAC
+            
+         
+      >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
+            
+      >> 
+      
+      >> gvs[prod_measure_space_def]
+      >> gvs[prod_measure_def]
+      >> gvs[sym_noise_prob_space_def]
+      >> 
 QED
 
 (* 50% chance of 1, 50% chance of 0 *)
