@@ -2562,9 +2562,10 @@ QED
 (*((1 - p) pow 2) * (2 * p + 1)*)
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
-    0 ≤ p ∧ p ≤ 1 ⇒ q2_sym_prob_correctly_decoded (p : extreal) = (1/2) * (p * p - 2 * p + 1)
+    0 ≤ p ∧ p ≤ 1 ⇒ q2_sym_prob_correctly_decoded (p : extreal) = p * p - 2 * p + 1
 Proof
   gen_tac
+  >> disch_tac
   >> simp[q2_sym_prob_correctly_decoded_def, q2_sym_prob_space_def]
   >> qmatch_goalsub_abbrev_tac ‘measure _ s = _’
   >> sg ‘s = {([T], [F;F;F]); ([F], [F;F;F]); ([T], [T;F;F]); ([F], [T;F;F]); ([T], [F;T;F]); ([F], [F;T;F]); ([T], [F;F;T]); ([F], [F;F;T]);}’
@@ -2600,7 +2601,7 @@ Proof
   >> gvs[]
   >> pop_assum kall_tac
   >> qmatch_goalsub_abbrev_tac ‘measure (m0 × m1) (s0 × s1) = _’
-  >> qsuff_tac ‘measure m0 s0 = 1 / 2 ∧ measure m1 s1 = p * p - 2 * p + 1’
+  >> qsuff_tac ‘measure m0 s0 = 1 ∧ measure m1 s1 = p * p - 2 * p + 1’
   >- (rpt strip_tac
       >> DEP_PURE_ONCE_REWRITE_TAC[prod_measure_cross]
       >> gvs[]
@@ -2614,16 +2615,32 @@ Proof
   >> conj_tac
   >- (unabbrev_all_tac
       >> EVAL_TAC
-            
-         
-      >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
-            
-      >> 
+      >> sg ‘{c | LENGTH c = 1} = {[T]; [F;]}’
+      >- (irule $ iffRL EXTENSION
+          >> rpt strip_tac
+          >> Cases_on ‘x’ >> gvs[]
+          >> Cases_on ‘h’ >> gvs[])
+      >> gvs[]
+      >> qspec_then ‘Normal 2’ assume_tac div_refl
+      >> gvs[])
+  >> unabbrev_all_tac
+  >> gvs[sym_noise_prob_space_def, sym_noise_dist_def, sym_noise_mass_func_def]
+  >> qmatch_goalsub_abbrev_tac ‘∑ f (x1 INSERT x2 INSERT x3 INSERT x4 INSERT s)’
+  >> sg ‘∀x. f x ≠ +∞’
+  >- (gen_tac
+      >> unabbrev_all_tac
+      >> gvs[]
+          >> 
+      >>
+
       
-      >> gvs[prod_measure_space_def]
-      >> gvs[prod_measure_def]
-      >> gvs[sym_noise_prob_space_def]
-      >> 
+      BETA_TAC
+      
+      >> DEP_PURE_ONCE_REWRITE_TAC [EXTREAL_SUM_IMAGE_INSERT]
+      >> gvs[]
+      >> sg ‘s = [F;F;F] INSERT [T; F; F] INSERT [F; T; F] INSERT [F; F; T] INSERT ∅’
+
+            EVAL_TAC
 QED
 
 (* 50% chance of 1, 50% chance of 0 *)
