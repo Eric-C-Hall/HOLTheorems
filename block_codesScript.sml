@@ -2559,10 +2559,35 @@ Proof
   >> gvs[decode_nearest_neighbour_n_repetition_code_3]
 QED
 
+fun SUBGOAL_LIST_THEN tms thm_tac final_tac
+= case tms of
+    [] => final_tac
+  | t::ts => SUBGOAL_THEN t (fn th => (thm_tac th >> SUBGOAL_LIST_THEN ts thm_tac final_tac))
+
+fun UNDISCH_ALL_RETURN_TERMS_HELPER (tms : term list) (th : thm) =
+let
+val (cur_tm, cur_th) = UNDISCH_TM th;
+val (rec_tms : term list, rec_th : thm) = UNDISCH_ALL_RETURN_TERMS_HELPER (cur_tm::tms) cur_th;
+in
+  (rec_tms, rec_th)
+  end handle HOL_ERR _ => (tms, th);
+
+fun UNDISCH_ALL_RETURN_TERMS th = UNDISCH_ALL_RETURN_TERMS_HELPER [] th
+
+fun DEP_ASSUME_TAC th
+= let
+(*val specialised_thm = SPEC_ALL th;*)
+val (undischarged_terms, undischarged_thm) = UNDISCH_ALL_RETURN_TERMS th
+(*val undischarged_thm = UNDISCH_ALL $ SPEC_ALL th;*)
+(*val uthm_hyps = hyp undischarged_thm;*)
+  in
+    SUBGOAL_LIST_THEN undischarged_terms assume_tac (assume_tac undischarged_thm)
+                      end;
+         
 (*((1 - p) pow 2) * (2 * p + 1)*)
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
-    0 ≤ p ∧ p ≤ 1 ⇒ q2_sym_prob_correctly_decoded (p : extreal) = p * p - 2 * p + 1
+    0 ≤ p ∧ p ≤ 1 ⇒ q2_sym_prob_correctly_decoded (p : extreal) = 2 * p pow 3 - 3 * p pow 2 + 1
 Proof
   gen_tac
   >> disch_tac
@@ -2601,7 +2626,8 @@ Proof
   >> gvs[]
   >> pop_assum kall_tac
   >> qmatch_goalsub_abbrev_tac ‘measure (m0 × m1) (s0 × s1) = _’
-  >> qsuff_tac ‘measure m0 s0 = 1 ∧ measure m1 s1 = p * p - 2 * p + 1’
+  >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+  >> qsuff_tac ‘measure m0 s0 = 1 ∧ measure m1 s1 = RHS’
   >- (rpt strip_tac
       >> DEP_PURE_ONCE_REWRITE_TAC[prod_measure_cross]
       >> gvs[]
@@ -2630,17 +2656,28 @@ Proof
   >- (gen_tac
       >> unabbrev_all_tac
       >> gvs[]
-          >> 
-      >>
-
-      
-      BETA_TAC
-      
-      >> DEP_PURE_ONCE_REWRITE_TAC [EXTREAL_SUM_IMAGE_INSERT]
-      >> gvs[]
-      >> sg ‘s = [F;F;F] INSERT [T; F; F] INSERT [F; T; F] INSERT [F; F; T] INSERT ∅’
-
-            EVAL_TAC
+      >> irule (cj 2 mul_not_infty2)
+      >> sg ‘p ≠ −∞ ∧ p ≠ +∞’
+      >- (gvs[pos_not_neginf]
+          >> irule le_not_posinf
+          >> qexists ‘1’
+          >> gvs[])
+      >> NTAC 2 (last_x_assum kall_tac)
+      >> ‘1 - p ≠ −∞ ∧ 1 - p ≠ +∞’ by gvs[sub_not_infty]
+      >> gvs[pow_not_infty])
+  >> ‘FINITE s’ by (unabbrev_all_tac >> EVAL_TAC)
+  >> NTAC 4 (DEP_PURE_ONCE_REWRITE_TAC [EXTREAL_SUM_IMAGE_INSERT]
+             >> gvs[]
+             >> DEP_PURE_ONCE_REWRITE_TAC[iffLR DELETE_NON_ELEMENT]
+             >> conj_tac >- (unabbrev_all_tac >> gvs[]))
+  >> unabbrev_all_tac
+  >> gvs[]
+  >> EVAL_TAC
+  >> gvs[pow_0]
+  >> qspecl_then [‘Normal 1’, ‘-p’] assume_tac add_pow2
+  >> gvs[]
+  >> pop_assum DEP_ASSUME_TAC
+  >> 
 QED
 
 (* 50% chance of 1, 50% chance of 0 *)
