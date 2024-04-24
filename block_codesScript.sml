@@ -2583,7 +2583,25 @@ val (undischarged_terms, undischarged_thm) = UNDISCH_ALL_RETURN_TERMS th
   in
     SUBGOAL_LIST_THEN undischarged_terms assume_tac (assume_tac undischarged_thm)
                       end;
-         
+
+Theorem negation_not_posinf[simp]:
+  ∀e. -e ≠ +∞ ⇔ e ≠ −∞
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >> rpt strip_tac >> gvs[extreal_ainv_def]
+  >> Cases_on ‘e’ >> gvs[extreal_ainv_def]
+QED
+
+Theorem negation_not_neginf[simp]:
+  ∀e. -e ≠ −∞ ⇔ e ≠ +∞
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >> rpt strip_tac >> gvs[extreal_ainv_def]
+  >> Cases_on ‘e’ >> gvs[extreal_ainv_def]
+QED
+
 (*((1 - p) pow 2) * (2 * p + 1)*)
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
@@ -2677,6 +2695,10 @@ Proof
   >> qspecl_then [‘Normal 1’, ‘-p’] assume_tac add_pow2
   >> gvs[]
   >> pop_assum DEP_ASSUME_TAC
+  >- (conj_tac
+      >- (qspecl_then [‘p’, ‘1’] assume_tac le_not_posinf
+          >> gvs[])
+      >> gvs[le_not_infty])
   >> 
 QED
 
