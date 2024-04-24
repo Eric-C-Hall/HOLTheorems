@@ -2699,7 +2699,7 @@ Proof
       >- (qspecl_then [‘p’, ‘1’] assume_tac le_not_posinf
           >> gvs[])
       >> gvs[le_not_infty])
-  >> 
+  >> gvs[]
 QED
 
 (* 50% chance of 1, 50% chance of 0 *)
