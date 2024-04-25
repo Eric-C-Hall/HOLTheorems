@@ -12,7 +12,10 @@ val _ = new_theory "thingsToDiscuss";
    a => b, this adds a subgoal to prove a, then adds b to the list
    of assumptions.
    
-   Perhaps there was existing functionality that does the same thing? *)
+   Perhaps there was existing functionality that does the same thing?
+
+   Edit: PROVEHYP_THEN may do something similar? Haven't looked into it yet
+*)
 
 open extrealTheory;
 Theorem infiniteloop:
