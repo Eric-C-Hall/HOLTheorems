@@ -2692,14 +2692,56 @@ Proof
   >> gvs[]
   >> EVAL_TAC
   >> gvs[pow_0]
-  >> qspecl_then [‘Normal 1’, ‘-p’] assume_tac add_pow2
-  >> gvs[]
-  >> pop_assum DEP_ASSUME_TAC
-  >- (conj_tac
-      >- (qspecl_then [‘p’, ‘1’] assume_tac le_not_posinf
-          >> gvs[])
-      >> gvs[le_not_infty])
-  >> gvs[]
+  >> pop_assum kall_tac
+  >> qmatch_goalsub_abbrev_tac ‘LHS = RHS’
+  >> Cases_on ‘p’ >> gvs[]
+  >> Cases_on ‘LHS’ >> gvs[]
+  >- (unabbrev_all_tac >> gvs[]
+
+      >> Cases_on ‘RHS’ >> gvs[]
+      >> PURE_REWRITE_TAC[GSYM (EVAL “SUC 2”)]
+      >> PURE_REWRITE_TAC[GSYM (EVAL “SUC 1”)]
+      >> PURE_REWRITE_TAC[GSYM (EVAL “SUC 0”)]
+      >> PURE_REWRITE_TAC[extreal_pow]
+      >> DEP_PURE_REWRITE_TAC[add_ldistrib_normal, add_rdistrib_normal]
+      >> gvs[]
+      >> sg ‘¬(0 ≤ - p)’
+      >- (CCONTR_TAC
+          >> gvs[]
+          >> PURE_ONCE_REWRITE_TAC[GSYM $ neg_0]
+          >> qspecl_then [‘0’, ‘p’] assume_tac le_neg
+          >> gvs[]
+
+          >> Cases_on ‘p = 0’ >> gvs[]
+
+                                    sg ‘0 ≤ -p’
+          >- (
+           >> qspecl_then [‘p’, ‘0’, ‘1’] assume_tac le_trans
+                          
+           >> 
+           >> gvs[]
+
+
+                 
+           >> gvs[]
+           >> qspecl_then [‘Normal 1’, ‘-p’] assume_tac add_pow2
+           >> gvs[]
+           >> pop_assum DEP_ASSUME_TAC
+           >- (conj_tac
+               >- (qspecl_then [‘p’, ‘1’] assume_tac le_not_posinf
+                   >> gvs[])
+               >> gvs[le_not_infty])
+           >> gvs[]
+           >> sg ‘(Normal 1 + -p) pow 3 = (Normal 1 + -p) * (Normal 1 + -p) pow 2’
+           >- (pop_assum kall_tac
+               >> Cases_on ‘Normal 1 + -p’ >> gvs[extreal_pow_def, extreal_mul_def]
+               >> qspecl_then [‘r’, ‘2’] assume_tac (cj 2 pow)
+               >> gvs[])
+           >> gvs[]
+           >> ‘(Normal 1) pow 2 = Normal 1’ by (EVAL_TAC >> gvs[pow])
+           >> gvs[]
+                 gvs[extreal_pow_def]
+                 EVAL_TAC
 QED
 
 (* 50% chance of 1, 50% chance of 0 *)

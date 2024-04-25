@@ -14,6 +14,32 @@ val _ = new_theory "thingsToDiscuss";
    
    Perhaps there was existing functionality that does the same thing? *)
 
+open extrealTheory;
+Theorem infiniteloop:
+  (∀x : extreal. x pow 3 ≠ 0)∧
+  3 = SUC 2 ⇒ F
+Proof
+  rpt strip_tac
+  >> gvs[]
+QED
+
+(* Excl "SUC_DEF" doesn't work for preventing simplifying SUC *)
+Theorem howtopreventsimplifyingSUC:
+  ∀x. prime x ⇒ SUC (SUC 0) = x
+Proof
+  rpt strip_tac
+  >> gvs[Excl "SUC_DEF"]
+QED
+
+(* What's an easy way to expand all constants (e.g. 7) out into a form
+   containing repeated successors (e.g. SUC $ SUC $ SUC $ SUC $ SUC $
+   SUC $ SUC 0) *)
+
+(* It's nice how in HOL, you can write your own algorithms for proving things.
+   For example, algorithm that generally works to simplify polynomials.
+   Algorithm that generally works to prove a general expression in extreals
+   where the extreals have finite values will have a finite value. *)
+
 val _ = export_theory();
 
 
