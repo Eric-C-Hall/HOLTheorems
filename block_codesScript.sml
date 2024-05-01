@@ -2602,6 +2602,19 @@ Proof
   >> Cases_on ‘e’ >> gvs[extreal_ainv_def]
 QED
 
+(* Given an expression of arithmetic operations where each term is of the form
+   Normal r for some r, prove that this is equivalent to Normal applied to
+   the same expression of arithmetic operations in the reals. *)
+fun Normal_CONV term = 
+
+
+val Normal_CONV_test1 = “∀n : num. ∀r : real. ∃s : real. Normal s + ((- Normal r) pow n) * Normal 2 = Normal 0”
+val Normal_CONV_test2 = “Normal 2 / Normal 3”
+val Normal_CONV_test3 = “Normal 2 + Normal 3”
+
+                        dest_comb Normal_CONV_test3
+                        snd (dest_comb Normal_CONV_test1)
+                        
 (*((1 - p) pow 2) * (2 * p + 1)*)
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
