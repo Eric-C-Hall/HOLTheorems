@@ -2131,8 +2131,8 @@ Theorem is_decoded_nearest_neighbour_cons:
      LENGTH bs1 = LENGTH (code_fn [c])
     ) ⇒
     (is_decoded_nearest_neighbour (SUC n) code_fn (bs1 ⧺ bs2) (c::cs) ⇔
-     is_decoded_nearest_neighbour n code_fn bs2 cs ∧
-     is_decoded_nearest_neighbour 1 code_fn bs1 [c])
+       is_decoded_nearest_neighbour n code_fn bs2 cs ∧
+       is_decoded_nearest_neighbour 1 code_fn bs1 [c])
 Proof
   rpt strip_tac >> last_x_assum assume_tac >> donotexpand_tac
   >> EQ_TAC
@@ -2268,7 +2268,7 @@ Theorem bitwise_cons[simp]:
 Proof
   gvs[bitwise_def]
 QED
-        
+
 Theorem bxor_cons[simp]:
   ∀b bs c cs.
     LENGTH bs = LENGTH cs ⇒
@@ -2381,7 +2381,7 @@ Theorem bxor_empty[simp]:
 Proof
   EVAL_TAC
 QED
-  
+
 Theorem apply_noise_n_repetition_bit_T:
   ∀bs.
     apply_noise (n_repetition_bit (LENGTH bs) T) bs = bnot bs
@@ -2578,8 +2578,8 @@ fun DEP_ASSUME_TAC th
 = let
 (*val specialised_thm = SPEC_ALL th;*)
 val (undischarged_terms, undischarged_thm) = UNDISCH_ALL_RETURN_TERMS th
-(*val undischarged_thm = UNDISCH_ALL $ SPEC_ALL th;*)
-(*val uthm_hyps = hyp undischarged_thm;*)
+                                                                      (*val undischarged_thm = UNDISCH_ALL $ SPEC_ALL th;*)
+                                                                      (*val uthm_hyps = hyp undischarged_thm;*)
   in
     SUBGOAL_LIST_THEN undischarged_terms assume_tac (assume_tac undischarged_thm)
                       end;
@@ -2602,19 +2602,107 @@ Proof
   >> Cases_on ‘e’ >> gvs[extreal_ainv_def]
 QED
 
+fun dtc' (t : term) =
+let val {Thy, Name, ...} = dest_thy_const t in
+  SOME (Thy, Name)
+       end handle HOL_ERR _ => NONE
+
+(*
+fun create_real_expression combinator term_list
+                                = case term_list of
+                                    t::ts =>
+                                  | [] => 
+                                      mk_comb combinator
+
+val input_term =  “Normal 3 = Normal 4”
+val input_term = “Normal 3 - Normal 4”
+val input_term = “(Normal 1 * Normal 2) + (Normal 3 / Normal 4) + (- Normal 5) - Normal 6 = Normal 7”
+val input_term = “(Normal 1 * Normal 2) + (Normal 3 / Normal 4) + (- Normal 5) - Normal 6”
+
+        
+                 mk_comb (mk_comb (“$+ : real -> real -> real”, “3 : real”), “4 : real”)
+
+                 dest_comb “- 3 : real”
+                 mk_comb (“numeric_negate : real -> real”, “3 : real”)
+
+val input_term = “∀r : real. ”
+*)
+
+fun extreal_to_real input_term =
+let
+val (combinator, term_list) = strip_comb input_term
+val SOME (combinator_theory, combinator_name) = dtc' combinator
+val translated_term = case combinator_name of
+                        "extreal_add" => mk_comb (mk_comb (“$+ : real -> real -> real”, extreal_to_real (el 1 term_list)), extreal_to_real (el 2 term_list))
+                      | "extreal_div" => mk_comb (mk_comb (“$/ : real -> real -> real”, extreal_to_real (el 1 term_list)), extreal_to_real (el 2 term_list))
+                      | "extreal_mul" => mk_comb (mk_comb (“$* : real -> real -> real”, extreal_to_real (el 1 term_list)), extreal_to_real (el 2 term_list))
+                      | "extreal_ainv" => mk_comb (“numeric_negate : real -> real”, extreal_to_real (el 1 term_list))
+                      | "extreal_sub" => mk_comb (mk_comb (“$- : real -> real -> real”, extreal_to_real (el 1 term_list)), extreal_to_real (el 2 term_list))
+                      | "=" => mk_comb (mk_comb (“$= : real -> real -> bool”, extreal_to_real (el 1 term_list)), extreal_to_real (el 2 term_list))
+                      (*| "!" => mk_comb (“!”, extreal_to_real (hd term_list))*)
+                      (*| "?" => mk_comb (“?”, extreal_to_real (hd term_list))*)
+                      | "Normal" => hd term_list
+                                                                     | _ => input_term
+in
+  translated_term
+  end
+
+fun prove_extreal_to_real input_term =
+let
+val
+end
+  
+
+fun extreal_to_real_list input_terms = case input_terms of
+                                         t::ts => (extreal_to_real t)::(extreal_to_real_list ts)
+                                       | [] => []
+                                               
 (* Given an expression of arithmetic operations where each term is of the form
    Normal r for some r, prove that this is equivalent to Normal applied to
    the same expression of arithmetic operations in the reals. *)
-fun Normal_CONV term = 
+fun Normal_CONV input_term =
+let
+  
+val (combinator, term_list) = strip_comb input_term
+val SOME (combinator_theory, combinator_name) = dtc' combinator
+val translated_term = case combinator_name of
+                        "extreal_add" => DECIDE mk_comb (“$=”, )  t_term
+                      | "extreal_div" => DECIDE “T”
+                      | "extreal_mul" => DECIDE “T”
+                      | "extreal_ainv" => DECIDE “T”
+                      | "extreal_sub" => DECIDE “T”
+                      | ""
 
+                        strip_comb “Normal 2”
+                        
+in
+  
+  (*case combinator_name of
+     "!" => DECIDE “T”
+  | "?" => DECIDE “T”
+  | _ => DECIDE “T”*)
+                
+  end
 
 val Normal_CONV_test1 = “∀n : num. ∀r : real. ∃s : real. Normal s + ((- Normal r) pow n) * Normal 2 = Normal 0”
 val Normal_CONV_test2 = “Normal 2 / Normal 3”
 val Normal_CONV_test3 = “Normal 2 + Normal 3”
+val Normal_CONV_test4 = “Normal 2 * Normal 3”
+val Normal_CONV_test5 = “-Normal 1”
+val Normal_CONV_test6 = “Normal 2 - Normal 3”
+val Normal_CONV_test7 = “∀n : num. Normal 2 pow n = 4”
+val Normal_CONV_test8 = “∀r : real. Normal r = 4”
+val Normal_CONV_test9 = “∃r : real. Normal r = 4”
 
-                        dest_comb Normal_CONV_test3
-                        snd (dest_comb Normal_CONV_test1)
+val input_term = “Normal 2 = Normal 3”
+
                         
+                 dest_comb Normal_CONV_test3
+          dest_comb Normal_CONV_test2
+          dest_comb Normal_CONV_test1
+           snd (dest_comb Normal_CONV_test1)
+
+           
 (*((1 - p) pow 2) * (2 * p + 1)*)
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
