@@ -43,6 +43,15 @@ QED
    Algorithm that generally works to prove a general expression in extreals
    where the extreals have finite values will have a finite value. *)
 
+open realTheory
+
+Theorem doesnotsimplify:
+  3 - 1 - 1 - 1 = 0 : real
+Proof
+  gvs[]
+  >> EVAL_TAC
+QED
+
 val _ = export_theory();
 
 

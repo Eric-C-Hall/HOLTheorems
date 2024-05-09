@@ -16,6 +16,39 @@ open pred_setTheory;
 open rich_listTheory;
 open combinTheory;
 
+Definition length_def[simp]:
+  length [] = 0 ∧
+  length (h::t) = SUC (length t)
+End
+
+Definition sublist_def[simp]:
+  (sublist x [] ⇔ x = []) ∧
+  (sublist [] y ⇔ T) ∧
+  (sublist (xh::xt) (yh::yt) ⇔ 
+     (xh = yh ∧ sublist xt yt) ∨
+     (sublist (xh::xt) yt)
+  )
+End
+
+Theorem sublist_not_longer:
+  ∀l1 l2. sublist l1 l2 ⇒ length l1 ≤ length l2
+Proof
+  Induct_on ‘l2’ >-
+   rw [] >>
+  Cases_on ‘l1’ >-
+   rw [] >>
+  rw [sublist_def] >-
+   simp [] >>
+  first_x_assum (fn th => assume_tac $ SPEC “(h::t)” th)
+                first_x_assum $ qspec_then ‘h::t’ assume_tac
+                ‘sublist (h::t) l2 ⇒ length (h::t) ≤ length l2’ by
+    qpat_x_assum ‘∀l1. sublist l1 l2 ⇒ length l1 ≤ length l2’
+                 (fn th => REWRITE_TAC [SPEC “(h::t)” th]) >>
+  gvs[]
+     ‘length t ≤ length (h::t)’ by simp [] >>
+  metis_tac [LESS_EQ_TRANS]
+QED
+
 (* Copied from tutorial  *)
 Theorem less_add_1:
   ∀n:num. n < n + 1

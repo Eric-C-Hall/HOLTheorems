@@ -30,6 +30,7 @@ open lebesgueTheory;
 open prim_recTheory;
 open dividesTheory;
 open bitTheory;
+open RealArith;
 
 open jared_yeager_prob_space_product_spaceTheory;
 
@@ -2607,6 +2608,8 @@ let val {Thy, Name, ...} = dest_thy_const t in
   SOME (Thy, Name)
        end handle HOL_ERR _ => NONE
 
+
+                               
 (*
 fun create_real_expression combinator term_list
                                 = case term_list of
@@ -2628,8 +2631,8 @@ val input_term = “(Normal 1 * Normal 2) + (Normal 3 / Normal 4) + (- Normal 5)
 val input_term = “∀r : real. ”
 *)
 
-fun extreal_to_real input_term =
-let
+(*fun extreal_to_real input_term =
+                                let
 val (combinator, term_list) = strip_comb input_term
 val SOME (combinator_theory, combinator_name) = dtc' combinator
 val translated_term = case combinator_name of
@@ -2642,21 +2645,26 @@ val translated_term = case combinator_name of
                       (*| "!" => mk_comb (“!”, extreal_to_real (hd term_list))*)
                       (*| "?" => mk_comb (“?”, extreal_to_real (hd term_list))*)
                       | "Normal" => hd term_list
-                                                                     | _ => input_term
+                      | _ => input_term
+                                in
+                                  translated_term
+                                  end
+
+fun extreal_to_real_equivalence_term input_term =
+let
+val translated_term = extreal_to_real input_term
 in
-  translated_term
-  end
+  mk_comb (mk_comb (“$= : extreal -> extreal -> bool”, input_term), mk_comb (“Normal”, translated_term))
+          end
 
 fun prove_extreal_to_real input_term =
-let
+let 
 val
-end
-  
+in
+  end
+                                *)
 
-fun extreal_to_real_list input_terms = case input_terms of
-                                         t::ts => (extreal_to_real t)::(extreal_to_real_list ts)
-                                       | [] => []
-                                               
+(*
 (* Given an expression of arithmetic operations where each term is of the form
    Normal r for some r, prove that this is equivalent to Normal applied to
    the same expression of arithmetic operations in the reals. *)
@@ -2683,7 +2691,9 @@ in
   | _ => DECIDE “T”*)
                 
   end
+                               *)
 
+(*
 val Normal_CONV_test1 = “∀n : num. ∀r : real. ∃s : real. Normal s + ((- Normal r) pow n) * Normal 2 = Normal 0”
 val Normal_CONV_test2 = “Normal 2 / Normal 3”
 val Normal_CONV_test3 = “Normal 2 + Normal 3”
@@ -2701,8 +2711,29 @@ val input_term = “Normal 2 = Normal 3”
           dest_comb Normal_CONV_test2
           dest_comb Normal_CONV_test1
            snd (dest_comb Normal_CONV_test1)
+*)
 
-           
+(* TODO: make this into a reusable simpset *)
+val extreal_to_real_simpset_thing = [extreal_add_eq, extreal_mul_eq, cj 3 extreal_ainv_def, cj 1 extreal_pow_def]
+
+
+Theorem REAL_ADD_RIGHT:
+  ∀r1 r2 : real.
+    r1 * r2 + r2 = (r1 + 1) * r2
+Proof
+  rpt strip_tac
+  >> gvs[REAL_ADD_RDISTRIB]
+QED
+
+Theorem REAL_ADD_NEG_RIGHT:
+  ∀r1 r2 : real.
+    r1 * r2 + -r2 = (r1 - 1) * r2
+Proof
+  rpt strip_tac
+  >> gvs[REAL_ADD_RDISTRIB, real_sub]
+  >> gvs[GSYM REAL_NEG_MINUS1]
+QED
+
 (*((1 - p) pow 2) * (2 * p + 1)*)
 Theorem q2_sym_prob_correctly_decoded_prob:
   ∀p.
@@ -2796,54 +2827,30 @@ Proof
   >> pop_assum kall_tac
   >> qmatch_goalsub_abbrev_tac ‘LHS = RHS’
   >> Cases_on ‘p’ >> gvs[]
+  >> gvs[extreal_add_eq, extreal_mul_eq, cj 3 extreal_ainv_def, cj 1 extreal_pow_def]
   >> Cases_on ‘LHS’ >> gvs[]
   >- (unabbrev_all_tac >> gvs[]
-
-      >> Cases_on ‘RHS’ >> gvs[]
-      >> PURE_REWRITE_TAC[GSYM (EVAL “SUC 2”)]
-      >> PURE_REWRITE_TAC[GSYM (EVAL “SUC 1”)]
-      >> PURE_REWRITE_TAC[GSYM (EVAL “SUC 0”)]
-      >> PURE_REWRITE_TAC[extreal_pow]
-      >> DEP_PURE_REWRITE_TAC[add_ldistrib_normal, add_rdistrib_normal]
-      >> gvs[]
-      >> sg ‘¬(0 ≤ - p)’
-      >- (CCONTR_TAC
-          >> gvs[]
-          >> PURE_ONCE_REWRITE_TAC[GSYM $ neg_0]
-          >> qspecl_then [‘0’, ‘p’] assume_tac le_neg
-          >> gvs[]
-
-          >> Cases_on ‘p = 0’ >> gvs[]
-
-                                    sg ‘0 ≤ -p’
-          >- (
-           >> qspecl_then [‘p’, ‘0’, ‘1’] assume_tac le_trans
-                          
-           >> 
-           >> gvs[]
-
-
-                 
-           >> gvs[]
-           >> qspecl_then [‘Normal 1’, ‘-p’] assume_tac add_pow2
-           >> gvs[]
-           >> pop_assum DEP_ASSUME_TAC
-           >- (conj_tac
-               >- (qspecl_then [‘p’, ‘1’] assume_tac le_not_posinf
-                   >> gvs[])
-               >> gvs[le_not_infty])
-           >> gvs[]
-           >> sg ‘(Normal 1 + -p) pow 3 = (Normal 1 + -p) * (Normal 1 + -p) pow 2’
-           >- (pop_assum kall_tac
-               >> Cases_on ‘Normal 1 + -p’ >> gvs[extreal_pow_def, extreal_mul_def]
-               >> qspecl_then [‘r’, ‘2’] assume_tac (cj 2 pow)
-               >> gvs[])
-           >> gvs[]
-           >> ‘(Normal 1) pow 2 = Normal 1’ by (EVAL_TAC >> gvs[pow])
-           >> gvs[]
-                 gvs[extreal_pow_def]
-                 EVAL_TAC
+      (*>> PURE_REWRITE_TAC[GSYM (EVAL “SUC 2”)]
+                              >> PURE_REWRITE_TAC[GSYM (EVAL “SUC 1”)]
+                              >> PURE_REWRITE_TAC[GSYM (EVAL “SUC 0”)]
+                              >> PURE_REWRITE_TAC[real_pow]
+                              >> gvs[]
+                              >> gvs[REAL_ADD_LDISTRIB, REAL_ADD_RDISTRIB]
+                              >> gvs[REAL_NEG_MUL2]
+                  >> gvs[REAL_ADD_ASSOC]
+      >> gvs[REAL_MUL_RNEG, GSYM REAL_MUL_LNEG]
+      >> gvs[REAL_MUL_ASSOC]
+      >> gvs[REAL_MUL_RNEG, GSYM REAL_MUL_LNEG]
+      >> gvs[AC REAL_ADD_COMM REAL_ADD_ASSOC]
+      >> gvs[GSYM REAL_NEG_LMUL]
+      >> gvs[REAL_DOUBLE]
+      >> gvs[REAL_ADD_ASSOC]
+      >> gvs[REAL_DOUBLE]
+      >> gvs[REAL_ADD_RIGHT, REAL_ADD_NEG_RIGHT]
+      >> gvs[real_sub]*)
+  >> REAL_ARITH_TAC)
 QED
+
 
 (* 50% chance of 1, 50% chance of 0 *)
 (* code_fn encodes this into 111 or 000 *)
