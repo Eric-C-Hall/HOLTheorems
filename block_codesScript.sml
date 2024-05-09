@@ -1765,6 +1765,14 @@ Definition q2_sym_prob_correctly_decoded_def:
   q2_sym_prob_correctly_decoded p = (measure (q2_sym_prob_space p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ ns ∈ length_n_codes 3 ∧ (code_decodes_correctly 1 bs ns (n_repetition_code 3))} 
 End
 
+(*Definition q2_asym_prob_space_def:
+  q2_asym_prob_space p = ((length_n_codes_uniform_prob_space 1) × ()
+                          End*)
+
+(*Definition q2_asym_prob_correctly_decoded_def:
+  q2_asym_prob_correctly_decoded p = (measure ()) {}
+End*)
+
 Theorem SELECT_WEAKEN_CONDITION:
   ∀P Q. (∃x. P x) ∧ (∀x. P x ⇒ Q x) ⇒ Q (@x. P x)
 Proof
@@ -2850,6 +2858,7 @@ Proof
       >> gvs[real_sub]*)
   >> REAL_ARITH_TAC)
 QED
+
 
 
 (* 50% chance of 1, 50% chance of 0 *)
