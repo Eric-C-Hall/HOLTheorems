@@ -4,6 +4,10 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "thingsToDiscuss";
 
+(* Thesis proposal review: is my topic a good topic? *)
+
+(* Any example thesis proposal reviews *)
+
 (* Theoretically it would be nice to have a functionality for simplifying
    polynomials. See for example proof of q2_sym_prob_correctly_decoded_prob
    at approximately "pop_assum DEP_ASSUME_TAC" *)
@@ -37,6 +41,19 @@ QED
 (* What's an easy way to expand all constants (e.g. 7) out into a form
    containing repeated successors (e.g. SUC $ SUC $ SUC $ SUC $ SUC $
    SUC $ SUC 0) *)
+
+(* Other research activities:
+
+  Worked on converting extreal to reals.
+  - Originally started programming my own complicated method
+  - Found simple method using a bunch of rewrite rules.
+
+  Worked on simplifying real polynomials
+  - Turned out that this can be solved very easily with a call to a single tactic: thanks to ChatGPT for letting me know that this functionality exists!
+
+  Started work on Thesis proposal Review.
+       
+ *)
 
 (* It's nice how in HOL, you can write your own algorithms for proving things.
    For example, algorithm that generally works to simplify polynomials.
