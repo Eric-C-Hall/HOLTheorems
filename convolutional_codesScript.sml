@@ -4,6 +4,9 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "convolutional_codes";
 
+open arithmeticTheory;
+open listTheory;
+
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
 (*                                                                            *)
@@ -55,6 +58,30 @@ val _ = new_theory "convolutional_codes";
 (*                                                                            *)
 (* Thus, it has the type (num, (num, num, bool list, bool list) list)         *)
 (* -------------------------------------------------------------------------- *)
+
+(* state machine type: num # (num # num # bool list # bool list) list *)
+
+Definition convolutional_code_encode_helper_def:
+  convolutional_code_encode_helper [] _ _ = [] ∧
+  convolutional_code_encode_helper (b::bs : bool list) (m : num # (num # num # bool list # bool list) list) (s :num) =
+  if b then
+    
+  else
+    
+End
+
+Definition convolutional_code_encode_def:
+  convolutional_code_encode bs m = convolutional_code_encode_helper bs m 0
+End
+
+
+
+
+(* *)
+
+Definition convolutional_code_state_machine_def:
+  
+
 
 (* Produces a state machine with n states and 2n transitions given by its *)
 Definition viterbi_state_machine_def:
