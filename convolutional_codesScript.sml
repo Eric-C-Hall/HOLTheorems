@@ -100,17 +100,48 @@ Proof
   EVAL_TAC
 QED
 
+(* @@
+
 Definition viterbi_decode_helper_def:
   viterbi_decode_helper bs m (e : (num list) list) (t : num) (s : num) = 
+End*)
+
+Definition vd_calculate_trellis_errors_def:
+  vd_calculate_trellis_errors 
 End
 
+Definition vd_initialise_viterbi_data_def:
+  vd_initialise_viterbi_data = ([], )
+End
+
+Definition vd_calculate_viterbi_data_def:
+  vd_calculate_viterbi_data =
+  vd_loop_calculate_viterbi_data (vd_initialise_viterbi_data)
+End
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* Viterbi data                                                               *)
+(*                                                                            *)
+(* List, where list index corresponds to time step.                           *)
+(* Each element of list                                                       *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+(* Viter
+
+         List of time rows. Each time row has list of stateEach state has prior *)
 Definition viterbi_decode_def:
   viterbi_decode bs m =
   let
-    e = vd_calculate_trellis_errors                      
-
-        viterbi_decode_helper bs m ???
+    d = vd_calculate_viterbi_data
+  in
+    vd_calculate_trellis_path p m
 End
+
+
 
 (* Produces a state machine with n states and 2n transitions given by its *)
 Definition viterbi_state_machine_def:
