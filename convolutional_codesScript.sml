@@ -61,9 +61,9 @@ open listTheory;
 
 (* state machine type: num # (num # bool list # num # bool list) list *)
 
-(*
-   
-   *)
+(* 
+  
+  *)
 Definition convolutional_code_encode_helper_def:
   convolutional_code_encode_helper [] _ _ = [] ∧
   convolutional_code_encode_helper (b::bs : bool list) (m : num # (num # bool list # num # bool list) list) (s : num) =
@@ -82,7 +82,6 @@ Definition convolutional_code_encode_def:
   convolutional_code_encode bs m = convolutional_code_encode_helper bs m 0
 End
 
-(* *)
 Definition example_state_machine_def:
   example_state_machine = (4,
                            [
@@ -107,32 +106,58 @@ Definition viterbi_decode_helper_def:
 End*)
 
 Definition vd_calculate_trellis_errors_def:
-  vd_calculate_trellis_errors 
+  vd_calculate_trellis_errors = 
 End
 
+
+(* Outputs the next row of (state, previous path) pairs, given the previous row of (state) *)
+
+(* Outputs the first row of (state, previous path) pairs *)
+
+
+Definition vd_initialise_viterbi_data_tail_def:
+  vd_initialise_viterbi_data_tail 0 = [] ∧
+  vd_initialise_viterbi_data_
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Input: number of states                                                    *)
+(*                                                                            *)
+(* Output: Viterbi data for the 0th time step (i.e. first row of Viterbi data)*)
+(* -------------------------------------------------------------------------- *)
 Definition vd_initialise_viterbi_data_def:
-  vd_initialise_viterbi_data = ([], )
+           vd_initialise_viterbi_data 0 _ = [] ∧
+           vd_initialise_viterbi_data (SUC n) (b : bool) = [()]::(vd_initialise_viterbi_data n)
 End
 
+
+(* 
 Definition vd_calculate_viterbi_data_def:
   vd_calculate_viterbi_data =
   vd_loop_calculate_viterbi_data (vd_initialise_viterbi_data)
-End
-
+End*)
 
 
 (* -------------------------------------------------------------------------- *)
 (* Viterbi data                                                               *)
 (*                                                                            *)
 (* List, where list index corresponds to time step.                           *)
-(* Each element of list                                                       *)
+(* Each element of list is itself a list where each index corresponds to a    *)
+(*   state.                                                                   *)
+(* Each element of this inner list contains the number of errors on the       *)
+(*   current optimal path, followed by the state number of the previous state *)
+(*   on the optimal path.                                                     *)
 (*                                                                            *)
-(*                                                                            *)
+(* Type: ((num # num) list) list                                               *)
 (* -------------------------------------------------------------------------- *)
 
-(* Viter
 
-         List of time rows. Each time row has list of stateEach state has prior *)
+
+
+(* -------------------------------------------------------------------------- *)
+(* Input: bitstring and state machine                                         *)
+(* Output: Most likely original bitstring                                     *)
+(* -------------------------------------------------------------------------- *)
 Definition viterbi_decode_def:
   viterbi_decode bs m =
   let
