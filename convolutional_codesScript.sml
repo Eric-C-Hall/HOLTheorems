@@ -37,6 +37,10 @@ open listTheory;
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
+(* CONVOLUTIONAL STATE MACHINE ENCODING                                       *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* A state machine consists of:                                               *)
 (* - A set of states                                                          *)
 (* - transitions between states. Each transition consists of:                 *)
@@ -57,13 +61,16 @@ open listTheory;
 (*   - the output string when 1 is provided as input to the current state     *)
 (*                                                                            *)
 (* Thus, it has the type (num, (num, num, bool list, bool list) list)         *)
+(* In Hol's notation: num # (num # bool list # num # bool list) list          *)
 (* -------------------------------------------------------------------------- *)
 
-(* state machine type: num # (num # bool list # num # bool list) list *)
-
-(* 
-  
-  *)
+(* -------------------------------------------------------------------------- *)
+(* Helper function that does the actual work to encode a binary string using  *)
+(* convolutional coding, according to a chosen state machine.                 *)
+(*                                                                            *)
+(* This function additionally has a parameter to keep track of the current    *)
+(* state that the state machine is in.                                        *)
+(* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_helper_def:
   convolutional_code_encode_helper [] _ _ = [] ∧
   convolutional_code_encode_helper (b::bs : bool list) (m : num # (num # bool list # num # bool list) list) (s : num) =
@@ -76,12 +83,24 @@ Definition convolutional_code_encode_helper_def:
       o0 ⧺ convolutional_code_encode_helper bs m t0
 End
 
-(* Encodes a binary string using convolutional coding, according to a chosen
-   state machine *)
+(* -------------------------------------------------------------------------- *)
+(* Encodes a binary string using convolutional coding, according to a chosen  *)
+(* state machine                                                              *)
+(* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_def:
   convolutional_code_encode bs m = convolutional_code_encode_helper bs m 0
 End
 
+Datatype:
+  viterbi_state_machine = <|
+    foo : num;
+    bar : num
+  |>
+End
+
+(* -------------------------------------------------------------------------- *)
+(* A simple example of a state machine for convolutional coding               *)
+(* -------------------------------------------------------------------------- *)
 Definition example_state_machine_def:
   example_state_machine = (4,
                            [
@@ -93,32 +112,74 @@ Definition example_state_machine_def:
                           ) : num # (num # bool list # num # bool list) list
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Simple test to make sure the convolutional code is providing the output    *)
+(* I would expect if I manually did the computation myself                    *)
+(* -------------------------------------------------------------------------- *)
 Theorem convolutional_encode_test1:
   convolutional_code_encode [F; T; T; T; F] example_state_machine = [F; F; T; T; F; F; T; F; F; T]  
 Proof
   EVAL_TAC
 QED
 
-(* @@
+(* -------------------------------------------------------------------------- *)
+(* VITERBI DECODING                                                           *)
+(* -------------------------------------------------------------------------- *)
 
-Definition viterbi_decode_helper_def:
-  viterbi_decode_helper bs m (e : (num list) list) (t : num) (s : num) = 
-End*)
+(* -------------------------------------------------------------------------- *)
+(* Viterbi data                                                               *)
+(*                                                                            *)
+(* List, where list index corresponds to time step.                           *)
+(* Each element of list is itself a list where each index corresponds to a    *)
+(*   state.                                                                   *)
+(* Each element of this inner list contains the number of errors on the       *)
+(*   current optimal path, followed by the state number of the previous state *)
+(*   on the optimal path.                                                     *)
+(*                                                                            *)
+(* Type: ((num # num) list) list                                              *)
+(* -------------------------------------------------------------------------- *)
 
-Definition vd_calculate_trellis_errors_def:
-  vd_calculate_trellis_errors = 
+(* -------------------------------------------------------------------------- *)
+(* The number used to represent the distance it would take to reach an        *)
+(* unreachable state. Effectively infnity, but infinity isn't a natural       *)
+(* number.                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_unreachable_distance_def:
+  vd_unreachable_distance = 999999999999999999
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Viterbi data for a state which is unreachable                              *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_unreachable_def:
+  vd_unreachable = (vd_unreachable_distance, 0)
+End
 
-(* Outputs the next row of (state, previous path) pairs, given the previous row of (state) *)
+(* -------------------------------------------------------------------------- *)
+(* Viterbi data for n states which are all unreachable                        *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_unreachable_list_def:
+  vd_unreachable_list 0 = [] ∧
+  vd_unreachable_list (SUC n) = vd_unreachable::(vd_unreachable_list n)
+End
 
-(* Outputs the first row of (state, previous path) pairs *)
-
+(* -------------------------------------------------------------------------- *)
+(* Outputs the first row of (num errors, previous state) pairs                *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_initial_data_def:
+  vd_initial_data m 
+End
 
 Definition vd_initialise_viterbi_data_tail_def:
   vd_initialise_viterbi_data_tail 0 = [] ∧
   vd_initialise_viterbi_data_
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Outputs the next row of (num errors, previous state) pairs, given the      *)
+(* previous row of (num errors, previous state) pairs                         *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_get
 
 (* -------------------------------------------------------------------------- *)
 (* Input: number of states                                                    *)
@@ -138,18 +199,6 @@ Definition vd_calculate_viterbi_data_def:
 End*)
 
 
-(* -------------------------------------------------------------------------- *)
-(* Viterbi data                                                               *)
-(*                                                                            *)
-(* List, where list index corresponds to time step.                           *)
-(* Each element of list is itself a list where each index corresponds to a    *)
-(*   state.                                                                   *)
-(* Each element of this inner list contains the number of errors on the       *)
-(*   current optimal path, followed by the state number of the previous state *)
-(*   on the optimal path.                                                     *)
-(*                                                                            *)
-(* Type: ((num # num) list) list                                               *)
-(* -------------------------------------------------------------------------- *)
 
 
 
