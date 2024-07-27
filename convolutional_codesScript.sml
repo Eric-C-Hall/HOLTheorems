@@ -91,12 +91,12 @@ Definition convolutional_code_encode_def:
   convolutional_code_encode bs m = convolutional_code_encode_helper bs m 0
 End
 
-Datatype:
+(*Datatype:
   viterbi_state_machine = <|
     foo : num;
     bar : num
   |>
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* A simple example of a state machine for convolutional coding               *)
@@ -167,19 +167,55 @@ End
 (* Outputs the first row of (num errors, previous state) pairs                *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_initial_data_def:
-  vd_initial_data m 
+  vd_initial_data 0 = [] ∧
+  vd_initial_data (SUC n) = (0,0)::(vd_unreachable_list n)
 End
 
-Definition vd_initialise_viterbi_data_tail_def:
-  vd_initialise_viterbi_data_tail 0 = [] ∧
-  vd_initialise_viterbi_data_
+(* -------------------------------------------------------------------------- *)
+(* Input:                                                                     *)
+(* - convolutional code state machine                                         *)
+(* - Entire row of Viterbi data in the previous timestep                      *)
+(* - state number to calculate the Viterbi data for                           *)
+(*                                                                            *)
+(* Output:                                                                    *)
+(* - Viterbi data for the given state number in the current timestep          *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_get_next_row_state_data_def:
+  let
+    e1 =
+  in
+    let
+      e2 =
+    in
+      vd_get_next_row_state_data m d s = if e1 < e2 then 
+                                           End
+
+(* -------------------------------------------------------------------------- *)
+(* Helper function for function which outputs the next row of                 *)
+(* (num errors, previous state) pairs, given the previous row of              *)
+(* (num errors, previous state) pairs. This function additionally has a       *)
+(* parameter which keeps track of the number of states for which the data     *)
+(* still needs to be generated                                                *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_get_next_data_helper_def:
+  vd_get_next_data_helper m d 0 = [] ∧
+  vd_get_next_data m d (SUC n) = (vd_get_next_row_staet_data m d n)::(vd_get_next_data_helper m d n)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns the number of states in a state machine                            *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_state_machine_num_states_def:
+  vd_state_machine_num_states m = FST m
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Outputs the next row of (num errors, previous state) pairs, given the      *)
 (* previous row of (num errors, previous state) pairs                         *)
 (* -------------------------------------------------------------------------- *)
-Definition vd_get
+Definition vd_get_next_data_def:
+  vd_get_next_data m d = vd_get_next_data_helper m d (vd_state_machine_num_states m)
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Input: number of states                                                    *)
