@@ -171,24 +171,46 @@ Definition vd_initial_data_def:
   vd_initial_data (SUC n) = (0,0)::(vd_unreachable_list n)
 End
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* Outputs the states that have a transition to a given state s in the state  *)
+(* machine m                                                                  *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_get_prior_states_def:
+  vd_get_prior_states m s =
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Input:                                                                     *)
 (* - convolutional code state machine                                         *)
-(* - Entire row of Viterbi data in the previous timestep                      *)
+(* - Entire row of Viterbi data in the current  timestep                      *)
 (* - state number to calculate the Viterbi data for                           *)
 (*                                                                            *)
 (* Output:                                                                    *)
-(* - Viterbi data for the given state number in the current timestep          *)
+(* - Viterbi data for the given state number in the next timestep             *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_get_next_row_state_data_def:
+  vd_get_next_row_state_data m d s
   let
-    e1 =
+    (* the two previous states leading to s *)
+    (t1, t2) = vd_get_prior_states m s
   in
     let
-      e2 =
+      (* number of errors when arriving at s via t1 *)
+      e1 =
     in
-      vd_get_next_row_state_data m d s = if e1 < e2 then 
-                                           End
+      let
+        (* number of errors when arriving at s via t2 *)
+        e2 =
+      in
+        vd_get_next_row_state_data m d s = if
+        e1 < e2
+        then
+          (e1, )
+        else
+          
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Helper function for function which outputs the next row of                 *)
@@ -199,7 +221,7 @@ Definition vd_get_next_row_state_data_def:
 (* -------------------------------------------------------------------------- *)
 Definition vd_get_next_data_helper_def:
   vd_get_next_data_helper m d 0 = [] ∧
-  vd_get_next_data m d (SUC n) = (vd_get_next_row_staet_data m d n)::(vd_get_next_data_helper m d n)
+  vd_get_next_data m d (SUC n) = (vd_get_next_row_state_data m d n)::(vd_get_next_data_helper m d n)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -223,8 +245,8 @@ End
 (* Output: Viterbi data for the 0th time step (i.e. first row of Viterbi data)*)
 (* -------------------------------------------------------------------------- *)
 Definition vd_initialise_viterbi_data_def:
-           vd_initialise_viterbi_data 0 _ = [] ∧
-           vd_initialise_viterbi_data (SUC n) (b : bool) = [()]::(vd_initialise_viterbi_data n)
+  vd_initialise_viterbi_data 0 _ = [] ∧
+  vd_initialise_viterbi_data (SUC n) (b : bool) = [()]::(vd_initialise_viterbi_data n)
 End
 
 
@@ -276,5 +298,5 @@ Definition viterbi_def:
 Theorem viterbi_cor
 
 
-    
+
 val _ = export_theory();
