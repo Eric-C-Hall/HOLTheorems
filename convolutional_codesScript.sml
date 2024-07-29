@@ -176,6 +176,9 @@ End
 (*                                                                            *)
 (* Loops over each state s, incrementing s as we go, processing and removing  *)
 (* the corresponding (first) element of the list of transitions at each step. *)
+(*                                                                            *)
+(* Outputs all transitions as a list of elements in the form:                 *)
+(* (initial state, final state, input, output)                                *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_get_transition_quadruples_helper:
   vd_get_transition_quadruples_helper [] _ = [] ∧
@@ -183,8 +186,10 @@ Definition vd_get_transition_quadruples_helper:
   = let
       (t0, o0, t1, o1) = t
     in
-      ()
+      [(s, t0, 0, o0); (s, t1, 1, o1)] ⧺ (vd_get_transition_quadruples_helper ts (s + 1))
 End
+
+
 
 (* -------------------------------------------------------------------------- *)
 (* Returns all transitions in the machine as a list of elements in the form:  *)
@@ -195,11 +200,35 @@ Definition vd_get_transition_quadruples_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Helper function to output states which have a transition to a given state  *)
+(* s in the provided list of transitions                                      *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_get_prior_states_helper_def:
+  vd_get_prior_states_helper [] _ = [] ∧
+  vd_get_prior_states_helper (t::ts) s =
+  let
+    initial_state = FST t
+  in
+    let
+      final_state = FST (SND t)
+    in
+      let
+        recursive_list = vd_get_prior_states_helper ts s
+      in
+        if
+        (final_state = s)
+        then
+          initial_state::recursive_list
+        else
+          recursive_list
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Outputs the states that have a transition to a given state s in the state  *)
 (* machine m                                                                  *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_get_prior_states_def:
-  vd_get_prior_states m s = 
+  vd_get_prior_states m s = vd_get_prior_states_helper (vd_get_transition_quadruples m) s
 End
 
 (* -------------------------------------------------------------------------- *)
