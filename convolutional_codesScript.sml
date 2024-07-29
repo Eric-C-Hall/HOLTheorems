@@ -171,14 +171,35 @@ Definition vd_initial_data_def:
   vd_initial_data (SUC n) = (0,0)::(vd_unreachable_list n)
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Helper function for vd_get_transition_quadruples                           *)
+(*                                                                            *)
+(* Loops over each state s, incrementing s as we go, processing and removing  *)
+(* the corresponding (first) element of the list of transitions at each step. *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_get_transition_quadruples_helper:
+  vd_get_transition_quadruples_helper [] _ = [] ∧
+  vd_get_transition_quadruples_helper (t::ts) (s : num)
+  = let
+      (t0, o0, t1, o1) = t
+    in
+      ()
+End
 
+(* -------------------------------------------------------------------------- *)
+(* Returns all transitions in the machine as a list of elements in the form:  *)
+(* (initial state, final state, input, output)                                *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_get_transition_quadruples_def:
+  vd_get_transition_quadruples m = vd_get_transition_quadruples_helper (SND m)
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Outputs the states that have a transition to a given state s in the state  *)
 (* machine m                                                                  *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_get_prior_states_def:
-  vd_get_prior_states m s =
+  vd_get_prior_states m s = 
 End
 
 (* -------------------------------------------------------------------------- *)
