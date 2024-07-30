@@ -64,6 +64,8 @@ open listTheory;
 (* In Hol's notation: num # (num # bool list # num # bool list) list          *)
 (* -------------------------------------------------------------------------- *)
 
+Type viterbi_state_machine[pp] = “:num # (num # bool list # num # bool list) list”
+
 (* -------------------------------------------------------------------------- *)
 (* Helper function that does the actual work to encode a binary string using  *)
 (* convolutional coding, according to a chosen state machine.                 *)
@@ -73,7 +75,7 @@ open listTheory;
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_helper_def:
   convolutional_code_encode_helper [] _ _ = [] ∧
-  convolutional_code_encode_helper (b::bs : bool list) (m : num # (num # bool list # num # bool list) list) (s : num) =
+  convolutional_code_encode_helper (b::bs : bool list) (m : viterbi_state_machine(*: num # (num # bool list # num # bool list) list*)) (s : num) =
   let
     (t0, o0, t1, o1) = EL s (SND m)
   in
@@ -88,7 +90,7 @@ End
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_def:
-  convolutional_code_encode bs m = convolutional_code_encode_helper bs m 0
+  convolutional_code_encode bs (m : viterbi_state_machine) = convolutional_code_encode_helper bs m 0
 End
 
 (*Datatype:
@@ -109,7 +111,7 @@ Definition example_state_machine_def:
                              (0, [T; F], 1, [F; T]);
                              (2, [F; T], 3, [T; F]);
                            ]
-                          ) : num # (num # bool list # num # bool list) list
+                          ) : viterbi_state_machine
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -145,14 +147,14 @@ QED
 (* number.                                                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_unreachable_distance_def:
-  vd_unreachable_distance = 999999999999999999
+  vd_unreachable_distance = 999999999999999999 : num
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Viterbi data for a state which is unreachable                              *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_unreachable_def:
-  vd_unreachable = (vd_unreachable_distance, 0)
+  vd_unreachable = (vd_unreachable_distance, 0) : (num # num)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -160,7 +162,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition vd_unreachable_list_def:
   vd_unreachable_list 0 = [] ∧
-  vd_unreachable_list (SUC n) = vd_unreachable::(vd_unreachable_list n)
+  vd_unreachable_list (SUC n) = vd_unreachable::(vd_unreachable_list n) : (num # num) list
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -168,7 +170,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition vd_initial_data_def:
   vd_initial_data 0 = [] ∧
-  vd_initial_data (SUC n) = (0,0)::(vd_unreachable_list n)
+  vd_initial_data (SUC n) = (0n,0n)::(vd_unreachable_list n) : (num # num) list
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -189,14 +191,12 @@ Definition vd_get_transition_quadruples_helper:
       [(s, t0, 0, o0); (s, t1, 1, o1)] ⧺ (vd_get_transition_quadruples_helper ts (s + 1))
 End
 
-
-
 (* -------------------------------------------------------------------------- *)
 (* Returns all transitions in the machine as a list of elements in the form:  *)
 (* (initial state, final state, input, output)                                *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_get_transition_quadruples_def:
-  vd_get_transition_quadruples m = vd_get_transition_quadruples_helper (SND m)
+  vd_get_transition_quadruples (m : viterbi_state_machine) = vd_get_transition_quadruples_helper (SND m)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -228,7 +228,7 @@ End
 (* machine m                                                                  *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_get_prior_states_def:
-  vd_get_prior_states m s = vd_get_prior_states_helper (vd_get_transition_quadruples m) s
+  vd_get_prior_states (m : viterbi_state_machine) s = vd_get_prior_states_helper (vd_get_transition_quadruples m) s
 End
 
 (* -------------------------------------------------------------------------- *)
