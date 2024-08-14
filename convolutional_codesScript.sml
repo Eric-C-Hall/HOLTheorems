@@ -40,31 +40,35 @@ open listTheory;
 (* CONVOLUTIONAL STATE MACHINE ENCODING                                       *)
 (* -------------------------------------------------------------------------- *)
 
+Datatype:
+  transition_origin = <|
+    origin : α;
+    input : bool;
+  |>
+End
+
+Datatype:
+  transition_destination = <|
+    destination : α;
+    output : bool list;
+  |> 
+End
+
 (* -------------------------------------------------------------------------- *)
 (* A state machine consists of:                                               *)
 (* - A set of states                                                          *)
-(* - transitions between states. Each transition consists of:                 *)
-(*   - an input that would cause that transition to be taken                  *)
-(*   - a string that is output when that transition is taken                  *)
+(* - A function which takes a state and an input, and returns a new state and *)
+(*   an output                                                                *)
 (*                                                                            *)
 (* We additionally have the assumption of binary input and output.            *)
 (* -------------------------------------------------------------------------- *)
-(* In practice, the state machine is represented in terms of                  *)
-(* - a number n representing the number of states.                            *)
-(* - a list where each element corresponds to one of the n states, and is a   *)
-(*   tuple with the following members:                                        *)
-(*   - the transitioned-to state when 0 is provided as input to the current   *)
-(*     state                                                                  *)
-(*   - the output string when 0 is provided as input to the current state     *)
-(*   - the transitioned-to state when 1 is provided as input to the current   *)
-(*     state                                                                  *)
-(*   - the output string when 1 is provided as input to the current state     *)
-(*                                                                            *)
-(* Thus, it has the type (num, (num, num, bool list, bool list) list)         *)
-(* In Hol's notation: num # (num # bool list # num # bool list) list          *)
-(* -------------------------------------------------------------------------- *)
-
-Type viterbi_state_machine[pp] = “:num # (num # bool list # num # bool list) list”
+Datatype:
+  state_machine = <|
+    states : α set ;
+    transition_fn : α transition_origin -> α transition_destination;
+    init : α;
+  |>
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Helper function that does the actual work to encode a binary string using  *)
@@ -74,15 +78,12 @@ Type viterbi_state_machine[pp] = “:num # (num # bool list # num # bool list) l
 (* state that the state machine is in.                                        *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_helper_def:
-  convolutional_code_encode_helper [] _ _ = [] ∧
-  convolutional_code_encode_helper (b::bs : bool list) (m : viterbi_state_machine(*: num # (num # bool list # num # bool list) list*)) (s : num) =
-  let
-    (t0, o0, t1, o1) = EL s (SND m)
-  in
-    if b then
-      o1 ⧺ convolutional_code_encode_helper bs m t1
-    else
-      o0 ⧺ convolutional_code_encode_helper bs m t0
+           convolutional_code_encode_helper [] _ _ = [] ∧
+           convolutional_code_encode_helper (b::bs : bool list) (m : num state_machine) (s : num) =
+           let
+             d = m.transition_fn <| origin := s; input := b |>
+           in
+             d.output ⧺ convolutional_code_encode_helper bs m d.destination
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -90,28 +91,28 @@ End
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_def:
-  convolutional_code_encode bs (m : viterbi_state_machine) = convolutional_code_encode_helper bs m 0
+  convolutional_code_encode bs (m : num state_machine) = convolutional_code_encode_helper bs m m.init
 End
 
-(*Datatype:
-  viterbi_state_machine = <|
-    foo : num;
-    bar : num
-  |>
-End*)
-
-(* -------------------------------------------------------------------------- *)
-(* A simple example of a state machine for convolutional coding               *)
-(* -------------------------------------------------------------------------- *)
 Definition example_state_machine_def:
-  example_state_machine = (4,
-                           [
-                             (0, [F; F], 1, [T; T]);
-                             (2, [T; T], 3, [F; F]);
-                             (0, [T; F], 1, [F; T]);
-                             (2, [F; T], 3, [T; F]);
-                           ]
-                          ) : viterbi_state_machine
+  example_state_machine = <|
+    states := {0; 1; 2; 3};
+    transition_fn := λd.
+                       case d.input of
+                         T => (case d.origin of
+                                 0 => <| destination := 1; output := [T; T] |>
+                               | 1 => <| destination := 3; output := [F; F] |>
+                               | 2 => <| destination := 1; output := [F; T] |>
+                               | 3 => <| destination := 3; output := [T; F] |>
+                              )
+                       | F => (case d.origin of
+                                 0 => <| destination := 0; output := [F; F] |>
+                               | 1 => <| destination := 2; output := [T; T] |>
+                               | 2 => <| destination := 0; output := [T; F] |>
+                               | 3 => <| destination := 2; output :=  [F; T] |>
+                              );
+    init := 0;
+  |> : num state_machine
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -128,187 +129,68 @@ QED
 (* VITERBI DECODING                                                           *)
 (* -------------------------------------------------------------------------- *)
 
+Datatype:
+  viterbi_node_datatype = <|
+    num_errors : num option;
+    prev_state : α option;
+  |> 
+End
+
 (* -------------------------------------------------------------------------- *)
-(* Viterbi data                                                               *)
+(* Viterbi trellis data                                                       *)
 (*                                                                            *)
-(* List, where list index corresponds to time step.                           *)
-(* Each element of list is itself a list where each index corresponds to a    *)
-(*   state.                                                                   *)
-(* Each element of this inner list contains the number of errors on the       *)
-(*   current optimal path, followed by the state number of the previous state *)
-(*   on the optimal path.                                                     *)
-(*                                                                            *)
-(* Type: ((num # num) list) list                                              *)
+(* Function from time steps and states to number of errors on optimal path to *)
+(* this point in the trellis and previous state on optimal path to this point *)
+(* in the trellis                                                             *)
 (* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
-(* The number used to represent the distance it would take to reach an        *)
-(* unreachable state. Effectively infnity, but infinity isn't a natural       *)
-(* number.                                                                    *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_unreachable_distance_def:
-  vd_unreachable_distance = 999999999999999999 : num
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Viterbi data for a state which is unreachable                              *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_unreachable_def:
-  vd_unreachable = (vd_unreachable_distance, 0) : (num # num)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Viterbi data for n states which are all unreachable                        *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_unreachable_list_def:
-  vd_unreachable_list 0 = [] ∧
-  vd_unreachable_list (SUC n) = vd_unreachable::(vd_unreachable_list n) : (num # num) list
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Outputs the first row of (num errors, previous state) pairs                *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_initial_data_def:
-  vd_initial_data 0 = [] ∧
-  vd_initial_data (SUC n) = (0n,0n)::(vd_unreachable_list n) : (num # num) list
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Helper function for vd_get_transition_quadruples                           *)
-(*                                                                            *)
-(* Loops over each state s, incrementing s as we go, processing and removing  *)
-(* the corresponding (first) element of the list of transitions at each step. *)
-(*                                                                            *)
-(* Outputs all transitions as a list of elements in the form:                 *)
-(* (initial state, final state, input, output)                                *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_get_transition_quadruples_helper:
-  vd_get_transition_quadruples_helper [] _ = [] ∧
-  vd_get_transition_quadruples_helper (t::ts) (s : num)
-  = let
-      (t0, o0, t1, o1) = t
-    in
-      [(s, t0, 0, o0); (s, t1, 1, o1)] ⧺ (vd_get_transition_quadruples_helper ts (s + 1))
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Returns all transitions in the machine as a list of elements in the form:  *)
-(* (initial state, final state, input, output)                                *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_get_transition_quadruples_def:
-  vd_get_transition_quadruples (m : viterbi_state_machine) = vd_get_transition_quadruples_helper (SND m)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Helper function to output states which have a transition to a given state  *)
-(* s in the provided list of transitions                                      *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_get_prior_states_helper_def:
-  vd_get_prior_states_helper [] _ = [] ∧
-  vd_get_prior_states_helper (t::ts) s =
+Definition viterbi_trellis_data_def:
+  viterbi_trellis_data m bs s 0 = (if s = m.init then <| num_errors := SOME 0; prev_state := NONE |> else <| num_errors := NONE; prev_state := NONE |>) ∧
+  viterbi_trellis_data m bs s (SUC t) =
   let
-    initial_state = FST t
-  in
-    let
-      final_state = FST (SND t)
-    in
-      let
-        recursive_list = vd_get_prior_states_helper ts s
-      in
-        if
-        (final_state = s)
-        then
-          initial_state::recursive_list
-        else
-          recursive_list
+    best_origin = @o. ∀o2. (m.transition_fn o).output
+
+
+                                              
+                                              (previous_state, input) = @(r, b). FST m.transition_fn (r, b) = s ∧ ∀(r2, b2) FST()
+                                                                                                                  in 
+                                                                                                                    <| num_errors := prev_state := |>
+                                                                                                                    
+
+End
+
+Datatype:
+  viterbi_trellis_data = <|
+    num_errors : num # α -> num option;
+    optimal_prior_state : num # α -> α option;
+  |>
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Outputs the states that have a transition to a given state s in the state  *)
-(* machine m                                                                  *)
+(* According to the Viterbi algorithm, the number of errors incurred at time  *)
+(* step 0 is NONE except in the init state, and at every successive time      *)
+(* step, it is the minimimum of the number of errors                          *)
 (* -------------------------------------------------------------------------- *)
-Definition vd_get_prior_states_def:
-  vd_get_prior_states (m : viterbi_state_machine) s = vd_get_prior_states_helper (vd_get_transition_quadruples m) s
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Input:                                                                     *)
-(* - convolutional code state machine                                         *)
-(* - Entire row of Viterbi data in the current  timestep                      *)
-(* - state number to calculate the Viterbi data for                           *)
-(*                                                                            *)
-(* Output:                                                                    *)
-(* - Viterbi data for the given state number in the next timestep             *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_get_next_row_state_data_def:
-  vd_get_next_row_state_data m d s
-  let
-    (* the two previous states leading to s *)
-    (t1, t2) = vd_get_prior_states m s
-  in
-    let
-      (* number of errors when arriving at s via t1 *)
-      e1 =
-    in
-      let
-        (* number of errors when arriving at s via t2 *)
-        e2 =
-      in
-        vd_get_next_row_state_data m d s = if
-        e1 < e2
-        then
-          (e1, )
-        else
-          
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Helper function for function which outputs the next row of                 *)
-(* (num errors, previous state) pairs, given the previous row of              *)
-(* (num errors, previous state) pairs. This function additionally has a       *)
-(* parameter which keeps track of the number of states for which the data     *)
-(* still needs to be generated                                                *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_get_next_data_helper_def:
-  vd_get_next_data_helper m d 0 = [] ∧
-  vd_get_next_data m d (SUC n) = (vd_get_next_row_state_data m d n)::(vd_get_next_data_helper m d n)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Returns the number of states in a state machine                            *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_state_machine_num_states_def:
-  vd_state_machine_num_states m = FST m
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Outputs the next row of (num errors, previous state) pairs, given the      *)
-(* previous row of (num errors, previous state) pairs                         *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_get_next_data_def:
-  vd_get_next_data m d = vd_get_next_data_helper m d (vd_state_machine_num_states m)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Input: number of states                                                    *)
-(*                                                                            *)
-(* Output: Viterbi data for the 0th time step (i.e. first row of Viterbi data)*)
-(* -------------------------------------------------------------------------- *)
-Definition vd_initialise_viterbi_data_def:
-  vd_initialise_viterbi_data 0 _ = [] ∧
-  vd_initialise_viterbi_data (SUC n) (b : bool) = [()]::(vd_initialise_viterbi_data n)
+Definition viterbi_trellis_def:
+  
 End
 
 
-(* 
-Definition vd_calculate_viterbi_data_def:
-  vd_calculate_viterbi_data =
-  vd_loop_calculate_viterbi_data (vd_initialise_viterbi_data)
-End*)
 
 
+viterbi_trellis_data.num_errors (t + 1, s) = 
 
+Definition vd_initial_trellis_data_def:
+  vd_initial_trellis_data = <|
+    num_errors := λ(t, s). NONE;
+    optimal_prior_state := λ(t, s). NONE;
+  |>
+End
 
+Definition vd_calculate_trellis_data_def:
+  vd_calculate_trellis_data = <|
+    num_errors
+  |>
+End
 
 
 (* -------------------------------------------------------------------------- *)
@@ -318,35 +200,21 @@ End*)
 Definition viterbi_decode_def:
   viterbi_decode bs m =
   let
-    d = vd_calculate_viterbi_data
+    data = vd_calculate_trellis_data
   in
-    vd_calculate_trellis_path p m
+    vd_calculate_trellis_path data
 End
 
+Theorem viterbi_correctness:
+  ∀i cs noise M.
+    cs = encode M i ⊕ noise ∧ LENGTH noise = LENGTH (encode M i)
+    ⇒
+    ∀bs'. LENGTH (encode M bs') = LENGTH cs ⇒
+          cs ⊖ encode M (viterbi M cs) ≤ cs ⊖ encode M bs'
+Proof
 
-
-(* Produces a state machine with n states and 2n transitions given by its *)
-Definition viterbi_state_machine_def:
-  viterbi_state_machine (n : num) (ts : 
-
-                                   ss ts = (states, transitions_on_0, transitions_on_1)
-
-
-Definition encode_def:
-
-Definition viterbi_state_def:
-           viterbi_state
-
-Definition viterbi_helper:
-           vitebri_helper (l1 : bool list) (: state) = 
-
-Definition viterbi_def:
-           viterbi (l1 : bool list) =  
-
-
-
-Theorem viterbi_cor
-
+  ...
+QED
 
 
 val _ = export_theory();
