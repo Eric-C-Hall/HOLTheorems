@@ -105,10 +105,10 @@ Datatype:
 End
 
 Definition wfmachine_def:
-  wfmachine m ⇔
+  wfmachine (m : α state_machine) ⇔
     m.init ∈ m.states ∧
-    ∀s. s ∈states ⇒
-        ∀b. LEN (transition_fn <| origin := s; input := b |>).output = m.output_length
+    ∀s. s ∈ m.states ⇒
+        ∀b. LENGTH (m.transition_fn <| origin := s; input := b |>).output = m.output_length
 End
 
 (* -------------------------------------------------------------------------- *)
