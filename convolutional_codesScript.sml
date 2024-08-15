@@ -6,6 +6,7 @@ val _ = new_theory "convolutional_codes";
 
 open arithmeticTheory;
 open listTheory;
+open bitstringTheory;
 
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
@@ -35,6 +36,38 @@ open listTheory;
 (* likely sequence of states that could have taken through that Hidden Markov *)
 (* Model.                                                                     *)
 (* -------------------------------------------------------------------------- *)
+
+
+Definition add_noise_def:
+  add_noise = bxor
+End
+
+val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "add_noise",
+tok = "⊕"}
+         
+Definition hamming_weight_def:
+  hamming_weight [] = 0 ∧
+  hamming_weight (b::bs) = (if b then 1 else 0) + hamming_weight bs
+End
+
+Definition hamming_distance_def:
+  hamming_distance l1 l2 = hamming_weight (l1 ⊕ l2)
+End
+
+val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "hamming_distance",
+tok = "⊖"};
+
+Theorem add_noise_test:
+  [F; T; T; F; T; F; F] ⊕ [T; T; F; F; T; T; F] = [T; F; T; F; F; T; F]
+Proof
+  EVAL_TAC  
+QED
+
+Theorem hamming_distance_test:
+  [F; T; T; F; T; F; F] ⊖ [T; T; F; F; T; T; F] = 3
+Proof
+  EVAL_TAC
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL STATE MACHINE ENCODING                                       *)
@@ -67,7 +100,15 @@ Datatype:
     states : α set ;
     transition_fn : α transition_origin -> α transition_destination;
     init : α;
+    output_length : num;
   |>
+End
+
+Definition wfmachine_def:
+  wfmachine m ⇔
+    m.init ∈ m.states ∧
+    ∀s. s ∈states ⇒
+        ∀b. LEN (transition_fn <| origin := s; input := b |>).output = m.output_length
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -78,12 +119,12 @@ End
 (* state that the state machine is in.                                        *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_helper_def:
-           convolutional_code_encode_helper [] _ _ = [] ∧
-           convolutional_code_encode_helper (b::bs : bool list) (m : num state_machine) (s : num) =
-           let
-             d = m.transition_fn <| origin := s; input := b |>
-           in
-             d.output ⧺ convolutional_code_encode_helper bs m d.destination
+  convolutional_code_encode_helper [] _ _ = [] ∧
+  convolutional_code_encode_helper (b::bs : bool list) (m : num state_machine) (s : num) =
+  let
+    d = m.transition_fn <| origin := s; input := b |>
+  in
+    d.output ⧺ convolutional_code_encode_helper bs m d.destination
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -147,15 +188,15 @@ Definition viterbi_trellis_data_def:
   viterbi_trellis_data m bs s 0 = (if s = m.init then <| num_errors := SOME 0; prev_state := NONE |> else <| num_errors := NONE; prev_state := NONE |>) ∧
   viterbi_trellis_data m bs s (SUC t) =
   let
-    best_origin = @o. ∀o2. (m.transition_fn o).output
-
-
-                                              
-                                              (previous_state, input) = @(r, b). FST m.transition_fn (r, b) = s ∧ ∀(r2, b2) FST()
-                                                                                                                  in 
-                                                                                                                    <| num_errors := prev_state := |>
-                                                                                                                    
-
+    relevant_input = TAKE m.output_length (DROP (t * m.output_length) bs)
+  in
+    let
+      get_num_errors = λr. (viterbi_trellis_data m bs r.origin t).num_errors + ((m.transition_fn r).output ⊖ relevant_input)
+    in 
+      let
+        best_origin = @r. ∀r2. get_num_errors r ≤ get_num_errors r2
+      in
+        <| num_errors:= get_num_errors best_origin; prev_state := best_origin.origin |>
 End
 
 Datatype:

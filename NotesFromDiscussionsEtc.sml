@@ -34,6 +34,12 @@ val _ = new_theory "thingsToDiscuss";
 *)
 
 
+(* Model things in a mathematical way, not a computational way. e.g. don't use lists if what you really want to model is a function *)
+
+(* term_grammar {} *)
+
+(* EVAL ``3 + 4`` *)
+
 val _ = export_theory();
 
 
