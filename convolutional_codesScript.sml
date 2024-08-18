@@ -7,6 +7,7 @@ val _ = new_theory "convolutional_codes";
 open arithmeticTheory;
 open listTheory;
 open bitstringTheory;
+open infnumTheory;
 
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
@@ -120,7 +121,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_helper_def:
   convolutional_code_encode_helper [] _ _ = [] ∧
-  convolutional_code_encode_helper (b::bs : bool list) (m : num state_machine) (s : num) =
+  convolutional_code_encode_helper (b::bs : bool list) (m : α state_machine) (s : α) =
   let
     d = m.transition_fn <| origin := s; input := b |>
   in
@@ -132,7 +133,7 @@ End
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_def:
-  convolutional_code_encode bs (m : num state_machine) = convolutional_code_encode_helper bs m m.init
+  convolutional_code_encode bs (m : α state_machine) = convolutional_code_encode_helper bs m m.init
 End
 
 Definition example_state_machine_def:
@@ -172,7 +173,7 @@ QED
 
 Datatype:
   viterbi_node_datatype = <|
-    num_errors : num option;
+    num_errors : infnum;
     prev_state : α option;
   |> 
 End
@@ -184,19 +185,26 @@ End
 (* this point in the trellis and previous state on optimal path to this point *)
 (* in the trellis                                                             *)
 (* -------------------------------------------------------------------------- *)
+val _ = monadsyntax.enable_monadsyntax()
+val _ = monadsyntax.enable_monad "option"
+
 Definition viterbi_trellis_data_def:
-  viterbi_trellis_data m bs s 0 = (if s = m.init then <| num_errors := SOME 0; prev_state := NONE |> else <| num_errors := NONE; prev_state := NONE |>) ∧
+  viterbi_trellis_data m bs s 0 =
+    (if s = m.init then
+       <| num_errors := N0; prev_state := NONE |>
+     else <| num_errors := INFINITY; prev_state := NONE |>) ∧
   viterbi_trellis_data m bs s (SUC t) =
   let
-    relevant_input = TAKE m.output_length (DROP (t * m.output_length) bs)
+    relevant_input = TAKE m.output_length (DROP (t * m.output_length) bs) ;
+    get_num_errors =
+    λr. (viterbi_trellis_data m bs r.origin t).num_errors +
+        N ((m.transition_fn r).output ⊖ relevant_input) ;
+    best_origin =
+      @r. ∀r2. <NEED SOMEThing hERE on R2> ⇒
+               get_num_errors r ≤ get_num_errors r2 ;
   in
-    let
-      get_num_errors = λr. (viterbi_trellis_data m bs r.origin t).num_errors + ((m.transition_fn r).output ⊖ relevant_input)
-    in 
-      let
-        best_origin = @r. ∀r2. get_num_errors r ≤ get_num_errors r2
-      in
-        <| num_errors:= get_num_errors best_origin; prev_state := best_origin.origin |>
+    <| num_errors:= get_num_errors best_origin;
+       prev_state := SOME best_origin.origin |>
 End
 
 Datatype:
