@@ -236,11 +236,12 @@ End
 (* Output: Most likely original bitstring                                     *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_decode_def:
-  viterbi_decode bs m =
+  viterbi_decode m bs =
   let
-    data = vd_calculate_trellis_data
+    max_timestep = ;
+    last_state = @s. ∀s2. viterbi_trellis_data m bs max_timestep;
   in
-    vd_calculate_trellis_path data
+    
 End
 
 Theorem viterbi_correctness:
