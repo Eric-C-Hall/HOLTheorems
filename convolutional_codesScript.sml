@@ -42,7 +42,6 @@ open infnumTheory;
 Definition add_noise_def:
   add_noise = bxor
 End
-
 val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "add_noise",
 tok = "⊕"}
          
@@ -188,57 +187,47 @@ End
 val _ = monadsyntax.enable_monadsyntax()
 val _ = monadsyntax.enable_monad "option"
 
+        
+
+(* -------------------------------------------------------------------------- *)
+(* Describes the data stored at a particular point in the trellis             *)
+(*                                                                            *)
+(* m: the state machine                                                       *)
+(* bs: the entire input bitstring                                             *)
+(* s: the state associated with this node in the trellis                      *)
+(* t: the time step associated with this node in the trellis                  *)
+(*                                                                            *)
+(* Outputs a tuple containing the number of errors at this point as well as   *)
+(* the previous state on the optimal path towards this point                  *)
+(*                                                                            *)
+(* relevant_input denotes the input to the Viterbi algorithm which corresponds*)
+(* to the current step in the trellis                                         *)
+(*                                                                            *)
+(* get_num_errors is a helper sub-function which takes a point in the         *)
+(*                                                                            *)
+(* origin_leads_to_s is a helper sub-function which returns whether or not a  *)
+(* (state, input) pair will lead us to the state s in our state machine m.    *)
+(*                                                                            *)
+(* best_origin is the choice of previous state and input which minimizes the  *)
+(* number of errors when transitioning to the current state and time.         *)
+(* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_data_def:
   viterbi_trellis_data m bs s 0 =
-    (if s = m.init then
-       <| num_errors := N0; prev_state := NONE |>
-     else <| num_errors := INFINITY; prev_state := NONE |>) ∧
+  (if s = m.init then
+     <| num_errors := N0; prev_state := NONE |>
+   else <| num_errors := INFINITY; prev_state := NONE |>) ∧
   viterbi_trellis_data m bs s (SUC t) =
   let
     relevant_input = TAKE m.output_length (DROP (t * m.output_length) bs) ;
-    get_num_errors =
-    λr. (viterbi_trellis_data m bs r.origin t).num_errors +
-        N ((m.transition_fn r).output ⊖ relevant_input) ;
-    best_origin =
-      @r. ∀r2. <NEED SOMEThing hERE on R2> ⇒
-               get_num_errors r ≤ get_num_errors r2 ;
+    get_num_errors = λr. (viterbi_trellis_data m bs r.origin t).num_errors +
+                         N ((m.transition_fn r).output ⊖ relevant_input) ;
+    origin_leads_to_s = λr. ((m.transition_fn r).destination = s);
+    best_origin =  @r. origin_leads_to_s r ∧
+                       ∀r2. origin_leads_to_s r2 ⇒
+                            get_num_errors r ≤ get_num_errors r2 ;
   in
-    <| num_errors:= get_num_errors best_origin;
+    <| num_errors := get_num_errors best_origin;
        prev_state := SOME best_origin.origin |>
-End
-
-Datatype:
-  viterbi_trellis_data = <|
-    num_errors : num # α -> num option;
-    optimal_prior_state : num # α -> α option;
-  |>
-End
-
-(* -------------------------------------------------------------------------- *)
-(* According to the Viterbi algorithm, the number of errors incurred at time  *)
-(* step 0 is NONE except in the init state, and at every successive time      *)
-(* step, it is the minimimum of the number of errors                          *)
-(* -------------------------------------------------------------------------- *)
-Definition viterbi_trellis_def:
-  
-End
-
-
-
-
-viterbi_trellis_data.num_errors (t + 1, s) = 
-
-Definition vd_initial_trellis_data_def:
-  vd_initial_trellis_data = <|
-    num_errors := λ(t, s). NONE;
-    optimal_prior_state := λ(t, s). NONE;
-  |>
-End
-
-Definition vd_calculate_trellis_data_def:
-  vd_calculate_trellis_data = <|
-    num_errors
-  |>
 End
 
 
