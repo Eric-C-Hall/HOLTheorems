@@ -187,8 +187,6 @@ End
 val _ = monadsyntax.enable_monadsyntax()
 val _ = monadsyntax.enable_monad "option"
 
-        
-
 (* -------------------------------------------------------------------------- *)
 (* Describes the data stored at a particular point in the trellis             *)
 (*                                                                            *)
@@ -230,6 +228,36 @@ Definition viterbi_trellis_data_def:
        prev_state := SOME best_origin.origin |>
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Returns the optimal path going from back to front.                         *)
+(*                                                                            *)
+(* Returns the path as a list of all states encountered along the path,       *)
+(* including the very first and last states, with the first element of this   *)
+(* list being the last state encountered in the path, and the last element of *)
+(* this list being the first state encountered in the path.                   *)
+(*                                                                            *)
+(* vd stands for Viterbi Decode                                               *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_find_optimal_reversed_path_def:
+  vd_find_optimal_reversed_path m bs s 0 = [s] ∧
+  vd_find_optimal_reversed_path m bs s (SUC t) =
+  let
+    trellis_data = viterbi_trellis_data m bs s (SUC t);
+    s2 = (trellis_data.prev_state);
+  in
+    s :: (vd_find_optimal_reversed_path m bs s2 t)
+End
+
+
+(* -------------------------------------------------------------------------- *)
+(* See comment for vd_find_optimal_reversed_path                              *)
+(*                                                                            *)
+(* Reverses the path returned by that function to ensure the path is returned *)
+(* in the forwards direction                                                  *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_find_optimal_path_def:
+  vd_find_optimal_path m bs s t = REVERSE (vd_find_optimal_reversed_path m bs s t)
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Input: bitstring and state machine                                         *)
@@ -238,10 +266,11 @@ End
 Definition viterbi_decode_def:
   viterbi_decode m bs =
   let
-    max_timestep = ;
-    last_state = @s. ∀s2. viterbi_trellis_data m bs max_timestep;
-  in
+    max_timestep = (LENGTH bs) DIV m.output_length;
+    last_state = @s. ∀s2. (viterbi_trellis_data m bs s max_timestep).num_errors ≤ (viterbi_trellis_data m bs s2 timestep);
     
+  in
+    REVERSE 
 End
 
 Theorem viterbi_correctness:
