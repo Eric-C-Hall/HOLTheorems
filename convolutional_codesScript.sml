@@ -54,8 +54,8 @@ Definition hamming_distance_def:
   hamming_distance l1 l2 = hamming_weight (l1 ⊕ l2)
 End
 
-val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "hamming_distance",
-tok = "⊖"};
+(*val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "hamming_distance",
+ tok = "⊖"};*)
 
 Theorem add_noise_test:
   [F; T; T; F; T; F; F] ⊕ [T; T; F; F; T; T; F] = [T; F; T; F; F; T; F]
@@ -64,7 +64,7 @@ Proof
 QED
 
 Theorem hamming_distance_test:
-  [F; T; T; F; T; F; F] ⊖ [T; T; F; F; T; T; F] = 3
+  hamming_distance [F; T; T; F; T; F; F] [T; T; F; F; T; T; F] = 3
 Proof
   EVAL_TAC
 QED
@@ -218,7 +218,7 @@ Definition viterbi_trellis_data_def:
   let
     relevant_input = TAKE m.output_length (DROP (t * m.output_length) bs) ;
     get_num_errors = λr. (viterbi_trellis_data m bs r.origin t).num_errors +
-                         N ((m.transition_fn r).output ⊖ relevant_input) ;
+                         N (hamming_distance (m.transition_fn r).output relevant_input) ;
     origin_leads_to_s = λr. ((m.transition_fn r).destination = s);
     best_origin =  @r. origin_leads_to_s r ∧
                        ∀r2. origin_leads_to_s r2 ⇒
@@ -311,12 +311,24 @@ Definition viterbi_decode_def:
     path_to_code m (vd_find_optimal_path m bs last_state max_timestep)
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Main theorem that I want to prove                                          *)
+(*                                                                            *)
+(* Prove that the result of using Viterbi decoding is the choice of original  *)
+(* message that is closer to the input when encoded than any other original   *)
+(* message.                                                                   *)
+(*                                                                            *)
+(* In other words: for all choices of bs, the hamming distance between the    *)
+(* received message and the value that bs encodes to is less than or equal to *)
+(* the hamming distance between the received message and the value that the   *)
+(* Viterbi decoding of the received message encodes to                        *)
+(* -------------------------------------------------------------------------- *)
 Theorem viterbi_correctness:
   ∀i cs noise M.
     cs = encode M i ⊕ noise ∧ LENGTH noise = LENGTH (encode M i)
     ⇒
-    ∀bs'. LENGTH (encode M bs') = LENGTH cs ⇒
-          cs ⊖ encode M (viterbi M cs) ≤ cs ⊖ encode M bs'
+    ∀bs. LENGTH (encode M bs) = LENGTH cs ⇒
+         hamming_distance cs (encode M (viterbi M cs)) ≤ hamming_distance cs (encode M bs)
 Proof
 
   ...
