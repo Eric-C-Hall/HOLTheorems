@@ -210,11 +210,11 @@ val _ = monadsyntax.enable_monad "option"
 (* number of errors when transitioning to the current state and time.         *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_data_def:
-  viterbi_trellis_data m bs s 0 =
+  viterbi_trellis_data m bs s 0 : α viterbi_node_datatype =
   (if s = m.init then
      <| num_errors := N0; prev_state := NONE |>
    else <| num_errors := INFINITY; prev_state := NONE |>) ∧
-  viterbi_trellis_data m bs s (SUC t) =
+  viterbi_trellis_data m bs s (SUC t) : α viterbi_node_datatype =
   let
     relevant_input = TAKE m.output_length (DROP (t * m.output_length) bs) ;
     get_num_errors = λr. (viterbi_trellis_data m bs r.origin t).num_errors +
@@ -239,15 +239,14 @@ End
 (* vd stands for Viterbi Decode                                               *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_find_optimal_reversed_path_def:
-  vd_find_optimal_reversed_path m bs s 0 = [s] ∧
-  vd_find_optimal_reversed_path m bs s (SUC t) =
+  vd_find_optimal_reversed_path m bs s 0 : α list = [s] ∧
+  vd_find_optimal_reversed_path m bs s (SUC t) : α list =
   let
     trellis_data = viterbi_trellis_data m bs s (SUC t);
-    s2 = (trellis_data.prev_state);
+    s2 = THE trellis_data.prev_state;
   in
     s :: (vd_find_optimal_reversed_path m bs s2 t)
 End
-
 
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_find_optimal_reversed_path                              *)
@@ -257,6 +256,28 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition vd_find_optimal_path_def:
   vd_find_optimal_path m bs s t = REVERSE (vd_find_optimal_reversed_path m bs s t)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Takes a state machine and two states, and returns the input that would     *)
+(* lead between those states.                                                 *)
+(*                                                                            *)
+(* Returns either 0 or 1 arbitrarily (undefined behaviour) if there is no     *)
+(* such input.                                                                *)
+(* -------------------------------------------------------------------------- *)
+Definition states_to_transition_input_def:
+  states_to_transition_input m s1 s2 = m.transition_fn (<| |>)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Takes a sequence of states which denotes a path through the state machine, *)
+(* and returns the sequence of 0s/1s which would produce that path through    *)
+(* the state machine                                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition path_to_code_def:
+  path_to_code m [] = [] ∧
+  path_to_code m (p::[]) = [] ∧
+  path_to_code m (p1::p2::ps) = () :: (path_to_code m (p2::ps))
 End
 
 (* -------------------------------------------------------------------------- *)
