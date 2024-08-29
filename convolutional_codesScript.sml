@@ -276,16 +276,15 @@ End
 (* Takes a state machine and two states, and returns the input that would     *)
 (* lead between those states.                                                 *)
 (*                                                                            *)
-(* Returns either 0 or 1 arbitrarily (undefined behaviour) if there is no     *)
+(* Returns either F or T arbitrarily (undefined behaviour) if there is no     *)
 (* such input.                                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition states_to_transition_input_def:
   states_to_transition_input m s1 s2 =
   let
-    output_on_0 = m.transition_fn test_transition_origin (*(<| origin := s1; input := 0 |>)*)
+    output_on_F = m.transition_fn <| origin := s1; input := F |>
   in
-    0
-    (*if output_on_0.destination = s2 then 0 else 1*)
+    if output_on_F.destination = s2 then F else T
 End
 
 (* -------------------------------------------------------------------------- *)
