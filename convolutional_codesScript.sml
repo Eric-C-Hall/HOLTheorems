@@ -295,7 +295,7 @@ End
 Definition path_to_code_def:
   path_to_code m [] = [] ∧
   path_to_code m (p::[]) = [] ∧
-  path_to_code m (p1::p2::ps) = () :: (path_to_code m (p2::ps))
+  path_to_code m (p1::p2::ps) = (states_to_transition_input m p1 p2) :: (path_to_code m (p2::ps))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -307,7 +307,6 @@ Definition viterbi_decode_def:
   let
     max_timestep = (LENGTH bs) DIV m.output_length;
     last_state = @s. ∀s2. (viterbi_trellis_data m bs s max_timestep).num_errors ≤ (viterbi_trellis_data m bs s2 timestep);
-    
   in
     REVERSE 
 End
