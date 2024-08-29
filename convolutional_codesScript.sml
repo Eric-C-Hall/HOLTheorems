@@ -57,6 +57,22 @@ End
 (*val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "hamming_distance",
  tok = "⊖"};*)
 
+Theorem bxor_suc:
+  ∀b bs c cd.
+    bxor (b::bs) (c::cs) = (⇔)
+Proof
+QED
+
+Theorem hamming_distance_self[simp]:
+  ∀bs. hamming_distance bs bs = 0
+Proof
+  rpt strip_tac
+  >> gvs[hamming_distance_def, add_noise_def]
+  >> Induct_on ‘bs’
+  >- EVAL_TAC
+  >> rpt strip_tac
+QED
+
 Theorem add_noise_test:
   [F; T; T; F; T; F; F] ⊕ [T; T; F; F; T; T; F] = [T; F; T; F; F; T; F]
 Proof
@@ -334,6 +350,8 @@ Proof
 
   ...
 QED
+
+
 
 
 val _ = export_theory();
