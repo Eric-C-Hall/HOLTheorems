@@ -259,6 +259,20 @@ Definition vd_find_optimal_path_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* An unknown, valid state, used for testing purposes                         *)
+(* -------------------------------------------------------------------------- *)
+Definition test_state_def:
+  test_state : α = @s. T
+End
+
+(* -------------------------------------------------------------------------- *)
+(* An arbitrary, valid transition_origin, used for testing purposes           *)
+(* -------------------------------------------------------------------------- *)
+Definition test_transition_origin_def:
+  test_transition_origin : α transition_origin = <| origin := test_state; input := F |>
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Takes a state machine and two states, and returns the input that would     *)
 (* lead between those states.                                                 *)
 (*                                                                            *)
@@ -266,7 +280,12 @@ End
 (* such input.                                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition states_to_transition_input_def:
-  states_to_transition_input m s1 s2 = m.transition_fn (<| |>)
+  states_to_transition_input m s1 s2 =
+  let
+    output_on_0 = m.transition_fn test_transition_origin (*(<| origin := s1; input := 0 |>)*)
+  in
+    0
+    (*if output_on_0.destination = s2 then 0 else 1*)
 End
 
 (* -------------------------------------------------------------------------- *)
