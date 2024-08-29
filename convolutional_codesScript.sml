@@ -329,8 +329,7 @@ End
 Theorem viterbi_correctness:
   ∀m : α state_machine.
     ∀bs rs : bool list.
-      convolutional_code_encode m bs
-                                hamming_distance ()
+      hamming_distance rs (convolutional_code_encode m bs) ≤ hamming_distance rs (convolutional_code_encode m (viterbi_decode m rs))
 Proof
 
   ...
