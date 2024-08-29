@@ -119,12 +119,12 @@ End
 (* state that the state machine is in.                                        *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_helper_def:
-  convolutional_code_encode_helper [] _ _ = [] ∧
-  convolutional_code_encode_helper (b::bs : bool list) (m : α state_machine) (s : α) =
+  convolutional_code_encode_helper _ [] _ = [] ∧
+  convolutional_code_encode_helper (m : α state_machine) (b::bs : bool list) (s : α) =
   let
     d = m.transition_fn <| origin := s; input := b |>
   in
-    d.output ⧺ convolutional_code_encode_helper bs m d.destination
+    d.output ⧺ convolutional_code_encode_helper m bs d.destination
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -132,7 +132,7 @@ End
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_def:
-  convolutional_code_encode bs (m : α state_machine) = convolutional_code_encode_helper bs m m.init
+  convolutional_code_encode (m : α state_machine) bs = convolutional_code_encode_helper m bs m.init
 End
 
 Definition example_state_machine_def:
@@ -161,7 +161,7 @@ End
 (* I would expect if I manually did the computation myself                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem convolutional_encode_test1:
-  convolutional_code_encode [F; T; T; T; F] example_state_machine = [F; F; T; T; F; F; T; F; F; T]  
+  convolutional_code_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
 Proof
   EVAL_TAC
 QED
@@ -322,13 +322,15 @@ End
 (* received message and the value that bs encodes to is less than or equal to *)
 (* the hamming distance between the received message and the value that the   *)
 (* Viterbi decoding of the received message encodes to                        *)
+(*                                                                            *)
+(* rs: the received message                                                   *)
+(* bs: the alternate possible original messages                               *)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_correctness:
-  ∀i cs noise M.
-    cs = encode M i ⊕ noise ∧ LENGTH noise = LENGTH (encode M i)
-    ⇒
-    ∀bs. LENGTH (encode M bs) = LENGTH cs ⇒
-         hamming_distance cs (encode M (viterbi M cs)) ≤ hamming_distance cs (encode M bs)
+  ∀m : α state_machine.
+    ∀bs rs : bool list.
+      convolutional_code_encode m bs
+                                hamming_distance ()
 Proof
 
   ...
