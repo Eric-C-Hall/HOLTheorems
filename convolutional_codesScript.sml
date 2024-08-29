@@ -306,9 +306,9 @@ Definition viterbi_decode_def:
   viterbi_decode m bs =
   let
     max_timestep = (LENGTH bs) DIV m.output_length;
-    last_state = @s. ∀s2. (viterbi_trellis_data m bs s max_timestep).num_errors ≤ (viterbi_trellis_data m bs s2 timestep);
+    last_state = @s. ∀s2. (viterbi_trellis_data m bs s max_timestep).num_errors ≤ (viterbi_trellis_data m bs s2 max_timestep).num_errors;
   in
-    REVERSE 
+    path_to_code m (vd_find_optimal_path m bs last_state max_timestep)
 End
 
 Theorem viterbi_correctness:
