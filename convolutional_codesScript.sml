@@ -9,6 +9,8 @@ open listTheory;
 open bitstringTheory;
 open infnumTheory;
 
+open dep_rewrite;
+
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
 (*                                                                            *)
@@ -57,10 +59,30 @@ End
 (*val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "hamming_distance",
  tok = "⊖"};*)
 
-Theorem bxor_suc:
-  ∀b bs c cd.
-    bxor (b::bs) (c::cs) = (⇔)
+Theorem MAX_SUC:
+  ∀n m. MAX (SUC n) (SUC m) = SUC (MAX n m)
 Proof
+  rpt strip_tac
+  >> gvs[MAX_DEF]
+QED
+
+Theorem bitwise_cons:
+  ∀f b bs c cs.
+    LENGTH bs = LENGTH cs ⇒
+    bitwise f (b::bs) (c::cs) = (f b c)::(bitwise f bs cs)
+Proof
+  rpt strip_tac
+  >> gvs[bitwise_def]
+QED
+
+Theorem bxor_cons:
+  ∀b bs c cs.
+    LENGTH bs = LENGTH cs ⇒
+    bxor (b::bs) (c::cs) = (b ⇎ c) :: bxor bs cs
+Proof
+  rpt strip_tac
+  >> gvs[bxor_def]
+  >> gvs[bitwise_cons]
 QED
 
 Theorem hamming_distance_self[simp]:
@@ -71,6 +93,43 @@ Proof
   >> Induct_on ‘bs’
   >- EVAL_TAC
   >> rpt strip_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[bxor_cons]
+  >> gvs[]
+  >> gvs[hamming_weight_def]
+QED
+
+Theorem bitwise_symmetric:
+  ∀f bs cs.
+    (∀b c. f b c = f c b) ⇒
+    bitwise f bs cs = bitwise f cs bs
+Proof
+  rpt strip_tac
+  >> gvs[bitwise_def]
+  >> 
+  >> qmatch_goalsub_abbrev_tac `ZIP (foo, bar)`
+QED
+
+Theorem bxor_commutative:
+  ∀bs cs. bxor bs cs = bxor cs bs
+Proof
+  rpt strip_tac
+  >> gvs[bxor_def]
+  >> 
+QED
+
+Theorem add_noise_commutative:
+  ∀bs cs : bool list. bs ⊕ cs = cs ⊕ bs
+Proof
+  rpt strip_tac
+  >> gvs[add_noise_def]
+QED
+
+Theorem hamming_distance_symmetric:
+  ∀bs cs. hamming_distance bs cs = hamming_distance cs bs
+Proof
+  rpt strip_tac
+  >> gvs[hamming_distance_def]
+  >>
 QED
 
 Theorem add_noise_test:
