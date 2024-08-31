@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -124,7 +125,8 @@ Proof
   >> SPEC_TAC (“cs' : bool list”, “cs' : bool list”)
   >> Induct_on ‘bs'’ >> rpt strip_tac >> gvs[]
   >> Cases_on ‘cs'’ >> gvs[]
-  >> rpt strip_tac >> gvs[]
+  >> first_x_assum $ qspec_then ‘t’ assume_tac
+  >> gvs[]
 QED
 
 Theorem bxor_commutative:
