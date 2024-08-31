@@ -180,6 +180,12 @@ Proof
   >> gvs[add_noise_commutative]
 QED
 
+(*Theorem hamming_distance_triangle_inequality:
+  ∀bs cs ds. hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds
+Proof
+  rpt strip_tac
+QED*)
+
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL STATE MACHINE ENCODING                                       *)
 (* -------------------------------------------------------------------------- *)
