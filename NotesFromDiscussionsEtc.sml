@@ -48,6 +48,8 @@ val _ = new_theory "thingsToDiscuss";
 
 (* free distance of convolutional codes may help when bounding number of errors correctable by them. *)
 
+(* Often, induction needs to be done with a more general statement, with more forall quantifiers, because that improves the power of the inductive hypothesis at the cost of increasing the strength of the statement which needs to be proven. *)
+
 val _ = export_theory();
 
 
