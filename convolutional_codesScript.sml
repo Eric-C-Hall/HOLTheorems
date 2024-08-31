@@ -351,6 +351,29 @@ Definition viterbi_trellis_data_def:
        prev_state := SOME best_origin.origin |>
 End
 
+Definition test_path_def:
+  test_path = [F; T; T; F; T; T; T; T; F; F; T; F]
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Unit test to ensure that the values returned by the trellis data function  *)
+(* are those you would expect.                                                *)
+(*                                                                            *)
+(* Hand-calculated trellis:                                                   *)
+(*                                                                            *)
+(* 0  1  2  3  3  3  4                                                        *)
+(* -  0  2  2  3  3  4                                                        *)
+(* -  -  2  2  2  5  4                                                        *)
+(* -  -  2  3  4  3  3                                                        *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_trellis_data_test:
+  viterbi_trellis_data example_state_machine test_path 2 4 = <| num_errors := N 2; prev_state := SOME 1 |>
+Proof
+  EVAL_TAC
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Returns the optimal path going from back to front.                         *)
 (*                                                                            *)
