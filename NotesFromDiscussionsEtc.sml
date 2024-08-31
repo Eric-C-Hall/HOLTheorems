@@ -40,6 +40,14 @@ val _ = new_theory "thingsToDiscuss";
 
 (* EVAL ``3 + 4`` *)
 
+(* SPEC_TAC is the opposite of gen_tac. It creates a forall in the goal, replacing an unbound variable. It's the opposite of gen_tac. Make sure the terms provided as input have the correct types, otherwise it won't work. *)
+
+(* In general, when specifying terms, ensure everything has the correct type. That is why nowadays we use `...` instead of ``...`` *)
+
+(* convolutional codes are linear non-block codes*)
+
+(* free distance of convolutional codes may help when bounding number of errors correctable by them. *)
+
 val _ = export_theory();
 
 
