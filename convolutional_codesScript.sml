@@ -134,7 +134,9 @@ Theorem bxor_commutative:
 Proof
   rpt strip_tac
   >> gvs[bxor_def]
-  >> 
+  >> DEP_PURE_ONCE_REWRITE_TAC [bitwise_commutative]
+  >> gvs[]
+  >> rpt Cases >> gvs[]
 QED
 
 Theorem add_noise_commutative:
