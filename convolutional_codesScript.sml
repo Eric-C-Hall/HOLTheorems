@@ -40,10 +40,13 @@ open dep_rewrite;
 (* Model.                                                                     *)
 (* -------------------------------------------------------------------------- *)
 
-
 Definition add_noise_def:
   add_noise = bxor
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Is it really a good idea to assign ⊕ to add_noise instead of to bxor?     *)
+(* -------------------------------------------------------------------------- *)
 val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "add_noise",
 tok = "⊕"}
          
@@ -98,15 +101,30 @@ Proof
   >> gvs[hamming_weight_def]
 QED
 
-Theorem bitwise_symmetric:
+(*
+(* Note: reverse_assum_list doens't work, it maintains the order*)
+val reverse_assum_list = pop_assum (fn th => (TRY reverse_assum_list; assume_tac th))
+
+val bury_assumption = pop_assum (fn th => reverse_assum_list >> assume_tac th >> reverse_assum_list)*)
+
+Theorem bitwise_commutative:
   ∀f bs cs.
     (∀b c. f b c = f c b) ⇒
     bitwise f bs cs = bitwise f cs bs
 Proof
   rpt strip_tac
   >> gvs[bitwise_def]
-  >> 
-  >> qmatch_goalsub_abbrev_tac `ZIP (foo, bar)`
+  >> gvs[SPECL [“LENGTH bs”, “LENGTH cs”] MAX_COMM]
+  >> qmatch_goalsub_abbrev_tac `ZIP (bs', cs')`
+  >> sg ‘LENGTH bs' = LENGTH cs'’
+  >- (unabbrev_all_tac
+      >> gvs[])
+  >> pop_assum mp_tac
+  >> NTAC 2 (pop_assum kall_tac)
+  >> SPEC_TAC (“cs' : bool list”, “cs' : bool list”)
+  >> Induct_on ‘bs'’ >> rpt strip_tac >> gvs[]
+  >> Cases_on ‘cs'’ >> gvs[]
+  >> rpt strip_tac >> gvs[]
 QED
 
 Theorem bxor_commutative:
