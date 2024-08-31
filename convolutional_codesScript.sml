@@ -63,6 +63,31 @@ End
 (*val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "hamming_distance",
  tok = "⊖"};*)
 
+Theorem add_noise_test:
+  [F; T; T; F; T; F; F] ⊕ [T; T; F; F; T; T; F] = [T; F; T; F; F; T; F] ∧
+  [F; F; F; F; F; F; F] ⊕ [T; F; F; T; T; F; F] = [T; F; F; T; T; F; F] ∧
+  [T; T; T; T; F; F; F] ⊕ [F; F; F; T; T; T; T] = [T; T; T; F; T; T; T]
+Proof
+  EVAL_TAC  
+QED
+
+Theorem hamming_weight_test:
+  hamming_weight [F; T; F; F; F; F; F; F; F; T; T; F; F; F; F; T] = 4 ∧
+  hamming_weight [] = 0 ∧
+  hamming_weight [T; T; T] = 3 ∧
+  hamming_weight [F; T; F; T] = 2
+Proof
+  EVAL_TAC
+QED
+
+Theorem hamming_distance_test:
+  hamming_distance [F; T; T; F; T; F; F] [T; T; F; F; T; T; F] = 3 ∧
+  hamming_distance [F; F; F] [T; T; T] = 3 ∧
+  hamming_distance [F; T; F; T; F] [F; T; F; T; F] = 0
+Proof
+  EVAL_TAC
+QED
+
 Theorem MAX_SUC:
   ∀n m. MAX (SUC n) (SUC m) = SUC (MAX n m)
 Proof
@@ -153,18 +178,6 @@ Proof
   rpt strip_tac
   >> gvs[hamming_distance_def]
   >> gvs[add_noise_commutative]
-QED
-
-Theorem add_noise_test:
-  [F; T; T; F; T; F; F] ⊕ [T; T; F; F; T; T; F] = [T; F; T; F; F; T; F]
-Proof
-  EVAL_TAC  
-QED
-
-Theorem hamming_distance_test:
-  hamming_distance [F; T; T; F; T; F; F] [T; T; F; F; T; T; F] = 3
-Proof
-  EVAL_TAC
 QED
 
 (* -------------------------------------------------------------------------- *)
