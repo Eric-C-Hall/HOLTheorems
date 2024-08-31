@@ -144,6 +144,7 @@ Theorem add_noise_commutative:
 Proof
   rpt strip_tac
   >> gvs[add_noise_def]
+  >> gvs[bxor_commutative]
 QED
 
 Theorem hamming_distance_symmetric:
@@ -151,7 +152,7 @@ Theorem hamming_distance_symmetric:
 Proof
   rpt strip_tac
   >> gvs[hamming_distance_def]
-  >>
+  >> gvs[add_noise_commutative]
 QED
 
 Theorem add_noise_test:
