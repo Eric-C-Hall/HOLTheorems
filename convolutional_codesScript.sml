@@ -252,6 +252,12 @@ Definition convolutional_code_encode_def:
   convolutional_code_encode (m : α state_machine) bs = convolutional_code_encode_helper m bs m.init
 End
 
+(* -------------------------------------------------------------------------- *)
+(* This state machine corresponds to the convolutional code which has a       *)
+(* window size of 3, and creates two parity bits, the first of which is       *)
+(* formed by adding together all inputs, and the second of which is formed    *)
+(* by adding together the last 2 inputs.                                      *)
+(* -------------------------------------------------------------------------- *)
 Definition example_state_machine_def:
   example_state_machine = <|
     states := {0; 1; 2; 3};
