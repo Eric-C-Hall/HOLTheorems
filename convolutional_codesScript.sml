@@ -205,7 +205,7 @@ QED*)
 (* -------------------------------------------------------------------------- *)
 Datatype:
   (* Placeholder while waiting for better parity equation definition *)
-  (*parity_equation = <| temp_p : bool list; |>;*)
+  parity_equation = <| temp_p : bool list; |>;
   
   (* Why doesn't the following work: *)
   (* parity_equation = bool list; *)
@@ -216,12 +216,6 @@ Datatype:
 End
 
 (* type_of “a : bool list” *)
-
-
-Theorem foo:
-  ∀a b : bool list. a = b
-Proof
-QED
 
 (* -------------------------------------------------------------------------- *)
 (* Takes a number of parity equations and a bitstring, and encodes the        *)
