@@ -218,12 +218,42 @@ End
 (* type_of “a : bool list” *)
 
 (* -------------------------------------------------------------------------- *)
+(* Returns the length of a parity equation                                    *)
+(* -------------------------------------------------------------------------- *)
+Definition parity_equation_length_def:
+  parity_equation_length p = LENGTH p.temp_p
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns the maximum length of a set of parity equations                    *)
+(* -------------------------------------------------------------------------- *)
+Definition parity_equations_max_length_def:
+  parity_equations_max_length [] = 0 ∧
+  parity_equations_max_length (p::ps) = MAX (parity_equation_length p) (parity_equations_max_length ps)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Applies a bunch of parity equations to a bitstring with the correct window *)
+(* length                                                                     *)
+(* -------------------------------------------------------------------------- *)
+Definition convolutional_parity_encode_step_def:
+  convolutional_parity_encode_step [] bs = [] ∧
+  convotutional_parity_encode_step (p::ps : parity_equation list) bs = ::(convolutional_parity_encode ps bs)
+End
+
+
+(* -------------------------------------------------------------------------- *)
 (* Takes a number of parity equations and a bitstring, and encodes the        *)
 (* bitstring according to the parity equations                                *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_parity_encode_def:
-  convolutional_parity_encode [] bs = [] ∧
-  convolutional_parity_encode (p::ps) bs = 
+  convolutional_parity_encode ps bs =
+  let
+    window_length = ; 
+    step_values = ;
+    
+  in
+    convolutional_parity_encode_step
 End
 
 Theorem 
