@@ -233,6 +233,27 @@ Definition parity_equations_max_length_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Treats a bitstring as a parity equation, and applies it to a bitstring     *)
+(* with a sufficiently large window length                                    *)
+(*                                                                            *)
+(* p::ps represents the bitstring that is being treated as a parity equation. *)
+(* bs represents the bitstring that the parity equation is applied to.        *)
+(* -------------------------------------------------------------------------- *)
+Definition apply_bitstring_as_parity_equation_def:
+  apply_parity_equation [] bs = F ∧
+  apply_parity_equation (p::ps) (b::bs) = ((p ⇎ b) ⇎ (apply_parity_equation ps bs))
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Applies a single parity equation to a bitstring with a sufficiently large  *)
+(* window length                                                              *)
+(* -------------------------------------------------------------------------- *)
+Definition apply_parity_equation_def:
+  apply_parity_equation p bs = []
+End
+
+
+(* -------------------------------------------------------------------------- *)
 (* Applies a bunch of parity equations to a bitstring with the correct window *)
 (* length                                                                     *)
 (* -------------------------------------------------------------------------- *)
