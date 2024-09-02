@@ -241,7 +241,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition apply_bitstring_as_parity_equation_def:
   apply_bitstring_as_parity_equation [] bs = F ∧
-  apply_bitstring_as_parity_equation (p::ps) (b::bs) = ((p ⇎ b) ⇎ (apply_parity_equation ps bs))
+  apply_bitstring_as_parity_equation (p::ps) (b::bs) = ((p ⇎ b) ⇎ (apply_bitstring_as_parity_equation ps bs))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -252,16 +252,14 @@ Definition apply_parity_equation_def:
   apply_parity_equation p bs = apply_bitstring_as_parity_equation p.temp_p bs
 End
 
-
 (* -------------------------------------------------------------------------- *)
-(* Applies a bunch of parity equations to a bitstring with the correct window *)
-(* length                                                                     *)
+(* Applies a bunch of parity equations to a bitstring with a sufficiently     *)
+(* large window length                                                        *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_parity_encode_step_def:
   convolutional_parity_encode_step [] bs = [] ∧
-  convotutional_parity_encode_step (p::ps : parity_equation list) bs = ::(convolutional_parity_encode ps bs)
+  convolutional_parity_encode_step (p::ps) bs = (apply_parity_equation p bs)::(convolutional_parity_encode_step ps bs)
 End
-
 
 (* -------------------------------------------------------------------------- *)
 (* Takes a number of parity equations and a bitstring, and encodes the        *)
@@ -270,11 +268,16 @@ End
 Definition convolutional_parity_encode_def:
   convolutional_parity_encode ps bs =
   let
-    window_length = ; 
-    step_values = ;
-    
+    window_length = parity_equations_max_length ps;
   in
-    convolutional_parity_encode_step
+    if LENGTH bs < window_length then [] else
+      let
+        first_window = TAKE window_length bs;
+        step_values = convolutional_parity_encode_step ps first_window;
+        remaining_bitstring = DROP 1 bs;
+        remaining_values = convolutional_parity_encode ps remaining_bitstring;
+      in
+        step_values ⧺ remaining_values
 End
 
 Theorem 
