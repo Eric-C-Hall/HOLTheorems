@@ -186,6 +186,58 @@ Proof
   rpt strip_tac
 QED*)
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
+(* -------------------------------------------------------------------------- *)
+
+
+(* -------------------------------------------------------------------------- *)
+(* A parity equation is represented as a bit-string of which bits in the      *)
+(* window are included in the linear expression.                              *)
+(*                                                                            *)
+(* A parity equation can be equivalently represented as the same equation     *)
+(* with an arbitary number of zeros after it, so any parity equation can be   *)
+(* treated as a parity equation of longer length. Therefore, in situations    *)
+(* where we are provided with multiple equations of different lengths, pad    *)
+(* the shorter parity equations with F's at the end.                          *)
+(* -------------------------------------------------------------------------- *)
+Datatype:
+  (* Placeholder while waiting for better parity equation definition *)
+  (*parity_equation = <| temp_p : bool list; |>;*)
+  
+  (* Why doesn't the following work: *)
+  (* parity_equation = bool list; *)
+  (* parity_equation = (min$bool list$list); *)
+  (* parity_equation = “:bool list”; *)
+  (* parity_equation = “(:bool list)”; *)
+  (* parity_equation = (“:min$bool list$list”); *)
+End
+
+(* type_of “a : bool list” *)
+
+
+Theorem foo:
+  ∀a b : bool list. a = b
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Takes a number of parity equations and a bitstring, and encodes the        *)
+(* bitstring according to the parity equations                                *)
+(* -------------------------------------------------------------------------- *)
+Definition convolutional_parity_encode_def:
+  convolutional_parity_encode [] bs = [] ∧
+  convolutional_parity_encode (p::ps) bs = 
+End
+
+Theorem 
+
+Proof
+QED
+
+
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL STATE MACHINE ENCODING                                       *)
 (* -------------------------------------------------------------------------- *)
@@ -214,10 +266,11 @@ End
 (* -------------------------------------------------------------------------- *)
 Datatype:
   state_machine = <|
-    states : α set ;
+    states : α set;
     transition_fn : α transition_origin -> α transition_destination;
     init : α;
     output_length : num;
+    num_states : num;
   |>
 End
 
@@ -343,16 +396,30 @@ Definition viterbi_trellis_data_def:
     get_num_errors = λr. (viterbi_trellis_data m bs r.origin t).num_errors +
                          N (hamming_distance (m.transition_fn r).output relevant_input);
     origin_leads_to_s = λr. ((m.transition_fn r).destination = s);
-    best_origin =  @r. origin_leads_to_s r ∧
-                       ∀r2. origin_leads_to_s r2 ⇒
-                            get_num_errors r ≤ get_num_errors r2;
+    best_origin = @r. origin_leads_to_s r ∧
+                      ∀r2. origin_leads_to_s r2 ⇒
+                           get_num_errors r ≤ get_num_errors r2;
   in
     <| num_errors := get_num_errors best_origin;
        prev_state := SOME best_origin.origin |>
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Outputs a row for a certain time step of the data stored in the trellis    *)
+(*                                                                            *)
+(* m: the state machine (must be a num state machine to ease computation)     *)
+(* bs: the entire input bitstring                                             *)
+(* t: the time step associated with this node in the trellis                  *)
+(*                                                                            *)
+(* Outputs a set of                                                           *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition viterbi_trellis_data_row_def:
+  viterbi_trellis_data_row m bs 0 = 
+End
+
 Definition test_path_def:
-  test_path = [F; T; T; F; T; T; T; T; F; F; T; F]
+           test_path = [F; T; T; F; T; T; T; T; F; F; T; F]
 End
 
 (* -------------------------------------------------------------------------- *)
