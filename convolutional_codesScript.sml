@@ -339,13 +339,13 @@ Definition viterbi_trellis_data_def:
    else <| num_errors := INFINITY; prev_state := NONE |>) ∧
   viterbi_trellis_data m bs s (SUC t) : α viterbi_node_datatype =
   let
-    relevant_input = TAKE m.output_length (DROP (t * m.output_length) bs) ;
+    relevant_input = TAKE m.output_length (DROP (t * m.output_length) bs);
     get_num_errors = λr. (viterbi_trellis_data m bs r.origin t).num_errors +
-                         N (hamming_distance (m.transition_fn r).output relevant_input) ;
+                         N (hamming_distance (m.transition_fn r).output relevant_input);
     origin_leads_to_s = λr. ((m.transition_fn r).destination = s);
     best_origin =  @r. origin_leads_to_s r ∧
                        ∀r2. origin_leads_to_s r2 ⇒
-                            get_num_errors r ≤ get_num_errors r2 ;
+                            get_num_errors r ≤ get_num_errors r2;
   in
     <| num_errors := get_num_errors best_origin;
        prev_state := SOME best_origin.origin |>
@@ -365,13 +365,17 @@ End
 (* -  0  2  2  3  3  4                                                        *)
 (* -  -  2  2  2  5  4                                                        *)
 (* -  -  2  3  4  3  3                                                        *)
-(*                                                                            *)
-(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_data_test:
   viterbi_trellis_data example_state_machine test_path 2 4 = <| num_errors := N 2; prev_state := SOME 1 |>
 Proof
-  EVAL_TAC
+  (* Want to use the following command, but it doesn't do anything for some reason:*)
+  gvs[viterbi_trellis_data_def]
+
+  (* Tried instead the following, which doesn't help *)
+  >> assume_tac (cj 2 viterbi_trellis_data_def)
+  >> pop_assum $ qspec_then ‘example_state_machine’ assume_tac
+  >> (* pop_assum $ qspecl_then [‘example_state_machine’, ‘test_path’, ‘2’, ‘4’] assume_tac*)
 QED
 
 (* -------------------------------------------------------------------------- *)
