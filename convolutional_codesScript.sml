@@ -240,8 +240,8 @@ End
 (* bs represents the bitstring that the parity equation is applied to.        *)
 (* -------------------------------------------------------------------------- *)
 Definition apply_bitstring_as_parity_equation_def:
-  apply_parity_equation [] bs = F ∧
-  apply_parity_equation (p::ps) (b::bs) = ((p ⇎ b) ⇎ (apply_parity_equation ps bs))
+  apply_bitstring_as_parity_equation [] bs = F ∧
+  apply_bitstring_as_parity_equation (p::ps) (b::bs) = ((p ⇎ b) ⇎ (apply_parity_equation ps bs))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -249,7 +249,7 @@ End
 (* window length                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition apply_parity_equation_def:
-  apply_parity_equation p bs = []
+  apply_parity_equation p bs = apply_bitstring_as_parity_equation p.temp_p bs
 End
 
 
