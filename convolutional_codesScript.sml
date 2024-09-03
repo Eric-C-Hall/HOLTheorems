@@ -8,6 +8,7 @@ open arithmeticTheory;
 open listTheory;
 open bitstringTheory;
 open infnumTheory;
+open prim_recTheory;
 open relationTheory;
 
 open dep_rewrite;
@@ -271,12 +272,15 @@ End
 (* Takes a number of parity equations and a bitstring, and encodes the        *)
 (* bitstring according to the parity equations                                *)
 (* -------------------------------------------------------------------------- *)
-(*Definition convolutional_parity_encode_def:
+Definition convolutional_parity_encode_def:
   convolutional_parity_encode ps bs =
   let
     window_length = parity_equations_max_length ps;
   in
-    if LENGTH bs < window_length then [] else
+    (* Note: if the window length is 0, then LENGTH bs < window_length will
+       never be true and thus we will never terminate. Therefore, we also
+       terminate if bs = []. *)
+    if (LENGTH bs < window_length ∨ bs = []) then [] else
       let
         first_window = TAKE window_length bs;
         step_values = convolutional_parity_encode_step ps first_window;
@@ -288,15 +292,25 @@ Termination
   qexists ‘λ(_, bs) (_, cs). LENGTH bs < LENGTH cs’
   >> gvs[]
   >> CONJ_TAC
-  >- (WF_LESS
-      gvs[WF_DEF]
-      >> rpt strip_tac
-      >> CCONTR_TAC
+  >- (assume_tac WF_LESS
+      >> qspecl_then [‘$< : num -> num -> bool’, ‘LENGTH ∘ SND : parity_equation list # bool list -> bool list’] assume_tac WF_IMAGE
       >> gvs[]
-      >> first_assum $ qspec_then ‘w’ assume_tac
+      >> qmatch_asmsub_abbrev_tac ‘WF f’
+      >> qmatch_goalsub_abbrev_tac ‘WF g’
+      >> ‘f = g’ suffices_by (strip_tac >> gvs[])
+      >> last_x_assum kall_tac
+      >> irule EQ_EXT
+      >> strip_tac
+      >> irule EQ_EXT
+      >> strip_tac
+      >> unabbrev_all_tac
       >> gvs[]
-      >> Cases_on ‘B w’
-      End
+      >> Cases_on ‘x’
+      >> Cases_on ‘x'’
+      >> gvs[])
+  >> rpt strip_tac
+  >> Cases_on ‘LENGTH bs’  >> gvs[]
+End
 
 Theorem test_convolutional_parity_encode:
 
