@@ -350,8 +350,7 @@ Termination
 End
 
 Theorem test_convolutional_parity_encode:
-  convolutional_parity_encode test_parity_equations [F; F; F] = foo (*[F; F]*)
-                                                                (*convolutional_parity_encode test_parity_equations [F; F; F; T; T; F; T; F; T; T; T] = foo [F; F; T; T; F; F; F; T; F; T; T; T; F; T; F; F; T; F]*)
+  convolutional_parity_encode test_parity_equations [F; F; F; T; T; F; T; F; T; T; T] = [F; F; T; T; F; F; F; T; F; T; T; T; F; T; F; F; T; F]
 Proof
   EVAL_TAC
 QED
