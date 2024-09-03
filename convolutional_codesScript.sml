@@ -12,7 +12,7 @@ open infnumTheory;
 open relationTheory;
 
 open dep_rewrite;
-open "donotexpandScript.sml"
+(*open "donotexpandScript.sml"*)
 
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
@@ -267,7 +267,7 @@ End
 (* Takes a number of parity equations and a bitstring, and encodes the        *)
 (* bitstring according to the parity equations                                *)
 (* -------------------------------------------------------------------------- *)
-Definition convolutional_parity_encode_def:
+(*Definition convolutional_parity_encode_def:
   convolutional_parity_encode ps bs =
   let
     window_length = parity_equations_max_length ps;
@@ -284,7 +284,8 @@ Termination
   qexists ‘λ(_, bs) (_, cs). LENGTH bs < LENGTH cs’
   >> gvs[]
   >> CONJ_TAC
-  >- (gvs[WF_DEF]
+  >- (WF_LESS
+      gvs[WF_DEF]
       >> rpt strip_tac
       >> CCONTR_TAC
       >> gvs[]
@@ -296,7 +297,7 @@ Termination
 Theorem test_convolutional_parity_encode:
 
 Proof
-QED
+QED*)
 
 
 (* -------------------------------------------------------------------------- *)
@@ -494,7 +495,7 @@ End
 (* -  -  2  2  2  5  4                                                        *)
 (* -  -  2  3  4  3  3                                                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_data_test:
+(*Theorem viterbi_trellis_data_test:
   viterbi_trellis_data example_state_machine test_path 2 4 = <| num_errors := N 2; prev_state := SOME 1 |>
 Proof
   (* Want to use the following command, but it doesn't do anything for some reason:*)
@@ -504,7 +505,7 @@ Proof
   >> assume_tac (cj 2 viterbi_trellis_data_def)
   >> pop_assum $ qspec_then ‘example_state_machine’ assume_tac
   >> (* pop_assum $ qspecl_then [‘example_state_machine’, ‘test_path’, ‘2’, ‘4’] assume_tac*)
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Returns the optimal path going from back to front.                         *)
@@ -604,14 +605,14 @@ End
 (* rs: the received message                                                   *)
 (* bs: the alternate possible original messages                               *)
 (* -------------------------------------------------------------------------- *)
-Theorem viterbi_correctness:
+(*Theorem viterbi_correctness:
   ∀m : α state_machine.
     ∀bs rs : bool list.
       hamming_distance rs (convolutional_code_encode m bs) ≤ hamming_distance rs (convolutional_code_encode m (viterbi_decode m rs))
 Proof
 
   ...
-QED
+QED*)
 
 
 

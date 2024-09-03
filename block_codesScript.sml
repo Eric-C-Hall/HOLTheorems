@@ -33,6 +33,7 @@ open bitTheory;
 open RealArith;
 
 open jared_yeager_prob_space_product_spaceTheory;
+open WFTheoremsTheory;
 
 open dep_rewrite;
 open simpLib;
@@ -1697,48 +1698,6 @@ Definition n_repetition_bit_inverse_def:
   n_repetition_bit_inverse nT nF (T::bs) = n_repetition_bit_inverse (nT + 1) nF bs ∧ 
   n_repetition_bit_inverse nT nF (F::bs) = n_repetition_bit_inverse nT (nF + 1) bs
 End
-
-Theorem WF_LENGTH:
-  WF (λbs cs : α list. LENGTH bs < LENGTH cs)
-Proof
-  gvs[WF_DEF]
-  >> rpt strip_tac
-  >> assume_tac WF_num
-  >> drule $ iffLR WF_DEF >> strip_tac
-  >> first_x_assum $ qspec_then ‘IMAGE (λbs. LENGTH bs) B’ assume_tac
-  >> gvs[]
-  >> rpt strip_tac
-  >> qmatch_asmsub_abbrev_tac ‘p ⇒ g’
-  >> sg ‘p’
-  >- (unabbrev_all_tac >> qexists ‘w’ >> gvs[IN_DEF])
-  >> gvs[]
-  >> pop_assum kall_tac
-  >> qexists ‘bs’
-  >> gvs[IN_DEF]
-QED
-
-Theorem WF_IMAGE:
-  ∀R f. WF R ⇒ WF (λx y. R (f x) (f y))
-Proof
-  rpt strip_tac
-  >> gvs[WF_DEF]
-  >> rpt strip_tac
-  >> first_x_assum $ qspec_then ‘IMAGE f B’ assume_tac
-  >> qmatch_asmsub_abbrev_tac ‘p ⇒ g’
-  >> sg ‘p’
-  >- (unabbrev_all_tac >> qexists ‘f w’ >> gvs[IMAGE_DEF] >> qexists ‘w’ >> gvs[IN_DEF])
-  >> gvs[]
-  >> pop_assum kall_tac
-  >> qexists ‘x’
-  >> conj_tac
-  >- gvs[IN_DEF]
-  >> gen_tac
-  >> disch_tac
-  >> first_x_assum $ qspec_then ‘f x'’ assume_tac
-  >> gvs[]
-  >> first_x_assum $ qspec_then ‘x'’ assume_tac
-  >> gvs[IN_DEF]
-QED
 
 Definition n_repetition_code_inverse_def:
   n_repetition_code_inverse n ([] : bool list) = [] ∧

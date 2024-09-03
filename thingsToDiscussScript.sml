@@ -50,6 +50,12 @@ val _ = new_theory "thingsToDiscuss";
 End
  *)
 
+(* Working on parity equation implementation of convolutional codes *)
+
+(* Bringing out WF theorems and donotexpand theorems into their own sublibraries *)
+
+(* Proving termination condition *)
+
 
 val _ = export_theory();
 
