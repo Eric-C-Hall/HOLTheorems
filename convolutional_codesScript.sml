@@ -224,12 +224,31 @@ End
 
 (* type_of “a : bool list” *)
 
+Definition test_parity_equation_def:
+  test_parity_equation = <| temp_p := [T; T; T]|>
+End
+
+Definition test_parity_equation2_def:
+  test_parity_equation2 = <| temp_p := [F; T; T]|>
+End
+
+Definition test_parity_equations_def:
+  test_parity_equations = [test_parity_equation; test_parity_equation2]
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Returns the length of a parity equation                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition parity_equation_length_def:
   parity_equation_length p = LENGTH p.temp_p
 End
+
+Theorem test_parity_equation_length:
+  parity_equation_length test_parity_equation = 3 ∧
+  parity_equation_length test_parity_equation2 = 3
+Proof
+  EVAL_TAC
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Returns the maximum length of a set of parity equations                    *)
@@ -238,6 +257,12 @@ Definition parity_equations_max_length_def:
   parity_equations_max_length [] = 0 ∧
   parity_equations_max_length (p::ps) = MAX (parity_equation_length p) (parity_equations_max_length ps)
 End
+
+Theorem test_parity_equations_max_length:
+  parity_equations_max_length test_parity_equations = 3
+Proof
+  EVAL_TAC
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Treats a bitstring as a parity equation, and applies it to a bitstring     *)
@@ -248,7 +273,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition apply_bitstring_as_parity_equation_def:
   apply_bitstring_as_parity_equation [] bs = F ∧
-  apply_bitstring_as_parity_equation (p::ps) (b::bs) = ((p ⇎ b) ⇎ (apply_bitstring_as_parity_equation ps bs))
+  apply_bitstring_as_parity_equation (p::ps) (b::bs) = ((p ∧ b) ⇎ (apply_bitstring_as_parity_equation ps bs))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -258,6 +283,18 @@ End
 Definition apply_parity_equation_def:
   apply_parity_equation p bs = apply_bitstring_as_parity_equation p.temp_p bs
 End
+
+Theorem test_apply_parity_equation:
+  apply_parity_equation <| temp_p := [T; F; T] |> [F; F; T] = T ∧
+  apply_parity_equation <| temp_p := [F; F; F] |> [T; T; T] = F ∧
+  apply_parity_equation <| temp_p := [T; T; T] |> [T; T; T] = T ∧
+  apply_parity_equation <| temp_p := [T; T; T] |> [T; F; T] = F ∧
+  apply_parity_equation <| temp_p := [T; T; T; F; F] |> [T; F; T; F; T] = F ∧
+  apply_parity_equation <| temp_p := [T; F; T; F; T] |> [F; F; F; T; T] = T ∧
+  apply_parity_equation <| temp_p := [T; T; T] |> [T; F; T; F; T] = F
+Proof
+  EVAL_TAC
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Applies a bunch of parity equations to a bitstring with a sufficiently     *)
@@ -313,8 +350,10 @@ Termination
 End
 
 Theorem test_convolutional_parity_encode:
-
+  convolutional_parity_encode test_parity_equations [F; F; F] = foo (*[F; F]*)
+                                                                (*convolutional_parity_encode test_parity_equations [F; F; F; T; T; F; T; F; T; T; T] = foo [F; F; T; T; F; F; F; T; F; T; T; T; F; T; F; F; T; F]*)
 Proof
+  EVAL_TAC
 QED
 
 
