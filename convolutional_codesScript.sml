@@ -9,8 +9,10 @@ open arithmeticTheory;
 open listTheory;
 open bitstringTheory;
 open infnumTheory;
+open relationTheory;
 
 open dep_rewrite;
+open "donotexpandScript.sml"
 
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
@@ -278,9 +280,20 @@ Definition convolutional_parity_encode_def:
         remaining_values = convolutional_parity_encode ps remaining_bitstring;
       in
         step_values ⧺ remaining_values
-End
+Termination
+  qexists ‘λ(_, bs) (_, cs). LENGTH bs < LENGTH cs’
+  >> gvs[]
+  >> CONJ_TAC
+  >- (gvs[WF_DEF]
+      >> rpt strip_tac
+      >> CCONTR_TAC
+      >> gvs[]
+      >> first_assum $ qspec_then ‘w’ assume_tac
+      >> gvs[]
+      >> Cases_on ‘B w’
+      End
 
-Theorem 
+Theorem test_convolutional_parity_encode:
 
 Proof
 QED

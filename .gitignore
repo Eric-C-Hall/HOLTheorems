@@ -1,2 +1,6 @@
 *.sig
 .holobjs
+.HOLMK
+.hollogs
+Holmakefile
+old

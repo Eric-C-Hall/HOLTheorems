@@ -50,6 +50,11 @@ val _ = new_theory "thingsToDiscuss";
 
 (* Often, induction needs to be done with a more general statement, with more forall quantifiers, because that improves the power of the inductive hypothesis at the cost of increasing the strength of the statement which needs to be proven. *)
 
+(* Induct_on PERM
+   SNOC induct *)
+
+(* GSYM *)
+
 val _ = export_theory();
 
 
