@@ -30,24 +30,38 @@ Definition sublist_def[simp]:
   )
 End
 
+(*Theorem sublist_cons:
+  ∀h t l.
+    sublist (h::t) l ⇒ sublist t l
+Proof
+  Induct_on ‘l’ >> gvs[]
+  >> rpt gen_tac
+  >> strip_tac
+      
+  >> Cases_on ‘l’ >> gvs[]
+  >> 
+  >> gvs[sublist_def]
+QED
+
 Theorem sublist_not_longer:
   ∀l1 l2. sublist l1 l2 ⇒ length l1 ≤ length l2
 Proof
-  Induct_on ‘l2’ >-
-   rw [] >>
-  Cases_on ‘l1’ >-
-   rw [] >>
-  rw [sublist_def] >-
-   simp [] >>
-  first_x_assum (fn th => assume_tac $ SPEC “(h::t)” th)
-                first_x_assum $ qspec_then ‘h::t’ assume_tac
-                ‘sublist (h::t) l2 ⇒ length (h::t) ≤ length l2’ by
-    qpat_x_assum ‘∀l1. sublist l1 l2 ⇒ length l1 ≤ length l2’
-                 (fn th => REWRITE_TAC [SPEC “(h::t)” th]) >>
-  gvs[]
-     ‘length t ≤ length (h::t)’ by simp [] >>
-  metis_tac [LESS_EQ_TRANS]
-QED
+  Induct_on ‘l2’ >> gvs[]
+  >> Cases_on ‘l1’ >> gvs[]
+  >> rw[sublist_def] >> gvs[]
+  >> 
+
+                           
+  >> rw[sublist_def]
+       \first_x_assum (fn th => assume_tac $ SPEC “(h::t)” th)
+                      first_x_assum $ qspec_then ‘h::t’ assume_tac
+                      ‘sublist (h::t) l2 ⇒ length (h::t) ≤ length l2’ by
+         qpat_x_assum ‘∀l1. sublist l1 l2 ⇒ length l1 ≤ length l2’
+                      (fn th => REWRITE_TAC [SPEC “(h::t)” th]) >>
+        gvs[]
+           ‘length t ≤ length (h::t)’ by simp [] >>
+        metis_tac [LESS_EQ_TRANS]
+QED*)
 
 (* Copied from tutorial  *)
 Theorem less_add_1:
@@ -93,7 +107,7 @@ Theorem test_subgoals:
   T
 Proof
   sg ‘T’
-    >- (sg ‘T’
+  >- (sg ‘T’
       >- decide_tac)
 QED
 
@@ -364,18 +378,14 @@ Proof
   rpt strip_tac
   >> simp[MODEQ_NONZERO_MODEQUALITY]
 QED
-     
+
 (*  *)
 Theorem MOD_SIMPLIFY:
   ∀a m : num. 0 < m ⇒ ∃a'. a' < m ∧ (a MOD m) = (a' MOD m)
 Proof
   rpt strip_tac
-  >> qexists ‘a MOD M’
-                >> 
-  >> qspecl_then [`a`, `m`] assume_tac DA
-  >> gs[]
-  >> qexists `r`
-  >> gs[]
+  >> qexists ‘a MOD m’
+  >> gvs[]
 QED
 
 Theorem MOD_ADDITIVE_INVERSE_EXISTS:
@@ -421,23 +431,23 @@ Proof
   >> qspecl_then [`a'' + r`, `m`, `0`] assume_tac MOD_MUL_ADD
   >> gvs[]
   >> sg `∀a r b m : num. a < m ⇒ r < m ⇒ a + r = b * m ⇒ b = 1 ∨ (a = 0 ∧ r = 0 ∧ b = 0)`
-  >- (rpt $ pop_assum kall_tac
-      >> rpt strip_tac
-      >> Cases_on `b >= 2`
-      >- (CCONTR_TAC >> pop_assum kall_tac
-          >> `a + r >= 2 * m` by
-             (last_x_assum kall_tac >> last_x_assum kall_tac
-              >> `b : num * m >= 2 * m` suffices_by gvs[]
-              >> last_x_assum kall_tac
-              >> gvs[MUL_GREATER_EQ])
-          >> qpat_x_assum `_ = b * m` kall_tac
-          >> gvs[])
-      >> Cases_on `b = 0`
-      >> gvs[])
-  >> first_assum $ qspecl_then [`a'`, `r`, `b`, `m`] assume_tac
-  >> first_x_assum $ qspecl_then [`a''`, `r`, `b'`, `m`] assume_tac
-  >> rpt (first_x_assum drule >> rpt strip_tac)
-  >> gvs[]
+          >- (rpt $ pop_assum kall_tac
+              >> rpt strip_tac
+              >> Cases_on `b >= 2`
+              >- (CCONTR_TAC >> pop_assum kall_tac
+                  >> `a + r >= 2 * m` by
+                    (last_x_assum kall_tac >> last_x_assum kall_tac
+                     >> `b : num * m >= 2 * m` suffices_by gvs[]
+                     >> last_x_assum kall_tac
+                     >> gvs[MUL_GREATER_EQ])
+                  >> qpat_x_assum `_ = b * m` kall_tac
+                  >> gvs[])
+              >> Cases_on `b = 0`
+              >> gvs[])
+          >> first_assum $ qspecl_then [`a'`, `r`, `b`, `m`] assume_tac
+          >> first_x_assum $ qspecl_then [`a''`, `r`, `b'`, `m`] assume_tac
+          >> rpt (first_x_assum drule >> rpt strip_tac)
+          >> gvs[]
 QED
 
 Theorem MODEQ_SUB_lemma:
@@ -503,9 +513,9 @@ QED
 
 Theorem MODEQ_SUC:
   ∀ a b m : num.
-  0 < m ⇒
-  MODEQ m (SUC a) (SUC b) ⇒
-  MODEQ m a b
+    0 < m ⇒
+    MODEQ m (SUC a) (SUC b) ⇒
+    MODEQ m a b
 Proof
   rpt strip_tac
   >> irule MODEQ_ELIM_CONG
@@ -527,7 +537,7 @@ Proof
       >> strip_tac
       >> drule MODEQ_SUC >> strip_tac
       >> `∀n. SUC c + n = SUC (c + n)` by gvs[]
-      >> metis_tac[])
+           >> metis_tac[])
   >> rpt strip_tac
   >> gvs[MODEQ_THM, ADD_MOD]
 QED
@@ -598,9 +608,9 @@ QED
 
 Theorem DIVIDES_MODEQ_0:
   ∀ a m : num.
-  0 < m ⇒
-  divides m a ⇒
-  MODEQ m a 0
+    0 < m ⇒
+    divides m a ⇒
+    MODEQ m a 0
 Proof
   rpt strip_tac
   >> qspecl_then [`m`, `a`] assume_tac divides_def
@@ -637,11 +647,11 @@ QED
 
 Theorem fermats_little_theorem_lemma1:
   ∀ s r p a : num.
-  prime p ∧ ¬divides p a ∧
-  s <= (p - 1) ∧
-  r <= (p - 1) ∧
-  MODEQ p (s * a) (r * a) ⇒
-  s = r
+    prime p ∧ ¬divides p a ∧
+    s <= (p - 1) ∧
+    r <= (p - 1) ∧
+    MODEQ p (s * a) (r * a) ⇒
+    s = r
 Proof
   rpt strip_tac
   >> Cases_on `s < r`
@@ -655,9 +665,9 @@ QED
 
 Theorem MODEQ_PRIME_NOT_DIVIDES:
   ∀s p a : num.
-  prime p ∧ ¬(divides p a) ∧
-  MODEQ p (s * a) 0 ⇒
-  MODEQ p s 0
+    prime p ∧ ¬(divides p a) ∧
+    MODEQ p (s * a) 0 ⇒
+    MODEQ p s 0
 Proof
   rpt strip_tac
   >> `¬(p = 0)` by metis_tac[NOT_PRIME_0]
@@ -669,14 +679,14 @@ QED
 
 Theorem FOLDL_MUL_FROM_HEAD_TO_FRONT:
   ∀n i : num. ∀l : num list.
-    FOLDL ($*) i (n::l) = n * FOLDL ($*) i l
+                FOLDL ($*) i (n::l) = n * FOLDL ($*) i l
 Proof
   `∀l : num list. ∀n i : num. FOLDL ($*) i (n::l) = n * FOLDL ($*) i l` suffices_by
-  (rpt strip_tac
-   >> pop_assum $ qspecl_then [`l`, `n`, `i`] assume_tac
-   >> gvs[])
-  >> strip_tac
-  >> Induct_on `l` >> rpt strip_tac >> gvs[]
+                              (rpt strip_tac
+                               >> pop_assum $ qspecl_then [`l`, `n`, `i`] assume_tac
+                               >> gvs[])
+    >> strip_tac
+    >> Induct_on `l` >> rpt strip_tac >> gvs[]
 QED
 
 (* ---------------------------------------------------------------------------*)
@@ -691,7 +701,7 @@ QED
 (* ---------------------------------------------------------------------------*)
 Theorem FOLDL_MUL_TO_FRONT:
   ∀l1 l2 : num list. ∀n : num.
-    FOLDL ($*) 1 (l1 ⧺ n::l2) = n * FOLDL ($*) 1 (l1 ⧺ l2)
+                       FOLDL ($*) 1 (l1 ⧺ n::l2) = n * FOLDL ($*) 1 (l1 ⧺ l2)
 Proof
   rpt strip_tac
   >> Induct_on `l1`
@@ -702,7 +712,7 @@ QED
 
 Theorem FOLDL_FOLDR_MUL:
   ∀l1 : num list. ∀i : num.
-    FOLDL ($*) i l1 = FOLDR ($*) i l1
+                    FOLDL ($*) i l1 = FOLDR ($*) i l1
 Proof
   strip_tac
   >> Induct_on `l1`
@@ -713,7 +723,7 @@ QED
 
 Theorem PERM_FOLDR_MUL:
   ∀l1 l2 : num list. PERM l1 l2 ⇒
-          FOLDR $* 1 l1 = FOLDR $* 1 l2
+                     FOLDR $* 1 l1 = FOLDR $* 1 l2
 Proof
   Induct_on ‘PERM’ >> rpt strip_tac >> simp[]
 QED 
@@ -722,8 +732,8 @@ QED
 
 Theorem FILTER_IDENTITY_IMPLIES_INVERSE_FILTER_EMPTY:
   ∀l1 : α list.
-  ∀ f : α -> bool.
-  FILTER f l1 = l1 ⇒ FILTER (λx. ¬(f x)) l1 = []
+    ∀ f : α -> bool.
+      FILTER f l1 = l1 ⇒ FILTER (λx. ¬(f x)) l1 = []
 Proof
   rpt strip_tac
   >> Induct_on `l1`
@@ -737,10 +747,10 @@ QED
 
 Theorem EVERY_WEAKEN:
   ∀P Q : α -> bool.
-  ∀ls : α list.
-  (∀a : α. P a ⇒ Q a) ⇒
-  EVERY P ls ⇒
-  EVERY Q ls
+    ∀ls : α list.
+      (∀a : α. P a ⇒ Q a) ⇒
+      EVERY P ls ⇒
+      EVERY Q ls
 Proof
   rpt strip_tac
   >> Induct_on `ls` >> gvs[]
@@ -748,7 +758,7 @@ QED
 
 Theorem FILTER_COUNT_LIST:
   ∀x l : num.
-  FILTER ($= x) (COUNT_LIST l) = if x < l then [x] else []
+    FILTER ($= x) (COUNT_LIST l) = if x < l then [x] else []
 Proof
   rpt strip_tac
   >> Induct_on `l`
@@ -759,12 +769,12 @@ QED
 
 Theorem FINITE_SURJ_BIJ_EXISTS:
   ∀s : α -> bool.
-  ∀t : β -> bool.
-  FINITE s ⇒
-  CARD s = CARD t ⇒
-  (∃ f : α -> β. SURJ f s t) ⇒
-  ∃ g : α -> β.
-  BIJ g s t
+    ∀t : β -> bool.
+      FINITE s ⇒
+      CARD s = CARD t ⇒
+      (∃ f : α -> β. SURJ f s t) ⇒
+      ∃ g : α -> β.
+        BIJ g s t
 Proof
   rpt strip_tac
   >> drule FINITE_SURJ_BIJ >> strip_tac
@@ -789,13 +799,13 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem FINITE_INJ_BIJ_EXISTS:
   ∀f : α -> β.
-  ∀s : α -> bool.
-  ∀t : β -> bool.
-  FINITE s ⇒
-  FINITE t ⇒
-  CARD s = CARD t ⇒
-  INJ f s t ⇒
-  (∃g : α -> β. BIJ g s t)
+    ∀s : α -> bool.
+      ∀t : β -> bool.
+        FINITE s ⇒
+        FINITE t ⇒
+        CARD s = CARD t ⇒
+        INJ f s t ⇒
+        (∃g : α -> β. BIJ g s t)
 Proof
   rpt strip_tac
   >> qspecl_then [`s`, `t`] irule (iffRL BIJ_SYM)
@@ -822,13 +832,13 @@ QED
 
 Theorem FINITE_INJ_BIJ:
   ∀f : α -> β.
-  ∀s : α -> bool.
-  ∀t : β -> bool.
-  FINITE s ⇒
-  FINITE t ⇒
-  CARD s = CARD t ⇒
-  INJ f s t ⇒
-  BIJ f s t
+    ∀s : α -> bool.
+      ∀t : β -> bool.
+        FINITE s ⇒
+        FINITE t ⇒
+        CARD s = CARD t ⇒
+        INJ f s t ⇒
+        BIJ f s t
 Proof
   rpt strip_tac
   >> sg `BIJ f s (IMAGE f s)`
@@ -856,7 +866,7 @@ QED
 
 Theorem MAP_EL_COUNT_LIST:
   ∀ls : α list.
-  MAP (λn. EL n ls) (COUNT_LIST (LENGTH ls)) = ls
+    MAP (λn. EL n ls) (COUNT_LIST (LENGTH ls)) = ls
 Proof
   gvs[GENLIST_ID, MAP_COUNT_LIST]
 QED
@@ -909,7 +919,7 @@ QED
 (* Identical to MONO_NOT and NOT_IMPLIES *)
 Theorem contrapositive:
   ∀a b : bool.
-  (a ⇒ b) ⇒ (¬b ⇒ ¬a)
+    (a ⇒ b) ⇒ (¬b ⇒ ¬a)
 Proof
   gvs[]
 QED
@@ -918,7 +928,7 @@ QED
    This version has a forall. *)
 Theorem MODEQ_THM_FORALL:
   ∀n m1 m2 : num.
-  MODEQ n m1 m2 ⇔ (n = 0 ∧ m1 = m2) ∨ (0 < n ∧ m1 MOD n = m2 MOD n)
+    MODEQ n m1 m2 ⇔ (n = 0 ∧ m1 = m2) ∨ (0 < n ∧ m1 MOD n = m2 MOD n)
 Proof
   rpt strip_tac
   >> gvs[MODEQ_THM]
@@ -947,44 +957,44 @@ Proof
       >> gvs[MODEQ_THM])
   >> qmatch_goalsub_abbrev_tac `PERM l1 l2`
   >> `PERM (MAP (λx : num. x - 1) l1) (MAP (λx : num. x - 1) l2)` suffices_by
-     (strip_tac
-      >>qspecl_then [`λx : num. x + 1`] drule PERM_MAP
-      >> pop_assum kall_tac >> strip_tac
-      >> gvs[(Ntimes MAP_MAP_o 2)]
-      >> qmatch_goalsub_abbrev_tac `PERM l1 l2`
-      >> `∀l : num list. ¬(MEM 0 l) ⇒ MAP ((λx : num. x + 1) ∘ (λx. x - 1)) l = l` by (rpt strip_tac >> Induct_on `l` >> gvs[])
-      >> sg `¬(MEM 0 l1)`
-      >- (qspecl_then [`l1`, `0`] assume_tac (iffLR MEM_EL)
-          >> drule contrapositive >> pop_assum kall_tac
-          >> strip_tac >> pop_assum irule
-          >> rpt strip_tac
-          >> unabbrev_all_tac
-          >> simp[EL_GENLIST]
-          >> rfs[EL_GENLIST]
-          >> `MODEQ p (a * SUC n) 0` by gvs[MODEQ_THM]
-          >> qspecl_then [`SUC n`, `p`, `a`] assume_tac MODEQ_PRIME_NOT_DIVIDES
-          >> gvs[]
-          >> drule $ iffLR MODEQ_THM
-          >> rpt strip_tac
-          >- gvs[NOT_PRIME_0]
-          >> `SUC n < p` by gvs[]
-          >> gvs[LESS_MOD])
-      >> sg `¬(MEM 0 l2)`
-      >- (qspecl_then [`l2`, `0`] assume_tac (iffLR MEM_EL)
-          >> drule contrapositive >> pop_assum kall_tac
-          >> strip_tac >> pop_assum irule
-          >> rpt strip_tac
-          >> unabbrev_all_tac
-          >> `n < (p - 1)` by gvs[LENGTH_COUNT_LIST]
-          >> gvs[el_map_count])
-      >> metis_tac[])
+    (strip_tac
+     >>qspecl_then [`λx : num. x + 1`] drule PERM_MAP
+     >> pop_assum kall_tac >> strip_tac
+     >> gvs[(Ntimes MAP_MAP_o 2)]
+     >> qmatch_goalsub_abbrev_tac `PERM l1 l2`
+     >> `∀l : num list. ¬(MEM 0 l) ⇒ MAP ((λx : num. x + 1) ∘ (λx. x - 1)) l = l` by (rpt strip_tac >> Induct_on `l` >> gvs[])
+          >> sg `¬(MEM 0 l1)`
+          >- (qspecl_then [`l1`, `0`] assume_tac (iffLR MEM_EL)
+              >> drule contrapositive >> pop_assum kall_tac
+              >> strip_tac >> pop_assum irule
+              >> rpt strip_tac
+              >> unabbrev_all_tac
+              >> simp[EL_GENLIST]
+              >> rfs[EL_GENLIST]
+              >> `MODEQ p (a * SUC n) 0` by gvs[MODEQ_THM]
+              >> qspecl_then [`SUC n`, `p`, `a`] assume_tac MODEQ_PRIME_NOT_DIVIDES
+              >> gvs[]
+              >> drule $ iffLR MODEQ_THM
+              >> rpt strip_tac
+              >- gvs[NOT_PRIME_0]
+              >> `SUC n < p` by gvs[]
+              >> gvs[LESS_MOD])
+          >> sg `¬(MEM 0 l2)`
+          >- (qspecl_then [`l2`, `0`] assume_tac (iffLR MEM_EL)
+              >> drule contrapositive >> pop_assum kall_tac
+              >> strip_tac >> pop_assum irule
+              >> rpt strip_tac
+              >> unabbrev_all_tac
+              >> `n < (p - 1)` by gvs[LENGTH_COUNT_LIST]
+              >> gvs[el_map_count])
+          >> metis_tac[])
   >> `MAP (λx : num. x - 1) l2 = COUNT_LIST (p - 1)` by gvs[MAP_MAP_o, o_DEF]
   >> gvs[]
   >> qmatch_goalsub_abbrev_tac `PERM l3 _`
   >> `PERM l3 (COUNT_LIST (LENGTH l3))` suffices_by
-     (`LENGTH l3 = p - 1` suffices_by metis_tac[]
-      >> unabbrev_all_tac
-      >> gvs[LENGTH_MAP, LENGTH_GENLIST])
+    (`LENGTH l3 = p - 1` suffices_by metis_tac[]
+     >> unabbrev_all_tac
+     >> gvs[LENGTH_MAP, LENGTH_GENLIST])
   >> irule LESS_LENGTH_PERM_COUNT_LIST
   >> sg `EVERY (λn. n > 0) l1`
   >- (irule $ iffRL EVERY_EL
@@ -992,10 +1002,10 @@ Proof
       >> simp[Abbr `l1`]
       >> gvs[EL_GENLIST]
       >> `¬(MODEQ p (a * SUC n) 0)` suffices_by
-         (strip_tac
-          >> qspecl_then [`p`, `(a * SUC n)`, `0`] assume_tac (iffRL MODEQ_THM_FORALL)
-          >> drule contrapositive >> pop_assum kall_tac >> strip_tac
-          >> gvs[])
+        (strip_tac
+         >> qspecl_then [`p`, `(a * SUC n)`, `0`] assume_tac (iffRL MODEQ_THM_FORALL)
+         >> drule contrapositive >> pop_assum kall_tac >> strip_tac
+         >> gvs[])
       >> CCONTR_TAC
       >> gvs[]
       >> `MODEQ p (SUC n) 0` by metis_tac[MODEQ_PRIME_NOT_DIVIDES, MULT_COMM]
@@ -1007,8 +1017,8 @@ Proof
       >> gvs[]
       >> rpt strip_tac
       >> `∀n : num. MEM n l1 ⇒ n > 0` by gvs[EVERY_MEM]
-      >> `x > 0 ∧ y > 0` by gvs[]
-      >> gvs[CANCEL_SUB])
+           >> `x > 0 ∧ y > 0` by gvs[]
+           >> gvs[CANCEL_SUB])
   >> gvs[Abbr `l3`]
   >> gvs[EVERY_MAP]
   >> sg `LENGTH l1 = (p - 1)`
@@ -1021,7 +1031,7 @@ QED
 
 Theorem FOLDR_MUL_GENLIST_FACT:
   ∀n : num.
-  FOLDR ($* ) 1n (GENLIST SUC n) = FACT n
+    FOLDR ($* ) 1n (GENLIST SUC n) = FACT n
 Proof
   rpt strip_tac
   >> Induct_on `n` >> gvs[]
@@ -1037,7 +1047,7 @@ QED
 
 Theorem FOLDR_MUL_GENLIST_POW:
   ∀a len : num.
-  FOLDR ($* ) 1n (GENLIST (λn. a) len) = a ** len
+    FOLDR ($* ) 1n (GENLIST (λn. a) len) = a ** len
 Proof
   rpt strip_tac
   >> Induct_on `len` >> gvs[EXP]
@@ -1051,9 +1061,9 @@ QED
 
 Theorem MODEQ_MUL:
   ∀p a a' b b' : num.
-  MODEQ p a a' ⇒
-  MODEQ p b b' ⇒
-  MODEQ p (a * b) (a' * b')
+    MODEQ p a a' ⇒
+    MODEQ p b b' ⇒
+    MODEQ p (a * b) (a' * b')
 Proof
   rpt strip_tac
   >> Cases_on `p = 0`
@@ -1070,9 +1080,9 @@ QED
    the numbers together *)
 Theorem mod_list_product:
   ∀p : num.
-  ∀l1 : num list.
-  p > 0 ⇒
-  MODEQ p (FOLDR $* 1 (MAP (λn : num. n MOD p) l1)) (FOLDR $* 1 l1) 
+    ∀l1 : num list.
+      p > 0 ⇒
+      MODEQ p (FOLDR $* 1 (MAP (λn : num. n MOD p) l1)) (FOLDR $* 1 l1) 
 Proof
   rpt strip_tac
   >> gvs[MODEQ_THM]
@@ -1084,8 +1094,8 @@ QED
 
 Theorem split_list_product_of_products:
   ∀f g : α -> num.
-  ∀ l1 : α list.
-  FOLDR $* 1n (MAP (λa : α. f a *  g a) l1) = (FOLDR $* 1n (MAP (λa : α. f a) l1)) * (FOLDR $* 1n (MAP (λa : α. g a) l1))
+    ∀ l1 : α list.
+      FOLDR $* 1n (MAP (λa : α. f a *  g a) l1) = (FOLDR $* 1n (MAP (λa : α. f a) l1)) * (FOLDR $* 1n (MAP (λa : α. g a) l1))
 Proof
   rpt strip_tac
   >> Induct_on `l1` >> rpt strip_tac >> gvs[]
