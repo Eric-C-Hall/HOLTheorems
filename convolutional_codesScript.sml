@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -476,9 +475,9 @@ End
 (* Outputs a set of                                                           *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition viterbi_trellis_data_row_def:
+(*Definition viterbi_trellis_data_row_def:
   viterbi_trellis_data_row m bs 0 = 
-End
+End*)
 
 Definition test_path_def:
            test_path = [F; T; T; F; T; T; T; T; F; F; T; F]
