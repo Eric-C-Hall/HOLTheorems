@@ -315,7 +315,7 @@ End
 Theorem test_convolutional_parity_encode:
 
 Proof
-QED*)
+QED
 
 
 (* -------------------------------------------------------------------------- *)
