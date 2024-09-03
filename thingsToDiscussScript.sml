@@ -56,6 +56,8 @@ End
 
 (* Proving termination condition *)
 
+(* Ensuring that the various files compile under HOLMake *)
+
 
 val _ = export_theory();
 

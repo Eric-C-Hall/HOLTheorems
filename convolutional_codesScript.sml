@@ -13,6 +13,11 @@ open relationTheory;
 open dep_rewrite;
 (*open "donotexpandScript.sml"*)
 
+open WFTheoremsTheory;
+
+val _ = monadsyntax.enable_monadsyntax()
+val _ = monadsyntax.enable_monad "option"
+
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
 (*                                                                            *)
@@ -421,8 +426,6 @@ End
 (* this point in the trellis and previous state on optimal path to this point *)
 (* in the trellis                                                             *)
 (* -------------------------------------------------------------------------- *)
-val _ = monadsyntax.enable_monadsyntax()
-val _ = monadsyntax.enable_monad "option"
 
 (* -------------------------------------------------------------------------- *)
 (* Describes the data stored at a particular point in the trellis             *)
