@@ -10,6 +10,7 @@ open bitstringTheory;
 open infnumTheory;
 open prim_recTheory;
 open relationTheory;
+open rich_listTheory;
 
 open dep_rewrite;
 (*open "donotexpandScript.sml"*)
@@ -193,12 +194,9 @@ Proof
   rpt strip_tac
 QED*)
 
-
-
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
 (* -------------------------------------------------------------------------- *)
-
 
 (* -------------------------------------------------------------------------- *)
 (* A parity equation is represented as a bit-string of which bits in the      *)
@@ -300,9 +298,9 @@ QED
 (* Applies a bunch of parity equations to a bitstring with a sufficiently     *)
 (* large window length                                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition convolutional_parity_encode_step_def:
-  convolutional_parity_encode_step [] bs = [] ∧
-  convolutional_parity_encode_step (p::ps) bs = (apply_parity_equation p bs)::(convolutional_parity_encode_step ps bs)
+Definition apply_parity_equations_def:
+  apply_parity_equations [] bs = [] ∧
+  apply_parity_equations (p::ps) bs = (apply_parity_equation p bs)::(apply_parity_equations ps bs)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -320,7 +318,7 @@ Definition convolutional_parity_encode_def:
     if (LENGTH bs < window_length ∨ bs = []) then [] else
       let
         first_window = TAKE window_length bs;
-        step_values = convolutional_parity_encode_step ps first_window;
+        step_values = apply_parity_equations ps first_window;
         remaining_bitstring = DROP 1 bs;
         remaining_values = convolutional_parity_encode ps remaining_bitstring;
       in
@@ -354,7 +352,6 @@ Theorem test_convolutional_parity_encode:
 Proof
   EVAL_TAC
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL STATE MACHINE ENCODING                                       *)
@@ -398,6 +395,31 @@ Definition wfmachine_def:
     ∀s. s ∈ m.states ⇒
         ∀b. LENGTH (m.transition_fn <| origin := s; input := b |>).output = m.output_length
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Function for converting from a list of parity equations to a corresponding *)
+(* state machine                                                              *)
+(* -------------------------------------------------------------------------- *)
+Definition parity_equations_to_state_machine_def:
+  parity_equations_to_state_machine ps =
+  let
+    num_parity_equations = LENGTH ps;
+    window_length = parity_equations_max_length ps;
+    memory_length = window_length - 1;
+    num_memory_configurations = 2 ** memory_length;
+  in
+    <|
+      states := {s | LENGTH s = memory_length} : (bool list) set;
+      transition_fn := (λorigin.
+                          <| destination := TL (SNOC origin.input origin.origin);
+                             output := apply_parity_equations ps (SNOC origin.input origin.origin) |>
+                       ) : (bool list) transition_origin -> (bool list) transition_destination;
+      init := REPLICATE window_length F : (bool list);
+      output_length := num_parity_equations : num;
+      num_states := num_memory_configurations : num;
+    |>
+End
+
 
 (* -------------------------------------------------------------------------- *)
 (* Helper function that does the actual work to encode a binary string using  *)
