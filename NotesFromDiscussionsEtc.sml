@@ -55,6 +55,17 @@ val _ = new_theory "thingsToDiscuss";
 
 (* GSYM *)
 
+(* WF_REL_TAC `measure (LENGTH o SND)`
+*)
+
+(* Lib *)
+
+(* POP_ASSUM_LIST*)
+
+(* assum_list *)
+
+(* Meta-; is the hotkey for commenting/uncommenting a region *)
+
 val _ = export_theory();
 
 

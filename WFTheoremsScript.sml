@@ -8,6 +8,8 @@ val _ = new_theory "WFTheorems";
 
 (* From memory, I think some of these theorems might actually already exist somewhere, perhaps? *)
 
+(* WF_inv_image *)
+
 Theorem WF_LENGTH:
   WF (λbs cs : α list. LENGTH bs < LENGTH cs)
 Proof

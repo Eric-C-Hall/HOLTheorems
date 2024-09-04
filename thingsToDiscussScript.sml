@@ -58,6 +58,7 @@ End
 
 (* Ensuring that the various files compile under HOLMake *)
 
+(* Fixed bug in convolutional code encoding, parity equations version. Added tests for this code. *)
 
 val _ = export_theory();
 
