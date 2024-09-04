@@ -558,12 +558,10 @@ Definition example_recursive_grid_row_def:
   example_recursive_grid_row 0 = REPLICATE 10 1 ∧
   example_recursive_grid_row (SUC n) =
   let
-    prior_grid_row = example_grid n
+    prior_grid_row = example_recursive_grid_row n
   in
-    MAP (λn. (if 0 < n then EL (n - 1) prior_grid else 0) + EL n prior_grid + (if n < 9 then EL (n + 1) prior_grid else 0)) (COUNT_LIST 10)
+    MAP (λn. (if 0 < n then EL (n - 1) prior_grid_row else 0) + EL n prior_grid_row + (if n < 9 then EL (n + 1) prior_grid_row else 0)) (COUNT_LIST 10)
 End
-
-
 
 (* -------------------------------------------------------------------------- *)
 (* Testing whether or not example_grid takes an exponential amount of time    *)
@@ -581,11 +579,11 @@ End
 (* 700: 26.521                                                                *)
 (* 800: 34.426                                                                *)
 (* -------------------------------------------------------------------------- *)
-Theorem example_grid_time_test:
+(*Theorem example_grid_time_test:
   example_grid 800 = ARB
 Proof
   EVAL_TAC
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
