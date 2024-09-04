@@ -358,6 +358,9 @@ QED
 (* CONVOLUTIONAL STATE MACHINE ENCODING                                       *)
 (* -------------------------------------------------------------------------- *)
 
+(* -------------------------------------------------------------------------- *)
+(* The datatype used as the input of a transition in a state machine          *)
+(* -------------------------------------------------------------------------- *)
 Datatype:
   transition_origin = <|
     origin : α;
@@ -365,6 +368,9 @@ Datatype:
   |>
 End
 
+(* -------------------------------------------------------------------------- *)
+(* The datatype used as the output of a transition in a state machine         *)
+(* -------------------------------------------------------------------------- *)
 Datatype:
   transition_destination = <|
     destination : α;
@@ -375,8 +381,9 @@ End
 (* -------------------------------------------------------------------------- *)
 (* A state machine consists of:                                               *)
 (* - A set of states                                                          *)
-(* - A function which takes a state and an input, and returns a new state and *)
-(*   an output                                                                *)
+(* - A function which takes a state and an input bit, and returns a new state *)
+(* and an output bitstring.                                                   *)
+(* - An initial state                                                         *)
 (*                                                                            *)
 (* We additionally have the assumption of binary input and output.            *)
 (* -------------------------------------------------------------------------- *)
@@ -387,6 +394,49 @@ Datatype:
     init : α;
     output_length : num;
     state_ordering : α -> α -> bool;
+  |>
+End
+
+Datatype:
+  num_transition_origin = <|
+    origin : num;
+    input : bool;
+  |>
+End
+
+Datatype:
+  num_transition_destination = <|
+    destination : num;
+    output : bool list;
+  |> 
+End
+
+(* -------------------------------------------------------------------------- *)
+(* A concrete state machine based on the num type.                            *)
+(*                                                                            *)
+(* The states of this state machine are all the consecutive natural numbers   *)
+(* starting at zero and ending at num_states.                                 *)
+(*                                                                            *)
+(* The initial state is state 0.                                              *)
+(*                                                                            *)
+(* Disadvantages:                                                             *)
+(* - lacks the generality of the state machine. For example, it's nice to be  *)
+(*   able to represent the viterbi state machine where each state is a        *)
+(*   bitstring                                                                *)
+(*                                                                            *)
+(* Advantages:                                                                *)
+(* - Has a simple mapping between states and natural numbers, thus can use    *)
+(*   the structure of the natural numbers to do nice things such as finding   *)
+(*   the "least" state or associating each state with an element of a list    *)
+(* - It is generally easier to evaluate the code when working with lists      *)
+(*   rather than sets. Can enumerate through a list easily but it's harder    *)
+(*   to enumerate through a set.                                              *)
+(* -------------------------------------------------------------------------- *)
+Datatype:
+  num_state_machine = <|
+    num_states : num;
+    transition_fn : num_transition_origin -> num_transition_destination;
+    output_length : num;
   |>
 End
 
@@ -410,6 +460,18 @@ Definition wfmachine_def:
        - the ordering of the states must be well-founded. *)
     WF m.state_ordering
 End
+
+Definition num_wfmachine_def:
+  num_wfmachine (m : num_state_machine) ⇔
+    (* transition_fn:
+       - if the origin of the transition is a valid state, then the
+         destination must also be a valid state. *)
+    (∀n b. n < m.num_states ⇒ (m.transition_fn <| origin := n; input := b |>).destination < m.num_states) ∧
+    (* output_length:
+       - each transition must output a string of length output_length *)
+    (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
+End
+
 
 (* -------------------------------------------------------------------------- *)
 (* Function for converting from a list of parity equations to a corresponding *)
@@ -634,7 +696,7 @@ QED*)
 End*)
 
 Definition test_path_def:
-           test_path = [F; T; T; F; T; T; T; T; F; F; T; F]
+  test_path = [F; T; T; F; T; T; T; T; F; F; T; F]
 End
 
 (* -------------------------------------------------------------------------- *)
