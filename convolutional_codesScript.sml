@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -542,18 +543,22 @@ Definition viterbi_trellis_data_def:
        prev_state := SOME best_origin.origin |>
 End
 
-
-
 (* -------------------------------------------------------------------------- *)
-(* A simpler function which works along similar lines to how the viterbi      *)
-(* trellis function works, in order to determine whether or                   *)
+(* An example function which generates a grid recursively, in a similar       *)
+(* manner to the Viterbi algorithm.                                           *)
 (*                                                                            *)
+(* I wanted to test whether or not this kind of recursive implementation is   *)
+(* super inefficient in HOL. In particular, I was concerned that since at     *)
+(* each stage it needs to recurse multiple times, this might cause it to take *)
+(* exponential time overall. Luckily, this doesn't seem to be the case.       *)
+(* Perhaps it evaluates the previous row fully before substituting it in      *)
+(* multiple places.                                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition example_grid_def:
-  example_grid 0 = REPLICATE 10 1 ∧
-  example_grid (SUC n) =
+Definition example_recursive_grid_row_def:
+  example_recursive_grid_row 0 = REPLICATE 10 1 ∧
+  example_recursive_grid_row (SUC n) =
   let
-    prior_grid = example_grid n
+    prior_grid_row = example_grid n
   in
     MAP (λn. (if 0 < n then EL (n - 1) prior_grid else 0) + EL n prior_grid + (if n < 9 then EL (n + 1) prior_grid else 0)) (COUNT_LIST 10)
 End
