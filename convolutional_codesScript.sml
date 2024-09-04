@@ -487,6 +487,11 @@ QED
 (* VITERBI DECODING                                                           *)
 (* -------------------------------------------------------------------------- *)
 
+(* -------------------------------------------------------------------------- *)
+(* Each node in the trellis contains the number of errors on an optimal path  *)
+(* to this point in the trellis as well as the previous state on an optimal   *)
+(* path to this point in the trellis.                                         *)
+(* -------------------------------------------------------------------------- *)
 Datatype:
   viterbi_node_datatype = <|
     num_errors : infnum;
@@ -509,6 +514,7 @@ End
 (* bs: the entire input bitstring                                             *)
 (* s: the state associated with this node in the trellis                      *)
 (* t: the time step associated with this node in the trellis                  *)
+(* previous_row: the row of data associated with the previous time step.      *)
 (*                                                                            *)
 (* Outputs a tuple containing the number of errors at this point as well as   *)
 (* the previous state on the optimal path towards this point                  *)
@@ -524,15 +530,11 @@ End
 (* best_origin is the choice of previous state and input which minimizes the  *)
 (* number of errors when transitioning to the current state and time.         *)
 (* -------------------------------------------------------------------------- *)
-Definition viterbi_trellis_data_def:
-  viterbi_trellis_data m bs s 0 : α viterbi_node_datatype =
-  (if s = m.init then
-     <| num_errors := N0; prev_state := NONE |>
-   else <| num_errors := INFINITY; prev_state := NONE |>) ∧
-  viterbi_trellis_data m bs s (SUC t) : α viterbi_node_datatype =
+Definition viterbi_trellis_node_def:
+  viterbi_trellis_node m bs s t previous_row =
   let
-    relevant_input = TAKE m.output_length (DROP (t * m.output_length) bs);
-    get_num_errors = λr. (viterbi_trellis_data m bs r.origin t).num_errors +
+    relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);
+    get_num_errors = λr. (previous_row r.origin).num_errors +
                          N (hamming_distance (m.transition_fn r).output relevant_input);
     origin_leads_to_s = λr. ((m.transition_fn r).destination = s);
     best_origin = @r. origin_leads_to_s r ∧
@@ -541,6 +543,25 @@ Definition viterbi_trellis_data_def:
   in
     <| num_errors := get_num_errors best_origin;
        prev_state := SOME best_origin.origin |>
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Evaluate the trellis row-by-row, to take advantage of the dynamic          *)
+(* programming nature of the algorithm and ensure it evaluates efficiently.   *)
+(* -------------------------------------------------------------------------- *)
+Definition viterbi_trellis_row_def:
+  viterbi_trellis_row m bs 0 = (λs.
+                                  if s = m.init then
+                                    <| num_errors := N0; prev_state := NONE |>
+                                  else
+                                    <| num_errors := INFINITY; prev_state := NONE |>
+                               ) ∧
+  viterbi_trellis_row m bs (SUC t) = let
+                                       previous_row = viterbi_trellis_row m bs t
+                                     in
+                                       (λs.
+                                          viterbi_trellis_node m bs s (SUC t) previous_row
+                                       )
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -584,17 +605,6 @@ End
 Proof
   EVAL_TAC
 QED*)
-
-(* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-Definition viterbi_trellis_row_def:
-  viterbi_calculate_row m bs 0 = λs. 
-
-                                   viterbi_trellis_data m bs s 0
-End
 
 (* -------------------------------------------------------------------------- *)
 (* Outputs a row for a certain time step of the data stored in the trellis    *)
