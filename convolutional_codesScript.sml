@@ -461,6 +461,9 @@ Definition wfmachine_def:
     WF m.state_ordering
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Ensure that the num state machine is well-formed                           *)
+(* -------------------------------------------------------------------------- *)
 Definition num_wfmachine_def:
   num_wfmachine (m : num_state_machine) ⇔
     (* transition_fn:
@@ -545,6 +548,8 @@ Definition example_state_machine_def:
                                | 3 => <| destination := 2; output :=  [F; T] |>
                               );
     init := 0;
+    output_length := 2;
+    state_ordering := $<    
   |> : num state_machine
 End
 
@@ -553,9 +558,85 @@ End
 (* I would expect if I manually did the computation myself                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem convolutional_encode_test1:
+  wfmachine example_state_machine ∧
   convolutional_code_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
 Proof
-  EVAL_TAC
+  REVERSE CONJ_TAC
+  >- EVAL_TAC
+  >> gvs[wfmachine_def]
+  >> rpt conj_tac
+  >- gvs[example_state_machine_def]
+  >- (rpt strip_tac >> gvs[example_state_machine_def] >> Cases_on ‘i’ >> gvs[])
+  >- gvs[example_state_machine_def]
+  >- (rpt strip_tac >> gvs[example_state_machine_def] >> Cases_on ‘i’ >> gvs[])
+  >- (gvs[example_state_machine_def])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Helper function that does the actual work to encode a binary string using  *)
+(* convolutional coding, according to a chosen state machine.                 *)
+(*                                                                            *)
+(* This function additionally has a parameter to keep track of the current    *)
+(* state that the state machine is in.                                        *)
+(* -------------------------------------------------------------------------- *)
+Definition num_convolutional_code_encode_helper_def:
+  num_convolutional_code_encode_helper _ [] _ = [] ∧
+  num_convolutional_code_encode_helper (m : num_state_machine) (b::bs : bool list) (s : num) =
+  let
+    d = m.transition_fn <| origin := s; input := b |>
+  in
+    d.output ⧺ num_convolutional_code_encode_helper m bs d.destination
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Encodes a binary string using convolutional coding, according to a chosen  *)
+(* state machine                                                              *)
+(* -------------------------------------------------------------------------- *)
+Definition num_convolutional_code_encode_def:
+  num_convolutional_code_encode (m : num_state_machine) bs = num_convolutional_code_encode_helper m bs 0
+End
+
+(* -------------------------------------------------------------------------- *)
+(* This num state machine corresponds to the convolutional code which has a   *)
+(* window size of 3, and creates two parity bits, the first of which is       *)
+(* formed by adding together all inputs, and the second of which is formed    *)
+(* by adding together the last 2 inputs.                                      *)
+(* -------------------------------------------------------------------------- *)
+Definition example_num_state_machine_def:
+  example_num_state_machine = <|
+    num_states := 4;
+    transition_fn := λd.
+                       case d.input of
+                         T => (case d.origin of
+                                 0 => <| destination := 1; output := [T; T] |>
+                               | 1 => <| destination := 3; output := [F; F] |>
+                               | 2 => <| destination := 1; output := [F; T] |>
+                               | 3 => <| destination := 3; output := [T; F] |>
+                              )
+                       | F => (case d.origin of
+                                 0 => <| destination := 0; output := [F; F] |>
+                               | 1 => <| destination := 2; output := [T; T] |>
+                               | 2 => <| destination := 0; output := [T; F] |>
+                               | 3 => <| destination := 2; output :=  [F; T] |>
+                              );
+    output_length := 2;
+  |> : num_state_machine
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Simple test to make sure the convolutional code is providing the output    *)
+(* I would expect if I manually did the computation myself                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem num_convolutional_encode_test1:
+  num_wfmachine example_num_state_machine ∧
+  num_convolutional_code_encode example_num_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
+Proof
+  REVERSE conj_tac
+  >- EVAL_TAC
+  >> PURE_REWRITE_TAC[num_wfmachine_def, example_num_state_machine_def]
+  >> gvs[]
+  >> conj_tac
+  >> rpt strip_tac >> Cases_on ‘b’ >> Cases_on ‘n’ >> gvs[] >> Cases_on ‘n'’ >> gvs[] >> Cases_on ‘n’ >> gvs[] >> Cases_on ‘n'’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
