@@ -386,15 +386,29 @@ Datatype:
     transition_fn : α transition_origin -> α transition_destination;
     init : α;
     output_length : num;
-    num_states : num;
+    state_ordering : α -> α -> bool;
   |>
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Ensure that the state machine is well-formed                               *)
+(* -------------------------------------------------------------------------- *)
 Definition wfmachine_def:
   wfmachine (m : α state_machine) ⇔
+    (* states:
+       - must be finite *)
+    FINITE m.states ∧
+    (* transition_fn:
+       - must take valid states to valid states *)
+    (∀s i. s ∈ m.states ⇒ (m.transition_fn <| origin := s; input := i |>).destination ∈ m.states) ∧                                                                                  (* init:
+       - must be a valid state *)
     m.init ∈ m.states ∧
-    ∀s. s ∈ m.states ⇒
-        ∀b. LENGTH (m.transition_fn <| origin := s; input := b |>).output = m.output_length
+    (* output_length:
+       - each output given by transition_fn has the length of output_length *)
+    (∀s i. s ∈ m.states ⇒ LENGTH (m.transition_fn <| origin := s; input := i |>).output = m.output_length) ∧
+    (* state_ordering:
+       - the ordering of the states must be well-founded. *)
+    WF m.state_ordering
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -417,7 +431,6 @@ Definition parity_equations_to_state_machine_def:
                        ) : (bool list) transition_origin -> (bool list) transition_destination;
       init := REPLICATE window_length F : (bool list);
       output_length := num_parity_equations : num;
-      num_states := num_memory_configurations : num;
     |>
 End
 
