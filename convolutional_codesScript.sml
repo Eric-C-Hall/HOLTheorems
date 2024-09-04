@@ -323,7 +323,7 @@ Definition convolutional_parity_encode_def:
         remaining_values = convolutional_parity_encode ps remaining_bitstring;
       in
         step_values ⧺ remaining_values
-Termination
+Termination (* Apparently it's a better idea to do something along the lines of WF_REL_TAC `measure (LENGTH o SND)` *)
   qexists ‘λ(_, bs) (_, cs). LENGTH bs < LENGTH cs’
   >> gvs[]
   >> CONJ_TAC

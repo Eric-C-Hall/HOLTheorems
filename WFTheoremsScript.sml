@@ -10,6 +10,8 @@ val _ = new_theory "WFTheorems";
 
 (* WF_inv_image *)
 
+(* Apparently it's a better idea to do something along the lines of WF_REL_TAC `measure (LENGTH o SND)` *)
+
 Theorem WF_LENGTH:
   WF (λbs cs : α list. LENGTH bs < LENGTH cs)
 Proof
