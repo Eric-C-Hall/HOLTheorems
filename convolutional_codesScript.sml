@@ -542,6 +542,57 @@ Definition viterbi_trellis_data_def:
        prev_state := SOME best_origin.origin |>
 End
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* A simpler function which works along similar lines to how the viterbi      *)
+(* trellis function works, in order to determine whether or                   *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition example_grid_def:
+  example_grid 0 = REPLICATE 10 1 ∧
+  example_grid (SUC n) =
+  let
+    prior_grid = example_grid n
+  in
+    MAP (λn. (if 0 < n then EL (n - 1) prior_grid else 0) + EL n prior_grid + (if n < 9 then EL (n + 1) prior_grid else 0)) (COUNT_LIST 10)
+End
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* Testing whether or not example_grid takes an exponential amount of time    *)
+(* to compute. It could theoretically take an exponential amount of time if   *)
+(* "prior_grid" was expanded before                                           *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* 100: 0.681                                                                 *)
+(* 200: 2.311                                                                 *)
+(* 300: 5.196                                                                 *)
+(* 400: 8.997                                                                 *)
+(* 500: 14.070                                                                *)
+(* 600: 19.658                                                                *)
+(* 700: 26.521                                                                *)
+(* 800: 34.426                                                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem example_grid_time_test:
+  example_grid 800 = ARB
+Proof
+  EVAL_TAC
+QED
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition viterbi_trellis_row_def:
+  viterbi_calculate_row m bs 0 = λs. 
+
+                                   viterbi_trellis_data m bs s 0
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Outputs a row for a certain time step of the data stored in the trellis    *)
 (*                                                                            *)
