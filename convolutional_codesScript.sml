@@ -397,14 +397,14 @@ Datatype:
 End
 
 Datatype:
-  num_transition_origin = <|
+  transition_origin = <|
     origin : num;
     input : bool;
   |>
 End
 
 Datatype:
-  num_transition_destination = <|
+  transition_destination = <|
     destination : num;
     output : bool list;
   |> 
@@ -436,9 +436,9 @@ End
 (*     elements.                                                              *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
-  num_state_machine = <|
+  state_machine = <|
     num_states : num;
-    transition_fn : num_transition_origin -> num_transition_destination;
+    transition_fn : transition_origin -> transition_destination;
     output_length : num;
   |>
 End
@@ -467,8 +467,8 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the num state machine is well-formed                           *)
 (* -------------------------------------------------------------------------- *)
-Definition num_wfmachine_def:
-  num_wfmachine (m : num_state_machine) ⇔
+Definition wfmachine_def:
+  wfmachine (m : state_machine) ⇔
     (* transition_fn:
        - if the origin of the transition is a valid state, then the
          destination must also be a valid state. *)
@@ -580,21 +580,21 @@ QED
 (* This function additionally has a parameter to keep track of the current    *)
 (* state that the state machine is in.                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition num_convolutional_code_encode_helper_def:
-  num_convolutional_code_encode_helper _ [] _ = [] ∧
-  num_convolutional_code_encode_helper (m : num_state_machine) (b::bs : bool list) (s : num) =
+Definition convolutional_code_encode_helper_def:
+  convolutional_code_encode_helper _ [] _ = [] ∧
+  convolutional_code_encode_helper (m : state_machine) (b::bs : bool list) (s : num) =
   let
     d = m.transition_fn <| origin := s; input := b |>
   in
-    d.output ⧺ num_convolutional_code_encode_helper m bs d.destination
+    d.output ⧺ convolutional_code_encode_helper m bs d.destination
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Encodes a binary string using convolutional coding, according to a chosen  *)
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
-Definition num_convolutional_code_encode_def:
-  num_convolutional_code_encode (m : num_state_machine) bs = num_convolutional_code_encode_helper m bs 0
+Definition convolutional_code_encode_def:
+  convolutional_code_encode (m : state_machine) bs = convolutional_code_encode_helper m bs 0
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -603,8 +603,8 @@ End
 (* formed by adding together all inputs, and the second of which is formed    *)
 (* by adding together the last 2 inputs.                                      *)
 (* -------------------------------------------------------------------------- *)
-Definition example_num_state_machine_def:
-  example_num_state_machine = <|
+Definition example_state_machine_def:
+  example_state_machine = <|
     num_states := 4;
     transition_fn := λd.
                        case d.input of
@@ -621,38 +621,38 @@ Definition example_num_state_machine_def:
                                | 3 => <| destination := 2; output :=  [F; T] |>
                               );
     output_length := 2;
-  |> : num_state_machine
+  |> : state_machine
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Simple test to make sure the convolutional code is providing the output    *)
 (* I would expect if I manually did the computation myself                    *)
 (* -------------------------------------------------------------------------- *)
-Theorem num_convolutional_encode_test1:
-  num_wfmachine example_num_state_machine ∧
-  num_convolutional_code_encode example_num_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
+Theorem convolutional_encode_test1:
+  wfmachine example_state_machine ∧
+  convolutional_code_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
 Proof
   REVERSE conj_tac
   >- EVAL_TAC
-  >> PURE_REWRITE_TAC[num_wfmachine_def, example_num_state_machine_def]
+  >> PURE_REWRITE_TAC[wfmachine_def, example_state_machine_def]
   >> gvs[]
   >> conj_tac
   >> rpt strip_tac >> Cases_on ‘b’ >> Cases_on ‘n’ >> gvs[] >> Cases_on ‘n'’ >> gvs[] >> Cases_on ‘n’ >> gvs[] >> Cases_on ‘n'’ >> gvs[]
 QED
 
 Definition all_transitions_helper_def:
-  all_transitions_helper (m : num_state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
+  all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Returns a list of all valid choices of a num_transition_origin             *)
+(* Returns a list of all valid choices of a transition_origin             *)
 (* -------------------------------------------------------------------------- *)
 Definition all_transitions_def:
-  all_transitions (m : num_state_machine) = all_transitions_helper m T ⧺ all_transitions_helper m F
+  all_transitions (m : state_machine) = all_transitions_helper m T ⧺ all_transitions_helper m F
 End
 
 (*Theorem all_transitions_test:
-  all_transitions example_num_state_machine = faz
+  all_transitions example_state_machine = faz
 Proof
   EVAL_TAC
 End*)
@@ -660,15 +660,15 @@ End*)
 (* -------------------------------------------------------------------------- *)
 (* Returns a list of transitions that lead to the given state, as well as the *)
 (* input which leads to them. Each element of the list is a                   *)
-(* num_transition_origin                                                      *)
+(* transition_origin                                                          *)
 (* -------------------------------------------------------------------------- *)
-Definition num_transition_inverse_def:
-  num_transition_inverse (m : num_state_machine) dest =
+Definition transition_inverse_def:
+  transition_inverse (m : state_machine) dest =
   FILTER (λorgn. (m.transition_fn orgn).destination = dest) (all_transitions m)
 End
 
-(*Theorem num_transition_inverse_test:
-  num_transition_inverse example_num_state_machine 2 = qkdmv  
+(*Theorem transition_inverse_test:
+  transition_inverse example_state_machine 2 = qkdmv  
 Proof
   EVAL_TAC
 End*)
@@ -724,8 +724,8 @@ Definition viterbi_trellis_node_def:
   viterbi_trellis_node m bs s t previous_row =
   let
     relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);    get_num_errors = λr. (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output relevant_input);
-    possible_origins = num_transition_inverse m s;
-    best_origin = FOLDR (λr1 r2 : num_transition_origin. if (get_num_errors r1) < (get_num_errors r2) then r1 else r2) (HD possible_origins) (TL possible_origins)
+    possible_origins = transition_inverse m s;
+    best_origin = FOLDR (λr1 r2 : transition_origin. if (get_num_errors r1) < (get_num_errors r2) then r1 else r2) (HD possible_origins) (TL possible_origins)
   in
     <| num_errors := get_num_errors best_origin;
        prev_state := SOME best_origin.origin; |>
@@ -736,7 +736,7 @@ End
 (* programming nature of the algorithm and ensure it evaluates efficiently.   *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_row_def:
-  viterbi_trellis_row (m : num_state_machine) bs 0
+  viterbi_trellis_row (m : state_machine) bs 0
   = <| num_errors := N0; prev_state := NONE |> :: REPLICATE (m.num_states - 1) <| num_errors := INFINITY; prev_state := NONE |>
   ∧
   viterbi_trellis_row m bs (SUC t)
@@ -804,7 +804,7 @@ End
 (* -  -  2  3  4  3  3                                                        *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem viterbi_trellis_row_test:
-  viterbi_trellis_row example_num_state_machine test_path 4 = ARB
+  viterbi_trellis_row example_state_machine test_path 4 = ARB
 Proof
   EVAL_TAC
 QED*)
@@ -865,10 +865,10 @@ End
 (*                                  .. 2, 1, 0, 0]                            *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem vd_find_optimal_reversed_path_test:
-  vd_find_optimal_reversed_path example_num_state_machine test_path 0 6 = ARB ∧
-  vd_find_optimal_reversed_path example_num_state_machine test_path 1 4 = ARB ∧
-  vd_find_optimal_reversed_path example_num_state_machine test_path 2 4 = ARB ∧
-  vd_find_optimal_reversed_path example_num_state_machine test_path 3 6 = ARB
+  vd_find_optimal_reversed_path example_state_machine test_path 0 6 = ARB ∧
+  vd_find_optimal_reversed_path example_state_machine test_path 1 4 = ARB ∧
+  vd_find_optimal_reversed_path example_state_machine test_path 2 4 = ARB ∧
+  vd_find_optimal_reversed_path example_state_machine test_path 3 6 = ARB
 Proof
   EVAL_TAC
 End*)
@@ -944,8 +944,8 @@ End
 
 (*Theorem viterbi_decode_test:
   let
-    decoded_path = viterbi_decode example_num_state_machine test_path;
-    encoded_decoded_path = num_convolutional_code_encode example_num_state_machine decoded_path
+    decoded_path = viterbi_decode example_state_machine test_path;
+    encoded_decoded_path = convolutional_code_encode example_state_machine decoded_path
   in
     decoded_path = ARB ∧
     encoded_decoded_path = ARB ∧
@@ -955,7 +955,7 @@ Proof
   EVAL_TAC
 QED*)
 
-Theorem num_convolutional_code_encode_empty:
+Theorem convolutional_code_encode_empty:
 Proof
 QED
 
@@ -992,11 +992,11 @@ QED
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_correctness:
-  ∀m : num_state_machine.
+  ∀m : state_machine.
     ∀bs rs : bool list.
-      num_wfmachine m ∧
+      wfmachine m ∧
       LENGTH rs = m.output_length * LENGTH bs ⇒
-      hamming_distance rs (num_convolutional_code_encode m bs) ≤ hamming_distance rs (num_convolutional_code_encode m (viterbi_decode m rs))
+      hamming_distance rs (convolutional_code_encode m bs) ≤ hamming_distance rs (convolutional_code_encode m (viterbi_decode m rs))
 Proof
   rpt strip_tac
   >> Induct_on ‘bs’
