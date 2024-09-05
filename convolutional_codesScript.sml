@@ -361,7 +361,7 @@ QED
 (* The datatype used as the input of a transition in a state machine          *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
-  transition_origin = <|
+  gen_transition_origin = <|
     origin : α;
     input : bool;
   |>
@@ -371,7 +371,7 @@ End
 (* The datatype used as the output of a transition in a state machine         *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
-  transition_destination = <|
+  gen_transition_destination = <|
     destination : α;
     output : bool list;
   |> 
@@ -387,9 +387,9 @@ End
 (* We additionally have the assumption of binary input and output.            *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
-  state_machine = <|
+  gen_state_machine = <|
     states : α set;
-    transition_fn : α transition_origin -> α transition_destination;
+    transition_fn : α gen_transition_origin -> α gen_transition_destination;
     init : α;
     output_length : num;
     state_ordering : α -> α -> bool;
@@ -446,8 +446,8 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the state machine is well-formed                               *)
 (* -------------------------------------------------------------------------- *)
-Definition wfmachine_def:
-  wfmachine (m : α state_machine) ⇔
+Definition gen_wfmachine_def:
+  gen_wfmachine (m : α gen_state_machine) ⇔
     (* states:
        - must be finite *)
     FINITE m.states ∧
@@ -482,8 +482,8 @@ End
 (* Function for converting from a list of parity equations to a corresponding *)
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
-Definition parity_equations_to_state_machine_def:
-  parity_equations_to_state_machine ps =
+Definition parity_equations_to_gen_state_machine_def:
+  parity_equations_to_gen_state_machine ps =
   let
     num_parity_equations = LENGTH ps;
     window_length = parity_equations_max_length ps;
@@ -495,7 +495,7 @@ Definition parity_equations_to_state_machine_def:
       transition_fn := (λorigin.
                           <| destination := TL (SNOC origin.input origin.origin);
                              output := apply_parity_equations ps (SNOC origin.input origin.origin) |>
-                       ) : (bool list) transition_origin -> (bool list) transition_destination;
+                       ) : (bool list) gen_transition_origin -> (bool list) gen_transition_destination;
       init := REPLICATE window_length F : (bool list);
       output_length := num_parity_equations : num;
     |>
@@ -508,21 +508,21 @@ End
 (* This function additionally has a parameter to keep track of the current    *)
 (* state that the state machine is in.                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition convolutional_code_encode_helper_def:
-  convolutional_code_encode_helper _ [] _ = [] ∧
-  convolutional_code_encode_helper (m : α state_machine) (b::bs : bool list) (s : α) =
+Definition gen_convolutional_code_encode_helper_def:
+  gen_convolutional_code_encode_helper _ [] _ = [] ∧
+  gen_convolutional_code_encode_helper (m : α gen_state_machine) (b::bs : bool list) (s : α) =
   let
     d = m.transition_fn <| origin := s; input := b |>
   in
-    d.output ⧺ convolutional_code_encode_helper m bs d.destination
+    d.output ⧺ gen_convolutional_code_encode_helper m bs d.destination
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Encodes a binary string using convolutional coding, according to a chosen  *)
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
-Definition convolutional_code_encode_def:
-  convolutional_code_encode (m : α state_machine) bs = convolutional_code_encode_helper m bs m.init
+Definition gen_convolutional_code_encode_def:
+  gen_convolutional_code_encode (m : α gen_state_machine) bs = gen_convolutional_code_encode_helper m bs m.init
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -531,8 +531,8 @@ End
 (* formed by adding together all inputs, and the second of which is formed    *)
 (* by adding together the last 2 inputs.                                      *)
 (* -------------------------------------------------------------------------- *)
-Definition example_state_machine_def:
-  example_state_machine = <|
+Definition gen_example_state_machine_def:
+  gen_example_state_machine = <|
     states := {0; 1; 2; 3};
     transition_fn := λd.
                        case d.input of
@@ -551,26 +551,26 @@ Definition example_state_machine_def:
     init := 0;
     output_length := 2;
     state_ordering := $<    
-  |> : num state_machine
+  |> : num gen_state_machine
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Simple test to make sure the convolutional code is providing the output    *)
 (* I would expect if I manually did the computation myself                    *)
 (* -------------------------------------------------------------------------- *)
-Theorem convolutional_encode_test1:
-  wfmachine example_state_machine ∧
-  convolutional_code_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
+Theorem gen_convolutional_encode_test1:
+  gen_wfmachine gen_example_state_machine ∧
+  gen_convolutional_code_encode gen_example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
 Proof
   REVERSE CONJ_TAC
   >- EVAL_TAC
-  >> gvs[wfmachine_def]
+  >> gvs[gen_wfmachine_def]
   >> rpt conj_tac
-  >- gvs[example_state_machine_def]
-  >- (rpt strip_tac >> gvs[example_state_machine_def] >> Cases_on ‘i’ >> gvs[])
-  >- gvs[example_state_machine_def]
-  >- (rpt strip_tac >> gvs[example_state_machine_def] >> Cases_on ‘i’ >> gvs[])
-  >- (gvs[example_state_machine_def])
+  >- gvs[gen_example_state_machine_def]
+  >- (rpt strip_tac >> gvs[gen_example_state_machine_def] >> Cases_on ‘i’ >> gvs[])
+  >- gvs[gen_example_state_machine_def]
+  >- (rpt strip_tac >> gvs[gen_example_state_machine_def] >> Cases_on ‘i’ >> gvs[])
+  >- (gvs[gen_example_state_machine_def])
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -892,10 +892,10 @@ Definition test_state_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* An arbitrary, valid transition_origin, used for testing purposes           *)
+(* An arbitrary, valid gen_transition_origin, used for testing purposes       *)
 (* -------------------------------------------------------------------------- *)
 Definition test_transition_origin_def:
-  test_transition_origin : α transition_origin = <| origin := test_state; input := F |>
+  test_transition_origin : α gen_transition_origin = <| origin := test_state; input := F |>
 End
 
 (* -------------------------------------------------------------------------- *)
