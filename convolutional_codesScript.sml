@@ -828,9 +828,11 @@ Definition vd_find_optimal_reversed_path_def:
   let
     trellis_row = viterbi_trellis_row m bs (SUC t);
     trellis_node = EL s trellis_row;
-    s2 = THE trellis_node.prev_state;
-  in
-    s :: (vd_find_optimal_reversed_path m bs s2 t)
+  in 
+    s :: (case trellis_node.prev_state of
+            NONE => []
+          | SOME s2 => vd_find_optimal_reversed_path m bs s2 t
+         )
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -955,8 +957,35 @@ Proof
   EVAL_TAC
 QED*)
 
-Theorem convolutional_code_encode_empty:
+Theorem convolutional_code_encode_empty[simp]:
+  ∀m. convolutional_code_encode m [] = []
 Proof
+  rpt strip_tac
+  >> EVAL_TAC
+QED
+
+Theorem vd_find_optimal_reversed_path_empty[simp]:
+  ∀m s t. vd_find_optimal_reversed_path m [] s t = [s]
+Proof
+  rpt strip_tac
+  >> Cases_on ‘t’
+  >- EVAL_TAC
+  >> PURE_REWRITE_TAC[vd_find_optimal_reversed_path_def]
+QED
+
+Theorem vd_find_optimal_path_empty[simp]:
+  ∀m s t. vd_find_optimal_path m [] s t = []
+Proof
+  rpt strip_tac
+  >> gvs[vd_find_optimal_path_def]
+  >> EVAL_TAC
+QED
+
+Theorem convolutional_code_decode_empty[simp]:
+  ∀m. viterbi_decode m [] = []
+Proof
+  gvs[viterbi_decode_def]
+     EVAL_TAC
 QED
 
 (* -------------------------------------------------------------------------- *)
