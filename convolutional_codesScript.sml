@@ -1009,7 +1009,7 @@ QED
 
 Theorem convolutional_code_encode_induct:
   ∀b bs. convolutional_code_encode m (SNOC b bs) =
-         (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state))
+         (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state m bs))
 Proof
 QED
 
