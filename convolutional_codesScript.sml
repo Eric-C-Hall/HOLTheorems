@@ -603,12 +603,12 @@ End
 (* keep track of the current state we're in.                                  *)
 (* -------------------------------------------------------------------------- *)
 Definition convolutional_code_encode_state_helper_def:
-  convolutional_code_encode_state_helper _ [] s = s ∧
-  convolutional_code_encode_helper m (b::bs) s =
+  convolutional_code_encode_state_helper (m : state_machine) [] s = s ∧
+  convolutional_code_encode_state_helper m (b::bs) s =
   let
-    d = m.transition_fn <| origin := s; input := b |>
+    d = m.transition_fn (<| origin := s; input := b |>)
   in
-    convolutional_code_encode_helper m bs d.destination
+    convolutional_code_encode_state_helper m bs d.destination
 End 
 
 (* -------------------------------------------------------------------------- *)
@@ -1007,8 +1007,9 @@ Proof
   >> gvs[viterbi_decode_def]
 QED
 
-Theorem convolutional_code_encode_induct[simp]:
-  ∀b bs. convolutional_code_encode m (h::bs)
+Theorem convolutional_code_encode_induct:
+  ∀b bs. convolutional_code_encode m (SNOC b bs) =
+         (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state))
 Proof
 QED
 
