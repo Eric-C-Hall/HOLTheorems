@@ -955,6 +955,10 @@ Proof
   EVAL_TAC
 QED*)
 
+Theorem num_convolutional_code_encode_empty:
+Proof
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -970,14 +974,36 @@ QED*)
 (* rs: the received message                                                   *)
 (* bs: the alternate possible original messages                               *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem viterbi_correctness:
-  ∀m : α state_machine.
+(* Proof outline:                                                             *)
+(*                                                                            *)
+(* Induct over bs                                                             *)
+(*                                                                            *)
+(* In base case, bs and rs are both empty. So too is the encoding of bs, the  *)
+(* decoding of rs, and the encoding and decoding of rs, so our statement      *)(* reduces to hamming_distance [] [] ≤ hamming_distance [] []                 *)
+(*                                                                            *)
+(* In the inductive step, we know that for all lesser lengthed bs, assuming   *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_correctness:
+  ∀m : num_state_machine.
     ∀bs rs : bool list.
-      hamming_distance rs (convolutional_code_encode m bs) ≤ hamming_distance rs (convolutional_code_encode m (viterbi_decode m rs))
+      num_wfmachine m ∧
+      LENGTH rs = m.output_length * LENGTH bs ⇒
+      hamming_distance rs (num_convolutional_code_encode m bs) ≤ hamming_distance rs (num_convolutional_code_encode m (viterbi_decode m rs))
 Proof
-
-  ...
-QED*)
+  rpt strip_tac
+  >> Induct_on ‘bs’
+  >- (gvs[]
+      >>
+      >> gvs[viterbi_decode_def]
+QED
 
 
 
