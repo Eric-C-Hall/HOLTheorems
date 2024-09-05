@@ -833,26 +833,6 @@ Definition vd_find_optimal_reversed_path_def:
     s :: (vd_find_optimal_reversed_path m bs s2 t)
 End
 
-
-
-Definition example_num_state_machine_def:
-  x = λd.
-        case d.input of
-          T => (case d.origin of
-                  0 => <| destination := 1; output := [T; T] |>
-                | 1 => <| destination := 3; output := [F; F] |>
-                | 2 => <| destination := 1; output := [F; T] |>
-                | 3 => <| destination := 3; output := [T; F] |>
-               )
-        | F => (case d.origin of
-                  0 => <| destination := 0; output := [F; F] |>
-                | 1 => <| destination := 2; output := [T; T] |>
-                | 2 => <| destination := 0; output := [T; F] |>
-                | 3 => <| destination := 2; output := [F; T] |>
-               );
-End
-
-
 (* -------------------------------------------------------------------------- *)
 (* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
 (*                                                                            *)
@@ -884,14 +864,14 @@ End
 (* Starting at state 3, t=6; [3, 3, 1, 0, 2, 1, 0]                            *)
 (*                                  .. 2, 1, 0, 0]                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem vd_find_optimal_reversed_path_test:
+(*Theorem vd_find_optimal_reversed_path_test:
   vd_find_optimal_reversed_path example_num_state_machine test_path 0 6 = ARB ∧
   vd_find_optimal_reversed_path example_num_state_machine test_path 1 4 = ARB ∧
   vd_find_optimal_reversed_path example_num_state_machine test_path 2 4 = ARB ∧
   vd_find_optimal_reversed_path example_num_state_machine test_path 3 6 = ARB
 Proof
   EVAL_TAC
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_find_optimal_reversed_path                              *)
@@ -948,14 +928,32 @@ End
 (* Input: bitstring and state machine                                         *)
 (* Output: Most likely original bitstring                                     *)
 (* -------------------------------------------------------------------------- *)
+(* TODO: This recalculates the whole trellis again, which is already          *)
+(* recalculated several times when producing the path back through the        *)
+(* trellis                                                                    *)
+(* -------------------------------------------------------------------------- *)
 Definition viterbi_decode_def:
   viterbi_decode m bs =
   let
     max_timestep = (LENGTH bs) DIV m.output_length;
-    last_state = @s. ∀s2. (viterbi_trellis_data m bs s max_timestep).num_errors ≤ (viterbi_trellis_data m bs s2 max_timestep).num_errors;
+    last_row = viterbi_trellis_row m bs max_timestep;
+    best_state = FOLDR (λs1 s2. if (EL s1 last_row).num_errors < (EL s2 last_row).num_errors then s1 else s2) 0 (COUNT_LIST m.num_states)
   in
-    path_to_code m (vd_find_optimal_path m bs last_state max_timestep)
+    path_to_code m (vd_find_optimal_path m bs best_state max_timestep)
 End
+
+(*Theorem viterbi_decode_test:
+  let
+    decoded_path = viterbi_decode example_num_state_machine test_path;
+    encoded_decoded_path = num_convolutional_code_encode example_num_state_machine decoded_path
+  in
+    decoded_path = ARB ∧
+    encoded_decoded_path = ARB ∧
+    test_path = ARB ∧
+    hamming_distance encoded_decoded_path test_path = ARB                
+Proof
+  EVAL_TAC
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
