@@ -598,6 +598,28 @@ Definition convolutional_code_encode_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Helper function to calculate the final state you'll end up in if you apply *)
+(* the given state machine to the given bitstring. Also has a variable to     *)
+(* keep track of the current state we're in.                                  *)
+(* -------------------------------------------------------------------------- *)
+Definition convolutional_code_encode_state_helper_def:
+  convolutional_code_encode_state_helper _ [] s = s ∧
+  convolutional_code_encode_helper m (b::bs) s =
+  let
+    d = m.transition_fn <| origin := s; input := b |>
+  in
+    convolutional_code_encode_helper m bs d.destination
+End 
+
+(* -------------------------------------------------------------------------- *)
+(* Calculates the final state you'll end up in if you apply the given state   *)
+(* machine to the given bitstring.                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition convolutional_code_encode_state_def:
+  convolutional_code_encode_state (m : state_machine) bs = convolutional_code_encode_state_helper m bs 0
+End
+
+(* -------------------------------------------------------------------------- *)
 (* This num state machine corresponds to the convolutional code which has a   *)
 (* window size of 3, and creates two parity bits, the first of which is       *)
 (* formed by adding together all inputs, and the second of which is formed    *)
