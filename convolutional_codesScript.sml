@@ -743,7 +743,8 @@ Definition viterbi_trellis_row_def:
   = let
       previous_row = viterbi_trellis_row m bs t
     in
-      GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_row) m.num_stateEnd
+      GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_row) m.num_states
+End
 
 (* -------------------------------------------------------------------------- *)
 (* An example function which generates a grid recursively, in a similar       *)
@@ -787,20 +788,6 @@ Proof
   EVAL_TAC
 QED*)
 
-(* -------------------------------------------------------------------------- *)
-(* Outputs a row for a certain time step of the data stored in the trellis    *)
-(*                                                                            *)
-(* m: the state machine (must be a num state machine to ease computation)     *)
-(* bs: the entire input bitstring                                             *)
-(* t: the time step associated with this node in the trellis                  *)
-(*                                                                            *)
-(* Outputs a set of                                                           *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-(*Definition viterbi_trellis_data_row_def:
-  viterbi_trellis_data_row m bs 0 = 
-End*)
-
 Definition test_path_def:
   test_path = [F; T; T; F; T; T; T; T; F; F; T; F]
 End
@@ -812,20 +799,14 @@ End
 (* Hand-calculated trellis:                                                   *)
 (*                                                                            *)
 (* 0  1  2  3  3  3  4                                                        *)
-(* -  0  2  2  3  3  4                                                        *)
+(* -  1  2  2  3  3  4                                                        *)
 (* -  -  2  2  2  5  4                                                        *)
 (* -  -  2  3  4  3  3                                                        *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem viterbi_trellis_data_test:
-  viterbi_trellis_data example_state_machine test_path 2 4 = <| num_errors := N 2; prev_state := SOME 1 |>
+(*Theorem viterbi_trellis_row_test:
+  viterbi_trellis_row example_num_state_machine test_path 4 = ARB
 Proof
-  (* Want to use the following command, but it doesn't do anything for some reason:*)
-  gvs[viterbi_trellis_data_def]
-
-  (* Tried instead the following, which doesn't help *)
-  >> assume_tac (cj 2 viterbi_trellis_data_def)
-  >> pop_assum $ qspec_then ‘example_state_machine’ assume_tac
-  >> (* pop_assum $ qspecl_then [‘example_state_machine’, ‘test_path’, ‘2’, ‘4’] assume_tac*)
+  EVAL_TAC
 QED*)
 
 (* -------------------------------------------------------------------------- *)
