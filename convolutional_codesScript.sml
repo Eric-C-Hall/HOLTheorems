@@ -964,28 +964,25 @@ Proof
   >> EVAL_TAC
 QED
 
-Theorem vd_find_optimal_reversed_path_empty[simp]:
-  ∀m s t. vd_find_optimal_reversed_path m [] s t = [s]
+Theorem vd_find_optimal_path_empty[simp]:
+  ∀m bs s t. vd_find_optimal_path m bs s 0 = [s]
 Proof
   rpt strip_tac
-  >> Cases_on ‘t’
-  >- EVAL_TAC
-  >> PURE_REWRITE_TAC[vd_find_optimal_reversed_path_def]
+  >> EVAL_TAC
 QED
 
-Theorem vd_find_optimal_path_empty[simp]:
-  ∀m s t. vd_find_optimal_path m [] s t = []
+Theorem path_to_code_singleton[simp]:
+  ∀m s. path_to_code m [s] = []
 Proof
   rpt strip_tac
-  >> gvs[vd_find_optimal_path_def]
   >> EVAL_TAC
 QED
 
 Theorem convolutional_code_decode_empty[simp]:
   ∀m. viterbi_decode m [] = []
 Proof
-  gvs[viterbi_decode_def]
-     EVAL_TAC
+  rpt strip_tac
+  >> gvs[viterbi_decode_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
