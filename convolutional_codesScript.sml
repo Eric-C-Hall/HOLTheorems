@@ -985,6 +985,11 @@ Proof
   >> gvs[viterbi_decode_def]
 QED
 
+Theorem convolutional_code_encode_induct[simp]:
+  ∀b bs. convolutional_code_encode m (h::bs)
+Proof
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -1018,15 +1023,19 @@ QED
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_correctness:
-  ∀m : state_machine.
-    ∀bs rs : bool list.
-      wfmachine m ∧
-      LENGTH rs = m.output_length * LENGTH bs ⇒
-      hamming_distance rs (convolutional_code_encode m bs) ≤ hamming_distance rs (convolutional_code_encode m (viterbi_decode m rs))
+        ∀m : state_machine.
+          ∀bs rs : bool list.
+            wfmachine m ∧
+            LENGTH rs = m.output_length * LENGTH bs ⇒
+            hamming_distance rs (convolutional_code_encode m bs) ≤ hamming_distance rs (convolutional_code_encode m (viterbi_decode m rs))
 Proof
-  rpt strip_tac
-  >> Induct_on ‘bs’
+  gen_tac
+  >> Induct_on ‘bs’ using SNOC_INDUCT
   >- gvs[]
+  >> rpt strip_tac
+  >> gvs[]
+  >> 
+  
 QED
 
 
