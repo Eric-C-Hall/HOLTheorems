@@ -721,18 +721,14 @@ End
 (* number of errors when transitioning to the current state and time.         *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_node_def:
-  viterbi_trellis_node (m : num_state_machine) bs s t previous_row =
+  viterbi_trellis_node m bs s t previous_row =
   let
-    relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);
-    get_num_errors = λr. (EL r.origin previous_row).num_errors +
-                         N (hamming_distance (m.transition_fn r).output relevant_input);
-    origin_leads_to_s = λr. ((m.transition_fn r).destination = s);
-    best_origin = @r. origin_leads_to_s r ∧
-                      ∀r2. origin_leads_to_s r2 ⇒
-                           get_num_errors r ≤ get_num_errors r2;
+    relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);    get_num_errors = λr. (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output relevant_input);
+    possible_origins = num_transition_inverse m s;
+    best_origin = FOLDR (λr1 r2 : num_transition_origin. if (get_num_errors r1) < (get_num_errors r2) then r1 else r2) (HD possible_origins) (TL possible_origins)
   in
     <| num_errors := get_num_errors best_origin;
-       prev_state := SOME best_origin.origin |>
+       prev_state := SOME best_origin.origin; |>
 End
 
 (* -------------------------------------------------------------------------- *)
