@@ -819,20 +819,85 @@ QED*)
 (*                                                                            *)
 (* vd stands for Viterbi Decode                                               *)
 (* -------------------------------------------------------------------------- *)
+(* TODO: this will currently regenerate the entire trellis on every           *)
+(* iteration, which is slow.                                                  *)
+(* -------------------------------------------------------------------------- *)
 Definition vd_find_optimal_reversed_path_def:
-  vd_find_optimal_reversed_path m bs s 0 : α list = [s] ∧
-  vd_find_optimal_reversed_path m bs s (SUC t) : α list =
+  vd_find_optimal_reversed_path m bs s 0 = [s] ∧
+  vd_find_optimal_reversed_path m bs s (SUC t) =
   let
-    trellis_data = viterbi_trellis_data m bs s (SUC t);
-    s2 = THE trellis_data.prev_state;
+    trellis_row = viterbi_trellis_row m bs (SUC t);
+    trellis_node = EL s trellis_row;
+    s2 = THE trellis_node.prev_state;
   in
     s :: (vd_find_optimal_reversed_path m bs s2 t)
+End
+
+
+
+Definition example_num_state_machine_def:
+  x = λd.
+        case d.input of
+          T => (case d.origin of
+                  0 => <| destination := 1; output := [T; T] |>
+                | 1 => <| destination := 3; output := [F; F] |>
+                | 2 => <| destination := 1; output := [F; T] |>
+                | 3 => <| destination := 3; output := [T; F] |>
+               )
+        | F => (case d.origin of
+                  0 => <| destination := 0; output := [F; F] |>
+                | 1 => <| destination := 2; output := [T; T] |>
+                | 2 => <| destination := 0; output := [T; F] |>
+                | 3 => <| destination := 2; output := [F; T] |>
+               );
+End
+
+
+(* -------------------------------------------------------------------------- *)
+(* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
+(*                                                                            *)
+(*   0 -> 0/00 -> 0                                                           *)
+(*     -> 1/11 -> 1                                                           *)
+(*   1 -> 0/11 -> 2                                                           *)
+(*     -> 1/00 -> 3                                                           *)
+(*   2 -> 0/10 -> 0                                                           *)
+(*     -> 1/01 -> 1                                                           *)
+(*   3 -> 0/01 -> 2                                                           *)
+(*     -> 1/10 -> 3                                                           *)
+(*                                                                            *)
+(* 0  1  2  3  3  3  4                -  0  0  2  2  01 0                     *)
+(* -  1  2  2  3  3  4                -  0  0  0  02 2  0                     *)
+(* -  -  2  2  2  5  4                -  -  1  1  1  13 13                    *)
+(* -  -  2  3  4  3  3                -  -  1  3  13 1  3                     *)
+(*    FT TF TT TT FF TF                  FT TF TT TT FF TF                    *)
+(*                                                                            *)
+(* Starting at state 0, t=6: [0, 0, 0, 2, 1, 0, 0]                            *)
+(*                               .. 1, 0, 2, 1, 0]                            *)
+(*                                  .. 2, 1, 0, 0]                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* Starting at state 1, t=4: [1, 0, 2, 1, 0]                                  *)
+(*                            .. 2, 1, 0, 0]                                  *)
+(*                                                                            *)
+(* Starting at state 2, t=4: [2, 1, 0, 0, 0]                                  *)
+(*                                                                            *)
+(* Starting at state 3, t=6; [3, 3, 1, 0, 2, 1, 0]                            *)
+(*                                  .. 2, 1, 0, 0]                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_reversed_path_test:
+  vd_find_optimal_reversed_path example_num_state_machine test_path 0 6 = ARB ∧
+  vd_find_optimal_reversed_path example_num_state_machine test_path 1 4 = ARB ∧
+  vd_find_optimal_reversed_path example_num_state_machine test_path 2 4 = ARB ∧
+  vd_find_optimal_reversed_path example_num_state_machine test_path 3 6 = ARB
+Proof
+  EVAL_TAC
 End
 
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_find_optimal_reversed_path                              *)
 (*                                                                            *)
-(* Reverses the path returned by that function to ensure the path is returned *)
+(* Reverses the path returned
+ by that function to ensure the path is returned *)
 (* in the forwards direction                                                  *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_find_optimal_path_def:
