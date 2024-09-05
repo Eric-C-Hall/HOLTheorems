@@ -1026,9 +1026,7 @@ Theorem viterbi_correctness:
 Proof
   rpt strip_tac
   >> Induct_on ‘bs’
-  >- (gvs[]
-      >>
-      >> gvs[viterbi_decode_def]
+  >- gvs[]
 QED
 
 
