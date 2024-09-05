@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -426,11 +425,15 @@ End
 (*                                                                            *)
 (* Advantages:                                                                *)
 (* - Has a simple mapping between states and natural numbers, thus can use    *)
-(*   the structure of the natural numbers to do nice things such as finding   *)
-(*   the "least" state or associating each state with an element of a list    *)
-(* - It is generally easier to evaluate the code when working with lists      *)
-(*   rather than sets. Can enumerate through a list easily but it's harder    *)
-(*   to enumerate through a set.                                              *)
+(*   the structure of the natural numbers to do nice things.                  *)
+(*   - A natural way to "choose" an element of a set by taking the least      *)
+(*     element                                                                *)
+(*   - A natural way of enumerating through the states                        *)
+(*   - A correspondence between states and elements of a list. It is easier   *)
+(*     to evaluate a function when enumerating over a list than over a set,   *)
+(*     because there are potentially infinite elements in the space that the  *)
+(*     set is contained in, and you can't simply enumerate over infinite      *)
+(*     elements.                                                              *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
   num_state_machine = <|
@@ -450,7 +453,7 @@ Definition wfmachine_def:
     FINITE m.states ∧
     (* transition_fn:
        - must take valid states to valid states *)
-    (∀s i. s ∈ m.states ⇒ (m.transition_fn <| origin := s; input := i |>).destination ∈ m.states) ∧                                                                                  (* init:
+    (∀s i. s ∈ m.states ⇒ (m.transition_fn <| origin := s; input := i |>).destination ∈ m.states) ∧                                                             (* init:
        - must be a valid state *)
     m.init ∈ m.states ∧
     (* output_length:
@@ -475,7 +478,6 @@ Definition num_wfmachine_def:
     (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
 End
 
-
 (* -------------------------------------------------------------------------- *)
 (* Function for converting from a list of parity equations to a corresponding *)
 (* state machine                                                              *)
@@ -498,7 +500,6 @@ Definition parity_equations_to_state_machine_def:
       output_length := num_parity_equations : num;
     |>
 End
-
 
 (* -------------------------------------------------------------------------- *)
 (* Helper function that does the actual work to encode a binary string using  *)
@@ -639,6 +640,39 @@ Proof
   >> rpt strip_tac >> Cases_on ‘b’ >> Cases_on ‘n’ >> gvs[] >> Cases_on ‘n'’ >> gvs[] >> Cases_on ‘n’ >> gvs[] >> Cases_on ‘n'’ >> gvs[]
 QED
 
+Definition all_transitions_helper_def:
+  all_transitions_helper (m : num_state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns a list of all valid choices of a num_transition_origin             *)
+(* -------------------------------------------------------------------------- *)
+Definition all_transitions_def:
+  all_transitions (m : num_state_machine) = all_transitions_helper m T ⧺ all_transitions_helper m F
+End
+
+(*Theorem all_transitions_test:
+  all_transitions example_num_state_machine = faz
+Proof
+  EVAL_TAC
+End*)
+
+(* -------------------------------------------------------------------------- *)
+(* Returns a list of transitions that lead to the given state, as well as the *)
+(* input which leads to them. Each element of the list is a                   *)
+(* num_transition_origin                                                      *)
+(* -------------------------------------------------------------------------- *)
+Definition num_transition_inverse_def:
+  num_transition_inverse (m : num_state_machine) dest =
+  FILTER (λorgn. (m.transition_fn orgn).destination = dest) (all_transitions m)
+End
+
+(*Theorem num_transition_inverse_test:
+  num_transition_inverse example_num_state_machine 2 = qkdmv  
+Proof
+  EVAL_TAC
+End*)
+
 (* -------------------------------------------------------------------------- *)
 (* VITERBI DECODING                                                           *)
 (* -------------------------------------------------------------------------- *)
@@ -687,10 +721,10 @@ End
 (* number of errors when transitioning to the current state and time.         *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_node_def:
-  viterbi_trellis_node m bs s t previous_row =
+  viterbi_trellis_node (m : num_state_machine) bs s t previous_row =
   let
     relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);
-    get_num_errors = λr. (previous_row r.origin).num_errors +
+    get_num_errors = λr. (EL r.origin previous_row).num_errors +
                          N (hamming_distance (m.transition_fn r).output relevant_input);
     origin_leads_to_s = λr. ((m.transition_fn r).destination = s);
     best_origin = @r. origin_leads_to_s r ∧
@@ -706,19 +740,14 @@ End
 (* programming nature of the algorithm and ensure it evaluates efficiently.   *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_row_def:
-  viterbi_trellis_row m bs 0 = (λs.
-                                  if s = m.init then
-                                    <| num_errors := N0; prev_state := NONE |>
-                                  else
-                                    <| num_errors := INFINITY; prev_state := NONE |>
-                               ) ∧
-  viterbi_trellis_row m bs (SUC t) = let
-                                       previous_row = viterbi_trellis_row m bs t
-                                     in
-                                       (λs.
-                                          viterbi_trellis_node m bs s (SUC t) previous_row
-                                       )
-End
+  viterbi_trellis_row (m : num_state_machine) bs 0
+  = <| num_errors := N0; prev_state := NONE |> :: REPLICATE (m.num_states - 1) <| num_errors := INFINITY; prev_state := NONE |>
+  ∧
+  viterbi_trellis_row m bs (SUC t)
+  = let
+      previous_row = viterbi_trellis_row m bs t
+    in
+      GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_row) m.num_stateEnd
 
 (* -------------------------------------------------------------------------- *)
 (* An example function which generates a grid recursively, in a similar       *)
