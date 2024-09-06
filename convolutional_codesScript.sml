@@ -1035,7 +1035,7 @@ QED
 Theorem convolutional_code_encode_helper_cons:
   ∀m b bs s.
     convolutional_code_encode_helper m (b :: bs) s =
-    (vd_step_output m b s) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state_helper m [b] s))
+    (vd_step_output m b s) ⧺ (convolutional_code_encode_helper m bs (vd_step  m b s))
 Proof
   rpt strip_tac
   >> gvs[convolutional_code_encode_helper_def]
@@ -1049,7 +1049,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem convolutional_code_encode_cons:
   ∀m b bs. convolutional_code_encode m (b :: bs) =
-           (vd_step_output m b 0) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state m [b]))
+           (vd_step_output m b 0) ⧺ (convolutional_code_encode_helper m bs (vd_step m b 0))
 Proof
   rpt strip_tac
   >> gvs[convolutional_code_encode_def]
@@ -1139,6 +1139,45 @@ Proof
   metis_tac[hamming_distance_append_left, hamming_distance_symmetric]
 QED
 
+Theorem vd_step_output_length:
+  ∀m b s.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    LENGTH (vd_step_output m b s) = m.output_length
+Proof
+  rpt strip_tac
+  >> gvs[wfmachine_def, vd_step_output_def, vd_step_record_def]
+QED
+
+Theorem convolutional_code_encode_helper_length:
+  ∀m bs s.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    LENGTH (convolutional_code_encode_helper m bs s) = m.output_length * LENGTH bs
+Proof
+  gen_tac
+  >> Induct_on ‘bs’
+  >- (rpt strip_tac >> EVAL_TAC)
+  >> rpt strip_tac
+  >> gvs[convolutional_code_encode_helper_cons]
+  >> gvs[vd_step_output_length]
+  >> qmatch_goalsub_abbrev_tac ‘convolutional_code_encode_helper _ _ s2’
+  >> last_x_assum $ qspec_then ‘s2’ assume_tac
+  >> gvs[]
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+  >> conj_tac
+  >- (gvs[wfmachine_def]
+      >> last_x_assum $ qspecl_then [‘s’, ‘h’] assume_tac
+      >> gvs[]
+      >> unabbrev_all_tac
+      >> gvs[vd_step_def, vd_step_record_def])
+  >> gvs[SUC_ONE_ADD]
+QED
+
+Theorem convolutional_code_encode_length:
+  ∀m bs.
+    convolutional_code_encode m bs 
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -1183,7 +1222,9 @@ Proof
   >- gvs[]
   >> rpt strip_tac
   >> gvs[convolutional_code_encode_snoc]
-  >> 
+  >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
+  >> conj_tac
+  >- 
   
 QED
 
