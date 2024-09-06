@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -511,21 +512,21 @@ End
 (* This function additionally has a parameter to keep track of the current    *)
 (* state that the state machine is in.                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition gen_convolutional_code_encode_helper_def:
-  gen_convolutional_code_encode_helper _ [] _ = [] ∧
-  gen_convolutional_code_encode_helper (m : α gen_state_machine) (b::bs : bool list) (s : α) =
+Definition gen_vd_encode_helper_def:
+  gen_vd_encode_helper _ [] _ = [] ∧
+  gen_vd_encode_helper (m : α gen_state_machine) (b::bs : bool list) (s : α) =
   let
     d = m.transition_fn <| origin := s; input := b |>
   in
-    d.output ⧺ gen_convolutional_code_encode_helper m bs d.destination
+    d.output ⧺ gen_vd_encode_helper m bs d.destination
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Encodes a binary string using convolutional coding, according to a chosen  *)
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
-Definition gen_convolutional_code_encode_def:
-  gen_convolutional_code_encode (m : α gen_state_machine) bs = gen_convolutional_code_encode_helper m bs m.init
+Definition gen_vd_encode_def:
+  gen_vd_encode (m : α gen_state_machine) bs = gen_vd_encode_helper m bs m.init
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -561,9 +562,9 @@ End
 (* Simple test to make sure the convolutional code is providing the output    *)
 (* I would expect if I manually did the computation myself                    *)
 (* -------------------------------------------------------------------------- *)
-Theorem gen_convolutional_encode_test1:
+Theorem gen_vd_encode_test1:
   gen_wfmachine gen_example_state_machine ∧
-  gen_convolutional_code_encode gen_example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
+  gen_vd_encode gen_example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
 Proof
   REVERSE CONJ_TAC
   >- EVAL_TAC
@@ -600,21 +601,21 @@ End
 (* This function additionally has a parameter to keep track of the current    *)
 (* state that the state machine is in.                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition convolutional_code_encode_helper_def:
-  convolutional_code_encode_helper _ [] _ = [] ∧
-  convolutional_code_encode_helper (m : state_machine) (b::bs : bool list) (s : num) =
+Definition vd_encode_helper_def:
+  vd_encode_helper _ [] _ = [] ∧
+  vd_encode_helper (m : state_machine) (b::bs : bool list) (s : num) =
   let
     d = m.transition_fn <| origin := s; input := b |>
   in
-    d.output ⧺ convolutional_code_encode_helper m bs d.destination
+    d.output ⧺ vd_encode_helper m bs d.destination
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Encodes a binary string using convolutional coding, according to a chosen  *)
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
-Definition convolutional_code_encode_def:
-  convolutional_code_encode (m : state_machine) bs = convolutional_code_encode_helper m bs 0
+Definition vd_encode_def:
+  vd_encode (m : state_machine) bs = vd_encode_helper m bs 0
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -630,18 +631,18 @@ End
 (* the given state machine to the given bitstring. Also has a variable to     *)
 (* keep track of the current state we're in.                                  *)
 (* -------------------------------------------------------------------------- *)
-Definition convolutional_code_encode_state_helper_def:
-  convolutional_code_encode_state_helper (m : state_machine) [] s = s ∧
-  convolutional_code_encode_state_helper m (b::bs) s =
-  convolutional_code_encode_state_helper m bs (vd_step m b s)
+Definition vd_encode_state_helper_def:
+  vd_encode_state_helper (m : state_machine) [] s = s ∧
+  vd_encode_state_helper m (b::bs) s =
+  vd_encode_state_helper m bs (vd_step m b s)
 End 
 
 (* -------------------------------------------------------------------------- *)
 (* Calculates the final state you'll end up in if you apply the given state   *)
 (* machine to the given bitstring.                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition convolutional_code_encode_state_def:
-  convolutional_code_encode_state (m : state_machine) bs = convolutional_code_encode_state_helper m bs 0
+Definition vd_encode_state_def:
+  vd_encode_state (m : state_machine) bs = vd_encode_state_helper m bs 0
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -675,9 +676,9 @@ End
 (* Simple test to make sure the convolutional code is providing the output    *)
 (* I would expect if I manually did the computation myself                    *)
 (* -------------------------------------------------------------------------- *)
-Theorem convolutional_encode_test1:
+Theorem vd_encode_test1:
   wfmachine example_state_machine ∧
-  convolutional_code_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
+  vd_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
 Proof
   REVERSE conj_tac
   >- EVAL_TAC
@@ -994,7 +995,7 @@ End
 (*Theorem viterbi_decode_test:
   let
     decoded_path = viterbi_decode example_state_machine test_path;
-    encoded_decoded_path = convolutional_code_encode example_state_machine decoded_path
+    encoded_decoded_path = vd_encode example_state_machine decoded_path
   in
     decoded_path = ARB ∧
     encoded_decoded_path = ARB ∧
@@ -1004,8 +1005,8 @@ Proof
   EVAL_TAC
 QED*)
 
-Theorem convolutional_code_encode_empty[simp]:
-  ∀m. convolutional_code_encode m [] = []
+Theorem vd_encode_empty[simp]:
+  ∀m. vd_encode m [] = []
 Proof
   rpt strip_tac
   >> EVAL_TAC
@@ -1025,7 +1026,7 @@ Proof
   >> EVAL_TAC
 QED
 
-Theorem convolutional_code_decode_empty[simp]:
+Theorem viterbi_decode_empty[simp]:
   ∀m. viterbi_decode m [] = []
 Proof
   rpt strip_tac
@@ -1033,16 +1034,16 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* See comment for convolutional_code_encode_cons                             *)
+(* See comment for vd_encode_cons                             *)
 (* -------------------------------------------------------------------------- *)
-Theorem convolutional_code_encode_helper_cons:
+Theorem vd_encode_helper_cons:
   ∀m b bs s.
-    convolutional_code_encode_helper m (b :: bs) s =
-    (vd_step_output m b s) ⧺ (convolutional_code_encode_helper m bs (vd_step  m b s))
+    vd_encode_helper m (b :: bs) s =
+    (vd_step_output m b s) ⧺ (vd_encode_helper m bs (vd_step  m b s))
 Proof
   rpt strip_tac
-  >> gvs[convolutional_code_encode_helper_def]
-  >> gvs[convolutional_code_encode_state_helper_def]
+  >> gvs[vd_encode_helper_def]
+  >> gvs[vd_encode_state_helper_def]
   >> gvs[vd_step_def, vd_step_record_def, vd_step_output_def]
 QED
 
@@ -1050,34 +1051,34 @@ QED
 (* Can break convolutional encoding up into doing a step, with the rest of    *)
 (* the encoding appended on, starting from the appropriate state              *)
 (* -------------------------------------------------------------------------- *)
-Theorem convolutional_code_encode_cons:
-  ∀m b bs. convolutional_code_encode m (b :: bs) =
-           (vd_step_output m b 0) ⧺ (convolutional_code_encode_helper m bs (vd_step m b 0))
+Theorem vd_encode_cons:
+  ∀m b bs. vd_encode m (b :: bs) =
+           (vd_step_output m b 0) ⧺ (vd_encode_helper m bs (vd_step m b 0))
 Proof
   rpt strip_tac
-  >> gvs[convolutional_code_encode_def]
-  >> gvs[convolutional_code_encode_state_def]
-  >> PURE_ONCE_REWRITE_TAC[convolutional_code_encode_helper_cons]
+  >> gvs[vd_encode_def]
+  >> gvs[vd_encode_state_def]
+  >> PURE_ONCE_REWRITE_TAC[vd_encode_helper_cons]
   >> gvs[]
 QED
 
 
 
 (* -------------------------------------------------------------------------- *)
-(* See comment for convolutional_code_encode_append                           *)
+(* See comment for vd_encode_append                           *)
 (* -------------------------------------------------------------------------- *)
-Theorem convolutional_code_encode_helper_append:
+Theorem vd_encode_helper_append:
   ∀m bs cs s.
-    convolutional_code_encode_helper m (bs ⧺ cs) s =
-    convolutional_code_encode_helper m bs s ⧺ convolutional_code_encode_helper m cs (convolutional_code_encode_state_helper m bs s)          
+    vd_encode_helper m (bs ⧺ cs) s =
+    vd_encode_helper m bs s ⧺ vd_encode_helper m cs (vd_encode_state_helper m bs s)          
 Proof
   gen_tac
   >> Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
   >> rpt strip_tac
   >> gvs[APPEND]
-  >> gvs[convolutional_code_encode_helper_cons]
-  >> gvs[convolutional_code_encode_state_helper_def]
+  >> gvs[vd_encode_helper_cons]
+  >> gvs[vd_encode_state_helper_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1085,26 +1086,26 @@ QED
 (* steps from the initial state, then doing a bunch of steps from the state   *)
 (* that is reached at this point.                                             *)
 (* -------------------------------------------------------------------------- *)
-Theorem convolutional_code_encode_append:
+Theorem vd_encode_append:
   ∀m bs cs.
-    convolutional_code_encode m (bs ⧺ cs) =
-    (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m cs (convolutional_code_encode_state m bs))
+    vd_encode m (bs ⧺ cs) =
+    (vd_encode m bs) ⧺ (vd_encode_helper m cs (vd_encode_state m bs))
 Proof
   rpt strip_tac
-  >> gvs[convolutional_code_encode_def, convolutional_code_encode_state_def]
-  >> gvs[convolutional_code_encode_helper_append]
+  >> gvs[vd_encode_def, vd_encode_state_def]
+  >> gvs[vd_encode_helper_append]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Can break convolutional encoding up into doing a bunch of steps from the   *)
 (* initial state, then doing a final step from the final state.               *)
 (* -------------------------------------------------------------------------- *)
-Theorem convolutional_code_encode_snoc:
-  ∀m b bs. convolutional_code_encode m (SNOC b bs) =
-           (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m [b] (convolutional_code_encode_state m bs))
+Theorem vd_encode_snoc:
+  ∀m b bs. vd_encode m (SNOC b bs) =
+           (vd_encode m bs) ⧺ (vd_encode_helper m [b] (vd_encode_state m bs))
 Proof
   gvs[SNOC]
-  >> gvs[convolutional_code_encode_append]
+  >> gvs[vd_encode_append]
 QED
 
 Theorem hamming_distance_cons:
@@ -1152,19 +1153,19 @@ Proof
   >> gvs[wfmachine_def, vd_step_output_def, vd_step_record_def]
 QED
 
-Theorem convolutional_code_encode_helper_length:
+Theorem vd_encode_helper_length:
   ∀m bs s.
     wfmachine m ∧
     s < m.num_states ⇒
-    LENGTH (convolutional_code_encode_helper m bs s) = m.output_length * LENGTH bs
+    LENGTH (vd_encode_helper m bs s) = m.output_length * LENGTH bs
 Proof
   gen_tac
   >> Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
   >> rpt strip_tac
-  >> gvs[convolutional_code_encode_helper_cons]
+  >> gvs[vd_encode_helper_cons]
   >> gvs[vd_step_output_length]
-  >> qmatch_goalsub_abbrev_tac ‘convolutional_code_encode_helper _ _ s2’
+  >> qmatch_goalsub_abbrev_tac ‘vd_encode_helper _ _ s2’
   >> last_x_assum $ qspec_then ‘s2’ assume_tac
   >> gvs[]
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
@@ -1177,14 +1178,14 @@ Proof
   >> gvs[SUC_ONE_ADD]
 QED
 
-Theorem convolutional_code_encode_length:
+Theorem vd_encode_length:
   ∀m bs.
     wfmachine m ⇒
-    LENGTH (convolutional_code_encode m bs) = m.output_length * LENGTH bs
+    LENGTH (vd_encode m bs) = m.output_length * LENGTH bs
 Proof
   rpt strip_tac
-  >> gvs[convolutional_code_encode_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC [convolutional_code_encode_helper_length]
+  >> gvs[vd_encode_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_helper_length]
   >> gvs[]
   >> gvs[wfmachine_def]
 QED
@@ -1199,11 +1200,11 @@ Proof
   >> gvs[wfmachine_def, vd_step_def, vd_step_record_def]
 QED
 
-Theorem convolutional_code_encode_state_helper_is_valid:
+Theorem vd_encode_state_helper_is_valid:
   ∀m bs s.
     wfmachine m ∧
     s < m.num_states ⇒
-    convolutional_code_encode_state_helper m bs s < m.num_states
+    vd_encode_state_helper m bs s < m.num_states
 Proof
   gen_tac
   >> Induct_on ‘bs’
@@ -1212,19 +1213,19 @@ Proof
       >> EVAL_TAC
       >> gvs[])
   >> rpt strip_tac
-  >> gvs[convolutional_code_encode_state_helper_def]
+  >> gvs[vd_encode_state_helper_def]
   >> last_x_assum $ qspec_then ‘vd_step m h s’ assume_tac
   >> gvs[vd_step_is_valid]
 QED
 
-Theorem convolutional_code_encode_state_is_valid:
+Theorem vd_encode_state_is_valid:
   ∀m bs.
     wfmachine m ⇒
-    convolutional_code_encode_state m bs < m.num_states
+    vd_encode_state m bs < m.num_states
 Proof
   rpt strip_tac
-  >> gvs[convolutional_code_encode_state_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC[convolutional_code_encode_state_helper_is_valid]
+  >> gvs[vd_encode_state_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_helper_is_valid]
   >> gvs[wfmachine_def]
 QED
 
@@ -1265,19 +1266,19 @@ Theorem viterbi_correctness:
           ∀bs rs : bool list.
             wfmachine m ∧
             LENGTH rs = m.output_length * LENGTH bs ⇒
-            hamming_distance rs (convolutional_code_encode m bs) ≤ hamming_distance rs (convolutional_code_encode m (viterbi_decode m rs))
+            hamming_distance rs (vd_encode m bs) ≤ hamming_distance rs (vd_encode m (viterbi_decode m rs))
 Proof
   gen_tac
   >> Induct_on ‘bs’ using SNOC_INDUCT
   >- gvs[]
   >> rpt strip_tac
-  >> gvs[convolutional_code_encode_snoc]
+  >> gvs[vd_encode_snoc]
   >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
   >> conj_tac
-  >- (gvs[convolutional_code_encode_length]
-      >> DEP_PURE_ONCE_REWRITE_TAC [convolutional_code_encode_helper_length]
+  >- (gvs[vd_encode_length]
+      >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_helper_length]
       >> gvs[]
-      >> gvs[convolutional_code_encode_state_is_valid]
+      >> gvs[vd_encode_state_is_valid]
       >> gvs[ADD1])
   >> Cases_on ‘rs’
   >- (gvs[]
