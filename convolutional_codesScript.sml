@@ -12,8 +12,10 @@ open infnumTheory;
 open prim_recTheory;
 open relationTheory;
 open rich_listTheory;
+open dividesTheory;
 
 open dep_rewrite;
+open ConseqConv; (* SPEC_ALL_TAC *)
 (*open "donotexpandScript.sml"*)
 
 open WFTheoremsTheory;
@@ -1269,6 +1271,21 @@ Proof
   >> gvs[wfmachine_def]
 QED
 
+Theorem viterbi_decode_length:
+  ∀m bs.
+    wfmachine m ∧
+    divides (LENGTH bs) m.output_length ∧
+    m.output_length ≠ 0 ⇒
+    LENGTH (viterbi_decode m bs) = LENGTH bs DIV m.output_length
+Proof
+  rpt strip_tac
+  >> gvs[divides_def]
+  >> NTAC 3 (pop_assum mp_tac)
+  >> SPEC_ALL_TAC   
+  >> Induct_on ‘q’ >> rpt strip_tac
+  >- gvs[]
+  >> 
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -1313,22 +1330,34 @@ Proof
   >> Induct_on ‘bs’ using SNOC_INDUCT
   >- gvs[]
   >> rpt strip_tac
-  >> gvs[vd_encode_snoc]
-  >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
-  >> conj_tac
-  >- (gvs[vd_encode_length]
-      >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_helper_length]
+  >> qmatch_goalsub_abbrev_tac ‘vd_encode m bs'’
+  >> sg ‘∃x' bs''. bs' = SNOC x' bs''’
+  >- (qexists ‘LAST bs'’
+      >> qexists ‘FRONT bs'’
+      >> DEP_PURE_REWRITE_TAC [SNOC_LAST_FRONT]
       >> gvs[]
-      >> gvs[vd_encode_state_is_valid]
-      >> gvs[ADD1])
-     (*>> Cases_on ‘rs’
+      >> unabbrev_all_tac
+      >> PURE_REWRITE_TAC [GSYM LENGTH_NIL]
+      >> 
+      
+      >> Cases_on ‘bs'’ using SNOC_INDUCT
+                  
+      >> gvs[vd_encode_snoc]
+      >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
+      >> conj_tac
+      >- (gvs[vd_encode_length]
+          >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_helper_length]
+          >> gvs[]
+          >> gvs[vd_encode_state_is_valid]
+          >> gvs[ADD1])
+      (*>> Cases_on ‘rs’
       >- (gvs[]
       >> gvs[vd_encode_helper_def]
       >> gvs[GSYM vd_step_output_def]
       >> DEP_PURE_REWRITE_TAC[vd_step_output_output_length_0]
       >> gvs[]
       >> gvs[vd_encode_state_is_valid])*)
-  >> 
+      >> 
 QED
 
 
