@@ -26,12 +26,31 @@ It may be good to define the state machines using the weaker definition, then co
 
 (* Want to get list of prior states leading to a particular state, so I can enumerate over them and check which one provides the quickest path to the current state. Wrote code to *)
 
-(* Finished viterbi trellis row code. Tested it. *)
+(* Finished viterbi trellis row code. Tested it. Includes code which replaces the select operation.*)
 
 (* Finished code for finding the path back through the trellis. Wrote code for testing it, too *)
 
 (* Maybe it would be good if some of my work could be reviewed *)
 
+(* Completed Viterbi decoding and tested it. *)
+
+(* Completed base case of proof of viterbi correctness. Included proofs that enccoding/decoding the empty list gives you back the empty list.*)
+
+(* Renamed so that the num-based state machine is the default one. *)
+
+(* Allowed finding the optimal path to terminate early if it reaches a point in the trellis with no previous state. *)
+
+(* Added functions to determine which state we end up in when applying the state machine to a particular bitstring. This allows me to split the viterbi calculation up into multiple parts: starting at a particular point and applying viterbi, and then performing another calculation from the appropritate state to complete the algorithm. *)
+
+(* Wrote theorems to split the viterbi process up into two parts: SNOC, CONS, and APPEND, with both helper and non-helper *)
+
+(* functions to take a single step in the state machine. *)
+
+(* Ensured that function for rewriting with cons didn't produce a result with a cons in it, avoiding infinite loops. *)
+
+(* THeorem for simplifying hamming distance when bitstrings have been appended to each other *)
+
+(* Theorems for calculating the length of the encoded string *).
 
 val _ = export_theory();
 
