@@ -1277,6 +1277,11 @@ Proof
   >- (gvs[convolutional_code_encode_length]
       >> DEP_PURE_ONCE_REWRITE_TAC [convolutional_code_encode_helper_length]
       >> gvs[]
+      >> gvs[convolutional_code_encode_state_is_valid]
+      >> gvs[ADD1])
+  >> Cases_on ‘rs’
+  >- (gvs[]
+      >> gvs[wfmachine_def]
 QED
 
 
