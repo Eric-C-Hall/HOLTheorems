@@ -469,6 +469,9 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition wfmachine_def:
   wfmachine (m : state_machine) ⇔
+    (* num_states:
+       - there must be at least one state *)
+    0 < m.num_states ∧
     (* transition_fn:
        - if the origin of the transition is a valid state, then the
          destination must also be a valid state. *)
@@ -1176,7 +1179,15 @@ QED
 
 Theorem convolutional_code_encode_length:
   ∀m bs.
-    convolutional_code_encode m bs 
+    wfmachine m ⇒
+    LENGTH (convolutional_code_encode m bs) = m.output_length * LENGTH bs
+Proof
+  rpt strip_tac
+  >> gvs[convolutional_code_encode_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC [convolutional_code_encode_helper_length]
+  >> gvs[]
+  >> gvs[wfmachine_def]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -1224,7 +1235,7 @@ Proof
   >> gvs[convolutional_code_encode_snoc]
   >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
   >> conj_tac
-  >- 
+  >- (gvs[convolutional_code_encode_length, convolutional_code_encode_helper_length]
   
 QED
 
