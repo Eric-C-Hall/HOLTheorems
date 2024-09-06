@@ -1104,6 +1104,41 @@ Proof
   >> gvs[convolutional_code_encode_append]
 QED
 
+Theorem hamming_distance_cons:
+  ∀b bs c cs.
+    LENGTH bs = LENGTH cs ⇒
+    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
+Proof
+  rpt strip_tac
+  >> gvs[hamming_distance_def]
+  >> gvs[add_noise_def]
+  >> gvs[bxor_cons]
+  >> gvs[hamming_weight_def]
+  >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[]
+QED
+
+Theorem hamming_distance_append_left:
+  ∀bs cs ds.
+    LENGTH bs + LENGTH cs = LENGTH ds ⇒
+    hamming_distance (bs ⧺ cs) ds = hamming_distance bs (TAKE (LENGTH bs) ds) + hamming_distance cs (DROP (LENGTH bs) ds)
+Proof
+  Induct_on ‘ds’
+  >- (Cases_on ‘bs’ >> Cases_on ‘cs’ >> gvs[])
+  >> rpt strip_tac
+  >> Cases_on ‘bs’
+  >- gvs[]
+  >> gvs[APPEND]
+  >> gvs[hamming_distance_cons]
+QED
+
+Theorem hamming_distance_append_right:
+  ∀bs cs ds.
+    LENGTH bs = LENGTH cs + LENGTH ds ⇒
+    hamming_distance bs (cs ⧺ ds) = hamming_distance (TAKE (LENGTH cs) bs) cs + hamming_distance (DROP (LENGTH cs) bs) ds
+Proof
+  metis_tac[hamming_distance_append_left, hamming_distance_symmetric]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -1147,7 +1182,7 @@ Proof
   >> Induct_on ‘bs’ using SNOC_INDUCT
   >- gvs[]
   >> rpt strip_tac
-  >> gvs[]
+  >> gvs[convolutional_code_encode_snoc]
   >> 
   
 QED
