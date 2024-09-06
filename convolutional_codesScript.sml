@@ -1035,11 +1035,12 @@ QED
 Theorem convolutional_code_encode_helper_cons:
   ∀m b bs s.
     convolutional_code_encode_helper m (b :: bs) s =
-    (convolutional_code_encode_helper m [b] s) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state_helper m [b] s))
+    (vd_step_output m b s) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state_helper m [b] s))
 Proof
   rpt strip_tac
   >> gvs[convolutional_code_encode_helper_def]
   >> gvs[convolutional_code_encode_state_helper_def]
+  >> gvs[vd_step_def, vd_step_record_def, vd_step_output_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
