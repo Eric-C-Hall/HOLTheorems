@@ -605,7 +605,7 @@ Definition vd_encode_helper_def:
   vd_encode_helper _ [] _ = [] ∧
   vd_encode_helper (m : state_machine) (b::bs : bool list) (s : num) =
   let
-    d = m.transition_fn <| origin := s; input := b |>
+    d = vd_step_record m b s
   in
     d.output ⧺ vd_encode_helper m bs d.destination
 End
@@ -1229,7 +1229,20 @@ Proof
   >> gvs[wfmachine_def]
 QED
 
-Theorem vd_encode_helper_zero_output_length_0:
+Theorem vd_step_output_output_length_0:
+  ∀m b s.
+    wfmachine m ∧
+    s < m.num_states ∧
+    m.output_length = 0 ⇒
+    vd_step_output m b s = []
+Proof
+  rpt strip_tac
+  >> gvs[wfmachine_def]
+  >> first_x_assum $ qspecl_then [‘s’, ‘b’] assume_tac
+  >> gvs[vd_step_output_def, vd_step_record_def]
+QED
+
+Theorem vd_encode_helper_output_length_0:
   ∀m bs s.
     wfmachine m ∧
     s < m.num_states ∧
@@ -1242,6 +1255,20 @@ Proof
   >> gvs[vd_encode_helper_cons]
   >> gvs[wfmachine_def, vd_step_def, vd_step_output_def, vd_step_record_def]
 QED
+
+Theorem vd_encode_output_length_0:
+  ∀m bs s.
+    wfmachine m ∧
+    m.output_length = 0 ⇒
+    vd_encode m bs = []
+Proof
+  gvs[vd_encode_def]
+  >> rpt strip_tac
+  >> irule vd_encode_helper_output_length_0
+  >> gvs[]
+  >> gvs[wfmachine_def]
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -1280,7 +1307,7 @@ Theorem viterbi_correctness:
           ∀bs rs : bool list.
             wfmachine m ∧
             LENGTH rs = m.output_length * LENGTH bs ⇒
-            hamming_distance rs (vd_encode m bs) ≤ hamming_distance rs (vd_encode m (viterbi_decode m rs))
+            hamming_distance rs (vd_encode m (viterbi_decode m rs)) ≤ hamming_distance rs (vd_encode m bs)
 Proof
   gen_tac
   >> Induct_on ‘bs’ using SNOC_INDUCT
@@ -1294,9 +1321,14 @@ Proof
       >> gvs[]
       >> gvs[vd_encode_state_is_valid]
       >> gvs[ADD1])
-  >> Cases_on ‘rs’
-  >- (gvs[]
-      >> gvs[wfmachine_def]
+     (*>> Cases_on ‘rs’
+      >- (gvs[]
+      >> gvs[vd_encode_helper_def]
+      >> gvs[GSYM vd_step_output_def]
+      >> DEP_PURE_REWRITE_TAC[vd_step_output_output_length_0]
+      >> gvs[]
+      >> gvs[vd_encode_state_is_valid])*)
+  >> 
 QED
 
 
