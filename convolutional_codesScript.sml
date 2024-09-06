@@ -574,6 +574,23 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Takes a step using the state machine and returns a record of the           *)
+(* destination and the output                                                 *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_step_record_def:
+  vd_step_record (m : state_machine) b s =
+  m.transition_fn <| origin := s; input := b |>
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Takes a step using the state machine and returns the output.               *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_step_output_def:
+  vd_step_output (m : state_machine) b s =
+  (vd_step_record m b s).output
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Helper function that does the actual work to encode a binary string using  *)
 (* convolutional coding, according to a chosen state machine.                 *)
 (*                                                                            *)
@@ -598,6 +615,14 @@ Definition convolutional_code_encode_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Takes a step using the state machine to arrive at a new state.             *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_step_def:
+  vd_step (m : state_machine) b s =
+  (vd_step_record m b s).destination
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Helper function to calculate the final state you'll end up in if you apply *)
 (* the given state machine to the given bitstring. Also has a variable to     *)
 (* keep track of the current state we're in.                                  *)
@@ -605,10 +630,7 @@ End
 Definition convolutional_code_encode_state_helper_def:
   convolutional_code_encode_state_helper (m : state_machine) [] s = s ∧
   convolutional_code_encode_state_helper m (b::bs) s =
-  let
-    d = m.transition_fn (<| origin := s; input := b |>)
-  in
-    convolutional_code_encode_state_helper m bs d.destination
+  convolutional_code_encode_state_helper m bs (vd_step m b s)
 End 
 
 (* -------------------------------------------------------------------------- *)
@@ -1007,10 +1029,73 @@ Proof
   >> gvs[viterbi_decode_def]
 QED
 
-Theorem convolutional_code_encode_induct:
-  ∀b bs. convolutional_code_encode m (SNOC b bs) =
-         (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state m bs))
+(* -------------------------------------------------------------------------- *)
+(* See comment for convolutional_code_encode_cons                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem convolutional_code_encode_helper_cons:
+  ∀m b bs s.
+    convolutional_code_encode_helper m (b :: bs) s =
+    (convolutional_code_encode_helper m [b] s) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state_helper m [b] s))
 Proof
+  rpt strip_tac
+  >> gvs[convolutional_code_encode_helper_def]
+  >> gvs[convolutional_code_encode_state_helper_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Can break convolutional encoding up into doing a step, with the rest of    *)
+(* the encoding appended on, starting from the appropriate state              *)
+(* -------------------------------------------------------------------------- *)
+Theorem convolutional_code_encode_cons:
+  ∀m b bs. convolutional_code_encode m (b :: bs) =
+           (convolutional_code_encode m [b]) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state m [b]))
+Proof
+  rpt strip_tac
+  >> gvs[convolutional_code_encode_def]
+  >> gvs[convolutional_code_encode_state_def]
+  >> PURE_ONCE_REWRITE_TAC[convolutional_code_encode_helper_cons]
+QED
+
+Theorem convolutional_code_encode_helper_append:
+  ∀m bs cs s.
+    convolutional_code_encode_helper m (bs ⧺ cs) s =
+    convoltutional_code_encode_helper m bs s ⧺ convolutional_code_encode          
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Can break convolutional encoding up into two halves: doing a bunch of      *)
+(* steps from the initial state, then doing a bunch of steps from the state   *)
+(* that is reached at this point.                                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem convolutional_code_encode_append:
+  ∀m bs cs.
+    convolutional_code_encode m (bs ⧺ cs) =
+    (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m cs (convolutional_code_encode_state m bs))
+Proof
+  rpt strip_tac
+  >> Induct_on ‘bs’
+  >- EVAL_TAC
+  >> rpt strip_tac
+  >> gvs[APPEND]
+  >> PURE_ONCE_REWRITE_TAC[convolutional_code_encode_cons]
+  >> gvs[]
+  >> gvs[convolutional_code_encode_def]
+  >> gvs[convolutional_code_encode m]
+QED
+
+Theorem convolutional_code_encode_snoc:
+  ∀m b bs. convolutional_code_encode m (SNOC b bs) =
+           (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m [b] (convolutional_code_encode_state m bs))
+Proof
+  rpt strip_tac
+  >> gvs[convolutional_code_encode_def]
+  >> gvs[convolutional_code_encode_helper_def]
+  >> gen_tac
+  >> Induct_on ‘bs’ using SNOC_INDUCT
+  >- (rpt strip_tac >> EVAL_TAC)
+  >> rpt strip_tac
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)
