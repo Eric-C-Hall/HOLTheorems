@@ -1189,6 +1189,45 @@ Proof
   >> gvs[wfmachine_def]
 QED
 
+Theorem vd_step_is_valid:
+  ∀m b s.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    vd_step m b s < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[wfmachine_def, vd_step_def, vd_step_record_def]
+QED
+
+Theorem convolutional_code_encode_state_helper_is_valid:
+  ∀m bs s.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    convolutional_code_encode_state_helper m bs s < m.num_states
+Proof
+  gen_tac
+  >> Induct_on ‘bs’
+  >- (rpt strip_tac
+      >> gvs[wfmachine_def]
+      >> EVAL_TAC
+      >> gvs[])
+  >> rpt strip_tac
+  >> gvs[convolutional_code_encode_state_helper_def]
+  >> last_x_assum $ qspec_then ‘vd_step m h s’ assume_tac
+  >> gvs[vd_step_is_valid]
+QED
+
+Theorem convolutional_code_encode_state_is_valid:
+  ∀m bs.
+    wfmachine m ⇒
+    convolutional_code_encode_state m bs < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[convolutional_code_encode_state_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[convolutional_code_encode_state_helper_is_valid]
+  >> gvs[wfmachine_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -1235,8 +1274,9 @@ Proof
   >> gvs[convolutional_code_encode_snoc]
   >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
   >> conj_tac
-  >- (gvs[convolutional_code_encode_length, convolutional_code_encode_helper_length]
-  
+  >- (gvs[convolutional_code_encode_length]
+      >> DEP_PURE_ONCE_REWRITE_TAC [convolutional_code_encode_helper_length]
+      >> gvs[]
 QED
 
 
