@@ -1229,6 +1229,20 @@ Proof
   >> gvs[wfmachine_def]
 QED
 
+Theorem vd_encode_helper_zero_output_length_0:
+  ∀m bs s.
+    wfmachine m ∧
+    s < m.num_states ∧
+    m.output_length = 0 ⇒
+    vd_encode_helper m bs s = []
+Proof
+  gen_tac
+  >> Induct_on ‘bs’ >> rpt strip_tac
+  >- gvs[vd_encode_helper_def]
+  >> gvs[vd_encode_helper_cons]
+  >> gvs[wfmachine_def, vd_step_def, vd_step_output_def, vd_step_record_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
