@@ -1049,19 +1049,32 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem convolutional_code_encode_cons:
   ∀m b bs. convolutional_code_encode m (b :: bs) =
-           (convolutional_code_encode m [b]) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state m [b]))
+           (vd_step_output m b 0) ⧺ (convolutional_code_encode_helper m bs (convolutional_code_encode_state m [b]))
 Proof
   rpt strip_tac
   >> gvs[convolutional_code_encode_def]
   >> gvs[convolutional_code_encode_state_def]
   >> PURE_ONCE_REWRITE_TAC[convolutional_code_encode_helper_cons]
+  >> gvs[]
 QED
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* See comment for convolutional_code_encode_append                           *)
+(* -------------------------------------------------------------------------- *)
 Theorem convolutional_code_encode_helper_append:
   ∀m bs cs s.
     convolutional_code_encode_helper m (bs ⧺ cs) s =
-    convoltutional_code_encode_helper m bs s ⧺ convolutional_code_encode          
+    convolutional_code_encode_helper m bs s ⧺ convolutional_code_encode_helper m cs (convolutional_code_encode_state_helper m bs s)          
 Proof
+  gen_tac
+  >> Induct_on ‘bs’
+  >- (rpt strip_tac >> EVAL_TAC)
+  >> rpt strip_tac
+  >> gvs[APPEND]
+  >> gvs[convolutional_code_encode_helper_cons]
+  >> gvs[convolutional_code_encode_state_helper_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1075,28 +1088,20 @@ Theorem convolutional_code_encode_append:
     (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m cs (convolutional_code_encode_state m bs))
 Proof
   rpt strip_tac
-  >> Induct_on ‘bs’
-  >- EVAL_TAC
-  >> rpt strip_tac
-  >> gvs[APPEND]
-  >> PURE_ONCE_REWRITE_TAC[convolutional_code_encode_cons]
-  >> gvs[]
-  >> gvs[convolutional_code_encode_def]
-  >> gvs[convolutional_code_encode m]
+  >> gvs[convolutional_code_encode_def, convolutional_code_encode_state_def]
+  >> gvs[convolutional_code_encode_helper_append]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Can break convolutional encoding up into doing a bunch of steps from the   *)
+(* initial state, then doing a final step from the final state.               *)
+(* -------------------------------------------------------------------------- *)
 Theorem convolutional_code_encode_snoc:
   ∀m b bs. convolutional_code_encode m (SNOC b bs) =
            (convolutional_code_encode m bs) ⧺ (convolutional_code_encode_helper m [b] (convolutional_code_encode_state m bs))
 Proof
-  rpt strip_tac
-  >> gvs[convolutional_code_encode_def]
-  >> gvs[convolutional_code_encode_helper_def]
-  >> gen_tac
-  >> Induct_on ‘bs’ using SNOC_INDUCT
-  >- (rpt strip_tac >> EVAL_TAC)
-  >> rpt strip_tac
-  >> 
+  gvs[SNOC]
+  >> gvs[convolutional_code_encode_append]
 QED
 
 (* -------------------------------------------------------------------------- *)
