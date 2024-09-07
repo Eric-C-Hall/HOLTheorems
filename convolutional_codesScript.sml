@@ -1385,18 +1385,23 @@ Proof
   >> Cases_on ‘f h’ >> gvs[]
 QED
 
-(*
-While this is true for the state machines used in Viterbi, it is not true of general state machines.
-        
 Theorem transition_inverse_nonempty:
-  ∀m s. transition_inverse m s ≠ []
+  ∀m s.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    transition_inverse m s ≠ []
 Proof
-  rpt gen_tac
+  rpt strip_tac
   >> gvs[transition_inverse_def]
+  >> drule (cj 3 $ iffLR wfmachine_def)
+  >> rpt strip_tac
+  >> pop_assum $ qspec_then ‘s’ assume_tac
+  >> gvs[]
+        
   >> gvs[FILTER_EXISTS]
   >> gvs[EXISTS_MEM]
   >> rpt strip_tac
-QED*)
+QED
 
 (*
 In some state machines, there may be no state which leads to a given state, therefore this theorem may not be true.
