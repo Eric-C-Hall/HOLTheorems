@@ -1339,22 +1339,34 @@ Proof
   >> gvs[all_transitions_valid]
 QED
 
+Theorem FILTER_EXISTS:
+  ∀f bs.
+    FILTER f bs ≠ [] ⇔ EXISTS f bs
+Proof
+  rpt strip_tac 
+  >> Induct_on ‘bs’
+  >- gvs[]
+  >> rpt strip_tac
+  >> gvs[FILTER]
+  >> Cases_on ‘f h’ >> gvs[]
+QED
+
+(*
+While this is true for the state machines used in Viterbi, it is not true of general state machines.
+        
 Theorem transition_inverse_nonempty:
   ∀m s. transition_inverse m s ≠ []
 Proof
-  rpt strip_tac
+  rpt gen_tac
   >> gvs[transition_inverse_def]
-  >> simp[GSYM LENGTH_NIL]
-         drule (GSYM LENGTH_NIL)
-  >> qmatch_asmsub_abbrev_tac ‘bs = []’
-  >> qspec_then ‘bs’ (iffRL LENGTH_NIL) assume_tac
-  >> drule (iffRL LENGTH_NIL)
-           >> PURE_ASM_REWRITE_TAC[GSYM LENGTH_NIL]
-                
-  >> PURE_ONCE_REWRITE_TAC[GSYM LENGTH_NIL]
-  >> gvs[FILTER_EL_IFF] 
-QED
+  >> gvs[FILTER_EXISTS]
+  >> gvs[EXISTS_MEM]
+  >> rpt strip_tac
+QED*)
 
+(*
+In some state machines, there may be no state which leads to a given state, therefore this theorem may not be true.
+        
 Theorem viterbi_trellis_row_prev_state_valid:
   ∀m bs t s.
     0 < t ∧
@@ -1380,7 +1392,11 @@ Proof
           >> 
          
 QED
+*)
 
+(*
+In the case where there are states in the state machine with no predecessor, this may break because some path back through the state machine may end up at a dead end 
+        
 Theorem vd_find_optimal_reversed_path_length:
   ∀m bs s t.
     s < m.num_states ⇒
@@ -1408,7 +1424,7 @@ Proof
   >> rpt strip_tac
   >- ()
   >> gvs[viterbi_trellis_node_def]
-QED
+QED*)
 
 Theorem viterbi_decode_length:
   ∀m bs.
