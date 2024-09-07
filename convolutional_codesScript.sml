@@ -477,8 +477,12 @@ Definition wfmachine_def:
     0 < m.num_states ∧
     (* transition_fn:
        - if the origin of the transition is a valid state, then the
-         destination must also be a valid state. *)
+         destination must also be a valid state.
+       - any valid state has at least one valid predecessor.
+         This is necessary because otherwise when we attempt to find a path
+         back through the trellis, we may reach a dead end.*)
     (∀n b. n < m.num_states ⇒ (m.transition_fn <| origin := n; input := b |>).destination < m.num_states) ∧
+    (∀s. s < m.num_states ⇒ (∃s' b. (m.transition_fn <| origin := s'; input := b |>).destination = s)) ∧
     (* output_length:
        - each transition must output a string of length output_length *)
     (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
@@ -674,20 +678,50 @@ Definition example_state_machine_def:
   |> : state_machine
 End
 
+Theorem wfmachine_example_state_machine:
+  wfmachine example_state_machine
+Proof
+  PURE_REWRITE_TAC[wfmachine_def]
+  >> rpt conj_tac
+  >- EVAL_TAC
+  >- (gvs[example_state_machine_def]
+      >> rpt strip_tac
+      >> Cases_on ‘b’ >> gvs[]
+      >> Cases_on ‘n’ >> gvs[]
+      >> Cases_on ‘n'’ >> gvs[]
+      >> Cases_on ‘n’ >> gvs[])
+  >- (gvs[example_state_machine_def]
+      >> rpt strip_tac
+      >> Cases_on ‘s’
+      >- (qexistsl [‘0’, ‘F’]
+          >> EVAL_TAC)
+      >> Cases_on ‘n’
+      >- (qexistsl [‘0’, ‘T’]
+          >> EVAL_TAC)
+      >> Cases_on ‘n'’
+      >- (qexistsl [‘1’, ‘F’]
+          >> EVAL_TAC)
+      >> Cases_on ‘n’
+      >- (qexistsl [‘1’, ‘T’]
+          >> EVAL_TAC)
+      >> EVAL_TAC
+      >> gvs[ADD1])
+  >- (rpt strip_tac
+      >> gvs[example_state_machine_def]
+      >> Cases_on ‘b’ >> gvs[]
+      >> Cases_on ‘n’ >> gvs[]
+      >> Cases_on ‘n'’ >> gvs[]
+      >> Cases_on ‘n’ >> gvs[])
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Simple test to make sure the convolutional code is providing the output    *)
 (* I would expect if I manually did the computation myself                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_test1:
-  wfmachine example_state_machine ∧
   vd_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
 Proof
-  REVERSE conj_tac
-  >- EVAL_TAC
-  >> PURE_REWRITE_TAC[wfmachine_def, example_state_machine_def]
-  >> gvs[]
-  >> conj_tac
-  >> rpt strip_tac >> Cases_on ‘b’ >> Cases_on ‘n’ >> gvs[] >> Cases_on ‘n'’ >> gvs[] >> Cases_on ‘n’ >> gvs[] >> Cases_on ‘n'’ >> gvs[]
+  EVAL_TAC
 QED
 
 Definition all_transitions_helper_def:
