@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -1271,6 +1270,19 @@ Proof
   >> gvs[wfmachine_def]
 QED
 
+Theorem path_to_code_length[simp]:
+  ∀m ps.
+    LENGTH (path_to_code m ps) = LENGTH ps - 1
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ps’
+  >- EVAL_TAC
+  >> rpt strip_tac
+  >> Cases_on ‘ps’
+  >- EVAL_TAC
+  >> gvs[path_to_code_def]
+QED
+
 Theorem viterbi_decode_length:
   ∀m bs.
     wfmachine m ∧
@@ -1284,8 +1296,14 @@ Proof
   >> SPEC_ALL_TAC   
   >> Induct_on ‘q’ >> rpt strip_tac
   >- gvs[]
-  >> 
+  (* At some point will need Cases_on ‘q’ to get the new base case *)
+  >> gvs[viterbi_decode_def]
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
+  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_path _ _ fn2 len’
+  >- gvs[]
 QED
+
+(* path_to_code_def *)
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
