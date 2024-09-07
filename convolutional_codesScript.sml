@@ -1312,12 +1312,20 @@ Theorem viterbi_trellis_row_prev_state_valid:
   ∀m bs t s.
     0 < t ∧
     s < m.num_states ⇒
-    (EL s (viterbi_trellis_row m bs t)).prev_state ≠ NONE
+    (EL s (viterbi_trellis_row m bs t)).prev_state ≠ NONE ∧
+    THE (EL s (viterbi_trellis_row m bs t)).prev_state < m.num_states
 Proof
   rpt strip_tac
+  >- (Cases_on ‘t’ >> gvs[]
+      >> gvs[viterbi_trellis_row_def]
+      >> gvs[viterbi_trellis_node_def])
   >> Cases_on ‘t’ >> gvs[]
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
+  >> gvs [transition_inverse_def
+          >> gvs [all_transitions_def]
+          >> gvs[all_transitions_helper_def]
 QED
 
 Theorem vd_find_optimal_reversed_path_length:
@@ -1333,22 +1341,20 @@ Proof
   >> Cases_on ‘(EL s ts).prev_state’ >> gvs[]
   >- (last_x_assum kall_tac
       >> unabbrev_all_tac
-      >> gvs[viterbi_trellis_row_def]
-            
-      >> REVERSE (Cases_on ‘(EL s ts).prev_state’) >> gvs[]
-      >- (last_x_assum $ qspecl_then [‘bs’, ‘x’] assume_tac
-          >> ‘x < m.num_states’ suffices_by decide_tac
-          >> pop_assum kall_tac
-          >>
-          
-          >> last_x_assum kall_tac
-          >> unabbrev_all_tac
-          >> gvs[viterbi_trellis_row_def]
-          >> pop_assum mp_tac
-          >> DEP_PURE_ONCE_ASM_REWRITE_TAC [EL_GENLIST]
-          >> rpt strip_tac
-          >- ()
-          >> gvs[viterbi_trellis_node_def]
+      >> gvs[viterbi_trellis_row_prev_state_valid])
+  >> last_x_assum $ qspecl_then [‘bs’, ‘x’] assume_tac
+  >> ‘x < m.num_states’ suffices_by decide_tac
+  >> pop_assum kall_tac
+  >>
+  
+  >> last_x_assum kall_tac
+  >> unabbrev_all_tac
+  >> gvs[viterbi_trellis_row_def]
+  >> pop_assum mp_tac
+  >> DEP_PURE_ONCE_ASM_REWRITE_TAC [EL_GENLIST]
+  >> rpt strip_tac
+  >- ()
+  >> gvs[viterbi_trellis_node_def]
 QED
 
 Theorem viterbi_decode_length:
