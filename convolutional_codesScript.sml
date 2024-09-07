@@ -1283,6 +1283,31 @@ Proof
   >> gvs[path_to_code_def]
 QED
 
+Theorem vd_find_optimal_reversed_path_length:
+  ∀m bs s t.
+    LENGTH (vd_find_optimal_reversed_path m bs s t) ≤ t + 1
+Proof
+  gen_tac
+  >> Induct_on ‘t’ >> rpt strip_tac
+  >- EVAL_TAC
+  >> gvs[vd_find_optimal_reversed_path_def]
+  >> qmatch_goalsub_abbrev_tac ‘EL s ts’
+  >> Cases_on ‘(EL s ts).prev_state’
+  >- gvs[]
+  >> gvs[]
+  >> last_x_assum $ qspecl_then [‘bs’, ‘x’] assume_tac
+  >> decide_tac 
+QED
+
+Theorem vd_find_optimal_path_length:
+  ∀m bs s t.
+    LENGTH (vd_find_optimal_path m bs s t) ≤ t + 1
+Proof
+  rpt strip_tac
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_length]
+QED
+
 Theorem viterbi_decode_length:
   ∀m bs.
     wfmachine m ∧
@@ -1300,7 +1325,6 @@ Proof
   >> gvs[viterbi_decode_def]
   >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
   >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_path _ _ fn2 len’
-  >- gvs[]
 QED
 
 (* path_to_code_def *)
