@@ -52,6 +52,25 @@ It may be good to define the state machines using the weaker definition, then co
 
 (* Theorems for calculating the length of the encoded string *).
 
+(* Adding requirement htat machine has at least one state to definition of well-formed machine.*)
+
+(* Proved that the state generated through the encoding process is a valid one *)
+
+(* Proved that when the output length is 0, every message is the empty message *)
+
+(* Started proving that the length of a decoded message is equal to the original length divided by the number of outputs per transition. Proved that the length of the binary message based on a path of states is one less than the length of the path of states. *)
+
+(* Started using abbreviations *)
+
+(* Proved that beyond the zeroth time step, all states in the trellis have a valid prior state. *)
+
+(* Proved that all states returned by the inverse transition function are valid, and started proving that the output of the inverse transition function is nonempty *)
+
+(* Issue: if there are states with no predecessor, a lot of things regarding travelling back through the trellis may break. *)
+
+(* Added assumption that there's always at least one prior state in order to fix this issue *)
+
 val _ = export_theory();
+
 
 
