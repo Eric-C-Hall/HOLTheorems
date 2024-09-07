@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -1308,6 +1309,52 @@ Proof
   >> gvs[vd_find_optimal_reversed_path_length_lt]
 QED
 
+
+Theorem all_transitions_helper_valid:
+  ∀m b.
+    EVERY (λs2. s2.origin < m.num_states) (all_transitions_helper m b)
+Proof
+  rpt strip_tac
+  >> gvs[EVERY_EL]
+  >> rpt strip_tac
+  >> gvs[all_transitions_helper_def]
+QED
+
+Theorem all_transitions_valid:
+  ∀m.
+    EVERY (λs2. s2.origin < m.num_states) (all_transitions m)
+Proof
+ rpt strip_tac
+ >> gvs[all_transitions_def]
+ >> gvs[all_transitions_helper_valid]
+QED
+
+Theorem transition_inverse_valid:
+  ∀m s.
+    EVERY (λs2. s2.origin < m.num_states) (transition_inverse m s)
+Proof
+  rpt strip_tac
+  >> gvs[transition_inverse_def]
+  >> irule EVERY_FILTER_IMP
+  >> gvs[all_transitions_valid]
+QED
+
+Theorem transition_inverse_nonempty:
+  ∀m s. transition_inverse m s ≠ []
+Proof
+  rpt strip_tac
+  >> gvs[transition_inverse_def]
+  >> simp[GSYM LENGTH_NIL]
+         drule (GSYM LENGTH_NIL)
+  >> qmatch_asmsub_abbrev_tac ‘bs = []’
+  >> qspec_then ‘bs’ (iffRL LENGTH_NIL) assume_tac
+  >> drule (iffRL LENGTH_NIL)
+           >> PURE_ASM_REWRITE_TAC[GSYM LENGTH_NIL]
+                
+  >> PURE_ONCE_REWRITE_TAC[GSYM LENGTH_NIL]
+  >> gvs[FILTER_EL_IFF] 
+QED
+
 Theorem viterbi_trellis_row_prev_state_valid:
   ∀m bs t s.
     0 < t ∧
@@ -1323,9 +1370,15 @@ Proof
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
   >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
-  >> gvs [transition_inverse_def
-          >> gvs [all_transitions_def]
-          >> gvs[all_transitions_helper_def]
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR _ (HD ts)’
+  >> qspecl_then [‘m’, ‘s’] assume_tac transition_inverse_valid
+  >> qmatch_goalsub_abbrev_tac ‘t.origin < _’
+  >> sg ‘MEM t ts’
+  >- (gvs[Abbr ‘t’]
+      >> Induct_on ‘ts’
+      >- (gvs[]
+          >> 
+         
 QED
 
 Theorem vd_find_optimal_reversed_path_length:
