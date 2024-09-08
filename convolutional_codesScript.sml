@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -508,7 +507,7 @@ Definition wfmachine_def:
          This is necessary because otherwise when we attempt to find a path
          back through the trellis, we may reach a dead end.*)
     (∀n b. n < m.num_states ⇒ vd_step m b n < m.num_states) ∧
-    (∀s. s < m.num_states ⇒ (∃s' b. vd_step m b s' = s)) ∧
+    (∀s. s < m.num_states ⇒ (∃s' b. s' < m.num_states ∧ vd_step m b s' = s)) ∧
     (* output_length:
        - each transition must output a string of length output_length *)
     (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
@@ -1402,7 +1401,7 @@ Theorem all_transitions_helper_mem:
   ∀m r b.
     r.origin < m.num_states ∧
     r.input = b ⇒
-     MEM r (all_transitions_helper m b)
+    MEM r (all_transitions_helper m b)
 Proof
   rpt strip_tac
   >> Cases_on ‘r’
@@ -1410,7 +1409,6 @@ Proof
   >> gvs[all_transitions_helper_def]
   >> gvs[MEM_GENLIST]
 QED
-
 
 Theorem all_transitions_mem:
   ∀m r.
@@ -1420,7 +1418,7 @@ Proof
   rpt strip_tac
   >> Cases_on ‘r’
   >> gvs[all_transitions_def]
-  >> Cases_on 
+  >> Cases_on ‘b’ >> gvs[all_transitions_helper_mem]
 QED
 
 Theorem transition_inverse_nonempty:
@@ -1438,13 +1436,12 @@ Proof
   >> gvs[vd_step_def, vd_step_record_def]
   >> gvs[FILTER_EQ_NIL]
   >> gvs[EVERY_MEM]
-  >> pop_assum $ qspec_then ‘<|origin := s'; input := b |>’ assume_tac
+  >> first_x_assum $ qspec_then ‘<|origin := s'; input := b |>’ assume_tac
   >> gvs[]
-  >> gvs[all_transitions_def]
-        
-  >> gvs[FILTER_EXISTS]
-  >> gvs[EXISTS_MEM]
-  >> rpt strip_tac
+  >> pop_assum mp_tac
+  >> gvs[NOT_DEF]
+  >> irule all_transitions_mem
+  >> gvs[]
 QED
 
 (*
