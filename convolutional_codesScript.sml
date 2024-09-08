@@ -1505,6 +1505,38 @@ fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum
 
 (* TODO: function for bringing nth assumption to top *)
 
+(* -------------------------------------------------------------------------- *)
+(* The result of folding get_better_origin over a list is the list itself,    *)
+(* since at each stage, the output is equal to one of the inputs.             *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_better_origin_foldr:
+  ∀m is ps ts.
+    ts ≠ [] ⇒
+    MEM (FOLDR (get_better_origin m is ps) (HD ts) (TL ts)) ts
+Proof
+  rpt strip_tac
+  (* Base case is excluded due to preconditions for theorem to be true *)
+  >> Induct_on ‘ts’
+  >- gvs[]
+  (* Since the base case was excluded, we need a new base case *)
+  >> Cases_on ‘ts’
+  >- gvs[]
+  >> rpt strip_tac
+  (* Avoid splitting into cases based on what part of the ts we know that t is a member of *)
+  >> pop_assum (fn th => donotexpand_tac >> assume_tac th)
+  >> gvs[]
+  (* Handle the case where the very first element is the best, by
+     expanding out get_better_origin and evalutating *)
+  >> gvs[get_better_origin_def]
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+  >> Cases_on ‘b’
+  >- gvs[]
+  >> gvs[]
+  >> doexpand_tac
+  >> gvs[]
+  >- (
+QED
+
 Theorem viterbi_trellis_row_prev_state_valid:
   ∀m bs t s.
     wfmachine m ∧
@@ -1513,24 +1545,30 @@ Theorem viterbi_trellis_row_prev_state_valid:
     (EL s (viterbi_trellis_row m bs t)).prev_state ≠ NONE ∧
     THE (EL s (viterbi_trellis_row m bs t)).prev_state < m.num_states
 Proof
+  (* Handle proving that previous state is not NONE *)
   rpt strip_tac
   >- (Cases_on ‘t’ >> gvs[]
       >> gvs[viterbi_trellis_row_def]
       >> gvs[viterbi_trellis_node_def])
+  (* Start of proof that previous state is within the valid range for states *)
   >> Cases_on ‘t’ >> gvs[]
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
   >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
   >> qmatch_goalsub_abbrev_tac ‘FOLDR _ (HD ts)’
   >> qmatch_goalsub_abbrev_tac ‘t.origin < _’
+  (* Use the proof that transition_inverse always returns a valid state
+     to simplify to merely needing to prove that t is a member of ts. *)
   >> qsuff_tac ‘MEM t ts’
   >- (strip_tac
       >> qspecl_then [‘m’, ‘s’] assume_tac transition_inverse_valid
       >> gvs[Abbr ‘ts’]
       >> gvs[EVERY_MEM])
+  (* t can only be a member of ts if ts is nonempty, so prove that ts is nonempty, using the fact that transition_inverse is nonempty given a well formed machine and valid state.*)
   >> sg ‘ts ≠ []’
   >- (gvs[Abbr ‘ts’]
       >> gvs[transition_inverse_nonempty])
+  (* No longer need the information provided by the exact form of ts. The fact that it is a nonempty bitstring is enough. *)
   >> delete_nth_assumption 2
   >> unabbrev_all_tac
   >> Induct_on ‘ts’
@@ -1543,10 +1581,9 @@ Proof
   >> donotexpand_tac
   >> Cases_on ‘ts’
   >- gvs[]
-  >> gvs[(*Excl "MEM"*)]
-  >> unabbrev_all_tac
   >> gvs[]
-        (*>> CONV_TAC (REDEPTH_CONV ABS_CONV) this is broken, not sure how it works*)
+  >> (*PURE_ASM_REWRITE_TAC[get_better_origin_def]*)
+  
 QED
 
 Theorem vd_find_optimal_reversed_path_length:
