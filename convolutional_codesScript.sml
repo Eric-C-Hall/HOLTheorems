@@ -831,6 +831,15 @@ End
 (* in the trellis                                                             *)
 (* -------------------------------------------------------------------------- *)
 
+Definition get_num_errors_def:
+  get_num_errors m relevant_input previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output relevant_input)
+End
+
+Definition get_better_origin_def:
+  get_better_origin m relevant_input previous_row r1 r2 =
+  if (get_num_errors m relevant_input previous_row r1) < (get_num_errors m relevant_input previous_row r2) then r1 else r2
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Describes the data stored at a particular point in the trellis             *)
 (*                                                                            *)
@@ -857,11 +866,11 @@ End
 Definition viterbi_trellis_node_def:
   viterbi_trellis_node m bs s t previous_row =
   let
-    relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);    get_num_errors = λr. (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output relevant_input);
+    relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);
     possible_origins = transition_inverse m s;
-    best_origin = FOLDR (λr1 r2 : transition_origin. if (get_num_errors r1) < (get_num_errors r2) then r1 else r2) (HD possible_origins) (TL possible_origins)
+    best_origin = FOLDR (get_better_origin m relevant_input previous_row) (HD possible_origins) (TL possible_origins);
   in
-    <| num_errors := get_num_errors best_origin;
+    <| num_errors := get_num_errors m relevant_input previous_row best_origin;
        prev_state := SOME best_origin.origin; |>
 End
 
@@ -1537,9 +1546,8 @@ Proof
   >> gvs[(*Excl "MEM"*)]
   >> unabbrev_all_tac
   >> gvs[]
-  >> (*CONV_TAC (REDEPTH_CONV ABS_CONV) this is broken, not sure how it works*)
+        (*>> CONV_TAC (REDEPTH_CONV ABS_CONV) this is broken, not sure how it works*)
 QED
-
 
 Theorem vd_find_optimal_reversed_path_length:
   ∀m bs s t.
