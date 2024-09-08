@@ -785,6 +785,35 @@ Definition all_transitions_def:
   all_transitions (m : state_machine) = all_transitions_helper m T ⧺ all_transitions_helper m F
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Set version of function to return a list of all valid choices of           *)
+(* transition                                                                 *)
+(* -------------------------------------------------------------------------- *)
+Definition all_transitions_set_def:
+  all_transitions_set (m : state_machine) = {transition_origin s b | s < m.num_states ∧ (b ∨ ¬b)}
+End
+
+Theorem all_transitions_set_list_equiv:
+  ∀m t.
+    MEM t (all_transitions m) ⇔ t ∈ all_transitions_set m
+Proof
+  rpt strip_tac
+  >> gvs[all_transitions_def, all_transitions_set_def]
+  >> EQ_TAC >> rpt strip_tac
+  >- (gvs[all_transitions_helper_def]
+      >> gvs[MEM_GENLIST])
+  >- (gvs[all_transitions_helper_def]
+      >> gvs[MEM_GENLIST])
+  >> gvs[all_transitions_helper_def]
+  >> gvs[MEM_GENLIST]
+QED
+
+Theorem all_transitions_listtoset:
+  ∀m.
+    set (all_transitions m) = all_transitions_set m
+Proof
+QED
+
 (*Theorem all_transitions_test:
   all_transitions example_state_machine = faz
 Proof
@@ -799,6 +828,11 @@ End*)
 Definition transition_inverse_def:
   transition_inverse (m : state_machine) dest =
   FILTER (λorgn. (m.transition_fn orgn).destination = dest) (all_transitions m)
+End
+
+Definition transition_inverse_set_def:
+  transition_inverse_set (m : state_machine) =
+  IMAGE 
 End
 
 (*Theorem transition_inverse_test:
@@ -1505,6 +1539,12 @@ fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum
 
 (* TODO: function for bringing nth assumption to top *)
 
+Theorem get_better_origin_:
+∀m is ps r.
+  FOLDR (get_better_origin m is ps) h ts = MIN
+Proof
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The result of folding get_better_origin over a list is the list itself,    *)
 (* since at each stage, the output is equal to one of the inputs.             *)
@@ -1534,7 +1574,8 @@ Proof
   >> gvs[]
   >> doexpand_tac
   >> gvs[]
-  >- (
+  >- (disj1_tac
+      >> 
 QED
 
 Theorem viterbi_trellis_row_prev_state_valid:
