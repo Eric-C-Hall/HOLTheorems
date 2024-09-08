@@ -1444,13 +1444,13 @@ Proof
   >> gvs[]
 QED
 
-(*
-In some state machines, there may be no state which leads to a given state, therefore this theorem may not be true.
-        
+fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum (fn th => delete_nth_assumption (n - 1) >> assume_tac th))
+
 Theorem viterbi_trellis_row_prev_state_valid:
   ∀m bs t s.
-    0 < t ∧
-    s < m.num_states ⇒
+    wfmachine m ∧
+    s < m.num_states ∧
+    0 < t ⇒
     (EL s (viterbi_trellis_row m bs t)).prev_state ≠ NONE ∧
     THE (EL s (viterbi_trellis_row m bs t)).prev_state < m.num_states
 Proof
@@ -1463,20 +1463,36 @@ Proof
   >> gvs[viterbi_trellis_node_def]
   >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
   >> qmatch_goalsub_abbrev_tac ‘FOLDR _ (HD ts)’
-  >> qspecl_then [‘m’, ‘s’] assume_tac transition_inverse_valid
   >> qmatch_goalsub_abbrev_tac ‘t.origin < _’
-  >> sg ‘MEM t ts’
-  >- (gvs[Abbr ‘t’]
-      >> Induct_on ‘ts’
-      >- (gvs[]
-          >> 
-         
-QED
-*)
+  >> qsuff_tac ‘MEM t ts’
+  >- (strip_tac
+      >> qspecl_then [‘m’, ‘s’] assume_tac transition_inverse_valid
+      >> gvs[Abbr ‘ts’]
+      >> gvs[EVERY_MEM])
+  >> sg ‘ts ≠ []’
+  >- (gvs[Abbr ‘ts’]
+      >> gvs[transition_inverse_nonempty])
+  >> delete_nth_assumption 2
+  >> unabbrev_all_tac
+  >> Induct_on ‘ts’
+  >- gvs[]
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR f1 _ _’
+  >> rpt strip_tac
+  >> qmatch_asmsub_abbrev_tac ‘MEM h' _’
 
-(*
-In the case where there are states in the state machine with no predecessor, this may break because some path back through the state machine may end up at a dead end 
-        
+  
+  >> Cases_on ‘ts’
+  >- gvs[]
+  >> gvs[Excl "MEM"]
+  >- (unabbrev_all_tac
+      >> 
+      >- (disj2_tac
+          >> disj1_tac
+          >> gvs[]
+QED
+
+
 Theorem vd_find_optimal_reversed_path_length:
   ∀m bs s t.
     s < m.num_states ⇒
@@ -1504,7 +1520,7 @@ Proof
   >> rpt strip_tac
   >- ()
   >> gvs[viterbi_trellis_node_def]
-QED*)
+QED
 
 Theorem viterbi_decode_length:
   ∀m bs.
