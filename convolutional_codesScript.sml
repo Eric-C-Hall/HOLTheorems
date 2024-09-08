@@ -8,6 +8,7 @@ open arithmeticTheory;
 open listTheory;
 open bitstringTheory;
 open infnumTheory;
+open pred_setTheory;
 open prim_recTheory;
 open relationTheory;
 open rich_listTheory;
@@ -785,6 +786,10 @@ Definition all_transitions_def:
   all_transitions (m : state_machine) = all_transitions_helper m T ⧺ all_transitions_helper m F
 End
 
+Definition all_transitions_set_helper_def:
+  all_transitions_set_helper (m : state_machine) b = {transition_origin s b | s < m.num_states}
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Set version of function to return a list of all valid choices of           *)
 (* transition                                                                 *)
@@ -808,10 +813,34 @@ Proof
   >> gvs[MEM_GENLIST]
 QED
 
+Theorem all_transitions_helper_listtoset:
+  ∀m b.
+    set (all_transitions_helper m b) = all_transitions_set_helper m b
+Proof
+  rpt strip_tac
+  >> gvs[all_transitions_helper_def, all_transitions_set_helper_def]
+  >> rpt strip_tac
+  >> gvs[LIST_TO_SET_GENLIST]
+  >> gvs[EXTENSION]
+QED
+
+Theorem all_transitions_set_all_transitions_set_helper:
+  ∀m. all_transitions_set m = all_transitions_set_helper m T ∪ all_transitions_set_helper m F
+Proof
+  rpt strip_tac
+  >> gvs[all_transitions_set_def, all_transitions_set_helper_def]
+  >> gvs[EXTENSION]
+  >> rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac >> gvs[]
+QED
+
 Theorem all_transitions_listtoset:
   ∀m.
     set (all_transitions m) = all_transitions_set m
 Proof
+  rpt strip_tac
+  >> gvs[all_transitions_def, all_transitions_set_all_transitions_set_helper]
+  >> gvs[all_transitions_helper_listtoset]
 QED
 
 (*Theorem all_transitions_test:
@@ -1538,12 +1567,6 @@ QED
 fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum (fn th => delete_nth_assumption (n - 1) >> assume_tac th))
 
 (* TODO: function for bringing nth assumption to top *)
-
-Theorem get_better_origin_:
-∀m is ps r.
-  FOLDR (get_better_origin m is ps) h ts = MIN
-Proof
-QED
 
 (* -------------------------------------------------------------------------- *)
 (* The result of folding get_better_origin over a list is the list itself,    *)
