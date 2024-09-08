@@ -725,8 +725,12 @@ Proof
   EVAL_TAC
 QED
 
-Definition all_transitions_helper_def:
+(* Originally used the following definition, but this led to issues:
   all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
+ *)
+
+Definition all_transitions_helper_def:
+  all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. transition_origin n b) m.num_states
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1386,6 +1390,39 @@ Proof
   >> Cases_on ‘f h’ >> gvs[]
 QED
 
+Theorem FILTER_EXISTS2:
+  ∀f bs.
+    FILTER f bs = [] ⇔ ¬(EXISTS f bs)
+Proof
+  PURE_REWRITE_TAC[GSYM FILTER_EXISTS]
+  >> gvs[]
+QED
+
+Theorem all_transitions_helper_mem:
+  ∀m r b.
+    r.origin < m.num_states ∧
+    r.input = b ⇒
+     MEM r (all_transitions_helper m b)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘r’
+  >> gvs[]
+  >> gvs[all_transitions_helper_def]
+  >> gvs[MEM_GENLIST]
+QED
+
+
+Theorem all_transitions_mem:
+  ∀m r.
+    r.origin < m.num_states ⇒
+    MEM r (all_transitions m)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘r’
+  >> gvs[all_transitions_def]
+  >> Cases_on 
+QED
+
 Theorem transition_inverse_nonempty:
   ∀m s.
     wfmachine m ∧
@@ -1398,6 +1435,12 @@ Proof
   >> rpt strip_tac
   >> pop_assum $ qspec_then ‘s’ assume_tac
   >> gvs[]
+  >> gvs[vd_step_def, vd_step_record_def]
+  >> gvs[FILTER_EQ_NIL]
+  >> gvs[EVERY_MEM]
+  >> pop_assum $ qspec_then ‘<|origin := s'; input := b |>’ assume_tac
+  >> gvs[]
+  >> gvs[all_transitions_def]
         
   >> gvs[FILTER_EXISTS]
   >> gvs[EXISTS_MEM]
