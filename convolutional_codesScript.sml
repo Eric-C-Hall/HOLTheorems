@@ -467,6 +467,32 @@ Definition gen_wfmachine_def:
     WF m.state_ordering
 End
 
+
+(* -------------------------------------------------------------------------- *)
+(* Takes a step using the state machine and returns a record of the           *)
+(* destination and the output                                                 *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_step_record_def:
+  vd_step_record (m : state_machine) b s =
+  m.transition_fn <| origin := s; input := b |>
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Takes a step using the state machine and returns the output.               *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_step_output_def:
+  vd_step_output (m : state_machine) b s =
+  (vd_step_record m b s).output
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Takes a step using the state machine to arrive at a new state.             *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_step_def:
+  vd_step (m : state_machine) b s =
+  (vd_step_record m b s).destination
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the num state machine is well-formed                           *)
 (* -------------------------------------------------------------------------- *)
@@ -481,8 +507,8 @@ Definition wfmachine_def:
        - any valid state has at least one valid predecessor.
          This is necessary because otherwise when we attempt to find a path
          back through the trellis, we may reach a dead end.*)
-    (∀n b. n < m.num_states ⇒ (m.transition_fn <| origin := n; input := b |>).destination < m.num_states) ∧
-    (∀s. s < m.num_states ⇒ (∃s' b. (m.transition_fn <| origin := s'; input := b |>).destination = s)) ∧
+    (∀n b. n < m.num_states ⇒ vd_step m b n < m.num_states) ∧
+    (∀s. s < m.num_states ⇒ (∃s' b. vd_step m b s' = s)) ∧
     (* output_length:
        - each transition must output a string of length output_length *)
     (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
@@ -584,23 +610,6 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Takes a step using the state machine and returns a record of the           *)
-(* destination and the output                                                 *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_step_record_def:
-  vd_step_record (m : state_machine) b s =
-  m.transition_fn <| origin := s; input := b |>
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Takes a step using the state machine and returns the output.               *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_step_output_def:
-  vd_step_output (m : state_machine) b s =
-  (vd_step_record m b s).output
-End
-
-(* -------------------------------------------------------------------------- *)
 (* Helper function that does the actual work to encode a binary string using  *)
 (* convolutional coding, according to a chosen state machine.                 *)
 (*                                                                            *)
@@ -622,14 +631,6 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition vd_encode_def:
   vd_encode (m : state_machine) bs = vd_encode_helper m bs 0
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Takes a step using the state machine to arrive at a new state.             *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_step_def:
-  vd_step (m : state_machine) b s =
-  (vd_step_record m b s).destination
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -684,13 +685,13 @@ Proof
   PURE_REWRITE_TAC[wfmachine_def]
   >> rpt conj_tac
   >- EVAL_TAC
-  >- (gvs[example_state_machine_def]
+  >- (gvs[example_state_machine_def, vd_step_def, vd_step_record_def]
       >> rpt strip_tac
       >> Cases_on ‘b’ >> gvs[]
       >> Cases_on ‘n’ >> gvs[]
       >> Cases_on ‘n'’ >> gvs[]
       >> Cases_on ‘n’ >> gvs[])
-  >- (gvs[example_state_machine_def]
+  >- (gvs[example_state_machine_def, vd_step_def, vd_step_record_def]
       >> rpt strip_tac
       >> Cases_on ‘s’
       >- (qexistsl [‘0’, ‘F’]
@@ -707,7 +708,7 @@ Proof
       >> EVAL_TAC
       >> gvs[ADD1])
   >- (rpt strip_tac
-      >> gvs[example_state_machine_def]
+      >> gvs[example_state_machine_def, vd_step_def, vd_step_record_def]
       >> Cases_on ‘b’ >> gvs[]
       >> Cases_on ‘n’ >> gvs[]
       >> Cases_on ‘n'’ >> gvs[]
