@@ -15,19 +15,65 @@ open dividesTheory;
 
 open dep_rewrite;
 open ConseqConv; (* SPEC_ALL_TAC *)
-(*open "donotexpandScript.sml"*)
+(*use "donotexpandLib.sml"*)
 
 open WFTheoremsTheory;
 
 val _ = monadsyntax.enable_monadsyntax()
 val _ = monadsyntax.enable_monad "option"
-
+                   
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
 (*                                                                            *)
 (* TODO: Cite better                                                          *)
 (* -------------------------------------------------------------------------- *)
 
+(*
+
+        TODO: Temporary place for donotexpand while asking about how to use it properly as a library
+
+*)
+
+
+(* TODO: Find better way to do this *)
+Definition donotexpand_def:
+  donotexpand P = P
+End
+
+Theorem donotexpand_thm:
+  donotexpand P ⇔ P
+Proof
+  gvs[donotexpand_def]
+QED
+
+open simpLib
+
+(* tactic that allows you to tell HOL4 to not expand the top theorem *)
+val donotexpand_tac =
+(* abbreviate relevant assumption *)
+qmatch_asmsub_abbrev_tac ‘donotexpand_var’
+(* Ignore top assumption (Abbrev), apply donotexpand to second assumption *)
+>> pop_assum (fn th => drule $ iffRL donotexpand_thm >> assume_tac th)
+(* expand abbreviation *)
+>> simp_tac empty_ss [Abbr ‘donotexpand_var’]
+(* remove original assumption without donotexpand *)
+>> pop_assum kall_tac
+(* discharge donotexpand-ed assumption to assumptions *)
+>> disch_tac
+
+(* Tactic that undoes the effect of donotexpand_tac *)
+val doexpand_tac =
+(* abbreviate assumption to expand *)
+qmatch_asmsub_abbrev_tac ‘donotexpand donotexpand_var’
+(* move assumption to expand to top *)
+>> qpat_x_assum ‘donotexpand donotexpand_var’ assume_tac
+(* expand assumption*)
+>> ‘donotexpand_var’ by (irule $ iffLR donotexpand_thm >> simp[])
+(* remove unexpanded assumption *)
+>> qpat_x_assum ‘donotexpand donotexpand_var’ kall_tac
+(* unabbreviate assumption *)
+>> simp_tac empty_ss [Abbr ‘donotexpand_var’]
+                   
 (* -------------------------------------------------------------------------- *)
 (* Main property we need to prove:                                            *)
 (*                                                                            *)
@@ -1444,7 +1490,11 @@ Proof
   >> gvs[]
 QED
 
+(* TODO: Move this to a library *)
+
 fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum (fn th => delete_nth_assumption (n - 1) >> assume_tac th))
+
+(* TODO: function for bringing nth assumption to top *)
 
 Theorem viterbi_trellis_row_prev_state_valid:
   ∀m bs t s.
@@ -1480,16 +1530,14 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘FOLDR f1 _ _’
   >> rpt strip_tac
   >> qmatch_asmsub_abbrev_tac ‘MEM h' _’
-
-  
+  >> pop_assum (fn th1 => pop_assum (fn th2 => pop_assum (fn th3 => assume_tac th2 >> assume_tac th1 >> assume_tac th3)))
+  >> donotexpand_tac
   >> Cases_on ‘ts’
   >- gvs[]
-  >> gvs[Excl "MEM"]
-  >- (unabbrev_all_tac
-      >> 
-      >- (disj2_tac
-          >> disj1_tac
-          >> gvs[]
+  >> gvs[(*Excl "MEM"*)]
+  >> unabbrev_all_tac
+  >> gvs[]
+  >> (*CONV_TAC (REDEPTH_CONV ABS_CONV) this is broken, not sure how it works*)
 QED
 
 
