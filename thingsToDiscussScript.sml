@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall *)
 
 open HolKernel Parse boolLib bossLib;
@@ -70,7 +69,82 @@ It may be good to define the state machines using the weaker definition, then co
 
 (* Added assumption that there's always at least one prior state in order to fix this issue *)
 
+Datatype:
+  transition_origin = <|
+    origin : num;
+    input : bool;
+  |>
+End
+
+Theorem test:
+  ∀r : transition_origin.
+    r = <|origin := r.origin; input := r.input|>
+Proof
+  rpt strip_tac
+  >> EVAL_TAC
+  >> Cases_on ‘r’
+  >> EVAL_TAC
+  >> Cases_on ‘transition_origin n b’
+  >> Cases_on ‘<|origin := n; input := b|>’
+  >> EVAL_TAC
+  >>  
+  (*>> Cases_on ‘b’ >> Cases_on ‘b'’ >> EVAL_TAC*)
+  >>
+QED
+
+
+(* This definition was changed to this form for the above reason. Originally used the following definition:
+all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states *)
+Definition all_transitions_helper_def:
+  all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. transition_origin n b) m.num_states
+End
+
+(* proved that any transition is contained in the list of all transitions *)
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(* How do I match inside a lambda expression? *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+
+(* wrote a function for deleting the nth assumption *)
+
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(* open donotexpandLib.sml didn't work *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(* Forgot how to expand out lambda term                                       *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+(* rewrote trellis node code to isolate large function as its own definition to improve readability *)
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* Wrote set version of all_transitions and inverse transition function. This *)
+(* is better for proving, but the list version is better for actual           *)
+(* computation                                                                *)
+(* -------------------------------------------------------------------------- *)
+
+
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(* How to disable case splitting on disjuncts?                                *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+
+
+
 val _ = export_theory();
-
-
 
