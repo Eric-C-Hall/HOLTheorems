@@ -1812,8 +1812,25 @@ QED
 (* when arriving at any point.                                                *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
+
 Theorem viterbi_correctness_general:
+  ∀m bs rs s t.
+    wfmachine m ∧
+    LENGTH bs = t ∧
+    LENGTH rs = m.output_length * t ⇒
+    let
+      decoded_path = path_to_code m (vd_find_optimal_path m bs s t);
+    in
+      hamming_distance rs (vd_encode m decoded_path) ≤ hamming_distance rs (vd_encode m bs)
 Proof
+  gen_tac
+  >> Induct_on ‘t’
+  >- gvs[]
+  >> rpt strip_tac
+  >> gvs[]
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+  >> gvs[viterbi_trellis_row ]
 QED
 
 
