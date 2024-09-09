@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -1149,8 +1148,8 @@ End
 (* recalculated several times when producing the path back through the        *)
 (* trellis                                                                    *)
 (* -------------------------------------------------------------------------- *)
-Definition viterbi_decode_def:
-  viterbi_decode m bs =
+Definition vd_decode_def:
+  vd_decode m bs =
   let
     max_timestep = (LENGTH bs) DIV m.output_length;
     last_row = viterbi_trellis_row m bs max_timestep;
@@ -1159,9 +1158,9 @@ Definition viterbi_decode_def:
     path_to_code m (vd_find_optimal_path m bs best_state max_timestep)
 End
 
-(*Theorem viterbi_decode_test:
+(*Theorem vd_decode_test:
   let
-    decoded_path = viterbi_decode example_state_machine test_path;
+    decoded_path = vd_decode example_state_machine test_path;
     encoded_decoded_path = vd_encode example_state_machine decoded_path
   in
     decoded_path = ARB ∧
@@ -1193,11 +1192,11 @@ Proof
   >> EVAL_TAC
 QED
 
-Theorem viterbi_decode_empty[simp]:
-  ∀m. viterbi_decode m [] = []
+Theorem vd_decode_empty[simp]:
+  ∀m. vd_decode m [] = []
 Proof
   rpt strip_tac
-  >> gvs[viterbi_decode_def]
+  >> gvs[vd_decode_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1735,12 +1734,12 @@ Proof
   >> gvs[]
 QED
 
-Theorem viterbi_decode_length:
+Theorem vd_decode_length:
   ∀m bs.
     wfmachine m ∧
     divides (LENGTH bs) m.output_length ∧
     m.output_length ≠ 0 ⇒
-    LENGTH (viterbi_decode m bs) = LENGTH bs DIV m.output_length
+    LENGTH (vd_decode m bs) = LENGTH bs DIV m.output_length
 Proof
   (* Prepare for induction with a stride of the output length.
      Need to expand out the definition of divides, and then put
@@ -1753,7 +1752,7 @@ Proof
   >> Induct_on ‘q’ >> rpt strip_tac
   >- gvs[] (* Deal with invalid case with output length of 0 *)
   (* expand definition *)
-  >> gvs[viterbi_decode_def]
+  >> gvs[vd_decode_def]
   >> gvs[vd_find_optimal_path_def]
   >> qmatch_goalsub_abbrev_tac ‘FOLDR s _ _’
   (* Simplify based on the length of a reversed path, using whatever
@@ -1770,11 +1769,6 @@ Proof
   >- gvs[wfmachine_def]
   >> gvs[Abbr ‘ts’]
   >> gvs[MEM_COUNT_LIST]
-QED
-
-Theorem vd_decode_snoc:
-  
-Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1794,27 +1788,43 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Proof outline:                                                             *)
 (*                                                                            *)
-(* Induct over bs                                                             *)
+(* - Want to prove a stronger statement: for any of the states at any time    *)
+(*   step, the viterbi path arriving at this state is optimal, i.e. going     *)
+(*   back through the trellis will provide a path that has a shorter hamming  *)
+(*   distance to the appropriate portion of the received string than any      *)
+(*   other path which arrives at this state.                                  *)
 (*                                                                            *)
-(* In base case, bs and rs are both empty. So too is the encoding of bs, the  *)
-(* decoding of rs, and the encoding and decoding of rs, so our statement      *)(* reduces to hamming_distance [] [] ≤ hamming_distance [] []                 *)
-(*                                                                            *)
-(* In the inductive step, we know that for all lesser lengthed bs, assuming   *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
+(* - Can do this by induction on the maximum timestep: if the maximum         *)
+(*   timestep is zero, then it is trivial that the trivial path is optimal to *)
+(*   any state. If, on the other hand, the maximum time step is SUC k, and we *)
+(*   know that the viterbi path arriving at any node at time step k is        *)
+(*   optimal, then any viterbi path to the current node will consist of a     *)
+(*   path to a previous node, followed by an additional step. By the          *)
+(*   inductive hypothesis, the path to the previous node is optimal, and then *)
+(*   the fact that I'm choosing from the best choice on the next step will    *)
+(*   essentially make the current node optimal. I skimmed over quite a bit,   *)
+(*  there, but that's the idea                                                *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Proof of the more general statement of optimality of the viterbi algorithm *)
+(* when arriving at any point.                                                *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_correctness_general:
+Proof
+QED
+
+
+
+
 Theorem viterbi_correctness:
   ∀m : state_machine.
     ∀bs rs : bool list.
       wfmachine m ∧
       LENGTH rs = m.output_length * LENGTH bs ⇒
-      hamming_distance rs (vd_encode m (viterbi_decode m rs)) ≤ hamming_distance rs (vd_encode m bs)
+      hamming_distance rs (vd_encode m (vd_decode m rs)) ≤ hamming_distance rs (vd_encode m bs)
 Proof
   gen_tac
   (* Deal with the special case of the output length being 0 so that I don't
@@ -1844,7 +1854,6 @@ Proof
      =
      - hamming_distance_append_right/hamming_distance_append_left
      - vd_encode_snoc
-     - vd_decode_snoc
      =
      - vd_encode_length is also useful.
      - so is vd_encode_state_is_valid

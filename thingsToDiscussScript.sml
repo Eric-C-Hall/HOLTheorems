@@ -163,5 +163,7 @@ End
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
+(* Originally was trying to use inductive hypothesis to prove main theorem, but then realised that the optimal path locally may not be optimal globally, so induction in the way I was implementing it wasn't viable. It's probably a good idea to think things through when you start, so that you don't end up in a situation where you've proved a lot but can't prove your goal. I didn't really spend time thinking about what process I would use to prove my goal , I just kind of jumped into coding by starting an induction immediately, and this probably  was a bad way of working because it led me into a dead end.*)
+
 val _ = export_theory();
 
