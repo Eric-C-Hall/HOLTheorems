@@ -17,3 +17,5 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 *)
 
 (* If you want a function which takes an argument or a recursive function, use fun instead of val. Because val will require it to be a lambda expression, in whcih case, inside the lambda expresison, teh value hasn't been defined yet, causing an error when it attempts to access the outer variable name outside the inner lambda expression *)
+
+(* Maybe it's a good idea to induct on the length of a list sometimes. Strong induction. *)
