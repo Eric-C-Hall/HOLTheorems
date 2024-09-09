@@ -1165,7 +1165,6 @@ Definition get_better_final_state_def:
   get_better_final_state last_row s1 s2 = if (EL s1 last_row).num_errors < (EL s2 last_row).num_errors then s1 else s2
 End
 
-
 (* -------------------------------------------------------------------------- *)
 (* Input: bitstring and state machine                                         *)
 (* Output: Most likely original bitstring                                     *)
@@ -1474,32 +1473,6 @@ Proof
   >> gvs[path_to_code_def]
 QED
 
-Theorem vd_find_optimal_reversed_path_length_lt:
-  ∀m bs s t.
-    LENGTH (vd_find_optimal_reversed_path m bs s t) ≤ t + 1
-Proof
-  gen_tac
-  >> Induct_on ‘t’ >> rpt strip_tac
-  >- EVAL_TAC
-  >> gvs[vd_find_optimal_reversed_path_def]
-  >> qmatch_goalsub_abbrev_tac ‘EL s ts’
-  >> Cases_on ‘(EL s ts).prev_state’
-  >- gvs[]
-  >> gvs[]
-  >> last_x_assum $ qspecl_then [‘bs’, ‘x’] assume_tac
-  >> decide_tac 
-QED
-
-Theorem vd_find_optimal_path_length_lt:
-  ∀m bs s t.
-    LENGTH (vd_find_optimal_path m bs s t) ≤ t + 1
-Proof
-  rpt strip_tac
-  >> gvs[vd_find_optimal_path_def]
-  >> gvs[vd_find_optimal_reversed_path_length_lt]
-QED
-
-
 Theorem all_transitions_helper_valid:
   ∀m b.
     EVERY (λs2. s2.origin < m.num_states) (all_transitions_helper m b)
@@ -1727,7 +1700,7 @@ Proof
   >> Induct_on ‘t’ >> rpt strip_tac
   >- EVAL_TAC
   (* Expand out definitions *)
-  >> gvs[vd_find_optimal_reversed_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def, vd_step_back_def]
   (* Deal with the case where the previous state is NONE, so that we can work
      on the more interesting case where there is a preivous state *)
   >> qspecl_then [‘m’, ‘bs’, ‘SUC t’, ‘s’] assume_tac (cj 1 viterbi_trellis_row_prev_state_valid)
@@ -1745,6 +1718,15 @@ Proof
         results in a valid state *)
   >> qspecl_then [‘m’, ‘bs’, ‘(SUC t)’, ‘s’] assume_tac (cj 2 viterbi_trellis_row_prev_state_valid)
   >> gvs[]
+QED
+
+Theorem vd_find_optimal_path_length[simp]:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    LENGTH (vd_find_optimal_path m bs s t) = t + 1
+Proof
+  gvs[vd_find_optimal_path_def]
 QED
 
 Theorem get_better_final_state_foldr_mem:
