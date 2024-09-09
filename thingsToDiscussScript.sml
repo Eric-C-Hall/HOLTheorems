@@ -143,7 +143,17 @@ End
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
+(* Proved Given a function which always outputs one of its two inputs, if it is folded over a list, the result is one of the elements of the list.*)
 
+(* Proved that each state in each row in the trellis is valid *)
+
+(* Proved theorem calculating the exact length of the path back through the trellis *)
+
+(* -------------------------------------------------------------------------- *)
+(* Is there code for taking the max/min of a function over a list?            *)
+(*                                                                            *)
+(* What about the argmax/argmin?                                              *)
+(* -------------------------------------------------------------------------- *)
 
 
 val _ = export_theory();
