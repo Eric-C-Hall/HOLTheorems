@@ -1772,7 +1772,10 @@ Proof
   >> gvs[MEM_COUNT_LIST]
 QED
 
-(* path_to_code_def *)
+Theorem vd_decode_snoc:
+  
+Proof
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -1814,37 +1817,70 @@ Theorem viterbi_correctness:
       hamming_distance rs (vd_encode m (viterbi_decode m rs)) ≤ hamming_distance rs (vd_encode m bs)
 Proof
   gen_tac
+  (* Deal with the special case of the output length being 0 so that I don't
+     have to deal with that possibility later. *)
+  >> Cases_on ‘m.output_length = 0’
+  >- (rpt strip_tac >> gvs[vd_encode_output_length_0])
+  (* Induct on the input bitstring from back to front, because the encoding
+     is always the same when the front of the bitstring is kept the same, but
+     will differ if the back of the bitstring is changed.
+     .
+     The general idea is to work with one chunk of encoded data at a time.
+     So in the decoded string, that will be one bit at a time, and in the
+     encoded string, that will be the group of corresponding bits. *)
   >> Induct_on ‘bs’ using SNOC_INDUCT
   >- gvs[]
   >> rpt strip_tac
+  >> gvs[]
+  (* Things I'll need:
+     - hamming_distance of SNOC-ed or APPEND-ed strings is equal to the
+       sum of the hamming distances.
+     - a SNOC inside an encode can be brought out of the encode and
+       turned into an append
+     - an append inside a decode can be brought out of the decode and
+       turned into a SNOC
+     =
+     Given these properties, it should be easy to see how to prove this.
+     =
+     - hamming_distance_append_right/hamming_distance_append_left
+     - vd_encode_snoc
+     - vd_decode_snoc
+     =
+     - vd_encode_length is also useful.
+     - so is vd_encode_state_is_valid
+   *)
+  >> rpt strip_tac
   >> qmatch_goalsub_abbrev_tac ‘vd_encode m bs'’
-  >> sg ‘∃x' bs''. bs' = SNOC x' bs''’
-  >- (qexists ‘LAST bs'’
-      >> qexists ‘FRONT bs'’
-      >> DEP_PURE_REWRITE_TAC [SNOC_LAST_FRONT]
+  >> qspec_then ‘rs’ assume_tac SNOC_LAST_FRONT
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [GSYM th])
+  >> conj_tac
+  >- (CCONTR_TAC >> gvs[])
+  (* *)
+  >> gvs[vd_encode_snoc]
+  >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
+  >> conj_tac
+  >- (gvs[vd_encode_length]
+      >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_helper_length]
       >> gvs[]
-      >> unabbrev_all_tac
-      >> PURE_REWRITE_TAC [GSYM LENGTH_NIL]
-      >> 
-      
-      >> Cases_on ‘bs'’ using SNOC_INDUCT
-                  
-      >> gvs[vd_encode_snoc]
-      >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
-      >> conj_tac
-      >- (gvs[vd_encode_length]
-          >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_helper_length]
-          >> gvs[]
-          >> gvs[vd_encode_state_is_valid]
-          >> gvs[ADD1])
-      (*>> Cases_on ‘rs’
+      >> gvs[vd_encode_state_is_valid]
+      >> gvs[ADD1])
+  (*>> Cases_on ‘rs’
       >- (gvs[]
       >> gvs[vd_encode_helper_def]
       >> gvs[GSYM vd_step_output_def]
       >> DEP_PURE_REWRITE_TAC[vd_step_output_output_length_0]
       >> gvs[]
       >> gvs[vd_encode_state_is_valid])*)
-      >> 
+  >> 
+
+(*  ntac 2 gen_tac
+     >> Induct_on ‘LENGTH bs’
+     >- (rpt strip_tac >> gvs[])
+     >> rpt strip_tac
+     >> Cases_on ‘bs’ using SNOC >> gvs[]
+     >> Cases_on ‘rs’ >> gvs[]
+     >> *)
+
 QED
 
 
