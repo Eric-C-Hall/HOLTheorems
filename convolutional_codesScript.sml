@@ -1623,32 +1623,16 @@ QED
 (* since at each stage, the output is equal to one of the inputs.             *)
 (* -------------------------------------------------------------------------- *)
 Theorem get_better_origin_foldr_mem:
-  ∀m is ps ts.
-    ts ≠ [] ⇒
-    MEM (FOLDR (get_better_origin m is ps) (HD ts) (TL ts)) ts
+  ∀m is ps h ts.
+    MEM (FOLDR (get_better_origin m is ps) h ts) (h::ts)
 Proof
   rpt strip_tac
-  (* Base case is excluded due to preconditions for theorem to be true *)
-  >> Induct_on ‘ts’
-  >- gvs[]
-  (* Since the base case was excluded, we need a new base case *)
-  >> Cases_on ‘ts’
-  >- gvs[]
+  >> irule FOLDR_BIIDENTITY
   >> rpt strip_tac
-  (* Avoid splitting into cases based on what part of the ts we know that t is a member of *)
-  >> pop_assum (fn th => donotexpand_tac >> assume_tac th)
-  >> gvs[]
-  (* Handle the case where the very first element is the best, by
-     expanding out get_better_origin and evalutating *)
   >> gvs[get_better_origin_def]
   >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
   >> Cases_on ‘b’
-  >- gvs[]
   >> gvs[]
-  >> doexpand_tac
-  >> gvs[]
-  >- (disj1_tac
-      >> 
 QED
 
 Theorem viterbi_trellis_row_prev_state_valid:
