@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -1568,11 +1569,60 @@ fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum
 
 (* TODO: function for bringing nth assumption to top *)
 
+(*Theorem get_better_origin_foldr:
+  ∀m is ps h t f.
+    FOLDR (get_better_origin m is ps) h t = f ⇔ MEM f (h::t) ∧ ∀f'. MEM f' (h::t) ⇒ get_num_errors m is ps 
+
+
+transition_origin (MIN_SET ARB)  (*(IMAGE (get_num_errors m is ps) (set (h::t)))*)
+Proof
+QED*)
+
+(*Theorem get_better_origin_foldr:
+                                get_num_errors m is ps (FOLDR (get_better_origin m is ps)) h ts ≤ get_num_errors m is ps h
+Proof
+QED*)
+
+Definition MEM_DONOTEXPAND_def:
+  MEM_DONOTEXPAND = $MEM
+End
+
+Theorem MEM_DONOTEXPAND_thm:
+  ∀l ls.
+    MEM_DONOTEXPAND l ls = MEM l ls
+Proof
+  rpt strip_tac >> EVAL_TAC
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Not sure what the term is for a function which returns one of its inputs   *)
+(* as its output, so I used the term "bi-identity"                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem FOLDR_BIIDENTITY:
+  ∀f h ts.
+    (∀x y.  f x y = x ∨ f x y = y) ⇒
+    MEM (FOLDR f h ts) (h::ts)
+Proof
+  rpt strip_tac
+  (* Induct over ts. Base case trivial *)
+  >> Induct_on ‘ts’
+  >- gvs[]
+  >> rpt strip_tac
+  >> PURE_REWRITE_TAC[FOLDR]
+  (* do not expand mem, it creates a messy case structure *)
+  >> pop_assum mp_tac
+  >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm]
+  >> rpt strip_tac
+  >> last_x_assum $ qspecl_then [‘h'’, ‘FOLDR f h ts’] assume_tac
+  >> gvs[]
+  >> gvs[MEM_DONOTEXPAND_thm]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The result of folding get_better_origin over a list is the list itself,    *)
 (* since at each stage, the output is equal to one of the inputs.             *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_better_origin_foldr:
+Theorem get_better_origin_foldr_mem:
   ∀m is ps ts.
     ts ≠ [] ⇒
     MEM (FOLDR (get_better_origin m is ps) (HD ts) (TL ts)) ts
