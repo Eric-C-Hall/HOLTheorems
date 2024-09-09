@@ -1015,6 +1015,31 @@ Proof
   EVAL_TAC
 QED*)
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* Performs one step back through the trellis.                                *)
+(*                                                                            *)
+(* m: the state machine which generates the trellis                           *)
+(* bs: the bitstring being decoded                                            *)
+(* s: the state to step back from                                             *)
+(* t: the time-step to step back from                                         *)
+(*                                                                            *)
+(* Only valid for t > 0, since we can't step back at t = 0.                   *)
+(* -------------------------------------------------------------------------- *)
+(* Note: this requires generating the entire trellis up to this point, which  *)
+(* is slow. Repeatedly calling this function should therefore in theory be    *)
+(* less efficient than generating the trellis once and then stepping back     *)(* through the thing.                                                         *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_step_back_def:
+  vd_step_back m bs s t =
+  let
+    trellis_row = viterbi_trellis_row m bs t;
+    trellis_node = EL s trellis_row
+  in
+    THE trellis_node.prev_state
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Returns the optimal path going from back to front.                         *)
 (*                                                                            *)
@@ -1025,20 +1050,13 @@ QED*)
 (*                                                                            *)
 (* vd stands for Viterbi Decode                                               *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: this will currently regenerate the entire trellis on every           *)
-(* iteration, which is slow.                                                  *)
+(* TODO: Repeatedly calling vd_step_back is slow, because it regenerates the  *)
+(* trellis at each step.                                                      *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_find_optimal_reversed_path_def:
   vd_find_optimal_reversed_path m bs s 0 = [s] ∧
   vd_find_optimal_reversed_path m bs s (SUC t) =
-  let
-    trellis_row = viterbi_trellis_row m bs (SUC t);
-    trellis_node = EL s trellis_row;
-  in 
-    s :: (case trellis_node.prev_state of
-            NONE => []
-          | SOME s2 => vd_find_optimal_reversed_path m bs s2 t
-         )
+  s :: vd_find_optimal_reversed_path m bs (vd_step_back m bs s (SUC t)) t
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1072,16 +1090,24 @@ End
 (* Starting at state 3, t=6; [3, 3, 1, 0, 2, 1, 0]                            *)
 (*                                  .. 2, 1, 0, 0]                            *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem vd_find_optimal_reversed_path_test:
-  vd_find_optimal_reversed_path example_state_machine test_path 0 6 = ARB ∧
-  vd_find_optimal_reversed_path example_state_machine test_path 1 4 = ARB ∧
-  vd_find_optimal_reversed_path example_state_machine test_path 2 4 = ARB ∧
-  vd_find_optimal_reversed_path example_state_machine test_path 3 6 = ARB
+Theorem vd_find_optimal_reversed_path_test:
+  let
+    result1 = (vd_find_optimal_reversed_path example_state_machine test_path 0 6);
+    result2 = (vd_find_optimal_reversed_path example_state_machine test_path 1 4);
+    result3 = (vd_find_optimal_reversed_path example_state_machine test_path 2 4);
+    result4 = (vd_find_optimal_reversed_path example_state_machine test_path 3 6);
+  in
+    (result1 = [0;0;0;2;1;0;0] ∨ result1 = [0;0;1;0;2;1;0] ∨ result1 = [0;0;1;2;1;0;0]) ∧
+    (result2 = [1;0;2;1;0] ∨ result2 = [1;2;1;0;0]) ∧
+    (result3 = [2;1;0;0;0]) ∧
+    (result4 = [3;3;1;0;2;1;0] ∨ result4 = [3;3;1;2;1;0;0])
 Proof
   EVAL_TAC
-End*)
+QED
 
-(* -------------------------------------------------------------------------- *)
+(*
+--------------------------------------------------------------------------
+*)
 (* See comment for vd_find_optimal_reversed_path                              *)
 (*                                                                            *)
 (* Reverses the path returned
