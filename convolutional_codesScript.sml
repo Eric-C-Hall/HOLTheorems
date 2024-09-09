@@ -1635,6 +1635,11 @@ Proof
   >> gvs[]
 QED
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* Prove that each previous state in the trellis is valid.                    *)
+(* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_row_prev_state_valid:
   ∀m bs t s.
     wfmachine m ∧
@@ -1649,6 +1654,7 @@ Proof
       >> gvs[viterbi_trellis_row_def]
       >> gvs[viterbi_trellis_node_def])
   (* Start of proof that previous state is within the valid range for states *)
+  (* Expand definitions, and use abbreviations insted to make it readable *)
   >> Cases_on ‘t’ >> gvs[]
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
@@ -1668,20 +1674,15 @@ Proof
       >> gvs[transition_inverse_nonempty])
   (* No longer need the information provided by the exact form of ts. The fact that it is a nonempty bitstring is enough. *)
   >> delete_nth_assumption 2
+  (* Use get_better_origin_foldr_mem to finish the proof. Since the function's
+     output is always one of the inputs, folding the function over a list
+     will always give you a member of that list. *)
   >> unabbrev_all_tac
-  >> Induct_on ‘ts’
-  >- gvs[]
-  >> gvs[]
-  >> qmatch_goalsub_abbrev_tac ‘FOLDR f1 _ _’
-  >> rpt strip_tac
-  >> qmatch_asmsub_abbrev_tac ‘MEM h' _’
-  >> pop_assum (fn th1 => pop_assum (fn th2 => pop_assum (fn th3 => assume_tac th2 >> assume_tac th1 >> assume_tac th3)))
-  >> donotexpand_tac
   >> Cases_on ‘ts’
   >- gvs[]
-  >> gvs[]
-  >> (*PURE_ASM_REWRITE_TAC[get_better_origin_def]*)
-  
+  >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm]
+  >> simp[get_better_origin_foldr_mem]
+  >> PURE_REWRITE_TAC[MEM_DONOTEXPAND_thm, get_better_origin_foldr_mem]     
 QED
 
 Theorem vd_find_optimal_reversed_path_length:
