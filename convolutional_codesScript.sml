@@ -1133,6 +1133,14 @@ Definition path_to_code_def:
   path_to_code m (p1::p2::ps) = (states_to_transition_input m p1 p2) :: (path_to_code m (p2::ps))
 End
 
+(* Perhaps this and get_better_origin can be combined somehow.
+   In general, perhaps there should be general code for taking the
+   argmax of a function over a list. Is that code avaialable somewhere? *)
+Definition get_better_final_state_def:
+  get_better_final_state last_row s1 s2 = if (EL s1 last_row).num_errors < (EL s2 last_row).num_errors then s1 else s2
+End
+
+
 (* -------------------------------------------------------------------------- *)
 (* Input: bitstring and state machine                                         *)
 (* Output: Most likely original bitstring                                     *)
@@ -1146,7 +1154,7 @@ Definition viterbi_decode_def:
   let
     max_timestep = (LENGTH bs) DIV m.output_length;
     last_row = viterbi_trellis_row m bs max_timestep;
-    best_state = FOLDR (λs1 s2. if (EL s1 last_row).num_errors < (EL s2 last_row).num_errors then s1 else s2) 0 (COUNT_LIST m.num_states)
+    best_state = FOLDR (get_better_final_state last_row) 0 (COUNT_LIST m.num_states)
   in
     path_to_code m (vd_find_optimal_path m bs best_state max_timestep)
 End
@@ -1683,7 +1691,7 @@ Proof
   >> PURE_REWRITE_TAC[MEM_DONOTEXPAND_thm, get_better_origin_foldr_mem]     
 QED
 
-Theorem vd_find_optimal_reversed_path_length:
+Theorem vd_find_optimal_reversed_path_length[simp]:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
@@ -1714,6 +1722,19 @@ Proof
   >> gvs[]
 QED
 
+Theorem get_better_final_state_foldr_mem:
+  ∀rs h ts.
+    MEM (FOLDR (get_better_final_state rs) h ts) (h::ts)
+Proof
+  rpt strip_tac
+  >> irule FOLDR_BIIDENTITY
+  >> rpt strip_tac
+  >> gvs[get_better_final_state_def]
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+  >> Cases_on ‘b’
+  >> gvs[]
+QED
+
 Theorem viterbi_decode_length:
   ∀m bs.
     wfmachine m ∧
@@ -1721,16 +1742,34 @@ Theorem viterbi_decode_length:
     m.output_length ≠ 0 ⇒
     LENGTH (viterbi_decode m bs) = LENGTH bs DIV m.output_length
 Proof
+  (* Prepare for induction with a stride of the output length.
+     Need to expand out the definition of divides, and then put
+     all the variables into foralls. *)
   rpt strip_tac
   >> gvs[divides_def]
   >> NTAC 3 (pop_assum mp_tac)
-  >> SPEC_ALL_TAC   
+  >> SPEC_ALL_TAC
+  (* Start the induction *)
   >> Induct_on ‘q’ >> rpt strip_tac
-  >- gvs[]
-  (* At some point will need Cases_on ‘q’ to get the new base case *)
+  >- gvs[] (* Deal with invalid case with output length of 0 *)
+  (* expand definition *)
   >> gvs[viterbi_decode_def]
-  >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
-  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_path _ _ fn2 len’
+  >> gvs[vd_find_optimal_path_def]
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR s _ _’
+  (* Simplify based on the length of a reversed path, using whatever
+     assumptions are necessary. This should be sufficient to prove
+     the result, we now just need to prove that the assumptions were
+     justified. *)
+  >> DEP_PURE_ONCE_REWRITE_TAC [vd_find_optimal_reversed_path_length]
+  >> gvs[]
+  >> unabbrev_all_tac
+  >> qmatch_goalsub_abbrev_tac ‘get_better_final_state rs’
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR _ _ ts’
+  >> qspecl_then [‘rs’, ‘0’, ‘ts’] assume_tac get_better_final_state_foldr_mem
+  >> gvs[]
+  >- gvs[wfmachine_def]
+  >> gvs[Abbr ‘ts’]
+  >> gvs[MEM_COUNT_LIST]
 QED
 
 (* path_to_code_def *)
