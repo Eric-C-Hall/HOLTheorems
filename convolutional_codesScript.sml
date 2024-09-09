@@ -1635,8 +1635,6 @@ Proof
   >> gvs[]
 QED
 
-
-
 (* -------------------------------------------------------------------------- *)
 (* Prove that each previous state in the trellis is valid.                    *)
 (* -------------------------------------------------------------------------- *)
@@ -1687,31 +1685,33 @@ QED
 
 Theorem vd_find_optimal_reversed_path_length:
   ∀m bs s t.
+    wfmachine m ∧
     s < m.num_states ⇒
     LENGTH (vd_find_optimal_reversed_path m bs s t) = t + 1
 Proof
+  (* Induct over t *)
   gen_tac
   >> Induct_on ‘t’ >> rpt strip_tac
   >- EVAL_TAC
+  (* Expand out definitions *)
   >> gvs[vd_find_optimal_reversed_path_def]
-  >> qmatch_goalsub_abbrev_tac ‘EL s ts’
-  >> Cases_on ‘(EL s ts).prev_state’ >> gvs[]
-  >- (last_x_assum kall_tac
-      >> unabbrev_all_tac
-      >> gvs[viterbi_trellis_row_prev_state_valid])
+  (* Deal with the case where the previous state is NONE, so that we can work
+     on the more interesting case where there is a preivous state *)
+  >> qspecl_then [‘m’, ‘bs’, ‘SUC t’, ‘s’] assume_tac (cj 1 viterbi_trellis_row_prev_state_valid)
+  >> gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘s' ≠ NONE’
+  >> Cases_on ‘s'’ >> gvs[]
+  (* Use the inductive hypothesis to finish the proof, leaving open the
+     unproven assumption that travelling back to a prior state resulted
+     om a valid state.*)
   >> last_x_assum $ qspecl_then [‘bs’, ‘x’] assume_tac
+  >> gvs[]
   >> ‘x < m.num_states’ suffices_by decide_tac
   >> pop_assum kall_tac
-  >>
-  
-  >> last_x_assum kall_tac
-  >> unabbrev_all_tac
-  >> gvs[viterbi_trellis_row_def]
-  >> pop_assum mp_tac
-  >> DEP_PURE_ONCE_ASM_REWRITE_TAC [EL_GENLIST]
-  >> rpt strip_tac
-  >- ()
-  >> gvs[viterbi_trellis_node_def]
+  (* We just need to prove that travelling back through the trellis
+        results in a valid state *)
+  >> qspecl_then [‘m’, ‘bs’, ‘(SUC t)’, ‘s’] assume_tac (cj 2 viterbi_trellis_row_prev_state_valid)
+  >> gvs[]
 QED
 
 Theorem viterbi_decode_length:
