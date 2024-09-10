@@ -1790,6 +1790,31 @@ Proof
   >> gvs[vd_find_optimal_reversed_path_def]
 QED
 
+Theorem path_to_code_append:
+  ∀m ss ss'.
+    ss ≠ [] ∧ ss' ≠ [] ⇒
+    path_to_code m (ss ⧺ ss') = path_to_code m ss ⧺ (states_to_transition_input m (LAST ss) (HD ss')) :: (path_to_code m ss')
+Proof
+  gen_tac
+  >> Induct_on ‘ss’ >> rpt strip_tac
+  >- gvs[]
+  >> Cases_on ‘ss’
+  >- (gvs[]
+      >> Cases_on ‘ss'’
+      >- gvs[]
+      >> gvs[path_to_code_def])
+  >> gvs[path_to_code_def]
+QED
+        
+Theorem path_to_code_snoc:
+        ∀m s ss.
+          ss ≠ [] ⇒
+          path_to_code m (SNOC s ss) = SNOC (states_to_transition_input m (LAST ss) s) (path_to_code m ss)
+Proof
+  rpt strip_tac
+  >> gvs[path_to_code_append]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -1847,6 +1872,16 @@ Proof
   >- gvs[]
   >> rpt strip_tac
   >> gvs[]
+  (* Break it up into the final step and the step which we'll prove using
+     the inductive hypothesis *)
+  >> gvs[vd_find_optimal_path_suc]
+  (* The exact value taken by this state doesn't matter, as we're just going
+     to apply the inductive hypothesis to this part of the expression, and
+     the inductive hypothesis doesn't care which state we're dealing with,
+     so long as it is at an earlier time-step.
+
+     Therefore, we can just call this state s'. *)
+  >> rename1 ‘vd_find_optimal_path _ _ s' _’
   (* *)
   >> 
 
