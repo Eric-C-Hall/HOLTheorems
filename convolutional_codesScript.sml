@@ -28,7 +28,7 @@ val _ = monadsyntax.enable_monad "option"
 (*                                                                            *)
 (* TODO: Cite better                                                          *)
 (* -------------------------------------------------------------------------- *)
-
+                                                                              
 (*
 
         TODO: Temporary place for donotexpand while asking about how to use it properly as a library
@@ -1807,12 +1807,34 @@ Proof
 QED
         
 Theorem path_to_code_snoc:
-        ∀m s ss.
-          ss ≠ [] ⇒
-          path_to_code m (SNOC s ss) = SNOC (states_to_transition_input m (LAST ss) s) (path_to_code m ss)
+  ∀m s ss.
+    ss ≠ [] ⇒
+    path_to_code m (SNOC s ss) = SNOC (states_to_transition_input m (LAST ss) s) (path_to_code m ss)
 Proof
   rpt strip_tac
   >> gvs[path_to_code_append]
+QED
+
+Theorem vd_find_optimal_path_nonempty:
+  ∀m bs s t.
+    vd_find_optimal_path m bs s t ≠ []
+Proof
+  rpt strip_tac
+  >> gvs[vd_find_optimal_path_def]
+  >> Cases_on ‘t’
+  >> gvs[vd_find_optimal_reversed_path_def]
+QED
+
+Theorem vd_step_back_is_valid:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ∧
+    0 < t ⇒
+    vd_step_back m bs s t < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_back_def]
+  >> gvs[cj 2 viterbi_trellis_row_prev_state_valid]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1881,15 +1903,25 @@ Proof
      so long as it is at an earlier time-step.
 
      Therefore, we can just call this state s'. *)
-  >> rename1 ‘vd_find_optimal_path _ _ s' _’
-  (* *)
   >> 
+  >> rename1 ‘vd_find_optimal_path _ _ s' _’
+  (* Move the single step part out, seperate from the inductive hypothesis
+     part. We want to split the hamming distance up into two components,
+     one for the single step and one for the inductive hypothesis*)
+  >> DEP_PURE_ONCE_REWRITE_TAC[path_to_code_snoc]
+  >> conj_tac
+  >- gvs[vd_find_optimal_path_nonempty]
+  >> gvs[vd_encode_snoc]
+  >> gvs[vd_encode_helper_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[hamming_distance_append_right]
+  >> conj_tac
+  >- (gvs[vd_encode_length]
+      >> gvs[vd_find_optimal_path_length]
 
 
-
-  >> gvs[vd_find_optimal_path_def]
-  >> gvs[vd_find_optimal_reversed_path_def]
-  >> gvs[viterbi_trellis_row ]
+      >> gvs[vd_find_optimal_path_def]
+      >> gvs[vd_find_optimal_reversed_path_def]
+      >> gvs[viterbi_trellis_row ]
 QED
 
 
