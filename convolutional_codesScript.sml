@@ -1779,6 +1779,17 @@ Proof
   >> gvs[MEM_COUNT_LIST]
 QED
 
+Theorem vd_find_optimal_path_suc:
+  ∀m bs s t.
+    vd_find_optimal_path m bs s (SUC t) = SNOC s (vd_find_optimal_path m bs (vd_step_back m bs s (SUC t)) t)
+Proof
+  rpt strip_tac
+  >> PURE_REWRITE_TAC[vd_find_optimal_path_def]
+  >> PURE_REWRITE_TAC[GSYM (cj 2 REVERSE_SNOC_DEF)]
+  >> AP_TERM_TAC
+  >> gvs[vd_find_optimal_reversed_path_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -1820,7 +1831,6 @@ QED
 (* when arriving at any point.                                                *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-
 Theorem viterbi_correctness_general:
   ∀m bs rs s t.
     wfmachine m ∧
@@ -1831,11 +1841,17 @@ Theorem viterbi_correctness_general:
     in
       hamming_distance rs (vd_encode m decoded_path) ≤ hamming_distance rs (vd_encode m bs)
 Proof
+  (* Complete base case and simplify *)
   gen_tac
   >> Induct_on ‘t’
   >- gvs[]
   >> rpt strip_tac
   >> gvs[]
+  (* *)
+  >> 
+
+
+
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
   >> gvs[viterbi_trellis_row ]
@@ -1914,7 +1930,7 @@ Proof
      >> Cases_on ‘bs’ using SNOC >> gvs[]
      >> Cases_on ‘rs’ >> gvs[]
      >> *)
-
+  
 QED
 
 
