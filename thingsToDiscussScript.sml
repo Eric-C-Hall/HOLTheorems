@@ -165,5 +165,15 @@ End
 
 (* Originally was trying to use inductive hypothesis to prove main theorem, but then realised that the optimal path locally may not be optimal globally, so induction in the way I was implementing it wasn't viable. It's probably a good idea to think things through when you start, so that you don't end up in a situation where you've proved a lot but can't prove your goal. I didn't really spend time thinking about what process I would use to prove my goal , I just kind of jumped into coding by starting an induction immediately, and this probably  was a bad way of working because it led me into a dead end.*)
 
+(* Never mind. There's a proper way to use induction to prove this, and this other way to use induction uses many of the same theorems *)
+
+(* Theorem to simplify an induction over the timestep for the function which allows you to step back through the trellis *)
+
+(* With regards to the function that takes a path of states and returns the sequence of bits which would cause these states to be taken, wrote theorems to explain what happens when the input is decomposed into two appended strings, or has a state appended to the end. Also working on main viterbi theorem *)
+
+
+
+Writing functions to split the function which takes a path of states and returns tthe
+
 val _ = export_theory();
 
