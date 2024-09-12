@@ -1334,7 +1334,7 @@ Proof
   metis_tac[hamming_distance_append_left, hamming_distance_symmetric]
 QED
 
-Theorem vd_step_output_length:
+Theorem vd_step_output_length[simp]:
   ∀m b s.
     wfmachine m ∧
     s < m.num_states ⇒
@@ -1344,7 +1344,7 @@ Proof
   >> gvs[wfmachine_def, vd_step_output_def, vd_step_record_def]
 QED
 
-Theorem vd_encode_helper_length:
+Theorem vd_encode_helper_length[simp]:
   ∀m bs s.
     wfmachine m ∧
     s < m.num_states ⇒
@@ -1369,7 +1369,7 @@ Proof
   >> gvs[SUC_ONE_ADD]
 QED
 
-Theorem vd_encode_length:
+Theorem vd_encode_length[simp]:
   ∀m bs.
     wfmachine m ⇒
     LENGTH (vd_encode m bs) = m.output_length * LENGTH bs
@@ -1381,7 +1381,7 @@ Proof
   >> gvs[wfmachine_def]
 QED
 
-Theorem vd_step_is_valid:
+Theorem vd_step_is_valid[simp]:
   ∀m b s.
     wfmachine m ∧
     s < m.num_states ⇒
@@ -1391,7 +1391,7 @@ Proof
   >> gvs[wfmachine_def, vd_step_def, vd_step_record_def]
 QED
 
-Theorem vd_encode_state_helper_is_valid:
+Theorem vd_encode_state_helper_is_valid[simp]:
   ∀m bs s.
     wfmachine m ∧
     s < m.num_states ⇒
@@ -1409,7 +1409,7 @@ Proof
   >> gvs[vd_step_is_valid]
 QED
 
-Theorem vd_encode_state_is_valid:
+Theorem vd_encode_state_is_valid[simp]:
   ∀m bs.
     wfmachine m ⇒
     vd_encode_state m bs < m.num_states
@@ -1420,7 +1420,7 @@ Proof
   >> gvs[wfmachine_def]
 QED
 
-Theorem vd_step_output_output_length_0:
+Theorem vd_step_output_output_length_0[simp]:
   ∀m b s.
     wfmachine m ∧
     s < m.num_states ∧
@@ -1433,7 +1433,7 @@ Proof
   >> gvs[vd_step_output_def, vd_step_record_def]
 QED
 
-Theorem vd_encode_helper_output_length_0:
+Theorem vd_encode_helper_output_length_0[simp]:
   ∀m bs s.
     wfmachine m ∧
     s < m.num_states ∧
@@ -1447,7 +1447,7 @@ Proof
   >> gvs[wfmachine_def, vd_step_def, vd_step_output_def, vd_step_record_def]
 QED
 
-Theorem vd_encode_output_length_0:
+Theorem vd_encode_output_length_0[simp]:
   ∀m bs s.
     wfmachine m ∧
     m.output_length = 0 ⇒
@@ -1546,7 +1546,7 @@ Proof
   >> Cases_on ‘b’ >> gvs[all_transitions_helper_mem]
 QED
 
-Theorem transition_inverse_nonempty:
+Theorem transition_inverse_nonempty[simp]:
   ∀m s.
     wfmachine m ∧
     s < m.num_states ⇒
@@ -1644,7 +1644,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Prove that each previous state in the trellis is valid.                    *)
 (* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_row_prev_state_valid:
+Theorem viterbi_trellis_row_prev_state_valid[simp]:
   ∀m bs t s.
     wfmachine m ∧
     s < m.num_states ∧
@@ -1742,7 +1742,7 @@ Proof
   >> gvs[]
 QED
 
-Theorem vd_decode_length:
+Theorem vd_decode_length[simp]:
   ∀m bs.
     wfmachine m ∧
     divides (LENGTH bs) m.output_length ∧
@@ -1815,7 +1815,7 @@ Proof
   >> gvs[path_to_code_append]
 QED
 
-Theorem vd_find_optimal_path_nonempty:
+Theorem vd_find_optimal_path_nonempty[simp]:
   ∀m bs s t.
     vd_find_optimal_path m bs s t ≠ []
 Proof
@@ -1825,7 +1825,7 @@ Proof
   >> gvs[vd_find_optimal_reversed_path_def]
 QED
 
-Theorem vd_step_back_is_valid:
+Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ∧
@@ -1835,6 +1835,32 @@ Proof
   rpt strip_tac
   >> gvs[vd_step_back_def]
   >> gvs[cj 2 viterbi_trellis_row_prev_state_valid]
+QED
+
+Theorem vd_step_record_length[simp]:
+  ∀m b s.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    LENGTH ((vd_step_record m b s).output) = m.output_length
+Proof
+  rpt strip_tac
+  >> gvs[wfmachine_def, vd_step_record_def]
+QED
+
+Theorem vd_step_output_length[simp]:
+  ∀m b s.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    LENGTH (vd_step_output m b s) = m.output_length
+Proof
+  gvs[vd_step_record_length, vd_step_output_def]
+QED
+
+Theorem length_suc_nonempty[simp]:
+  ∀ls n.
+    LENGTH ls = SUC n ⇒ ls ≠ []
+Proof
+  Cases_on ‘ls’ >> gvs[]  
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1881,6 +1907,7 @@ QED
 Theorem viterbi_correctness_general:
   ∀m bs rs s t.
     wfmachine m ∧
+    s < m.num_states ∧
     LENGTH bs = t ∧
     LENGTH rs = m.output_length * t ⇒
     let
@@ -1894,6 +1921,35 @@ Proof
   >- gvs[]
   >> rpt strip_tac
   >> gvs[]
+  (* Expand out relevant definitions. *)
+  (* These are some of the relevant definitions
+     - vd_find_optimal_path_def
+     - vd_find_optimal_reversed_path_def
+     - vd_step_back_def
+     - viterbi_trellis_row_def
+     - viterbi_trellis_node_def
+     - get_better_origin_def
+     - get_num_errors_def *)
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path m bs s' t’
+  >> gvs[vd_step_back_def]
+  >> gvs[viterbi_trellis_row_def]
+  >> gvs[viterbi_trellis_node_def]
+  >> qmatch_asmsub_abbrev_tac ‘get_better_origin _ bs'’
+  
+  
+  >> gvs[vd_find_optimal_path_suc]
+  >> 
+  
+
+  
+(*(* Complete base case and simplify *)
+  gen_tac
+  >> Induct_on ‘t’
+  >- gvs[]
+  >> rpt strip_tac
+  >> gvs[]
   (* Break it up into the final step and the step which we'll prove using
      the inductive hypothesis *)
   >> gvs[vd_find_optimal_path_suc]
@@ -1901,10 +1957,12 @@ Proof
      to apply the inductive hypothesis to this part of the expression, and
      the inductive hypothesis doesn't care which state we're dealing with,
      so long as it is at an earlier time-step.
-
+     .
      Therefore, we can just call this state s'. *)
-  >> 
-  >> rename1 ‘vd_find_optimal_path _ _ s' _’
+  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_path _ _ s' _’
+  >> sg ‘s' < m.num_states’
+  >- (unabbrev_all_tac >> gvs[vd_step_back_is_valid])
+  >> pop_assum (fn th => (pop_assum kall_tac >> assume_tac th))
   (* Move the single step part out, seperate from the inductive hypothesis
      part. We want to split the hamming distance up into two components,
      one for the single step and one for the inductive hypothesis*)
@@ -1917,14 +1975,40 @@ Proof
   >> conj_tac
   >- (gvs[vd_encode_length]
       >> gvs[vd_find_optimal_path_length]
+      >> DEP_PURE_ONCE_REWRITE_TAC[vd_step_record_length]
+      >> gvs[vd_encode_state_is_valid]
+      >> gvs[ADD1])
+  >> gvs[]
+  (* Now we need to split up the right hand side in the same way.*)
+  >> qmatch_goalsub_abbrev_tac ‘LHS ≤ _’
+  >> qspecl_then [‘bs’] assume_tac SNOC_LAST_FRONT
+  >> pop_assum (fn th => (DEP_PURE_ONCE_REWRITE_TAC[GSYM th]))
+  >> conj_tac
+  >- (Cases_on ‘bs’ >> gvs[])
+  >> gvs[vd_encode_snoc]
+  >> DEP_PURE_ONCE_REWRITE_TAC[hamming_distance_append_right]
+  >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[LENGTH_FRONT]
+  >> gvs[]
+  >> conj_tac
+  >- (gvs[ADD1] >> decide_tac)
+  >> gvs[vd_encode_helper_def]
+  >> (* Now compare each part individually *)
+  >> unabbrev_all_tac
+  >> irule LESS_EQ_LESS_EQ_MONO
+  (* Do the inductive step based part first, to get that out of the way *)
+  >> REVERSE conj_tac
+  >- (last_x_assum $ qspecl_then [‘FRONT bs’, ‘TAKE (t * m.output_length) rs’, ‘s'’] assume_tac
+      >> gvs[]
+            >> gvs[LENGTH_FRONT]
 
+
+      >> gvs[]
 
       >> gvs[vd_find_optimal_path_def]
       >> gvs[vd_find_optimal_reversed_path_def]
-      >> gvs[viterbi_trellis_row ]
+      >> gvs[viterbi_trellis_row ]*)
 QED
-
-
 
 
 Theorem viterbi_correctness:
