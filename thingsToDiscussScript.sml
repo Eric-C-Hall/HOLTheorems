@@ -2,6 +2,8 @@
 
 open HolKernel Parse boolLib bossLib;
 
+open donotexpandLib;
+
 val _ = new_theory "thingsToDiscuss";
 
 (* I've done much better in terms of working for a sufficient number of hours this week: I spent 46 hours and 24 minutes actively working over the past 7 days. *)

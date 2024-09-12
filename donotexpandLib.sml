@@ -1,3 +1,5 @@
+structure donotexpandLib = struct 
+
 open HolKernel Parse boolLib bossLib;
 
 open simpLib
@@ -29,3 +31,5 @@ qmatch_asmsub_abbrev_tac ‘donotexpand donotexpand_var’
 >> qpat_x_assum ‘donotexpand donotexpand_var’ kall_tac
 (* unabbreviate assumption *)
 >> simp_tac empty_ss [Abbr ‘donotexpand_var’]
+
+end
