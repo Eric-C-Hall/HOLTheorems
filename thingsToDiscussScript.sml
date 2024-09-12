@@ -8,7 +8,7 @@ val _ = new_theory "thingsToDiscuss";
 
 (* As a result, I have been significantly more productive: *)
 
-(* The Viterbi Algorithm has been replaced by an evaluable version, which runs, and is able to do both encoding and decoding. The main proof of the correctness of the Viterbi algorithm is almost complete: I have written a large number of relevant helper theorems, have tried proving it a couple times, and have a clear plan on what the proof will look like. I expect it to be complete by the end of next week. *)
+(* The Viterbi Algorithm has been replaced by an evaluable version, which runs, and is able to do both encoding and decoding, and has been tested. The main proof of the correctness of the Viterbi algorithm is almost complete: I have written a large number of relevant helper theorems, have tried proving it a couple times, and have a clear plan on what the proof will look like. I expect it to be complete by the end of next week. *)
 
 (* Concerned that however I defined it, it may require exponential computation. Wrote a function to test this theory. Turned out that this function did not require exponential computation. Still concerned that it may only be in this instance or something.
 
@@ -73,56 +73,16 @@ It may be good to define the state machines using the weaker definition, then co
 
 (* I've also deliberately avoided sets and used lists instead because it is easier to write a function to be evaluable when using lists than when using sets. This despite the fact that sets are mathematically nicer. When using a generalized state machine, we cannot represent the trellis in terms of lists, because there is no canonical ordering on the elements, and so we have to represent each row as a function from states to values. Using nums provides a canonical ordering, which is useful.*)
 
-(* Wrote a num-based state machine. This can sometimes be easier to work with because we can use properties of num to help us, e.g. we can find the least num, or we can associate each state with an elemnet of a list, or we can enumerate through all states easily.
+(* Wrote a num-based state machine. This can sometimes be easier to work with because we can use properties of num to help us, e.g. we can find the least num, or we can associate each state with an elemnet of a list, or we can enumerate through all states easily.*)
 
-(* -------------------------------- *)
-  
-  (* Finished code for finding the path back through the trellis. Wrote code for testing it, too *)
+(* Issue: if there are states with no predecessor, a lot of things regarding travelling back through the trellis may break. Added assumption that there's always at least one prior state in order to fix this issue *)
 
-  (* Completed Viterbi decoding and tested it. *)
-
-  (* Completed base case of proof of viterbi correctness. Included proofs that enccoding/decoding the empty list gives you back the empty list.*)
-
-  (* Renamed so that the num-based state machine is the default one. *)
-
-  (* Allowed finding the optimal path to terminate early if it reaches a point in the trellis with no previous state. *)
-
-  (* Added functions to determine which state we end up in when applying the state machine to a particular bitstring. This allows me to split the viterbi calculation up into multiple parts: starting at a particular point and applying viterbi, and then performing another calculation from the appropritate state to complete the algorithm. *)
-
-  (* Wrote theorems to split the viterbi process up into two parts: SNOC, CONS, and APPEND, with both helper and non-helper *)
-
-  (* functions to take a single step in the state machine. *)
-
-  (* Ensured that function for rewriting with cons didn't produce a result with a cons in it, avoiding infinite loops. *)
-
-  (* THeorem for simplifying hamming distance when bitstrings have been appended to each other *)
-
-  (* Theorems for calculating the length of the encoded string *).
-
-  (* Adding requirement htat machine has at least one state to definition of well-formed machine.*)
-
-  (* Proved that the state generated through the encoding process is a valid one *)
-
-  (* Proved that when the output length is 0, every message is the empty message *)
-
-  (* Started proving that the length of a decoded message is equal to the original length divided by the number of outputs per transition. Proved that the length of the binary message based on a path of states is one less than the length of the path of states. *)
-
-  (* Started using abbreviations *)
-
-  (* Proved that beyond the zeroth time step, all states in the trellis have a valid prior state. *)
-
-  (* Proved that all states returned by the inverse transition function are valid, and started proving that the output of the inverse transition function is nonempty *)
-
-  (* Issue: if there are states with no predecessor, a lot of things regarding travelling back through the trellis may break. *)
-
-  (* Added assumption that there's always at least one prior state in order to fix this issue *)
-
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            Datatype:
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              transition_origin = <|
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                origin : num;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                input : bool;
-    |>
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                End
+Datatype:
+  transition_origin = <|
+    origin : num;
+    input : bool;
+  |>
+End
 
 Theorem test:
   ∀r : transition_origin.
@@ -140,14 +100,11 @@ Proof
   >>
 QED
 
-
 (* This definition was changed to this form for the above reason. Originally used the following definition:
 all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states *)
 Definition all_transitions_helper_def:
   all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. transition_origin n b) m.num_states
 End
-
-(* proved that any transition is contained in the list of all transitions *)
 
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
@@ -155,17 +112,11 @@ End
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
-
-(* wrote a function for deleting the nth assumption *)
-
-
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
 (* open donotexpandLib.sml didn't work *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-
-
 
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
@@ -173,29 +124,15 @@ End
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
-(* rewrote trellis node code to isolate large function as its own definition to improve readability *)
-
-
-
-(* -------------------------------------------------------------------------- *)
-(* Wrote set version of all_transitions and inverse transition function. This *)
-(* is better for proving, but the list version is better for actual           *)
-(* computation                                                                *)
-(* -------------------------------------------------------------------------- *)
-
-
-
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
 (* How to disable case splitting on disjuncts?                                *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
-(* Proved Given a function which always outputs one of its two inputs, if it is folded over a list, the result is one of the elements of the list.*)
+(* Proved Given a function which always outputs one of its two inputs, if it is folded over a list, the result is one of the elements of the list.
 
-(* Proved that each state in each row in the trellis is valid *)
-
-(* Proved theorem calculating the exact length of the path back through the trellis *)
+What is the name of this kind of function?*)
 
 (* -------------------------------------------------------------------------- *)
 (* Is there code for taking the max/min of a function over a list?            *)
@@ -203,31 +140,10 @@ End
 (* What about the argmax/argmin?                                              *)
 (* -------------------------------------------------------------------------- *)
 
-(* Proved that viterbi decoding causes an output of a certain length *)
-
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
 (* How to do Cases_on bs using SNOC? i.e.                                     *)
-(*                                                                            *)
+(* Note: can probably use a specific theorem                                  *)
 (* -------------------------------------------------------------------------- *)
-
-(* Originally was trying to use inductive hypothesis to prove main theorem, but then realised that the optimal path locally may not be optimal globally, so induction in the way I was implementing it wasn't viable. It's probably a good idea to think things through when you start, so that you don't end up in a situation where you've proved a lot but can't prove your goal. I didn't really spend time thinking about what process I would use to prove my goal , I just kind of jumped into coding by starting an induction immediately, and this probably  was a bad way of working because it led me into a dead end.*)
-
-(* Never mind. There's a proper way to use induction to prove this, and this other way to use induction uses many of the same theorems *)
-
-(* Theorem to simplify an induction over the timestep for the function which allows you to step back through the trellis *)
-
-(* With regards to the function that takes a path of states and returns the sequence of bits which would cause these states to be taken, wrote theorems to explain what happens when the input is decomposed into two appended strings, or has a state appended to the end. Also working on main viterbi theorem *)
-
-
-
-Writing functions to split the function which takes a path of states and returns tthe
-
+      
 val _ = export_theory();
-
-(* ------------------------------- *)
-
-
-(* Representing each row as a list does not work, since we would not know which state corresponds to which element of the list. Instead defined each row as a function from states to values. *)
-
-(* Wrote theorem to ensure example state machines were well-formed.*)
