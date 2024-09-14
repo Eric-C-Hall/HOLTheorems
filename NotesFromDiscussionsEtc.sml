@@ -66,6 +66,14 @@ val _ = new_theory "thingsToDiscuss";
 
 (* Meta-; is the hotkey for commenting/uncommenting a region *)
 
+(* SNOC_CASES *)
+
+(* transition_origin_component_equality *)
+
+(* Ctrl-x 1 to make window the only window, ctrl-x 0 to get rid of the window *)
+
+(* gnvs avoids splitting on disjuncts *)
+
 val _ = export_theory();
 
 
