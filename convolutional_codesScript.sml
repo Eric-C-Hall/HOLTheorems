@@ -513,7 +513,6 @@ Definition gen_wfmachine_def:
     WF m.state_ordering
 End
 
-
 (* -------------------------------------------------------------------------- *)
 (* Takes a step using the state machine and returns a record of the           *)
 (* destination and the output                                                 *)
@@ -2042,6 +2041,10 @@ Proof
   gvs[path_is_valid_def]
 QED
 
+Definition path_is_valid_or_empty_def:
+  path_is_valid_or_empty m ps = ((ps = []) ∨ path_is_valid m ps)
+End  
+
 Definition path_is_connected_def:
   path_is_connected m [] = T ∧
   path_is_connected m (p::[]) = T ∧
@@ -2152,7 +2155,6 @@ Proof
   metis_tac[code_to_path_def, code_to_path_helper_path_to_code]
 QED
 
-
 Theorem vd_encode_state_helper_snoc:
   ∀m b bs s.
     vd_encode_state_helper m (SNOC b bs) s = vd_step m b (vd_encode_state_helper m bs s)
@@ -2171,11 +2173,26 @@ Proof
   gvs[vd_encode_state_def, vd_encode_state_helper_snoc]
 QED
 
+Theorem path_is_valid_code_to_path:
+  ∀m bs.
+    path_is_valid m (code_to_path m bs)
+Proof
+  rpt strip_tac
+  >> Induct_on ‘bs’
+  >- (EVAL_TAC >> qexists ‘[]’ >> EVAL_TAC)
+  >> rpt strip_tac
+  >> gvs[code_to_path_snoc]
+QED
+
+Theorem path_is_valid_or_empty_code_to_path:
+
+Proof
+QED
 
 Theorem vd_encode_state_last_state:
   ∀m bs s.
     wfmachine m ⇒
-    (vd_encode_state m bs = s ⇔ ∃ps. bs = path_to_code m (ps ⧺ [s]))
+    (vd_encode_state m bs = s ⇔ ∃ps. path_is_valid_or_empty m ps ∧ bs = path_to_code m (ps ⧺ [s]))
 Proof
   rpt strip_tac >>  EQ_TAC >> SPEC_ALL_TAC
   >- (Induct_on ‘bs’ using SNOC_INDUCT
@@ -2185,42 +2202,24 @@ Proof
          )
       >> rpt strip_tac
       >> qexists ‘code_to_path m bs’
+      >> conj_tac
+      >- (
+       )
       >> donotexpand_tac
       >> gvs[path_to_code_append]
       >> gvs[path_to_code_code_to_path]
       >> gvs[code_to_path_last]
-      >> qsuff_tac ‘s = vd_step ’ states_to_transition_input_vd_step
-
-
-            
-      >> last_x_assum $ qspec_then ‘m’ assume_tac
-      >> gvs[]
-      >> (*gvs[path_to_code_append]*)
-      >> qexists ‘ps ⧺ [vd_encode_state m bs]’
-      >> path_to_code_def
-      >> DEP_PURE_ONCE_REWRITE_TAC[path_to_code_append]
-      >> gvs[]
       >> doexpand_tac
-      >> gvs[]
-      >> Cases_on ‘x’ >> EVAL_TAC
-                         
-      >> gvs[path_to_code_append]
-            
-
-      >> gvs[vd_encode_snoc]
-      >> gvs[vd_encode_append]
-
-      >> gvs[]
-      >> pop_assum kall_tac
-                   TODO
+      >> gvs[vd_encode_state_snoc]
+      >> gvs[states_to_transition_input_vd_step]
+      >> 
      )
-     
-  >> Induct_on ‘bs’
+  >> Induct_on ‘bs’ using SNOC_INDUCT
   >- (rpt strip_tac
       >> EVAL_TAC
-      >> gvs[vd_encode_def]
-      >> gvs[path_to_code_def]
-      >> gvs[vd_encode_def]         
+      >> Cases_on ‘ps’ >> gvs[path_to_code_def]
+      >> 
+     
 QED
 
 (* -------------------------------------------------------------------------- *)
