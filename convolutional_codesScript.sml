@@ -2152,18 +2152,47 @@ Proof
   metis_tac[code_to_path_def, code_to_path_helper_path_to_code]
 QED
 
+
+Theorem vd_encode_state_helper_snoc:
+  ∀m b bs s.
+    vd_encode_state_helper m (SNOC b bs) s = vd_step m b (vd_encode_state_helper m bs s)
+Proof
+  Induct_on ‘bs’
+  >- (rpt strip_tac >> EVAL_TAC)
+  >> rpt strip_tac
+  >> gvs[]
+  >> gvs[vd_encode_state_helper_def]
+QED
+
+Theorem vd_encode_state_snoc:
+  ∀m b bs.
+    vd_encode_state m (SNOC b bs) = vd_step m b (vd_encode_state m bs)
+Proof
+  gvs[vd_encode_state_def, vd_encode_state_helper_snoc]
+QED
+
+
 Theorem vd_encode_state_last_state:
   ∀m bs s.
-    vd_encode_state m bs = s ⇔ ∃ps. bs = path_to_code m (ps ⧺ [s])
+    wfmachine m ⇒
+    (vd_encode_state m bs = s ⇔ ∃ps. bs = path_to_code m (ps ⧺ [s]))
 Proof
   rpt strip_tac >>  EQ_TAC >> SPEC_ALL_TAC
   >- (Induct_on ‘bs’ using SNOC_INDUCT
       >- (rpt strip_tac
           >> qexists ‘[]’
-          >> EVAL_TAC)
+          >> EVAL_TAC
+         )
       >> rpt strip_tac
+      >> qexists ‘code_to_path m bs’
       >> donotexpand_tac
-      >> gvs[]
+      >> gvs[path_to_code_append]
+      >> gvs[path_to_code_code_to_path]
+      >> gvs[code_to_path_last]
+      >> qsuff_tac ‘s = vd_step ’ states_to_transition_input_vd_step
+
+
+            
       >> last_x_assum $ qspec_then ‘m’ assume_tac
       >> gvs[]
       >> (*gvs[path_to_code_append]*)
@@ -2185,6 +2214,7 @@ Proof
       >> pop_assum kall_tac
                    TODO
      )
+     
   >> Induct_on ‘bs’
   >- (rpt strip_tac
       >> EVAL_TAC
