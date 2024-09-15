@@ -552,9 +552,14 @@ Definition wfmachine_def:
          destination must also be a valid state.
        - any valid state has at least one valid predecessor.
          This is necessary because otherwise when we attempt to find a path
-         back through the trellis, we may reach a dead end.*)
+         back through the trellis, we may reach a dead end.
+       - the two transitions out of a state must not each arrive at the same
+         state. This makes it easier to determine which input was provided to
+         the state machine if we know what path was taken through the state
+         machine's states. *)
     (∀n b. n < m.num_states ⇒ vd_step m b n < m.num_states) ∧
     (∀s. s < m.num_states ⇒ (∃s' b. s' < m.num_states ∧ vd_step m b s' = s)) ∧
+    (∀s. s < m.num_states ⇒ vd_step m T s ≠ vd_step m F s) ∧
     (* output_length:
        - each transition must output a string of length output_length *)
     (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
@@ -753,6 +758,11 @@ Proof
           >> EVAL_TAC)
       >> EVAL_TAC
       >> gvs[ADD1])
+  >- (rpt strip_tac
+      >> gvs[example_state_machine_def, vd_step_def, vd_step_record_def]
+      >> Cases_on ‘s’ >> gvs[]
+      >> Cases_on ‘n’ >> gvs[]
+      >> Cases_on ‘n'’ >> gvs[])
   >- (rpt strip_tac
       >> gvs[example_state_machine_def, vd_step_def, vd_step_record_def]
       >> Cases_on ‘b’ >> gvs[]
@@ -1604,6 +1614,7 @@ QED
 (* Not sure what the term is for a function which returns one of its inputs   *)
 (* as its output, so I used the term "bi-identity"                            *)
 (* -------------------------------------------------------------------------- *)
+(* Probably call it something like a "switch" or something                    *)
 Theorem FOLDR_BIIDENTITY:
   ∀f h ts.
     (∀x y.  f x y = x ∨ f x y = y) ⇒
@@ -1863,6 +1874,325 @@ Proof
   Cases_on ‘ls’ >> gvs[]  
 QED
 
+(* Encode: dbs -> ebs via path*)
+(* Decode: ebs -> dbs via path *)
+(* Code to path: dbs -> path *)
+(* Path to code: path -> dbs *)
+(* Encode_state: dbs -> state *)
+
+Definition code_to_path_helper_def:
+  code_to_path_helper m [] s = [s] ∧
+  code_to_path_helper m (b::bs) s =  s::(code_to_path_helper m bs (vd_step m b s))
+End
+
+Definition code_to_path_def:
+  code_to_path m bs = code_to_path_helper m bs 0
+End
+
+Theorem code_to_path_helper_hd:
+  ∀m bs s.
+    HD (code_to_path_helper m bs s) = s
+Proof
+  Induct_on ‘bs’
+  >- (rpt strip_tac >> EVAL_TAC)
+  >> rpt strip_tac
+  >> gvs[code_to_path_helper_def]
+QED
+
+Theorem code_to_path_hd:
+  ∀m bs.
+    HD (code_to_path m bs) = 0
+Proof
+  gvs[code_to_path_helper_hd, code_to_path_def]
+QED
+
+Theorem code_to_path_helper_null[simp]:
+  ∀m bs s.
+    ¬NULL (code_to_path_helper m bs s)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘bs’
+  >> gvs[code_to_path_helper_def]
+QED
+
+Theorem code_to_path_null[simp]:
+  ∀m bs.
+    ¬NULL (code_to_path m bs)
+Proof
+  gvs[code_to_path_def, code_to_path_helper_null]
+QED
+
+Theorem code_to_path_helper_nonempty[simp]:
+  ∀m bs s.
+    code_to_path_helper m bs s ≠ []
+Proof
+  rpt strip_tac
+  >> gvs[GSYM NULL_EQ, code_to_path_helper_null]
+QED
+
+Theorem code_to_path_nonempty[simp]:
+  ∀m bs.
+    code_to_path m bs ≠ []
+Proof
+  gvs[code_to_path_helper_nonempty, code_to_path_def]
+QED
+
+Theorem code_to_path_helper_append:
+  ∀m bs cs s.
+    code_to_path_helper m (bs ⧺ cs) s = (code_to_path_helper m bs s) ⧺ (TL (code_to_path_helper m cs (vd_encode_state_helper m bs s)))
+Proof
+  Induct_on ‘bs’
+  >- (EVAL_TAC
+      >> rpt strip_tac
+      >> qspecl_then [‘m’, ‘cs’, ‘s’] assume_tac code_to_path_helper_hd
+      >> qmatch_goalsub_abbrev_tac ‘TL donotrewrite’
+      >> last_x_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> unabbrev_all_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[CONS]
+      >> gvs[])
+  >> rpt strip_tac
+  >> gvs[]
+  >> gvs[code_to_path_helper_def]
+  >> gvs[vd_encode_state_helper_def]
+QED
+
+Theorem code_to_path_append:
+  ∀m bs cs.
+    code_to_path m (bs ⧺ cs) = (code_to_path m bs) ⧺ (TL (code_to_path_helper m cs (vd_encode_state m bs)))
+Proof
+  rpt strip_tac
+  >> gvs[code_to_path_def, code_to_path_helper_append, vd_encode_state_def]
+QED
+
+Theorem code_to_path_helper_last:
+  ∀m bs s.
+    LAST (code_to_path_helper m bs s) = (vd_encode_state_helper m bs s)
+Proof
+  Induct_on ‘bs’ >> rpt strip_tac
+  >- EVAL_TAC
+  >> gvs[vd_encode_state_helper_def]
+  >> gvs[code_to_path_helper_def]
+  >> pop_assum $ qspecl_then [‘m’, ‘vd_step m h s’] assume_tac
+  >> pop_assum (fn th => gvs[SYM th])
+  >> gvs[LAST_DEF]
+QED
+
+Theorem code_to_path_last:
+  ∀m bs.
+    LAST (code_to_path m bs) = (vd_encode_state m bs)
+Proof
+  gvs[code_to_path_helper_last, code_to_path_def, vd_encode_state_def]
+QED
+
+Theorem states_to_transition_input_vd_step:
+  ∀m b s.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    states_to_transition_input m s (vd_step m b s) = b
+Proof
+  rpt strip_tac
+  >> Cases_on ‘b’ >> EVAL_TAC
+  >> gvs[wfmachine_def]
+  >> gvs[vd_step_def, vd_step_record_def]
+QED
+
+Theorem path_to_code_code_to_path:
+  ∀m bs.
+    wfmachine m ⇒
+    path_to_code m (code_to_path m bs) = bs
+Proof
+  rpt strip_tac
+  >> Induct_on ‘bs’ using SNOC_INDUCT
+  >- EVAL_TAC
+  >> rpt strip_tac
+  >> gvs[]
+  >> gvs[code_to_path_append]
+  >> DEP_PURE_ONCE_REWRITE_TAC[path_to_code_append]
+  >> gvs[]
+  >> conj_tac
+  >- (gvs[code_to_path_helper_def])
+  >> REVERSE conj_tac
+  >- (gvs[code_to_path_helper_def])
+  >> gvs[code_to_path_def, vd_encode_state_def]
+  >> gvs[code_to_path_helper_def]
+  >> gvs[code_to_path_helper_last]
+  >> DEP_PURE_ONCE_REWRITE_TAC[states_to_transition_input_vd_step]
+  >> gvs[]
+  >> irule vd_encode_state_helper_is_valid
+  >> gvs[]
+  >> gvs[wfmachine_def]
+QED
+
+Definition path_is_valid_def:
+  path_is_valid m ps = ∃bs. code_to_path m bs = ps
+End
+
+Theorem path_is_valid_nonempty:
+  ∀m ps.
+    path_is_valid m ps ⇒ ps ≠ []
+Proof
+  rpt strip_tac
+  >> gvs[path_is_valid_def]
+QED
+
+Theorem not_path_is_valid_empty[simp]:
+  ∀m ps.
+    ¬path_is_valid m []
+Proof
+  gvs[path_is_valid_def]
+QED
+
+Definition path_is_connected_def:
+  path_is_connected m [] = T ∧
+  path_is_connected m (p::[]) = T ∧
+  path_is_connected m (p::p'::ps) = ((∃b. vd_step m b p = p') ∧ path_is_connected m (p'::ps))
+End
+
+(* -------------------------------------------------------------------------- *)
+(* If there exists a way to step from s to s', then states_to_transition_input*)
+(* will return that way.                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_step_states_to_transition_input:
+  ∀m s s' b. vd_step m b s = s' ⇒
+             vd_step m (states_to_transition_input m s s') s = s'
+Proof
+  rpt strip_tac
+  >> simp[states_to_transition_input_def, vd_step_def, vd_step_record_def]
+  >> Cases_on ‘(m.transition_fn <|origin := s; input := F|>).destination ≠ s'’ >> simp[]
+  >> Cases_on ‘b’ >> gvs[vd_step_def, vd_step_record_def]
+QED
+
+Theorem path_is_valid_first_two_elements:
+  ∀m h h' t.
+    path_is_valid m (h::h'::t) ⇒ ∃b. vd_step m b h = h'
+Proof
+  rpt strip_tac
+  >> gvs[path_is_valid_def]
+  >> gvs[code_to_path_def]
+  >> Cases_on ‘bs’
+  >- gvs[code_to_path_helper_def]
+  >> gvs[code_to_path_helper_def]
+  >> Cases_on ‘t'’
+  >- (gvs[code_to_path_helper_def]
+      >> qexists ‘h''’ >> gvs[])
+  >> gvs[code_to_path_helper_def]
+  >> qexists ‘h''’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The suffix "1" is added to distinguish this implication-based version from *)
+(* a potential, stronger iff-based one. See the commented out theorem below.  *)
+(* -------------------------------------------------------------------------- *)
+(*Theorem path_is_valid_cons1:
+  ∀m h t.
+    t ≠ [] ∧
+    path_is_valid m (h::t) ⇒
+    path_is_valid m t
+Proof
+  rpt strip_tac
+  >> gvs[path_is_valid_def]
+  >> Cases_on ‘bs’
+  >- gs[code_to_path_def, code_to_path_helper_def]
+  >> gs[code_to_path_def, code_to_path_helper_def]
+  >> qexists ‘h'::t'’
+  >> gvs[code_to_path_helper_def]
+QED*)
+
+(*Theorem path_is_valid_cons:
+  ∀m h t.
+    path_is_valid m (h::t) ⇔ path_is_valid m t ∧ (t = [] ∨ ∃b. vd_step m b h = HD t)
+Proof
+  rpt strip_tac
+  >> gvs[path_is_valid_def]
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >> Cases_on ‘bs’
+QED*)
+
+Theorem path_is_connected_cons:
+  ∀m h t.
+    path_is_connected m (h::t) ⇒
+    path_is_connected m t
+Proof
+  rpt strip_tac
+  >> Induct_on ‘t’ >> gvs[path_is_connected_def]
+QED
+
+Theorem code_to_path_helper_path_to_code:
+  ∀m ps.
+    ps ≠ [] ∧
+    path_is_connected m ps ⇒
+    code_to_path_helper m (path_to_code m ps) (HD ps) = ps
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ps’
+  >- gvs[path_is_connected_def]
+  >> rpt strip_tac
+  >> Cases_on ‘ps’ >> gvs[]
+  >- gvs[code_to_path_def, code_to_path_helper_def]
+  >> drule path_is_connected_cons
+  >> rpt strip_tac
+  >> gvs[]        
+  >> gvs[path_to_code_def]
+  >> gvs[code_to_path_helper_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[vd_step_states_to_transition_input]
+  >> gvs[]
+  >> gvs[path_is_connected_def]
+  >> qexists ‘b’
+  >> gvs[]
+QED
+
+Theorem code_to_path_path_to_code:
+  ∀m ps.
+    ps ≠ [] ∧
+    HD ps = 0 ∧
+    path_is_connected m ps ⇒
+    code_to_path m (path_to_code m ps) = ps
+Proof
+  metis_tac[code_to_path_def, code_to_path_helper_path_to_code]
+QED
+
+Theorem vd_encode_state_last_state:
+  ∀m bs s.
+    vd_encode_state m bs = s ⇔ ∃ps. bs = path_to_code m (ps ⧺ [s])
+Proof
+  rpt strip_tac >>  EQ_TAC >> SPEC_ALL_TAC
+  >- (Induct_on ‘bs’ using SNOC_INDUCT
+      >- (rpt strip_tac
+          >> qexists ‘[]’
+          >> EVAL_TAC)
+      >> rpt strip_tac
+      >> donotexpand_tac
+      >> gvs[]
+      >> last_x_assum $ qspec_then ‘m’ assume_tac
+      >> gvs[]
+      >> (*gvs[path_to_code_append]*)
+      >> qexists ‘ps ⧺ [vd_encode_state m bs]’
+      >> path_to_code_def
+      >> DEP_PURE_ONCE_REWRITE_TAC[path_to_code_append]
+      >> gvs[]
+      >> doexpand_tac
+      >> gvs[]
+      >> Cases_on ‘x’ >> EVAL_TAC
+                         
+      >> gvs[path_to_code_append]
+            
+
+      >> gvs[vd_encode_snoc]
+      >> gvs[vd_encode_append]
+
+      >> gvs[]
+      >> pop_assum kall_tac
+                   TODO
+     )
+  >> Induct_on ‘bs’
+  >- (rpt strip_tac
+      >> EVAL_TAC
+      >> gvs[vd_encode_def]
+      >> gvs[path_to_code_def]
+      >> gvs[vd_encode_def]         
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -1909,9 +2239,10 @@ Theorem viterbi_correctness_general:
     wfmachine m ∧
     s < m.num_states ∧
     LENGTH bs = t ∧
-    LENGTH rs = m.output_length * t ⇒
+    LENGTH rs = m.output_length * t ∧
+    vd_encode_state m bs = s ⇒
     let
-      decoded_path = path_to_code m (vd_find_optimal_path m bs s t);
+      decoded_path = path_to_code m (vd_find_optimal_path m rs s t);
     in
       hamming_distance rs (vd_encode m decoded_path) ≤ hamming_distance rs (vd_encode m bs)
 Proof
@@ -1920,6 +2251,7 @@ Proof
   >> Induct_on ‘t’
   >- gvs[]
   >> rpt strip_tac
+  >> donotexpand_tac
   >> gvs[]
   (* Expand out relevant definitions. *)
   (* These are some of the relevant definitions
@@ -1932,14 +2264,20 @@ Proof
      - get_num_errors_def *)
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
-  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path m bs s' t’
+  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path _ _ s' _’
   >> gvs[vd_step_back_def]
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
-  >> qmatch_asmsub_abbrev_tac ‘get_better_origin _ bs'’
-  
-  
-  >> gvs[vd_find_optimal_path_suc]
+  >> qmatch_asmsub_abbrev_tac ‘get_better_origin _ bs' prev_row’
+  >> gvs[GSYM vd_find_optimal_path_def]
+  (* For any choice of bs, the encoding of m bs will be some path which
+     eventually reaches s. Thus, we can decompose it into ... s'' s.
+     The choice of s' was such that it minimizes the number of errors to
+     get to the previous state plus the number of errors in the transition
+     between s' and s. This is equal to the hamming distance from the
+     relevant parts of rs to ... s'' plus the hamming distance from the
+     relevant parts of rs to s'' s.*)
+  >> 
   >> 
   
 
