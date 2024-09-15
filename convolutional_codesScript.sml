@@ -1955,12 +1955,33 @@ Proof
   >> gvs[vd_encode_state_helper_def]
 QED
 
+Theorem code_to_path_helper_snoc:
+  ∀m b bs s.
+    code_to_path_helper m (SNOC b bs) s = SNOC (vd_step m b (vd_encode_state_helper m bs s)) (code_to_path_helper m bs s)
+Proof
+  rpt strip_tac
+  >> gvs[SNOC]
+  >> gvs[code_to_path_helper_append]
+  >> gvs[code_to_path_helper_def]
+QED
+
 Theorem code_to_path_append:
   ∀m bs cs.
     code_to_path m (bs ⧺ cs) = (code_to_path m bs) ⧺ (TL (code_to_path_helper m cs (vd_encode_state m bs)))
 Proof
   rpt strip_tac
   >> gvs[code_to_path_def, code_to_path_helper_append, vd_encode_state_def]
+QED
+
+Theorem code_to_path_snoc:
+  ∀m b bs.
+    code_to_path m (SNOC b bs) = SNOC (vd_step m b (vd_encode_state m bs)) (code_to_path m bs)
+Proof
+  rpt strip_tac
+  >> PURE_REWRITE_TAC[code_to_path_def]
+  >> PURE_REWRITE_TAC[code_to_path_helper_snoc]
+  >> gvs[]
+  >> gvs[vd_encode_state_def]
 QED
 
 Theorem code_to_path_helper_last:
