@@ -2066,10 +2066,14 @@ Definition path_is_valid_or_empty_def:
   path_is_valid_or_empty m ps = ((ps = []) ∨ path_is_valid m ps)
 End  
 
+Definition vd_can_step_def:
+  vd_can_step m s s' = ∃b. vd_step m b s = s' 
+End
+
 Definition path_is_connected_def:
   path_is_connected m [] = T ∧
   path_is_connected m (p::[]) = T ∧
-  path_is_connected m (p::p'::ps) = ((∃b. vd_step m b p = p') ∧ path_is_connected m (p'::ps))
+  path_is_connected m (p::p'::ps) = (vd_can_step m p p' ∧ path_is_connected m (p'::ps))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -2161,7 +2165,7 @@ Proof
   >> gvs[code_to_path_helper_def]
   >> DEP_PURE_ONCE_REWRITE_TAC[vd_step_states_to_transition_input]
   >> gvs[]
-  >> gvs[path_is_connected_def]
+  >> gvs[path_is_connected_def, vd_can_step_def]
   >> qexists ‘b’
   >> gvs[]
 QED
@@ -2194,19 +2198,48 @@ Proof
   gvs[vd_encode_state_def, vd_encode_state_helper_snoc]
 QED
 
+(* TODO ISREACHABLE *)
+
+Theorem path_is_valid_snoc:
+  ∀m p ps.
+    path_is_valid m (SNOC p ps) ⇔ (SNOC p ps = [0]) ∨ ((*ps ≠ [] ∧*) (∃b. vd_step m b p = HD ps) ∧ path_is_valid m ps)
+Proof
+QED
+
+
+Theorem path_is_valid_cons:
+  ∀m p ps.
+    path_is_valid m (p::ps) ⇔ (p::ps = [0]) ∨ ((*ps ≠ [] ∧*) (∃b. vd_step m b p = HD ps) ∧ path_is_valid m ps)
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >>
+     )
+  >> rpt strip_tac
+  >- (gvs[path_is_valid_def]
+      >> qexists ‘[]’
+      >> EVAL_TAC)
+  >> gvs[path_is_valid_def]
+  >> qexists ‘b::bs’
+  >> gvs[code_to_path_def, code_to_path_helper_def]
+)
+>> EVAL_TAC
+QED
+
 Theorem path_is_valid_code_to_path:
   ∀m bs.
     path_is_valid m (code_to_path m bs)
 Proof
   rpt strip_tac
-  >> Induct_on ‘bs’
+  >> Induct_on ‘bs’ using SNOC_INDUCT
   >- (EVAL_TAC >> qexists ‘[]’ >> EVAL_TAC)
   >> rpt strip_tac
   >> gvs[code_to_path_snoc]
 QED
 
 Theorem path_is_valid_or_empty_code_to_path:
-
+  ∀m bs. 
 Proof
 QED
 
@@ -2240,7 +2273,7 @@ Proof
       >> EVAL_TAC
       >> Cases_on ‘ps’ >> gvs[path_to_code_def]
       >> 
-     
+      
 QED
 
 (* -------------------------------------------------------------------------- *)
