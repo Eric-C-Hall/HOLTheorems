@@ -2146,6 +2146,36 @@ Proof
   >> Induct_on ‘t’ >> gvs[path_is_connected_def]
 QED
 
+
+Theorem path_is_connected_append1:
+  ∀m p1 p2.
+    path_is_connected m (p1 ⧺ p2) ⇒ path_is_connected m p1 ∧ path_is_connected m p2
+Proof
+  rpt strip_tac
+  >- (Induct_on ‘p1’
+      >- gvs[path_is_connected_def]
+      >> rpt strip_tac
+      >> Cases_on ‘p1’
+      >- gvs[path_is_connected_def]
+      >> gvs[path_is_connected_def])
+  >> Induct_on ‘p1’
+  >- gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘p1’ >> gvs[path_is_connected_def]
+  >> Cases_on ‘p2’ >> gvs[path_is_connected_def]
+QED
+
+Theorem path_is_connected_snoc1:
+  ∀m p ps.
+    path_is_connected m (SNOC p ps) ⇒ path_is_connected m ps
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ps’
+  >- gvs[path_is_connected_def]
+  >> rpt strip_tac
+  >> Cases_on ‘ps’ >> gvs[path_is_connected_def]
+QED
+
 Theorem code_to_path_helper_path_to_code:
   ∀m ps.
     ps ≠ [] ∧
@@ -2276,6 +2306,94 @@ Proof
   metis_tac[code_to_path_def, code_to_path_helper_vd_can_step_snoc]
 QED
 
+Theorem vd_can_step_vd_step[simp]:
+  ∀m b s.
+    vd_can_step m s (vd_step m b s)
+Proof
+  rpt strip_tac
+  >> gvs[vd_can_step_def]
+  >> qexists ‘b’
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This proof contains a significant amount of repetition. Perhaps it could   *)
+(* be automated?                                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem path_is_connected_append:
+  ∀m p p' ps ps'.
+    path_is_connected m (ps ⧺ [p; p'] ⧺ ps') ⇔
+      path_is_connected m ps ∧
+      path_is_connected m ps' ∧
+      vd_can_step m p p' ∧
+      (ps = [] ∨ vd_can_step m (LAST ps) p) ∧
+      (ps' = [] ∨ vd_can_step m p' (HD ps'))
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ps’ >> gvs[path_is_connected_def]
+  >- (gvs[]
+      >> Induct_on ‘ps'’ >> gvs[path_is_connected_def]
+      >> rpt strip_tac
+      >> Cases_on ‘ps'’ >> gvs[path_is_connected_def]
+      >> decide_tac)
+  >> rpt strip_tac
+  >> Cases_on ‘ps’
+  >- (gvs[path_is_connected_def]
+      >> Induct_on ‘ps'’ >> gvs[path_is_connected_def]
+      >- decide_tac
+      >> rpt strip_tac
+      >> decide_tac
+     )   
+  >> Cases_on ‘ps'’ >> gvs[path_is_connected_def]
+  >- (gvs[path_is_connected_def]
+      >> decide_tac)
+  >> gvs[path_is_connected_def]
+  >> decide_tac
+QED
+
+Theorem path_is_connected_snoc:
+  ∀m p p' ps.
+    path_is_connected m (SNOC p' (SNOC p ps)) ⇔ vd_can_step m p p' ∧ path_is_connected m (SNOC p ps)
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >- (gvs[]
+          >> Induct_on ‘ps’
+          >- (gvs[]
+              >> gvs[path_is_connected_def])
+          >> rpt strip_tac
+          >> Cases_on ‘ps’ >> gvs[path_is_connected_def])
+      >> irule path_is_connected_snoc1
+      >> qexists ‘p'’
+      >> gvs[])
+  >> rpt strip_tac
+  >> Induct_on ‘ps’
+  >- gvs[path_is_connected_def]
+  >> rpt strip_tac
+  >> Cases_on ‘ps’ >> gvs[path_is_connected_def]
+QED
+
+Theorem path_is_valid_path_is_connected:
+  ∀m ps.
+    path_is_valid m ps ⇔ path_is_connected m ps ∧ ps ≠ [] ∧ HD ps = 0
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac 
+      >- (gvs[path_is_valid_def]
+          >> Induct_on ‘bs’ using SNOC_INDUCT
+          >- gvs[code_to_path_def, path_is_connected_def, code_to_path_helper_def]
+          >> rpt strip_tac
+          >> Cases_on ‘bs’ using SNOC_CASES
+          >- gvs[code_to_path_def, path_is_connected_def, code_to_path_helper_def]
+          >> gvs[code_to_path_def, code_to_path_helper_def, path_is_connected_def]
+          >> gvs[code_to_path_helper_snoc]
+          >> gvs[path_is_connected_def]
+          >> irule $ iffRL path_is_connected_def
+                   gvs[]
+QED
+
 Theorem path_is_valid_snoc:
   ∀m p ps.
     path_is_valid m (SNOC p ps) ⇔ (SNOC p ps = [0]) ∨ ((*ps ≠ [] ∧*) (vd_can_step m (LAST ps) p) ∧ path_is_valid m ps)
@@ -2291,8 +2409,27 @@ Proof
          )
       >> gvs[]
       >> conj_tac
-      >- (gvs[]
+      >- (gvs[]             
           >> gvs[path_is_valid_def]
+          >> Cases_on ‘t’ using SNOC_CASES
+          >- (gvs[]
+              >> irule code_to_path_vd_can_step_cons
+              >> qexistsl [‘bs’, ‘[]’]
+              >> gvs[])
+          >> gvs[]
+          >> irule code_to_path_vd_can_step_snoc
+          >> qexistsl [‘bs’, ‘h::l’]
+          >> gvs[]
+          >> gvs[LAST_DEF])
+      >> gvs
+
+         (Cases_on ‘bs’ >> gvs[code_to_path_def, code_to_path_helper_def])
+          >> irule code_to_path_vd_can_step
+          >> qexistsl [‘bs’, ‘FRONT (h::t)’, ‘[]’]
+          >> gvs[Excl "APPEND"]
+                
+
+                
           >> gvs[vd_can_step_def]
           >> gvs[code_to_path_def]
           >> Cases_on ‘bs’ using SNOC_CASES >> gvs[code_to_path_helper_def]
