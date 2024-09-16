@@ -2198,33 +2198,137 @@ Proof
   gvs[vd_encode_state_def, vd_encode_state_helper_snoc]
 QED
 
-(* TODO ISREACHABLE *)
+
+Theorem code_to_path_helper_vd_can_step_cons:
+  ∀m bs p p' ps s.
+    code_to_path_helper m bs s = p::p'::ps ⇒
+    vd_can_step m p p'
+Proof
+  rpt strip_tac
+  >> Cases_on ‘bs’
+  >- gvs[code_to_path_def, code_to_path_helper_def]
+  >> gvs[code_to_path_def, code_to_path_helper_def]
+  >> Cases_on ‘t’
+  >- (gvs[code_to_path_def, code_to_path_helper_def]
+      >> gvs[vd_can_step_def]
+      >> qexists ‘h’
+      >> gvs[])
+  >> gvs[code_to_path_helper_def]
+  >> gvs[vd_can_step_def]
+  >> qexists ‘h’
+  >> gvs[]
+QED
+
+Theorem code_to_path_helper_vd_can_step:
+  ∀m bs p p' ps ps' s.
+    code_to_path_helper m bs s = (ps ⧺ [p; p'] ⧺ ps') ⇒
+    vd_can_step m p p'
+Proof
+  Induct_on ‘ps’
+  >- (rpt strip_tac
+      >> gvs[]
+      >> irule code_to_path_helper_vd_can_step_cons
+      >> qexistsl [‘bs’, ‘ps'’, ‘s’]
+      >> gvs[]
+     )
+  >> rpt strip_tac
+  >> last_x_assum irule
+  >> Cases_on ‘bs’
+  >- gvs[code_to_path_def, code_to_path_helper_def]
+  >> gvs[]
+  >> gvs[code_to_path_def, code_to_path_helper_def]
+  >> qexistsl [‘t’, ‘ps'’, ‘vd_step m h' h’]
+  >> gvs[]
+QED
+
+Theorem code_to_path_helper_vd_can_step_snoc:
+  ∀m bs p p' ps s.
+    code_to_path_helper m bs s  = SNOC p' (SNOC p ps) ⇒
+    vd_can_step m p p'
+Proof
+  rpt strip_tac
+  >> irule code_to_path_helper_vd_can_step
+  >> qexistsl [‘bs’, ‘ps’, ‘[]’, ‘s’]
+  >> gvs[]
+QED
+
+Theorem code_to_path_vd_can_step_cons:
+  ∀m bs p p' ps.
+    code_to_path m bs = p::p'::ps ⇒
+    vd_can_step m p p'
+Proof
+  metis_tac[code_to_path_def, code_to_path_helper_vd_can_step_cons]
+QED
+
+Theorem code_to_path_vd_can_step:
+  ∀m bs p p' ps ps'.
+    code_to_path m bs = (ps ⧺ [p; p'] ⧺ ps') ⇒
+    vd_can_step m p p'
+Proof
+  metis_tac[code_to_path_def, code_to_path_helper_vd_can_step]
+QED
+
+Theorem code_to_path_vd_can_step_snoc:
+  ∀m bs p p' ps.
+    code_to_path m bs = SNOC p' (SNOC p ps) ⇒
+    vd_can_step m p p'
+Proof
+  metis_tac[code_to_path_def, code_to_path_helper_vd_can_step_snoc]
+QED
 
 Theorem path_is_valid_snoc:
   ∀m p ps.
-    path_is_valid m (SNOC p ps) ⇔ (SNOC p ps = [0]) ∨ ((*ps ≠ [] ∧*) (∃b. vd_step m b p = HD ps) ∧ path_is_valid m ps)
-Proof
-QED
-
-
-Theorem path_is_valid_cons:
-  ∀m p ps.
-    path_is_valid m (p::ps) ⇔ (p::ps = [0]) ∨ ((*ps ≠ [] ∧*) (∃b. vd_step m b p = HD ps) ∧ path_is_valid m ps)
+    path_is_valid m (SNOC p ps) ⇔ (SNOC p ps = [0]) ∨ ((*ps ≠ [] ∧*) (vd_can_step m (LAST ps) p) ∧ path_is_valid m ps)
 Proof
   rpt strip_tac
   >> EQ_TAC
   >- (rpt strip_tac
-      >>
+      >> Cases_on ‘ps’
+      >- (gvs[]
+          >> gvs[path_is_valid_def, code_to_path_def]
+          >> Cases_on ‘bs’ >> gvs[code_to_path_helper_def]
+          >> Cases_on ‘t’ >> gvs[code_to_path_helper_def]
+         )
+      >> gvs[]
+      >> conj_tac
+      >- (gvs[]
+          >> gvs[path_is_valid_def]
+          >> gvs[vd_can_step_def]
+          >> gvs[code_to_path_def]
+          >> Cases_on ‘bs’ using SNOC_CASES >> gvs[code_to_path_helper_def]
+          (*>> Cases_on ‘l’ using SNOC_CASES >> gvs[code_to_path_helper_def]
+          >- (qexists ‘x’ >> gvs[])*)
+          >> pop_assum mp_tac >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
+          >> PURE_REWRITE_TAC[code_to_path_helper_snoc]
+          >> rpt strip_tac
+          >> gvs[]
+          >> pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
+          >> gvs[code_to_path_helper_last]
+          >> qexists ‘x’
+          >> gvs[]
+         )
+      >> gvs[path_is_valid_def]
+      >> qexists ‘FRONT bs’
+      >> 
      )
   >> rpt strip_tac
   >- (gvs[path_is_valid_def]
       >> qexists ‘[]’
       >> EVAL_TAC)
-  >> gvs[path_is_valid_def]
-  >> qexists ‘b::bs’
+  >> PURE_REWRITE_TAC[path_is_valid_def]
+  >> qexists ‘SNOC b bs’
   >> gvs[code_to_path_def, code_to_path_helper_def]
+  >> 
 )
 >> EVAL_TAC
+
+QED
+
+
+Theorem path_is_valid_cons:
+  ∀m p ps.
+    path_is_valid m (p::ps) ⇔ (p::ps = [0]) ∨ ((*ps ≠ [] ∧*) (vd_can_step m p (HD ps)) ∧ path_is_valid m ps)
+Proof
 QED
 
 Theorem path_is_valid_code_to_path:
