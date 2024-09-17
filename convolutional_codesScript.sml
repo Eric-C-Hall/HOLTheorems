@@ -2502,12 +2502,48 @@ Proof
   gvs[path_is_valid_or_empty_def, path_is_valid_code_to_path]
 QED
 
-Theorem vd_encode_state_last_state:
-  ∀m bs s.
+Theorem states_to_transition_input_vd_encode_state_snoc:
+  ∀m b bs.
     wfmachine m ⇒
-    (vd_encode_state m bs = s ⇔ ∃ps. path_is_valid_or_empty m ps ∧ bs = path_to_code m (ps ⧺ [s]))
+    states_to_transition_input m (vd_encode_state m bs) (vd_encode_state m (SNOC b bs)) = b
 Proof
-  rpt strip_tac >>  EQ_TAC >> SPEC_ALL_TAC
+  rpt strip_tac
+  >> gvs[vd_encode_state_snoc]
+  >> gvs[states_to_transition_input_vd_step]
+QED
+
+Theorem vd_encode_state_helper_path_to_code:
+  ∀m ps s.
+    ps ≠ [] ∧
+    HD ps = s ∧
+    path_is_connected m ps ⇒
+    vd_encode_state_helper m (path_to_code m ps) s = LAST ps
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘m’, ‘ps’] assume_tac code_to_path_helper_path_to_code
+  >> Cases_on ‘ps’ >> gvs[]
+  >> gvs[GSYM code_to_path_helper_last]
+  >> gvs[path_is_valid_path_is_connected]
+QED
+
+Theorem vd_encode_state_path_to_code:
+  ∀m ps.
+    ps ≠ [] ∧
+    path_is_valid m ps ⇒
+    vd_encode_state m (path_to_code m ps) = LAST ps
+Proof
+  rpt strip_tac 
+  >> gvs[vd_encode_state_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_helper_path_to_code]
+  >> gvs[]
+  >> gvs[path_is_valid_path_is_connected]
+QED
+
+
+Theorem vd_encode_state_helper_last_state:
+  vd_encode_state_helper m bs s = s' ⇔ ∃ps. path_is_valid m (ps ⧺ [s']) ∧ bs = path_to_code m (ps ⧺ [s'])
+Proof
+  rpt strip_tac >> EQ_TAC >> SPEC_ALL_TAC
   >- (Induct_on ‘bs’ using SNOC_INDUCT
       >- (rpt strip_tac
           >> qexists ‘[]’
@@ -2515,24 +2551,51 @@ Proof
          )
       >> rpt strip_tac
       >> qexists ‘code_to_path m bs’
-      >> conj_tac
-      >- (
-       )
-      >> donotexpand_tac
+      >> simp[path_is_valid_or_empty_code_to_path]
       >> gvs[path_to_code_append]
       >> gvs[path_to_code_code_to_path]
       >> gvs[code_to_path_last]
-      >> doexpand_tac
-      >> gvs[vd_encode_state_snoc]
-      >> gvs[states_to_transition_input_vd_step]
-      >> 
-     )
-  >> Induct_on ‘bs’ using SNOC_INDUCT
-  >- (rpt strip_tac
-      >> EVAL_TAC
-      >> Cases_on ‘ps’ >> gvs[path_to_code_def]
-      >> 
-      
+      >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
+      >> gvs[states_to_transition_input_vd_encode_state_snoc])
+  >> rpt strip_tac
+  >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_path_to_code]
+  >> gvs[]
+  >> gvs[path_is_valid_or_empty_def]
+  >> gvs[path_is_valid_def]
+
+QED
+
+Theorem vd_encode_state_last_state:
+  ∀m bs s.
+    wfmachine m ⇒
+    (vd_encode_state m bs = s ⇔ ∃ps. path_is_valid m (ps ⧺ [s]) ∧ bs = path_to_code m (ps ⧺ [s]))
+Proof
+  (* relevant:
+code_to_path_last
+code_to_path_path_to_code
+path_to_code_code_to_path
+vd_encode_state_path_to_code *)
+  rpt strip_tac >> EQ_TAC >> SPEC_ALL_TAC
+  >- (Induct_on ‘bs’ using SNOC_INDUCT
+      >- (rpt strip_tac
+          >> qexists ‘[]’
+          >> EVAL_TAC
+         )
+      >> rpt strip_tac
+      >> qexists ‘code_to_path m bs’
+      >> simp[path_is_valid_or_empty_code_to_path]
+      >> gvs[path_to_code_append]
+      >> gvs[path_to_code_code_to_path]
+      >> gvs[code_to_path_last]
+      >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
+      >> gvs[states_to_transition_input_vd_encode_state_snoc])
+  >> rpt strip_tac
+  >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_path_to_code]
+  >> gvs[]
+  >> gvs[path_is_valid_or_empty_def]
+  >> gvs[path_is_valid_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
