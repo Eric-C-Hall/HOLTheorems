@@ -2047,6 +2047,10 @@ Definition path_is_valid_def:
   path_is_valid m ps = ∃bs. code_to_path m bs = ps
 End
 
+Definition path_is_valid_from_state_def:
+  path_is_valid_from_state m ps s = ∃bs. code_to_path_helper m bs s = ps
+End
+
 Theorem path_is_valid_nonempty:
   ∀m ps.
     path_is_valid m ps ⇒ ps ≠ []
@@ -2391,43 +2395,73 @@ Proof
   >> Cases_on ‘ls’ >> gvs[]
 QED
 
-Theorem path_is_valid_path_is_connected:
-  ∀m ps.
-    path_is_valid m ps ⇔ path_is_connected m ps ∧ ps ≠ [] ∧ HD ps = 0
+Theorem path_is_connected_code_to_path_helper:
+  ∀m bs s.
+    path_is_connected m (code_to_path_helper m bs s)
+Proof
+  Induct_on ‘bs’
+  >- (rpt strip_tac >> EVAL_TAC)
+  >> rpt strip_tac
+  >> gvs[code_to_path_helper_def]
+  >> gvs[path_is_connected_cons1]
+  >> pop_assum $ qspecl_then [‘m’, ‘vd_step m h s’] assume_tac
+  >> qmatch_goalsub_abbrev_tac ‘(_::ps)’
+  >> Cases_on ‘ps’
+  >- gvs[]
+  >> gvs[path_is_connected_cons]
+  >> Cases_on ‘bs’ >> gvs[code_to_path_helper_def]
+QED
+
+Theorem path_is_valid_from_state_path_is_connected:
+  ∀m ps s.
+    path_is_valid_from_state m ps s ⇔ path_is_connected m ps ∧ ps ≠ [] ∧ HD ps = s
 Proof
   rpt strip_tac
   >> EQ_TAC
   >- (rpt strip_tac 
-      >- (gvs[path_is_valid_def]
-          >> Induct_on ‘bs’ using SNOC_INDUCT
-          >- gvs[code_to_path_def, path_is_connected_def, code_to_path_helper_def]
-          >> rpt strip_tac
-          >> Cases_on ‘bs’ using SNOC_CASES
-          >- gvs[code_to_path_def, path_is_connected_def, code_to_path_helper_def]
-          >> gvs[code_to_path_def, code_to_path_helper_def, path_is_connected_def]
-          >> gvs[code_to_path_helper_snoc]
-          >> gvs[path_is_connected_snoc]
-          >> gvs[vd_encode_state_helper_snoc])
-      >- gvs[]
-      >> gvs[path_is_valid_def]
-      >> gvs[code_to_path_def]
+      >- (gvs[path_is_valid_from_state_def]
+          >> gvs[path_is_connected_code_to_path_helper])
+      >- gvs[path_is_valid_from_state_def]
+      >> gvs[path_is_valid_from_state_def]
       >> Cases_on ‘bs’ >> gvs[code_to_path_helper_def])
   >> rpt strip_tac
-  >> gvs[path_is_valid_def]
+  >> gvs[path_is_valid_from_state_def]
   >> Induct_on ‘ps’ using SNOC_INDUCT
   >- gvs[]
   >> rpt strip_tac
-  >> Cases_on ‘ps’ using SNOC_CASES >> gvs[code_to_path_def, path_is_connected_def]
+  >> Cases_on ‘ps’ using SNOC_CASES >> gvs[code_to_path_def, path_is_connected_def, path_is_valid_from_state_def]
   >- (qexists ‘[]’ >> gvs[code_to_path_helper_def])
   >> gvs[path_is_connected_snoc]
-  >> gvs[HD_SNOC]
-  >> gvs[vd_can_step_def]
+  >> gs[vd_can_step_def]
   >> qexists ‘SNOC b bs’
+  >> Cases_on ‘l’
+  >- (gvs[path_is_connected_def]
+      >> Cases_on ‘bs’
+      >> gvs[code_to_path_helper_def])
+  >> gvs[]
+  >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
   >> PURE_REWRITE_TAC[code_to_path_helper_snoc]
   >> gvs[]
   >> AP_TERM_TAC
-  >> qspecl_then [‘m’, ‘bs’, ‘0’] assume_tac code_to_path_helper_last
-  >> gvs[]       
+  >> qspecl_then [‘m’, ‘bs’, ‘h’] assume_tac code_to_path_helper_last
+  >> gvs[]
+  >> pop_assum (fn th => PURE_REWRITE_TAC [GSYM th])
+  >> gvs[LAST_DEF]
+QED
+
+Theorem path_is_valid_path_is_valid_from_state:
+  ∀m ps.
+    path_is_valid m ps ⇔ path_is_valid_from_state m ps 0
+Proof
+  rpt strip_tac
+  >> gvs[path_is_valid_def, path_is_valid_from_state_def, code_to_path_def]
+QED
+
+Theorem path_is_valid_path_is_connected:
+  ∀m ps.
+    path_is_valid m ps ⇔ path_is_connected m ps ∧ ps ≠ [] ∧ HD ps = 0
+Proof
+  gvs[path_is_valid_path_is_valid_from_state, path_is_valid_from_state_path_is_connected]
 QED
 
 Theorem path_is_valid_snoc:
@@ -2459,23 +2493,6 @@ Proof
   >- EVAL_TAC
   >> rpt strip_tac
   >> gvs[path_is_connected_cons]
-QED
-
-Theorem path_is_connected_code_to_path_helper:
-  ∀m bs s.
-    path_is_connected m (code_to_path_helper m bs s)
-Proof
-  Induct_on ‘bs’
-  >- (rpt strip_tac >> EVAL_TAC)
-  >> rpt strip_tac
-  >> gvs[code_to_path_helper_def]
-  >> gvs[path_is_connected_cons1]
-  >> pop_assum $ qspecl_then [‘m’, ‘vd_step m h s’] assume_tac
-  >> qmatch_goalsub_abbrev_tac ‘(_::ps)’
-  >> Cases_on ‘ps’
-  >- gvs[]
-  >> gvs[path_is_connected_cons]
-  >> Cases_on ‘bs’ >> gvs[code_to_path_helper_def]
 QED
 
 Theorem path_is_connected_code_to_path:
@@ -2539,6 +2556,12 @@ Proof
   >> gvs[path_is_valid_path_is_connected]
 QED
 
+Theorem vd_encode_state_helper_last_state:
+  ∀m bs s s'.
+    vd_encode_state_helper m bs s = s' ⇔ ∃ps. path_is_valid_from_state m (ps ⧺ [s']) s ∧ bs = path_to_code m (ps ⧺ [s'])
+Proof
+  rpt strip_tac
+QED
 
 Theorem vd_encode_state_helper_last_state:
   vd_encode_state_helper m bs s = s' ⇔ ∃ps. path_is_valid m (ps ⧺ [s']) ∧ bs = path_to_code m (ps ⧺ [s'])
@@ -2563,10 +2586,10 @@ Proof
   >> gvs[]
   >> gvs[path_is_valid_or_empty_def]
   >> gvs[path_is_valid_def]
-
 QED
 
-Theorem vd_encode_state_last_state:
+
+(*Theorem vd_encode_state_last_state:
   ∀m bs s.
     wfmachine m ⇒
     (vd_encode_state m bs = s ⇔ ∃ps. path_is_valid m (ps ⧺ [s]) ∧ bs = path_to_code m (ps ⧺ [s]))
@@ -2596,7 +2619,7 @@ vd_encode_state_path_to_code *)
   >> gvs[]
   >> gvs[path_is_valid_or_empty_def]
   >> gvs[path_is_valid_def]
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
