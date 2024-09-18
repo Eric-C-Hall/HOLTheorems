@@ -2737,7 +2737,7 @@ Proof
   (* *)
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
-  >> cheat
+  >> 
 QED
 
 Theorem viterbi_correctness:
@@ -2750,6 +2750,13 @@ Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
   >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_path m rs s t’
+  (* TODO: bs may not lead to the state s, so we cannot immediately apply the
+     generalized viterbi correctness theorem here. We must first prove that
+     our specific choice of s will give a better result than any other choice
+     of s, so that we can deal with cases in which bs leads to another state.
+     Then we can finish our proof by showing that for an arbitrary valid state,
+     if we consider all paths bs leading to that state, the path which was
+     designed to be optimal is, in fact, optimal.*)
   >> irule viterbi_correctness_general
   >> gvs[]
   >> conj_tac
@@ -2762,7 +2769,17 @@ Proof
       >> gvs[MEM_COUNT_LIST])
   >> conj_tac
   >- (unabbrev_all_tac
-      >> gvs[MULT_DIV]
+      >> DEP_PURE_ONCE_REWRITE_TAC[MULT_DIV]
+      >> gvs[]
+      >> gvs[wfmachine_output_length_greater_than_zero]
      )
+  >> conj_tac
+  >- (unabbrev_all_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[MULT_DIV]
+      >> gvs[]
+      >> gvs[wfmachine_output_length_greater_than_zero]
+     )
+  >> gvs[vd_encode_state_def, vd_encode_state_helper_def]
+        
 QED
 val _ = export_theory();
