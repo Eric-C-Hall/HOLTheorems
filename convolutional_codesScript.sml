@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -540,6 +541,10 @@ End
 
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the num state machine is well-formed                           *)
+(*                                                                            *)
+(* Note: gvs[wfmachine_def] is currently often very inefficient, I assume     *)
+(* it's trying to do a lot of simplifications using the properties provided   *)
+(* by wfmachine.                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition wfmachine_def:
   wfmachine (m : state_machine) ⇔
@@ -563,6 +568,69 @@ Definition wfmachine_def:
        - each transition must output a string of length output_length *)
     (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Automatically apply commonly used property of a well-formed machine        *)
+(* -------------------------------------------------------------------------- *)
+Theorem wfmachine_zero_is_valid[simp]:
+  wfmachine m ⇒ 0 < m.num_states
+Proof
+  PURE_REWRITE_TAC[wfmachine_def]
+  >> rpt strip_tac
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Extract the property of a wfmachine that says that taking a step from a    *)
+(* valid state will result in a valid state.                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem wfmachine_vd_step_is_valid:
+  ∀m.
+    wfmachine m ⇒
+    (∀n b. n < m.num_states ⇒ vd_step m b n < m.num_states)
+Proof
+  PURE_REWRITE_TAC[wfmachine_def]
+  >> rpt strip_tac
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Extract the property of a wfmachine that says that every state has a prior *)
+(* state, i.e. one from which it is possible to take a step to arrive at the  *)
+(* state.                                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem wfmachine_every_state_has_prior_state:
+  ∀m.
+    wfmachine m ⇒
+    (∀s. s < m.num_states ⇒ (∃s' b. s' < m.num_states ∧ vd_step m b s' = s))
+Proof
+  PURE_REWRITE_TAC[wfmachine_def]
+  >> rpt strip_tac  
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Extract the property of a wfmachine that says that the two transitions     *)
+(* leading from a state do not arrive at the same state.                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem wfmachine_transition_fn_from_state_injective:
+  ∀m.
+    wfmachine m ⇒
+    (∀s. s < m.num_states ⇒ vd_step m T s ≠ vd_step m F s)
+Proof
+  PURE_REWRITE_TAC[wfmachine_def]
+  >> rpt strip_tac
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Extract the property of a wfmachine that says that all transition outputs  *)
+(* have the same length as the output length of the wfmachine.                *)
+(* -------------------------------------------------------------------------- *)
+Theorem wfmachine_transition_fn_output_length:
+  ∀m.
+    wfmachine m ⇒
+    (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
+Proof
+  PURE_REWRITE_TAC[wfmachine_def]
+  >> rpt strip_tac
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Function for converting from a list of parity equations to a corresponding *)
@@ -1350,7 +1418,9 @@ Theorem vd_step_output_length[simp]:
     LENGTH (vd_step_output m b s) = m.output_length
 Proof
   rpt strip_tac
-  >> gvs[wfmachine_def, vd_step_output_def, vd_step_record_def]
+  >> drule wfmachine_transition_fn_output_length
+  >> rpt strip_tac
+  >> gvs[vd_step_output_def, vd_step_record_def]
 QED
 
 Theorem vd_encode_helper_length[simp]:
@@ -1370,11 +1440,10 @@ Proof
   >> gvs[]
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
   >> conj_tac
-  >- (gvs[wfmachine_def]
+  >- (drule wfmachine_vd_step_is_valid
+      >> rpt strip_tac
       >> last_x_assum $ qspecl_then [‘s’, ‘h’] assume_tac
-      >> gvs[]
-      >> unabbrev_all_tac
-      >> gvs[vd_step_def, vd_step_record_def])
+      >> gvs[])
   >> gvs[SUC_ONE_ADD]
 QED
 
@@ -1387,7 +1456,6 @@ Proof
   >> gvs[vd_encode_def]
   >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_helper_length]
   >> gvs[]
-  >> gvs[wfmachine_def]
 QED
 
 Theorem vd_step_is_valid[simp]:
@@ -1397,21 +1465,21 @@ Theorem vd_step_is_valid[simp]:
     vd_step m b s < m.num_states
 Proof
   rpt strip_tac
-  >> gvs[wfmachine_def, vd_step_def, vd_step_record_def]
+  >> drule wfmachine_vd_step_is_valid
+  >> rpt strip_tac
+  >> gvs[vd_step_def, vd_step_record_def]
 QED
 
 Theorem vd_encode_state_helper_is_valid[simp]:
   ∀m bs s.
-    wfmachine m ∧
+    wfmachine m ∧ 
     s < m.num_states ⇒
     vd_encode_state_helper m bs s < m.num_states
 Proof
   gen_tac
   >> Induct_on ‘bs’
   >- (rpt strip_tac
-      >> gvs[wfmachine_def]
-      >> EVAL_TAC
-      >> gvs[])
+      >> gvs[vd_encode_state_helper_def])
   >> rpt strip_tac
   >> gvs[vd_encode_state_helper_def]
   >> last_x_assum $ qspec_then ‘vd_step m h s’ assume_tac
@@ -1426,7 +1494,6 @@ Proof
   rpt strip_tac
   >> gvs[vd_encode_state_def]
   >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_helper_is_valid]
-  >> gvs[wfmachine_def]
 QED
 
 Theorem vd_step_output_output_length_0[simp]:
@@ -1437,9 +1504,10 @@ Theorem vd_step_output_output_length_0[simp]:
     vd_step_output m b s = []
 Proof
   rpt strip_tac
-  >> gvs[wfmachine_def]
-  >> first_x_assum $ qspecl_then [‘s’, ‘b’] assume_tac
-  >> gvs[vd_step_output_def, vd_step_record_def]
+  >> drule wfmachine_transition_fn_output_length
+  >> rpt strip_tac
+  >> EVAL_TAC
+  >> gvs[]
 QED
 
 Theorem vd_encode_helper_output_length_0[simp]:
@@ -1453,7 +1521,6 @@ Proof
   >> Induct_on ‘bs’ >> rpt strip_tac
   >- gvs[vd_encode_helper_def]
   >> gvs[vd_encode_helper_cons]
-  >> gvs[wfmachine_def, vd_step_def, vd_step_output_def, vd_step_record_def]
 QED
 
 Theorem vd_encode_output_length_0[simp]:
@@ -1466,7 +1533,6 @@ Proof
   >> rpt strip_tac
   >> irule vd_encode_helper_output_length_0
   >> gvs[]
-  >> gvs[wfmachine_def]
 QED
 
 Theorem path_to_code_length[simp]:
@@ -1563,7 +1629,7 @@ Theorem transition_inverse_nonempty[simp]:
 Proof
   rpt strip_tac
   >> gvs[transition_inverse_def]
-  >> drule (cj 3 $ iffLR wfmachine_def)
+  >> drule (wfmachine_every_state_has_prior_state)
   >> rpt strip_tac
   >> pop_assum $ qspec_then ‘s’ assume_tac
   >> gvs[]
@@ -1784,7 +1850,6 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘FOLDR _ _ ts’
   >> qspecl_then [‘rs’, ‘0’, ‘ts’] assume_tac get_better_final_state_foldr_mem
   >> gvs[]
-  >- gvs[wfmachine_def]
   >> gvs[Abbr ‘ts’]
   >> gvs[MEM_COUNT_LIST]
 QED
@@ -1854,7 +1919,9 @@ Theorem vd_step_record_length[simp]:
     LENGTH ((vd_step_record m b s).output) = m.output_length
 Proof
   rpt strip_tac
-  >> gvs[wfmachine_def, vd_step_record_def]
+  >> drule wfmachine_transition_fn_output_length
+  >> rpt strip_tac
+  >> gvs[vd_step_record_def]
 QED
 
 Theorem vd_step_output_length[simp]:
@@ -2012,7 +2079,8 @@ Theorem states_to_transition_input_vd_step:
 Proof
   rpt strip_tac
   >> Cases_on ‘b’ >> EVAL_TAC
-  >> gvs[wfmachine_def]
+  >> drule wfmachine_transition_fn_from_state_injective
+  >> rpt strip_tac
   >> gvs[vd_step_def, vd_step_record_def]
 QED
 
@@ -2040,7 +2108,6 @@ Proof
   >> gvs[]
   >> irule vd_encode_state_helper_is_valid
   >> gvs[]
-  >> gvs[wfmachine_def]
 QED
 
 Definition path_is_valid_def:
@@ -2604,10 +2671,7 @@ Theorem viterbi_correctness_general:
     LENGTH bs = t ∧
     LENGTH rs = m.output_length * t ∧
     vd_encode_state m bs = s ⇒
-    let
-      decoded_path = path_to_code m (vd_find_optimal_path m rs s t);
-    in
-      hamming_distance rs (vd_encode m decoded_path) ≤ hamming_distance rs (vd_encode m bs)
+    hamming_distance rs (vd_encode m (path_to_code m (vd_find_optimal_path m rs s t))) ≤ hamming_distance rs (vd_encode m bs)
 Proof
   (* Complete base case and simplify *)
   gen_tac
@@ -2640,75 +2704,25 @@ Proof
      between s' and s. This is equal to the hamming distance from the
      relevant parts of rs to ... s'' plus the hamming distance from the
      relevant parts of rs to s'' s.*)
-  >> 
-  >> 
-  
-
-  
-(*(* Complete base case and simplify *)
-  gen_tac
-  >> Induct_on ‘t’
+  >> qspecl_then [‘m’, ‘bs’] assume_tac path_to_code_code_to_path
+  >> gvs[]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  >> qspecl_then [‘code_to_path m bs’] assume_tac SNOC_LAST_FRONT
+  >> Cases_on ‘code_to_path m bs = []’
   >- gvs[]
-  >> rpt strip_tac
   >> gvs[]
-  (* Break it up into the final step and the step which we'll prove using
-     the inductive hypothesis *)
-  >> gvs[vd_find_optimal_path_suc]
-  (* The exact value taken by this state doesn't matter, as we're just going
-     to apply the inductive hypothesis to this part of the expression, and
-     the inductive hypothesis doesn't care which state we're dealing with,
-     so long as it is at an earlier time-step.
-     .
-     Therefore, we can just call this state s'. *)
-  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_path _ _ s' _’
-  >> sg ‘s' < m.num_states’
-  >- (unabbrev_all_tac >> gvs[vd_step_back_is_valid])
-  >> pop_assum (fn th => (pop_assum kall_tac >> assume_tac th))
-  (* Move the single step part out, seperate from the inductive hypothesis
-     part. We want to split the hamming distance up into two components,
-     one for the single step and one for the inductive hypothesis*)
-  >> DEP_PURE_ONCE_REWRITE_TAC[path_to_code_snoc]
-  >> conj_tac
-  >- gvs[vd_find_optimal_path_nonempty]
-  >> gvs[vd_encode_snoc]
-  >> gvs[vd_encode_helper_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC[hamming_distance_append_right]
-  >> conj_tac
-  >- (gvs[vd_encode_length]
-      >> gvs[vd_find_optimal_path_length]
-      >> DEP_PURE_ONCE_REWRITE_TAC[vd_step_record_length]
-      >> gvs[vd_encode_state_is_valid]
-      >> gvs[ADD1])
-  >> gvs[]
-  (* Now we need to split up the right hand side in the same way.*)
-  >> qmatch_goalsub_abbrev_tac ‘LHS ≤ _’
-  >> qspecl_then [‘bs’] assume_tac SNOC_LAST_FRONT
-  >> pop_assum (fn th => (DEP_PURE_ONCE_REWRITE_TAC[GSYM th]))
-  >> conj_tac
-  >- (Cases_on ‘bs’ >> gvs[])
-  >> gvs[vd_encode_snoc]
-  >> DEP_PURE_ONCE_REWRITE_TAC[hamming_distance_append_right]
-  >> gvs[]
-  >> DEP_PURE_ONCE_REWRITE_TAC[LENGTH_FRONT]
-  >> gvs[]
-  >> conj_tac
-  >- (gvs[ADD1] >> decide_tac)
-  >> gvs[vd_encode_helper_def]
-  >> (* Now compare each part individually *)
-  >> unabbrev_all_tac
-  >> irule LESS_EQ_LESS_EQ_MONO
-  (* Do the inductive step based part first, to get that out of the way *)
-  >> REVERSE conj_tac
-  >- (last_x_assum $ qspecl_then [‘FRONT bs’, ‘TAKE (t * m.output_length) rs’, ‘s'’] assume_tac
-      >> gvs[]
-            >> gvs[LENGTH_FRONT]
-
-
-      >> gvs[]
-
-      >> gvs[vd_find_optimal_path_def]
-      >> gvs[vd_find_optimal_reversed_path_def]
-      >> gvs[viterbi_trellis_row ]*)
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  >> gvs[code_to_path_last]
+  (* Now we see a clear parallel between the things we are comparing. Lets
+     rename them to make this parallel clearer. *)
+  >> qmatch_goalsub_abbrev_tac ‘f (f' (f'' a)) ≤ f (f' (f'' b))’
+  >> ‘(f ∘ f' ∘ f'') a ≤ (f ∘ f' ∘ f'') b’ suffices_by gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘g a ≤ g b’
+  >> gvs[Abbr ‘f’, Abbr ‘f'’, Abbr ‘f''’, Abbr ‘a’, Abbr ‘b’]
+  (* *)
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+  >> cheat
 QED
 
 
@@ -2719,73 +2733,20 @@ Theorem viterbi_correctness:
       LENGTH rs = m.output_length * LENGTH bs ⇒
       hamming_distance rs (vd_encode m (vd_decode m rs)) ≤ hamming_distance rs (vd_encode m bs)
 Proof
-  gen_tac
-  (* Deal with the special case of the output length being 0 so that I don't
-     have to deal with that possibility later. *)
-  >> Cases_on ‘m.output_length = 0’
-  >- (rpt strip_tac >> gvs[vd_encode_output_length_0])
-  (* Induct on the input bitstring from back to front, because the encoding
-     is always the same when the front of the bitstring is kept the same, but
-     will differ if the back of the bitstring is changed.
-     .
-     The general idea is to work with one chunk of encoded data at a time.
-     So in the decoded string, that will be one bit at a time, and in the
-     encoded string, that will be the group of corresponding bits. *)
-  >> Induct_on ‘bs’ using SNOC_INDUCT
-  >- gvs[]
-  >> rpt strip_tac
+  rpt strip_tac
+  >> gvs[vd_decode_def]
+  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_path m rs s t’
+  >> irule viterbi_correctness_general
   >> gvs[]
-  (* Things I'll need:
-     - hamming_distance of SNOC-ed or APPEND-ed strings is equal to the
-       sum of the hamming distances.
-     - a SNOC inside an encode can be brought out of the encode and
-       turned into an append
-     - an append inside a decode can be brought out of the decode and
-       turned into a SNOC
-     =
-     Given these properties, it should be easy to see how to prove this.
-     =
-     - hamming_distance_append_right/hamming_distance_append_left
-     - vd_encode_snoc
-     =
-     - vd_encode_length is also useful.
-     - so is vd_encode_state_is_valid
-   *)
-  >> rpt strip_tac
-  >> qmatch_goalsub_abbrev_tac ‘vd_encode m bs'’
-  >> qspec_then ‘rs’ assume_tac SNOC_LAST_FRONT
-  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [GSYM th])
   >> conj_tac
-  >- (CCONTR_TAC >> gvs[])
-  (* *)
-  >> gvs[vd_encode_snoc]
-  >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
-  >> conj_tac
-  >- (gvs[vd_encode_length]
-      >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_helper_length]
-      >> gvs[]
-      >> gvs[vd_encode_state_is_valid]
-      >> gvs[ADD1])
-  (*>> Cases_on ‘rs’
-      >- (gvs[]
-      >> gvs[vd_encode_helper_def]
-      >> gvs[GSYM vd_step_output_def]
-      >> DEP_PURE_REWRITE_TAC[vd_step_output_output_length_0]
-      >> gvs[]
-      >> gvs[vd_encode_state_is_valid])*)
-  >> 
+  >- (unabbrev_all_tac
+      >> qmatch_goalsub_abbrev_tac ‘FOLDR (get_better_final_state rs') 0 ts’
+      >> qspecl_then [‘rs'’, ‘0’, ‘ts’] assume_tac get_better_final_state_foldr_mem
+      >> qmatch_goalsub_abbrev_tac ‘s < m.num_states’
+      >> Cases_on ‘s’ >> gvs[]
+      >- gvs[wfmachine_def]
+      >> 
 
-(*  ntac 2 gen_tac
-     >> Induct_on ‘LENGTH bs’
-     >- (rpt strip_tac >> gvs[])
-     >> rpt strip_tac
-     >> Cases_on ‘bs’ using SNOC >> gvs[]
-     >> Cases_on ‘rs’ >> gvs[]
-     >> *)
-  
+      qsuff_tac ‘’
 QED
-
-
-
-
 val _ = export_theory();
