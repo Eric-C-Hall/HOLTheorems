@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -565,8 +564,10 @@ Definition wfmachine_def:
     (∀s. s < m.num_states ⇒ (∃s' b. s' < m.num_states ∧ vd_step m b s' = s)) ∧
     (∀s. s < m.num_states ⇒ vd_step m T s ≠ vd_step m F s) ∧
     (* output_length:
-       - each transition must output a string of length output_length *)
-    (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
+       - each transition must output a string of length output_length
+       - output_length must be greater than 0*)
+    (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length) ∧
+    0 < m.output_length
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -627,6 +628,19 @@ Theorem wfmachine_transition_fn_output_length:
   ∀m.
     wfmachine m ⇒
     (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
+Proof
+  PURE_REWRITE_TAC[wfmachine_def]
+  >> rpt strip_tac
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Extract the property of a well-formed machine which says that the output   *)
+(* length must be greater than zero                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem wfmachine_output_length_greater_than_zero:
+  ∀m.
+    wfmachine m ⇒
+    0 < m.output_length
 Proof
   PURE_REWRITE_TAC[wfmachine_def]
   >> rpt strip_tac
@@ -836,6 +850,7 @@ Proof
       >> Cases_on ‘n’ >> gvs[]
       >> Cases_on ‘n'’ >> gvs[]
       >> Cases_on ‘n’ >> gvs[])
+  >- (gvs[example_state_machine_def])
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -2725,7 +2740,6 @@ Proof
   >> cheat
 QED
 
-
 Theorem viterbi_correctness:
   ∀m : state_machine.
     ∀bs rs : bool list.
@@ -2744,9 +2758,11 @@ Proof
       >> qspecl_then [‘rs'’, ‘0’, ‘ts’] assume_tac get_better_final_state_foldr_mem
       >> qmatch_goalsub_abbrev_tac ‘s < m.num_states’
       >> Cases_on ‘s’ >> gvs[]
-      >- gvs[wfmachine_def]
-      >> 
-
-      qsuff_tac ‘’
+      >> gvs[Abbr ‘ts’]
+      >> gvs[MEM_COUNT_LIST])
+  >> conj_tac
+  >- (unabbrev_all_tac
+      >> gvs[MULT_DIV]
+     )
 QED
 val _ = export_theory();
