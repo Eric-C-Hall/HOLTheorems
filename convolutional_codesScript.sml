@@ -2728,16 +2728,22 @@ Proof
   >> gvs[]
   >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
   >> gvs[code_to_path_last]
+  >> doexpand_tac
+  >> first_assum (fn th => PURE_REWRITE_TAC[th])
+  >> donotexpand_tac
   (* Now we see a clear parallel between the things we are comparing. Lets
      rename them to make this parallel clearer. *)
   >> qmatch_goalsub_abbrev_tac ‘f (f' (f'' a)) ≤ f (f' (f'' b))’
   >> ‘(f ∘ f' ∘ f'') a ≤ (f ∘ f' ∘ f'') b’ suffices_by gvs[]
   >> qmatch_goalsub_abbrev_tac ‘g a ≤ g b’
   >> gvs[Abbr ‘f’, Abbr ‘f'’, Abbr ‘f''’, Abbr ‘a’, Abbr ‘b’]
-  (* *)
-  >> gvs[vd_find_optimal_path_def]
-  >> gvs[vd_find_optimal_reversed_path_def]
-  >> 
+  (* s' is the choice of best origin to travel to the best ending state
+     Therefore, the total distance is less than or equal to any distance
+     consisting of a 
+   *)
+  >> gvs[get_better_origin_def]
+    
+    
 QED
 
 Theorem viterbi_correctness:
