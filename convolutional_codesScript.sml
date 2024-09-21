@@ -447,6 +447,9 @@ End
 
 Datatype:
   transition_origin = <|
+    (* possibly rename this, because t.origin sounds like you're finding the
+       origin of the origin, rather than finding the state that comprises the
+       origin. Maybe call it state, or something. *)
     origin : num;
     input : bool;
   |>
@@ -986,13 +989,36 @@ End
 (* in the trellis                                                             *)
 (* -------------------------------------------------------------------------- *)
 
+(* -------------------------------------------------------------------------- *)
+(* Returns the total number of errors that would be present if we took a path *)
+(* through the transition with origin r, given the number of errors in the    *)
+(* previous row and the part of the received message which corresponds to     *)
+(* this transition.                                                           *)
+(* -------------------------------------------------------------------------- *)
 Definition get_num_errors_def:
   get_num_errors m relevant_input previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output relevant_input)
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Returns which of the given two origins would be a better choice to pass    *)
+(* through if we want to minimize the number of errors in the final path      *)
+(* -------------------------------------------------------------------------- *)
 Definition get_better_origin_def:
   get_better_origin m relevant_input previous_row r1 r2 =
   if (get_num_errors m relevant_input previous_row r1) < (get_num_errors m relevant_input previous_row r2) then r1 else r2
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Works out which origin is the best origin to pass through in order to      *)
+(* arrive at s optimally, given the previous row of errors and the part of    *)
+(* the input which is relevant to this transition.                            *)
+(* -------------------------------------------------------------------------- *)
+Definition best_origin_def:
+  best_origin m relevant_input previous_row s =
+  let
+    possible_origins = transition_inverse m s;
+  in
+    FOLDR (get_better_origin m relevant_input previous_row) (HD possible_origins) (TL possible_origins)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1022,11 +1048,10 @@ Definition viterbi_trellis_node_def:
   viterbi_trellis_node m bs s t previous_row =
   let
     relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);
-    possible_origins = transition_inverse m s;
-    best_origin = FOLDR (get_better_origin m relevant_input previous_row) (HD possible_origins) (TL possible_origins);
+    best_origin_local = best_origin m relevant_input previous_row s;
   in
-    <| num_errors := get_num_errors m relevant_input previous_row best_origin;
-       prev_state := SOME best_origin.origin; |>
+    <| num_errors := get_num_errors m relevant_input previous_row best_origin_local;
+       prev_state := SOME best_origin_local.origin; |>
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1732,6 +1757,42 @@ Proof
   >> gvs[]
 QED
 
+
+Theorem best_origin_is_valid:
+  ∀m rs ps s.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (best_origin m rs ps s).origin < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[best_origin_def]
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR _ (HD ts)’
+  >> qmatch_goalsub_abbrev_tac ‘t.origin < _’
+  (* Use the proof that transition_inverse always returns a valid state
+     to simplify to merely needing to prove that t is a member of ts. *)
+  >> qsuff_tac ‘MEM t ts’
+  >- (strip_tac
+      >> qspecl_then [‘m’, ‘s’] assume_tac transition_inverse_valid
+      >> gvs[Abbr ‘ts’]
+      >> gvs[EVERY_MEM])
+  (* t can only be a member of ts if ts is nonempty, so prove that ts is nonempty, using the fact that transition_inverse is nonempty given a well formed machine and valid state.*)
+  >> sg ‘ts ≠ []’
+  >- (gvs[Abbr ‘ts’]
+      >> gvs[transition_inverse_nonempty])
+  (* No longer need the information provided by the exact form of ts. The fact that it is a nonempty bitstring is enough. *)
+  >> delete_nth_assumption 2
+  (* Use get_better_origin_foldr_mem to finish the proof. Since the function's
+     output is always one of the inputs, folding the function over a list
+     will always give you a member of that list. *)
+  >> unabbrev_all_tac
+      >> Cases_on ‘ts’
+      >- gvs[]
+      >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm]
+      >> simp[get_better_origin_foldr_mem]
+      >> PURE_REWRITE_TAC[MEM_DONOTEXPAND_thm, get_better_origin_foldr_mem]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that each previous state in the trellis is valid.                    *)
 (* -------------------------------------------------------------------------- *)
@@ -1753,31 +1814,7 @@ Proof
   >> Cases_on ‘t’ >> gvs[]
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
-  >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
-  >> qmatch_goalsub_abbrev_tac ‘FOLDR _ (HD ts)’
-  >> qmatch_goalsub_abbrev_tac ‘t.origin < _’
-  (* Use the proof that transition_inverse always returns a valid state
-     to simplify to merely needing to prove that t is a member of ts. *)
-  >> qsuff_tac ‘MEM t ts’
-  >- (strip_tac
-      >> qspecl_then [‘m’, ‘s’] assume_tac transition_inverse_valid
-      >> gvs[Abbr ‘ts’]
-      >> gvs[EVERY_MEM])
-  (* t can only be a member of ts if ts is nonempty, so prove that ts is nonempty, using the fact that transition_inverse is nonempty given a well formed machine and valid state.*)
-  >> sg ‘ts ≠ []’
-  >- (gvs[Abbr ‘ts’]
-      >> gvs[transition_inverse_nonempty])
-  (* No longer need the information provided by the exact form of ts. The fact that it is a nonempty bitstring is enough. *)
-  >> delete_nth_assumption 2
-  (* Use get_better_origin_foldr_mem to finish the proof. Since the function's
-     output is always one of the inputs, folding the function over a list
-     will always give you a member of that list. *)
-  >> unabbrev_all_tac
-  >> Cases_on ‘ts’
-  >- gvs[]
-  >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm]
-  >> simp[get_better_origin_foldr_mem]
-  >> PURE_REWRITE_TAC[MEM_DONOTEXPAND_thm, get_better_origin_foldr_mem]     
+  >> gvs[best_origin_is_valid]   
 QED
 
 Theorem vd_find_optimal_reversed_path_length[simp]:
@@ -2314,7 +2351,6 @@ Proof
   gvs[vd_encode_state_def, vd_encode_state_helper_snoc]
 QED
 
-
 Theorem code_to_path_helper_vd_can_step_cons:
   ∀m bs p p' ps s.
     code_to_path_helper m bs s = p::p'::ps ⇒
@@ -2638,6 +2674,30 @@ Proof
   >> gvs[path_is_valid_path_is_connected]
 QED
 
+(*Theorem get_better_origin_foldr_transition_inverse_is_valid:
+  ∀m bs prev_row s.
+  (FOLDR (get_better_origin m bs prev_row) (HD (transition_inverse m s)) (TL (transition_inverse m s))).origin < m.num_states
+Proof
+  rpt strip_tac
+  >> 
+QED*)
+
+
+Theorem code_to_path_helper_length:
+  ∀m bs s.
+  LENGTH (code_to_path_helper m bs s) = LENGTH bs + 1
+Proof
+  Induct_on ‘bs’ >> rpt strip_tac >> gvs[code_to_path_helper_def]
+QED
+
+Theorem code_to_path_length:
+  ∀m bs.
+  LENGTH (code_to_path m bs) = LENGTH bs + 1
+Proof
+  rpt strip_tac
+  >> gvs[code_to_path_def, code_to_path_helper_length] 
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -2710,6 +2770,106 @@ Proof
   >> gvs[vd_step_back_def]
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
+  >> gvs[GSYM vd_find_optimal_path_def]
+  (* For any choice of bs, the encoding of m bs will be some path which
+     eventually reaches s. Thus, we can decompose it into ... s'' s.
+     The choice of s' was such that it minimizes the number of errors to
+     get to the previous state plus the number of errors in the transition
+     between s' and s. This is equal to the hamming distance from the
+     relevant parts of rs to ... s'' plus the hamming distance from the
+     relevant parts of rs to s'' s.*)
+  >> qspecl_then [‘m’, ‘bs’] assume_tac path_to_code_code_to_path
+  >> gvs[]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  >> qspecl_then [‘code_to_path m bs’] assume_tac SNOC_LAST_FRONT
+  >> Cases_on ‘code_to_path m bs = []’
+  >- gvs[]
+  >> gvs[]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  >> gvs[code_to_path_last]
+  >> doexpand_tac
+  >> first_assum (fn th => PURE_REWRITE_TAC[th])
+  >> donotexpand_tac
+  (* Split the appended paths apart, so that we can deal with the inductive
+     path and the current transition separately. *)
+  >> DEP_PURE_REWRITE_TAC[path_to_code_append]
+  >> gvs[]
+  >> conj_tac
+  >- (Cases_on ‘bs’ >> gvs[code_to_path_def, code_to_path_helper_def])       
+  >> gvs[vd_encode_append]
+  >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
+  >> gvs[vd_encode_length]
+  >> conj_tac
+  >- (DEP_PURE_ONCE_REWRITE_TAC[vd_find_optimal_path_length]
+      >> gvs[]
+      >> conj_tac
+      >- (gvs[Abbr ‘s'’]
+          >> gvs[best_origin_is_valid]
+         )
+      >> gvs[FRONT_LENGTH]
+      >> gvs[code_to_path_length]
+      >> gvs[ADD1])
+  >> DEP_PURE_ONCE_REWRITE_TAC[vd_find_optimal_path_length]
+  >> gvs[]
+  >> conj_tac
+  >- gvs[Abbr ‘s'’, best_origin_is_valid]
+  >> gvs[FRONT_LENGTH]
+  >> gvs[code_to_path_length]
+  >> gvs[ADD1]
+  >> gvs[PRE_SUB1]
+  >> qmatch_goalsub_abbrev_tac ‘DROP n’
+  >> qmatch_goalsub_abbrev_tac ‘d1 + d2 ≤ d3 + d4’
+  (* The optimal path to s' is certainly better than any other path to s', but
+     is it better than any other path to another state in the same timestep?
+     Not necessarily, because it's only chosen such that the addition with the
+     current transition is optimal.
+
+     Should probably aim to get the goal in the same form that best_origin
+     or get_num_errors uses.
+   *)
+  >> 
+  get_num_errors_def get_better_origin_def best_origin_def transition_inverse_def
+  >> 
+
+
+
+(*(* Assumptions:
+   - The distance to s' amongst all paths leading to s' is optimal.
+   - The choice of s' is such that amongst all choices of s', this will
+     minimize the total obtained by adding together the number of errors
+     obtained in the optimal path to this choice of s' to the number of errors
+     obtained by applying the transition from this state to the final state.
+    (see get_better_origin_def, get_num_errors_def)
+.
+    Desired Conclusion:
+    The hamming distance to s via the optimal path to s' is less than or equal to the hamming distance to s via any other path.
+ *)*)
+
+                               (* ---- *)
+                               
+                               
+(*(* Complete base case and simplify *)
+  gen_tac
+  >> Induct_on ‘t’
+  >- gvs[]
+  >> rpt strip_tac
+  >> donotexpand_tac
+  >> gvs[]
+  (* Expand out relevant definitions. *)
+  (* These are some of the relevant definitions
+     - vd_find_optimal_path_def
+     - vd_find_optimal_reversed_path_def
+     - vd_step_back_def
+     - viterbi_trellis_row_def
+     - viterbi_trellis_node_def
+     - get_better_origin_def
+     - get_num_errors_def *)
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path _ _ s' _’
+  >> gvs[vd_step_back_def]
+  >> gvs[viterbi_trellis_row_def]
+  >> gvs[viterbi_trellis_node_def]
   >> qmatch_asmsub_abbrev_tac ‘get_better_origin _ bs' prev_row’
   >> gvs[GSYM vd_find_optimal_path_def]
   (* For any choice of bs, the encoding of m bs will be some path which
@@ -2739,19 +2899,26 @@ Proof
   >> gvs[Abbr ‘f’, Abbr ‘f'’, Abbr ‘f''’, Abbr ‘a’, Abbr ‘b’]
   (* s' is the choice of best origin to travel to the best ending state
      Therefore, the total distance is less than or equal to any distance
-     consisting of a 
-   *)
-  >> gvs[get_better_origin_def]
-    
-    
+     consisting of a
+
+     Specifically, it is the choice which minimizes (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn s).output relevant_input)
+
+  In particular, g applied to the last part of each path corresponds to the hamming
+  distance of the result of the transition function compared to the relevant input, and 
+
+ *)
+  >> gvs[Abbr ‘g’]
+  >> gvs[get_better_origin_def] get_num_errors_def*)
+                                   
+                                   
 QED
 
 Theorem viterbi_correctness:
   ∀m : state_machine.
-    ∀bs rs : bool list.
-      wfmachine m ∧
-      LENGTH rs = m.output_length * LENGTH bs ⇒
-      hamming_distance rs (vd_encode m (vd_decode m rs)) ≤ hamming_distance rs (vd_encode m bs)
+       ∀bs rs : bool list.
+       wfmachine m ∧
+       LENGTH rs = m.output_length * LENGTH bs ⇒
+       hamming_distance rs (vd_encode m (vd_decode m rs)) ≤ hamming_distance rs (vd_encode m bs)
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
