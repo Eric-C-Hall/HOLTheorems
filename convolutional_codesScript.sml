@@ -995,8 +995,8 @@ End
 (* previous row and the part of the received message which corresponds to     *)
 (* this transition.                                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition get_num_errors_def:
-  get_num_errors m relevant_input previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output relevant_input)
+Definition get_num_errors_step_def:
+  get_num_errors_step m relevant_input previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output relevant_input)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1005,7 +1005,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition get_better_origin_def:
   get_better_origin m relevant_input previous_row r1 r2 =
-  if (get_num_errors m relevant_input previous_row r1) < (get_num_errors m relevant_input previous_row r2) then r1 else r2
+  if (get_num_errors_step m relevant_input previous_row r1) < (get_num_errors_step m relevant_input previous_row r2) then r1 else r2
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1036,7 +1036,7 @@ End
 (* relevant_input denotes the input to the Viterbi algorithm which corresponds*)
 (* to the current step in the trellis                                         *)
 (*                                                                            *)
-(* get_num_errors is a helper sub-function which takes a point in the         *)
+(* get_num_errors_step is a helper sub-function which takes a point in the         *)
 (*                                                                            *)
 (* origin_leads_to_s is a helper sub-function which returns whether or not a  *)
 (* (state, input) pair will lead us to the state s in our state machine m.    *)
@@ -1050,7 +1050,7 @@ Definition viterbi_trellis_node_def:
     relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);
     best_origin_local = best_origin m relevant_input previous_row s;
   in
-    <| num_errors := get_num_errors m relevant_input previous_row best_origin_local;
+    <| num_errors := get_num_errors_step m relevant_input previous_row best_origin_local;
        prev_state := SOME best_origin_local.origin; |>
 End
 
@@ -1369,8 +1369,6 @@ Proof
   >> PURE_ONCE_REWRITE_TAC[vd_encode_helper_cons]
   >> gvs[]
 QED
-
-
 
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_encode_append                           *)
@@ -1692,15 +1690,15 @@ fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum
 
 (*Theorem get_better_origin_foldr:
   ∀m is ps h t f.
-    FOLDR (get_better_origin m is ps) h t = f ⇔ MEM f (h::t) ∧ ∀f'. MEM f' (h::t) ⇒ get_num_errors m is ps 
+    FOLDR (get_better_origin m is ps) h t = f ⇔ MEM f (h::t) ∧ ∀f'. MEM f' (h::t) ⇒ get_num_errors_step m is ps 
 
 
-transition_origin (MIN_SET ARB)  (*(IMAGE (get_num_errors m is ps) (set (h::t)))*)
+transition_origin (MIN_SET ARB)  (*(IMAGE (get_num_errors_step m is ps) (set (h::t)))*)
 Proof
 QED*)
 
 (*Theorem get_better_origin_foldr:
-                                get_num_errors m is ps (FOLDR (get_better_origin m is ps)) h ts ≤ get_num_errors m is ps h
+                                get_num_errors_step m is ps (FOLDR (get_better_origin m is ps)) h ts ≤ get_num_errors_step m is ps h
 Proof
 QED*)
 
@@ -2699,6 +2697,19 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* The number of errors present if we encoded the input bs with the state     *)(* machine m and compared it to the expected output rs.                       *)
+(* -------------------------------------------------------------------------- *)
+Definition get_num_errors:
+  get_num_errors m rs bs = hamming_distance rs (vd_encode m bs)
+End
+
+(*Theorem get_num_errors_step_foo:
+  ∀m rs ps bol.
+  get_num_errors_step m rs ps bol = hamming_distance vd_find_optimal_path rs 
+Proof
+QED*)
+
+(* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
 (* Prove that the result of using Viterbi decoding is the choice of original  *)
@@ -2733,7 +2744,6 @@ QED
 (*  there, but that's the idea                                                *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-
 (* -------------------------------------------------------------------------- *)
 (* Proof of the more general statement of optimality of the viterbi algorithm *)
 (* when arriving at any point.                                                *)
@@ -2746,7 +2756,7 @@ Theorem viterbi_correctness_general:
     LENGTH bs = t ∧
     LENGTH rs = m.output_length * t ∧
     vd_encode_state m bs = s ⇒
-    hamming_distance rs (vd_encode m (path_to_code m (vd_find_optimal_path m rs s t))) ≤ hamming_distance rs (vd_encode m bs)
+    get_num_errors m rs (path_to_code m (vd_find_optimal_path m rs s t)) ≤ get_num_errors m rs bs
 Proof
   (* Complete base case and simplify *)
   gen_tac
@@ -2763,7 +2773,7 @@ Proof
      - viterbi_trellis_row_def
      - viterbi_trellis_node_def
      - get_better_origin_def
-     - get_num_errors_def *)
+     - get_num_errors_step_def *)
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
   >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path _ _ s' _’
@@ -2823,12 +2833,12 @@ Proof
      is it better than any other path to another state in the same timestep?
      Not necessarily, because it's only chosen such that the addition with the
      current transition is optimal.
-
+.
      Should probably aim to get the goal in the same form that best_origin
-     or get_num_errors uses.
+     or get_num_errors_step uses.
    *)
   >> 
-  get_num_errors_def get_better_origin_def best_origin_def transition_inverse_def
+  get_num_errors_step_def get_better_origin_def best_origin_def transition_inverse_def
   >> 
 
 
@@ -2839,7 +2849,7 @@ Proof
      minimize the total obtained by adding together the number of errors
      obtained in the optimal path to this choice of s' to the number of errors
      obtained by applying the transition from this state to the final state.
-    (see get_better_origin_def, get_num_errors_def)
+    (see get_better_origin_def, get_num_errors_step_def)
 .
     Desired Conclusion:
     The hamming distance to s via the optimal path to s' is less than or equal to the hamming distance to s via any other path.
@@ -2863,7 +2873,7 @@ Proof
      - viterbi_trellis_row_def
      - viterbi_trellis_node_def
      - get_better_origin_def
-     - get_num_errors_def *)
+     - get_num_errors_step_def *)
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
   >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path _ _ s' _’
@@ -2908,7 +2918,7 @@ Proof
 
  *)
   >> gvs[Abbr ‘g’]
-  >> gvs[get_better_origin_def] get_num_errors_def*)
+  >> gvs[get_better_origin_def] get_num_errors_step_def*)
                                    
                                    
 QED
@@ -2918,7 +2928,7 @@ Theorem viterbi_correctness:
        ∀bs rs : bool list.
        wfmachine m ∧
        LENGTH rs = m.output_length * LENGTH bs ⇒
-       hamming_distance rs (vd_encode m (vd_decode m rs)) ≤ hamming_distance rs (vd_encode m bs)
+       get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
