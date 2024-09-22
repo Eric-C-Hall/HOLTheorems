@@ -895,7 +895,7 @@ End
 
 Theorem all_transitions_set_list_equiv:
   ∀m t.
-    MEM t (all_transitions m) ⇔ t ∈ all_transitions_set m
+  MEM t (all_transitions m) ⇔ t ∈ all_transitions_set m
 Proof
   rpt strip_tac
   >> gvs[all_transitions_def, all_transitions_set_def]
@@ -1283,6 +1283,13 @@ Definition get_better_final_state_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* vd_find_optimal_path, but converted to code form                           *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_find_optimal_code_def:
+  vd_find_optimal_code m bs s t = path_to_code m (vd_find_optimal_path m bs s t)
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Input: bitstring and state machine                                         *)
 (* Output: Most likely original bitstring                                     *)
 (* -------------------------------------------------------------------------- *)
@@ -1297,7 +1304,7 @@ Definition vd_decode_def:
     last_row = viterbi_trellis_row m bs max_timestep;
     best_state = FOLDR (get_better_final_state last_row) 0 (COUNT_LIST m.num_states)
   in
-    path_to_code m (vd_find_optimal_path m bs best_state max_timestep)
+    vd_find_optimal_code m bs best_state max_timestep
 End
 
 (*Theorem vd_decode_test:
@@ -1320,7 +1327,7 @@ Proof
   >> EVAL_TAC
 QED
 
-Theorem vd_find_optimal_path_empty[simp]:
+Theorem vd_find_optimal_path_time_zero[simp]:
   ∀m bs s t. vd_find_optimal_path m bs s 0 = [s]
 Proof
   rpt strip_tac
@@ -1334,11 +1341,19 @@ Proof
   >> EVAL_TAC
 QED
 
+Theorem vd_find_optimal_code_time_zero[simp]:
+  ∀m bs s.
+  vd_find_optimal_code m bs s 0 = []
+Proof
+  rpt strip_tac
+  >> gvs[vd_find_optimal_code_def]
+QED
+
 Theorem vd_decode_empty[simp]:
   ∀m. vd_decode m [] = []
 Proof
   rpt strip_tac
-  >> gvs[vd_decode_def]
+  >> gvs[vd_decode_def, vd_find_optimal_code_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1346,8 +1361,8 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_helper_cons:
   ∀m b bs s.
-    vd_encode_helper m (b :: bs) s =
-    (vd_step_output m b s) ⧺ (vd_encode_helper m bs (vd_step  m b s))
+  vd_encode_helper m (b :: bs) s =
+  (vd_step_output m b s) ⧺ (vd_encode_helper m bs (vd_step  m b s))
 Proof
   rpt strip_tac
   >> gvs[vd_encode_helper_def]
@@ -1868,6 +1883,40 @@ Proof
   >> gvs[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* This is already contained in the definition of                             *)
+(* vd_find_optimal_reversed_path, but it is good to automatically use it      *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_reversed_path_time_zero[simp]:
+  ∀m bs s.
+  vd_find_optimal_reversed_path m bs s 0 = [s]
+Proof
+  rpt strip_tac >> EVAL_TAC
+QED
+
+Theorem vd_find_optimal_reversed_path_length[simp]:
+  ∀m bs s t.
+  LENGTH (vd_find_optimal_reversed_path m bs s t) = t + 1
+Proof
+  Induct_on ‘t’ >> rpt strip_tac >> gvs[]
+  >> gvs[vd_find_optimal_reversed_path_def]
+QED
+
+Theorem vd_find_optimal_path_length[simp]:
+  ∀m bs s t.
+  LENGTH (vd_find_optimal_path m bs s t) = t + 1
+Proof
+  gvs[vd_find_optimal_path_def, vd_find_optimal_reversed_path_length]
+QED
+
+Theorem vd_find_optimal_code_length[simp]:
+  ∀m bs s t.
+  LENGTH (vd_find_optimal_code m bs s t) = t
+Proof
+  rpt strip_tac
+  >> gvs[vd_find_optimal_code_def]
+QED
+
 Theorem vd_decode_length[simp]:
   ∀m bs.
     wfmachine m ∧
@@ -1887,21 +1936,6 @@ Proof
   >- gvs[] (* Deal with invalid case with output length of 0 *)
   (* expand definition *)
   >> gvs[vd_decode_def]
-  >> gvs[vd_find_optimal_path_def]
-  >> qmatch_goalsub_abbrev_tac ‘FOLDR s _ _’
-  (* Simplify based on the length of a reversed path, using whatever
-     assumptions are necessary. This should be sufficient to prove
-     the result, we now just need to prove that the assumptions were
-     justified. *)
-  >> DEP_PURE_ONCE_REWRITE_TAC [vd_find_optimal_reversed_path_length]
-  >> gvs[]
-  >> unabbrev_all_tac
-  >> qmatch_goalsub_abbrev_tac ‘get_better_final_state rs’
-  >> qmatch_goalsub_abbrev_tac ‘FOLDR _ _ ts’
-  >> qspecl_then [‘rs’, ‘0’, ‘ts’] assume_tac get_better_final_state_foldr_mem
-  >> gvs[]
-  >> gvs[Abbr ‘ts’]
-  >> gvs[MEM_COUNT_LIST]
 QED
 
 Theorem vd_find_optimal_path_suc:
@@ -2703,11 +2737,16 @@ Definition get_num_errors:
   get_num_errors m rs bs = hamming_distance rs (vd_encode m bs)
 End
 
-(*Theorem get_num_errors_step_foo:
+(* -------------------------------------------------------------------------- *)
+(* Describe the relationship between the function for calculating the number  *)
+(* of errors computationally during a single step of the Viterbi algorithm,   *)
+(* and the function for calculating the total number of errors                *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_num_errors_step_get_num_errors:
   ∀m rs ps bol.
-  get_num_errors_step m rs ps bol = hamming_distance vd_find_optimal_path rs 
+  get_num_errors_step m rs ps bol = get_num_errors m rs
 Proof
-QED*)
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -2756,7 +2795,7 @@ Theorem viterbi_correctness_general:
     LENGTH bs = t ∧
     LENGTH rs = m.output_length * t ∧
     vd_encode_state m bs = s ⇒
-    get_num_errors m rs (path_to_code m (vd_find_optimal_path m rs s t)) ≤ get_num_errors m rs bs
+    get_num_errors m rs (vd_find_optimal_code m rs s t) ≤ get_num_errors m rs bs
 Proof
   (* Complete base case and simplify *)
   gen_tac
