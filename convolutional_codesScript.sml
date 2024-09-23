@@ -985,9 +985,9 @@ End
 (* Returns the portion of the input bitstring which is relevant to the        *)
 (* current time-step                                                          *)
 (* -------------------------------------------------------------------------- *)
-(*Definition relevant_input_def:
+Definition relevant_input_def:
   relevant_input m bs t = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs)
-                               End*)
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Returns the total number of errors that would be present if we took a path *)
@@ -996,7 +996,7 @@ End
 (* this transition.                                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_step_def:
-  get_num_errors_step m relevant_input previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output relevant_input)
+  get_num_errors_step m bs t previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1004,8 +1004,8 @@ End
 (* through if we want to minimize the number of errors in the final path      *)
 (* -------------------------------------------------------------------------- *)
 Definition get_better_origin_def:
-  get_better_origin m relevant_input previous_row r1 r2 =
-  if (get_num_errors_step m relevant_input previous_row r1) < (get_num_errors_step m relevant_input previous_row r2) then r1 else r2
+  get_better_origin m bs t previous_row r1 r2 =
+  if (get_num_errors_step m bs t previous_row r1) < (get_num_errors_step m bs t previous_row r2) then r1 else r2
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1014,11 +1014,11 @@ End
 (* the input which is relevant to this transition.                            *)
 (* -------------------------------------------------------------------------- *)
 Definition best_origin_def:
-  best_origin m relevant_input previous_row s =
+  best_origin m bs t previous_row s =
   let
     possible_origins = transition_inverse m s;
   in
-    FOLDR (get_better_origin m relevant_input previous_row) (HD possible_origins) (TL possible_origins)
+    FOLDR (get_better_origin m bs t previous_row) (HD possible_origins) (TL possible_origins)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1047,10 +1047,9 @@ End
 Definition viterbi_trellis_node_def:
   viterbi_trellis_node m bs s t previous_row =
   let
-    relevant_input = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs);
-    best_origin_local = best_origin m relevant_input previous_row s;
+    best_origin_local = best_origin m bs t previous_row s;
   in
-    <| num_errors := get_num_errors_step m relevant_input previous_row best_origin_local;
+    <| num_errors := get_num_errors_step m bs t previous_row best_origin_local;
        prev_state := SOME best_origin_local.origin; |>
 End
 
@@ -1059,8 +1058,21 @@ End
 End*) 
 
 (* -------------------------------------------------------------------------- *)
+(* Returns a row of the trellis, used by the Viterbi algorithm to decode a    *)
+(* convolutional code. The previous row is completely evaluated before        *)
+(* starting the evaluation of this row, and so we store the                   *)
+(* -------------------------------------------------------------------------- *)
 (* Evaluate the trellis row-by-row, to take advantage of the dynamic          *)
 (* programming nature of the algorithm and ensure it evaluates efficiently.   *)
+(*                                                                            *)
+(* m: the state machine                                                       *)
+(* bs: the entire bitstring we want to decode                                 *)
+(* t: the timestep to calculate the row for,
+ *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_row_def:
   viterbi_trellis_row (m : state_machine) bs 0
@@ -1166,9 +1178,15 @@ Proof
 QED*)
 
 (* -------------------------------------------------------------------------- *)
-(* 200: 3.700                                                                 *)
+(* Prior to making the relevant input calculated at the point at which it is  *)
+(* actually needed, resulting in the relevant input being calculated multiple *)
+(* times:                                                                     *)
+(*                                                                            *)
+(* 200: 3.700                                                                 *)(*                                                                            *)
+(* After the aforementioned relevant input change:                            *)
+(*                                                                            *)(* 200: 9.070                                                                 *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem viterbi_trellis_row_efficiency_test:
+(* Theorem viterbi_trellis_row_efficiency_test:
   let
     n = 200;
     n' = n * example_state_machine.output_length
@@ -1803,7 +1821,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem get_better_origin_foldr_mem:
   ∀m is ps h ts.
-    MEM (FOLDR (get_better_origin m is ps) h ts) (h::ts)
+  MEM (FOLDR (get_better_origin m bs t ps) h ts) (h::ts)
 Proof
   rpt strip_tac
   >> irule FOLDR_BIIDENTITY
