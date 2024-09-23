@@ -987,7 +987,7 @@ End
 (* -------------------------------------------------------------------------- *)
 (*Definition relevant_input_def:
   relevant_input m bs t = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs)
-End*)
+                               End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Returns the total number of errors that would be present if we took a path *)
@@ -1165,7 +1165,18 @@ Proof
   EVAL_TAC
 QED*)
 
-
+(* -------------------------------------------------------------------------- *)
+(* 200: 3.700                                                                 *)
+(* -------------------------------------------------------------------------- *)
+(*Theorem viterbi_trellis_row_efficiency_test:
+  let
+    n = 200;
+    n' = n * example_state_machine.output_length
+  in
+    viterbi_trellis_row example_state_machine (REPLICATE n' T) n = ARB
+Proof
+  EVAL_TAC
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Performs one step back through the trellis.                                *)
