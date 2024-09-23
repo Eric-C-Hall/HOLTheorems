@@ -960,7 +960,7 @@ Definition transition_inverse_set_def:
 End
 
 (*Theorem transition_inverse_test:
-  transition_inverse example_state_machine 2 = qkdmv  
+  transition_inverse example_state_machine 2 = ARB
 Proof
   EVAL_TAC
 End*)
@@ -1839,7 +1839,7 @@ QED
 (* since at each stage, the output is equal to one of the inputs.             *)
 (* -------------------------------------------------------------------------- *)
 Theorem get_better_origin_foldr_mem:
-  ∀m is ps h ts.
+  ∀m bs t ps h ts.
   MEM (FOLDR (get_better_origin m bs t ps) h ts) (h::ts)
 Proof
   rpt strip_tac
@@ -1851,21 +1851,20 @@ Proof
   >> gvs[]
 QED
 
-
 Theorem best_origin_is_valid:
-  ∀m rs ps s.
+  ∀m bs t ps s.
   wfmachine m ∧
   s < m.num_states ⇒
-  (best_origin m rs ps s).origin < m.num_states
+  (best_origin m bs t ps s).origin < m.num_states
 Proof
   rpt strip_tac
   >> gvs[best_origin_def]
   >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
   >> qmatch_goalsub_abbrev_tac ‘FOLDR _ (HD ts)’
-  >> qmatch_goalsub_abbrev_tac ‘t.origin < _’
+  >> qmatch_goalsub_abbrev_tac ‘tran.origin < _’
   (* Use the proof that transition_inverse always returns a valid state
      to simplify to merely needing to prove that t is a member of ts. *)
-  >> qsuff_tac ‘MEM t ts’
+  >> qsuff_tac ‘MEM tran ts’
   >- (strip_tac
       >> qspecl_then [‘m’, ‘s’] assume_tac transition_inverse_valid
       >> gvs[Abbr ‘ts’]
