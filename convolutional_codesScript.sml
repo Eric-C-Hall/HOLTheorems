@@ -982,12 +982,12 @@ Datatype:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Viterbi trellis data                                                       *)
-(*                                                                            *)
-(* Function from time steps and states to number of errors on optimal path to *)
-(* this point in the trellis and previous state on optimal path to this point *)
-(* in the trellis                                                             *)
+(* Returns the portion of the input bitstring which is relevant to the        *)
+(* current time-step                                                          *)
 (* -------------------------------------------------------------------------- *)
+(*Definition relevant_input_def:
+  relevant_input m bs t = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs)
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Returns the total number of errors that would be present if we took a path *)
@@ -1054,6 +1054,10 @@ Definition viterbi_trellis_node_def:
        prev_state := SOME best_origin_local.origin; |>
 End
 
+(*Definition viterbi_trellis_node_slow:
+  viterbi_trellis_node_slow m bs s t =
+End*) 
+
 (* -------------------------------------------------------------------------- *)
 (* Evaluate the trellis row-by-row, to take advantage of the dynamic          *)
 (* programming nature of the algorithm and ensure it evaluates efficiently.   *)
@@ -1086,15 +1090,16 @@ Definition example_recursive_grid_row_def:
   let
     prior_grid_row = example_recursive_grid_row n
   in
-    MAP (λn. (if 0 < n then EL (n - 1) prior_grid_row else 0) + EL n prior_grid_row + (if n < 9 then EL (n + 1) prior_grid_row else 0)) (COUNT_LIST 10)
+    MAP (λm. (if 0 < m then EL (m - 1) prior_grid_row else 0) + EL m prior_grid_row + (if m < 9 then EL (m + 1) prior_grid_row else 0)) (COUNT_LIST 10)
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Testing whether or not example_grid takes an exponential amount of time    *)
-(* to compute. It could theoretically take an exponential amount of time if   *)
-(* the previous row was substituted in multiple places, and expanded out      *)
-(* fully multiple times. Each subsequent row would double the amount of time  *)
-(* taken because it has to do the computation from the previous row twice.    *)
+(* Testing whether or not example_recursive_grid_row takes an exponential     *)
+(* amount of time to compute. It could theoretically take an exponential      *)
+(* amount of time if the previous row was substituted in multiple places, and *)
+(* expanded out fully multiple times. Each subsequent row would double the    *)
+(* amount of time taken because it has to do the computation from the         *)
+(* previous row twice.                                                        *)
 (*                                                                            *)
 (* 100: 0.681                                                                 *)
 (* 200: 2.311                                                                 *)
@@ -1105,8 +1110,36 @@ End
 (* 700: 26.521                                                                *)
 (* 800: 34.426                                                                *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem example_grid_time_test:
-  example_grid 800 = ARB
+(*Theorem example_recursive_grid_row_time_test:
+  example_recursive_grid_row 100 = ARB
+Proof
+  EVAL_TAC
+QED*)
+
+(* -------------------------------------------------------------------------- *)
+(* A similar test as above, with a slightly different definition.             *)
+(* -------------------------------------------------------------------------- *)
+Definition example_recursive_grid_row2_def:
+  example_recursive_grid_row2 0 = REPLICATE 10 1 ∧
+  example_recursive_grid_row2 (SUC n) =
+  MAP (λm. (if 0 < m then EL (m - 1) (example_recursive_grid_row2 n) else 0) + EL m (example_recursive_grid_row2 n) + (if m < 9 then EL (m + 1) (example_recursive_grid_row2 n) else 0)) (COUNT_LIST 10)
+End
+
+Theorem example_recursive_grid_row_example_recursive_grid_row2:
+  ∀n. example_recursive_grid_row n = example_recursive_grid_row2 n
+Proof
+  Induct_on ‘n’ >> gvs[example_recursive_grid_row_def, example_recursive_grid_row2_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This implementation is much slower, as expected.                           *)
+(*                                                                            *)
+(* 2: 0.201                                                                   *)
+(* 3: 5.443                                                                   *)
+(* 4: 145.7                                                                   *)
+(* -------------------------------------------------------------------------- *)
+(*Theorem example_recursive_grid_row_time_test:
+  example_recursive_grid_row2 4 = ARB
 Proof
   EVAL_TAC
 QED*)
@@ -2733,7 +2766,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* The number of errors present if we encoded the input bs with the state     *)(* machine m and compared it to the expected output rs.                       *)
 (* -------------------------------------------------------------------------- *)
-Definition get_num_errors:
+Definition get_num_errors_def:
   get_num_errors m rs bs = hamming_distance rs (vd_encode m bs)
 End
 
@@ -2743,8 +2776,8 @@ End
 (* and the function for calculating the total number of errors                *)
 (* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_step_get_num_errors:
-  ∀m rs ps bol.
-  get_num_errors_step m rs ps bol = get_num_errors m rs
+  ∀m rs s r.
+  get_num_errors_step m () (viterbi_trellis_row m bs t) r = N (get_num_errors m rs (vd_find_optimal_code m s.origin )) + 
 Proof
 QED
 
@@ -3005,3 +3038,4 @@ Proof
         
 QED
 val _ = export_theory();
+

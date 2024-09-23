@@ -4,9 +4,9 @@ open HolKernel Parse boolLib bossLib;
 
 open donotexpandLib;
 
-val _ = new_theory "thingsToDiscuss";
+val _ = new_theory "relevant";
 
-(* relevant commits start on 15 Sep *)
+(* thingsToDiscuss commits start on 15 Sep *)
 
 (* How to use SPECL with generic types? *)
 
@@ -20,7 +20,9 @@ Theorem snoc_automatically_simplifying:
     SNOC l ls = ARB
 Proof
   gvs[Excl "SNOC_APPEND"]
+  >> 
 QED
 
+(* It's probably a good idea to avoid state. *)
 
 val _ = export_theory();
