@@ -1004,6 +1004,13 @@ End
 (* through the transition with origin r, given the number of errors in the    *)
 (* previous row and the part of the received message which corresponds to     *)
 (* this transition.                                                           *)
+(*                                                                            *)
+(* m: the state machine                                                       *)
+(* bs: the entire input bitstring                                             *)
+(* t: the time-step that we will arrive at after taking the transition r. The *)
+(*    origins are at the prior time-step to t.                                *)
+(* r: the choice of origin that we are returning the number of errors for if  *)
+(*    we were to pass through this transition.                                *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_step_def:
   get_num_errors_step m bs t previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
@@ -1075,10 +1082,6 @@ Definition viterbi_trellis_node_def:
        prev_state := SOME best_origin_local.origin; |>
 End
 
-(*Definition viterbi_trellis_node_slow:
-  viterbi_trellis_node_slow m bs s t =
-End*) 
-
 (* -------------------------------------------------------------------------- *)
 (* Returns a row of the trellis, used by the Viterbi algorithm to decode a    *)
 (* convolutional code. The previous row is completely evaluated before        *)
@@ -1103,6 +1106,82 @@ Definition viterbi_trellis_row_def:
     in
       GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_row) m.num_states
 End
+
+(* -------------------------------------------------------------------------- *)
+(* A slower but mathematically simpler implementation of the function for     *)
+(* working out the best origin in the viterbi trellis.                        *)
+(*                                                                            *)
+(* Combined definition of several functions because these functions are       *)
+(* recursively dependent on each other.                                       *)
+(* -------------------------------------------------------------------------- *)
+Definition viterbi_trellis_slow:
+  (get_num_errors_step_slow m bs t r =
+   if (t ≤ 1) then
+     (if (r.origin = 0) then N0 else INFINITY)
+   else (
+     (get_num_errors_step_slow m bs (t - 1) (best_origin_slow m bs (t - 1) r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
+     )) ∧ 
+  (get_better_origin_slow m bs t r1 r2 =
+   if (get_num_errors_step_slow m bs t r1) < (get_num_errors_step_slow m bs t r2) then r1 else r2) ∧
+  (best_origin_slow m bs t s =
+   let
+     possible_origins = transition_inverse m s;
+   in
+     FOLDR (get_better_origin_slow m bs t) (HD possible_origins) (TL possible_origins))
+Termination
+  (* Use a standard measure-based method for proving termination. (see the
+     HOL System Description on proving termination). We have a circular
+     recursion of 3 functions, where on every loop, t decreases by 1.
+.
+     best_origin_slow (SUC t) -> get_better_origin_slow (SUC t) ->
+     get_num_errors_step_slow (SUC t) -> best_origin_slow t ->
+     get_better_origin_slow t -> ...
+.
+     Thus, in order to ensure that our measure decreases on every function
+     call, we should multiply t by 3, and add a number between 0 and 2 such
+     that functions earlier in this sequence have a larger measure. *)
+  (*
+    Since there are 3 mutually recursive functions being defined here,
+    we are using the disjoint sum type
+  *)
+  WF_REL_TAC ‘measure (λx.
+                         (* test if we're currently in the first function
+                            call, and thus being provided with the arguments
+                            to the first fucntion *)
+                         if ISL x 
+                         then
+                           (* get the argument t given the arguments to the
+                              first function *)
+                           3 * (FST $ SND $ SND $ OUTL x)
+                         else
+                           let x' = OUTR x in
+                             if ISL x'
+                             then
+                               3 * (FST $ SND $ SND $ OUTL x') + 1
+                             else
+                               3 * (FST $ SND $ SND $ OUTR x') + 2
+                      )’
+   >> gvs[]
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Creating theorems in order to adhere to standard naming conventions for    *)
+(* function definitions, as this was not possible because multiple functions  *)
+(* were defined in the same definition                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_num_errors_step_slow_def = cj 1 viterbi_trellis_slow
+Theorem get_better_origin_slow_def = cj 2 viterbi_trellis_slow
+Theorem best_origin_slow_def = cj 3 viterbi_trellis_slow
+
+Definition viterbi_trellis_node_slow_def:
+  viterbi_trellis_node_slow m bs s t =
+  let
+    best_origin_local = best_origin_slow m bs t s;
+  in
+    <| num_errors := get_num_errors_step_slow m bs t best_origin_local;
+       prev_state := SOME best_origin_local.origin; |>
+End
+
 
 (* -------------------------------------------------------------------------- *)
 (* An example function which generates a grid recursively, in a similar       *)
@@ -3085,4 +3164,3 @@ Proof
         
 QED
 val _ = export_theory();
-
