@@ -1115,12 +1115,10 @@ End
 (* recursively dependent on each other.                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_slow:
-  (get_num_errors_calculate_slow m bs t r =
-   if (t ≤ 1) then
-     (if (r.origin = 0) then N0 else INFINITY)
-   else (
-     (get_num_errors_calculate_slow m bs (t - 1) (best_origin_slow m bs (t - 1) r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
-     )) ∧ 
+  get_num_errors_calculate_slow m bs (SUC 0) r = (if (r.origin = 0) then N0 else INFINITY) ∧
+  (get_num_errors_calculate_slow m bs (SUC (SUC t)) r =
+   (get_num_errors_calculate_slow m bs (SUC t) (best_origin_slow m bs (SUC t) r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC (SUC t))))
+  ) ∧ 
   (get_better_origin_slow m bs t r1 r2 =
    if (get_num_errors_calculate_slow m bs t r1) < (get_num_errors_calculate_slow m bs t r2) then r1 else r2) ∧
   (best_origin_slow m bs t s =
@@ -1169,9 +1167,9 @@ End
 (* function definitions, as this was not possible because multiple functions  *)
 (* were defined in the same definition                                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_calculate_slow_def = cj 1 viterbi_trellis_slow
-Theorem get_better_origin_slow_def = cj 2 viterbi_trellis_slow
-Theorem best_origin_slow_def = cj 3 viterbi_trellis_slow
+Theorem get_num_errors_calculate_slow_def = LIST_CONJ [cj 1 viterbi_trellis_slow, cj 2 viterbi_trellis_slow]
+Theorem get_better_origin_slow_def = cj 3 viterbi_trellis_slow
+Theorem best_origin_slow_def = cj 4 viterbi_trellis_slow
 
 Definition viterbi_trellis_node_slow_def:
   viterbi_trellis_node_slow m bs s t =
@@ -1182,10 +1180,21 @@ Definition viterbi_trellis_node_slow_def:
        prev_state := SOME best_origin_local.origin; |>
 End
 
-
 Theorem viterbi_trellis_node_slow_viterbi_trellis_node:
-  viterbi_trellis_node_slow m bs s t = viterbi_trellis_node m bs s t
+  ∀m bs s t.
+  0 < t ⇒
+  viterbi_trellis_node_slow m bs s t = viterbi_trellis_node m bs s t (viterbi_trellis_row m bs (t - 1))
 Proof
+  Induct_on ‘t’ >> gvs[]
+  (*>- (gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_def]
+                 >> gvs[best_origin_slow_def]
+                 >> *)
+  >> rpt strip_tac
+  >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_def]
+  >> gvs[best_origin_def, best_origin_slow_def]
+  >> gvs[get_better_origin_def, get_better_origin_slow_def]
+  >> gvs[get_num_errors_calculate_def]
+  >> PURE_ONCE_REWRITE_TAC[get_num_errors_calculate_slow_def]
 QED
 
 (* -------------------------------------------------------------------------- *)

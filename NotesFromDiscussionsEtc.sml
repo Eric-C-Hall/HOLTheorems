@@ -74,6 +74,8 @@ val _ = new_theory "thingsToDiscuss";
 
 (* gnvs avoids splitting on disjuncts *)
 
+(* LIST_CONJ <- connects theorems in list with conjunctions *)
+
 val _ = export_theory();
 
 
