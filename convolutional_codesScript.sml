@@ -463,6 +463,12 @@ Datatype:
   |>
 End
 
+(* -------------------------------------------------------------------------- *)
+(* The automatically generated record theorems don't seem to be automatically *)
+(* fetched or something, so I have to fetch them manually.                    *)
+(* -------------------------------------------------------------------------- *)
+val transition_origin_component_equality = fetch "convolutional_codes" "transition_origin_component_equality";
+
 Datatype:
   transition_destination = <|
     destination : num;
@@ -822,6 +828,16 @@ Definition example_state_machine_def:
   |> : state_machine
 End
 
+(* -------------------------------------------------------------------------- *)
+(* An example message which may have been recieved.                           *)
+(*                                                                            *)
+(* Length: 12                                                                 *)
+(* Decoded length: 6 (if using example_state_machine)                         *)
+(* -------------------------------------------------------------------------- *)
+Definition test_path_def:
+  test_path = [F; T; T; F; T; T; T; T; F; F; T; F]
+End
+
 Theorem wfmachine_example_state_machine:
   wfmachine example_state_machine
 Proof
@@ -879,7 +895,7 @@ QED
  *)
 
 Definition all_transitions_helper_def:
-  all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. transition_origin n b) m.num_states
+  all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -890,7 +906,7 @@ Definition all_transitions_def:
 End
 
 Definition all_transitions_set_helper_def:
-  all_transitions_set_helper (m : state_machine) b = {transition_origin s b | s < m.num_states}
+  all_transitions_set_helper (m : state_machine) b = {<| origin := s; input := b |> | s < m.num_states}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -898,7 +914,7 @@ End
 (* transition                                                                 *)
 (* -------------------------------------------------------------------------- *)
 Definition all_transitions_set_def:
-  all_transitions_set (m : state_machine) = {transition_origin s b | s < m.num_states ∧ (b ∨ ¬b)}
+  all_transitions_set (m : state_machine) = {<| origin := s; input := b |> | s < m.num_states ∧ (b ∨ ¬b)}
 End
 
 Theorem all_transitions_set_list_equiv:
@@ -1115,6 +1131,11 @@ Definition viterbi_trellis_row_def:
       GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_row) m.num_states
 End
 
+Definition viterbi_trellis_node_no_prev_data:
+  viterbi_trellis_node_no_prev_data m bs s t =
+  viterbi_trellis_node m bs s t (viterbi_trellis_row m bs (t - 1))
+End
+
 (* -------------------------------------------------------------------------- *)
 (* A slower but mathematically simpler implementation of the function for     *)
 (* working out the best origin in the viterbi trellis.                        *)
@@ -1188,10 +1209,27 @@ Definition viterbi_trellis_node_slow_def:
        prev_state := SOME best_origin_local.origin; |>
 End
 
-Theorem viterbi_trellis_node_slow_viterbi_trellis_node:
+Theorem viterbi_trellis_node_slow_test:
+  let
+    s = 0;
+    t = 2
+  in
+    viterbi_trellis_node_slow example_state_machine test_path s t = ARB ∧
+    viterbi_trellis_node_no_prev_data example_state_machine test_path s t = ARB
+Proof
+  EVAL_TAC
+  >> qspecl_then [‘0’, ‘transition_origin 0 F’, ‘example_state_machine’, ‘test_path ’] assume_tac (cj 2 get_num_errors_calculate_slow_def)
+  >> gvs[]
+  >> gvs[example_state_machine_def, test_path_def]
+  >> EVAL_TAC
+  >> pop_assum (fn th => gvs[th])
+QED
+
+
+Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
   ∀m bs s t.
   0 < t ⇒
-  viterbi_trellis_node_slow m bs s t = viterbi_trellis_node m bs s t (viterbi_trellis_row m bs (t - 1))
+  viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
 Proof
   Induct_on ‘t’ >> gvs[]
   (*>- (gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_def]
@@ -1202,7 +1240,9 @@ Proof
   >> gvs[best_origin_def, best_origin_slow_def]
   >> gvs[get_better_origin_def, get_better_origin_slow_def]
   >> gvs[get_num_errors_calculate_def]
-  >> PURE_ONCE_REWRITE_TAC[get_num_errors_calculate_slow_def]
+  >> Cases_on ‘t’ >> gvs[get_num_errors_calculate_slow_def]
+  >> conj_tac
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1276,10 +1316,6 @@ Proof
   EVAL_TAC
 QED*)
 
-Definition test_path_def:
-  test_path = [F; T; T; F; T; T; T; T; F; F; T; F]
-End
-
 (* -------------------------------------------------------------------------- *)
 (* Unit test to ensure that the values returned by the trellis data function  *)
 (* are those you would expect.                                                *)
@@ -1291,11 +1327,18 @@ End
 (* -  -  2  2  2  5  4                                                        *)
 (* -  -  2  3  4  3  3                                                        *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem viterbi_trellis_row_test:
-  viterbi_trellis_row example_state_machine test_path 4 = ARB
+Theorem viterbi_trellis_row_test:
+  let
+    test_row = viterbi_trellis_row example_state_machine test_path 4
+  in
+    (EL 0 test_row).num_errors = N 3 ∧
+    (EL 1 test_row).num_errors = N 3 ∧
+    (EL 2 test_row).num_errors = N 2 ∧
+    (EL 3 test_row).num_errors = N 4
+(*viterbi_trellis_row example_state_machine test_path 4 = ARB*)
 Proof
   EVAL_TAC
-QED*)
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Prior to making the relevant input calculated at the point at which it is  *)
@@ -1839,10 +1882,11 @@ Theorem all_transitions_helper_mem:
     MEM r (all_transitions_helper m b)
 Proof
   rpt strip_tac
-  >> Cases_on ‘r’
-  >> gvs[]
   >> gvs[all_transitions_helper_def]
   >> gvs[MEM_GENLIST]
+  >> qexists ‘r.origin’
+  >> gvs[]
+  >> gvs[transition_origin_component_equality]
 QED
 
 Theorem all_transitions_mem:
