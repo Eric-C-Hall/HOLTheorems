@@ -28,7 +28,15 @@ val _ = monadsyntax.enable_monad "option"
 (*                                                                            *)
 (* TODO: Cite better                                                          *)
 (* -------------------------------------------------------------------------- *)
-                                                                              
+
+(* -------------------------------------------------------------------------- *)
+(* If you want to work on my code, I recommend using abbreviations, because   *)
+(* many of my variable names are quite long. for example, when I type the     *)
+(* letters "gnecs", my emacs will automatically expand this out to            *)
+(* "get_num_errors_calculate_slow". Similarly, if I type "vtn", my emcs will  *)
+(* automatically expand this out to "viterbi_trellis_node".                   *)
+(* -------------------------------------------------------------------------- *)
+                  
 (*
 
         TODO: Temporary place for donotexpand while asking about how to use it properly as a library
