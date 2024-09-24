@@ -1012,8 +1012,8 @@ End
 (* r: the choice of origin that we are returning the number of errors for if  *)
 (*    we were to pass through this transition.                                *)
 (* -------------------------------------------------------------------------- *)
-Definition get_num_errors_step_def:
-  get_num_errors_step m bs t previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
+Definition get_num_errors_calculate_def:
+  get_num_errors_calculate m bs t previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1033,7 +1033,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition get_better_origin_def:
   get_better_origin m bs t previous_row r1 r2 =
-  if (get_num_errors_step m bs t previous_row r1) < (get_num_errors_step m bs t previous_row r2) then r1 else r2
+  if (get_num_errors_calculate m bs t previous_row r1) < (get_num_errors_calculate m bs t previous_row r2) then r1 else r2
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1078,7 +1078,7 @@ Definition viterbi_trellis_node_def:
   let
     best_origin_local = best_origin m bs t previous_row s;
   in
-    <| num_errors := get_num_errors_step m bs t previous_row best_origin_local;
+    <| num_errors := get_num_errors_calculate m bs t previous_row best_origin_local;
        prev_state := SOME best_origin_local.origin; |>
 End
 
@@ -1115,14 +1115,14 @@ End
 (* recursively dependent on each other.                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_slow:
-  (get_num_errors_step_slow m bs t r =
+  (get_num_errors_calculate_slow m bs t r =
    if (t ≤ 1) then
      (if (r.origin = 0) then N0 else INFINITY)
    else (
-     (get_num_errors_step_slow m bs (t - 1) (best_origin_slow m bs (t - 1) r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
+     (get_num_errors_calculate_slow m bs (t - 1) (best_origin_slow m bs (t - 1) r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
      )) ∧ 
   (get_better_origin_slow m bs t r1 r2 =
-   if (get_num_errors_step_slow m bs t r1) < (get_num_errors_step_slow m bs t r2) then r1 else r2) ∧
+   if (get_num_errors_calculate_slow m bs t r1) < (get_num_errors_calculate_slow m bs t r2) then r1 else r2) ∧
   (best_origin_slow m bs t s =
    let
      possible_origins = transition_inverse m s;
@@ -1134,7 +1134,7 @@ Termination
      recursion of 3 functions, where on every loop, t decreases by 1.
 .
      best_origin_slow (SUC t) -> get_better_origin_slow (SUC t) ->
-     get_num_errors_step_slow (SUC t) -> best_origin_slow t ->
+     get_num_errors_calculate_slow (SUC t) -> best_origin_slow t ->
      get_better_origin_slow t -> ...
 .
      Thus, in order to ensure that our measure decreases on every function
@@ -1169,7 +1169,7 @@ End
 (* function definitions, as this was not possible because multiple functions  *)
 (* were defined in the same definition                                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_step_slow_def = cj 1 viterbi_trellis_slow
+Theorem get_num_errors_calculate_slow_def = cj 1 viterbi_trellis_slow
 Theorem get_better_origin_slow_def = cj 2 viterbi_trellis_slow
 Theorem best_origin_slow_def = cj 3 viterbi_trellis_slow
 
@@ -1178,10 +1178,15 @@ Definition viterbi_trellis_node_slow_def:
   let
     best_origin_local = best_origin_slow m bs t s;
   in
-    <| num_errors := get_num_errors_step_slow m bs t best_origin_local;
+    <| num_errors := get_num_errors_calculate_slow m bs t best_origin_local;
        prev_state := SOME best_origin_local.origin; |>
 End
 
+
+Theorem viterbi_trellis_node_slow_viterbi_trellis_node:
+  viterbi_trellis_node_slow m bs s t = viterbi_trellis_node m bs s t
+Proof
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* An example function which generates a grid recursively, in a similar       *)
@@ -1865,15 +1870,15 @@ fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum
 
 (*Theorem get_better_origin_foldr:
   ∀m is ps h t f.
-    FOLDR (get_better_origin m is ps) h t = f ⇔ MEM f (h::t) ∧ ∀f'. MEM f' (h::t) ⇒ get_num_errors_step m is ps 
+    FOLDR (get_better_origin m is ps) h t = f ⇔ MEM f (h::t) ∧ ∀f'. MEM f' (h::t) ⇒ get_num_errors_calculate m is ps 
 
 
-transition_origin (MIN_SET ARB)  (*(IMAGE (get_num_errors_step m is ps) (set (h::t)))*)
+transition_origin (MIN_SET ARB)  (*(IMAGE (get_num_errors_calculate m is ps) (set (h::t)))*)
 Proof
 QED*)
 
 (*Theorem get_better_origin_foldr:
-                                get_num_errors_step m is ps (FOLDR (get_better_origin m is ps)) h ts ≤ get_num_errors_step m is ps h
+                                get_num_errors_calculate m is ps (FOLDR (get_better_origin m is ps)) h ts ≤ get_num_errors_calculate m is ps h
 Proof
 QED*)
 
@@ -2901,9 +2906,9 @@ End
 (* of errors computationally during a single step of the Viterbi algorithm,   *)
 (* and the function for calculating the total number of errors                *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_step_get_num_errors:
+Theorem get_num_errors_calculate_get_num_errors:
   ∀m rs s r.
-  get_num_errors_step m () (viterbi_trellis_row m bs t) r = N (get_num_errors m rs (vd_find_optimal_code m s.origin )) + 
+  get_num_errors_calculate m () (viterbi_trellis_row m bs t) r = N (get_num_errors m rs (vd_find_optimal_code m s.origin )) + 
 Proof
 QED
 
@@ -2971,7 +2976,7 @@ Proof
      - viterbi_trellis_row_def
      - viterbi_trellis_node_def
      - get_better_origin_def
-     - get_num_errors_step_def *)
+     - get_num_errors_calculate_def *)
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
   >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path _ _ s' _’
@@ -3033,10 +3038,10 @@ Proof
      current transition is optimal.
 .
      Should probably aim to get the goal in the same form that best_origin
-     or get_num_errors_step uses.
+     or get_num_errors_calculate uses.
    *)
   >> 
-  get_num_errors_step_def get_better_origin_def best_origin_def transition_inverse_def
+  get_num_errors_calculate_def get_better_origin_def best_origin_def transition_inverse_def
   >> 
 
 
@@ -3047,7 +3052,7 @@ Proof
      minimize the total obtained by adding together the number of errors
      obtained in the optimal path to this choice of s' to the number of errors
      obtained by applying the transition from this state to the final state.
-    (see get_better_origin_def, get_num_errors_step_def)
+    (see get_better_origin_def, get_num_errors_calculate_def)
 .
     Desired Conclusion:
     The hamming distance to s via the optimal path to s' is less than or equal to the hamming distance to s via any other path.
@@ -3071,7 +3076,7 @@ Proof
      - viterbi_trellis_row_def
      - viterbi_trellis_node_def
      - get_better_origin_def
-     - get_num_errors_step_def *)
+     - get_num_errors_calculate_def *)
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
   >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path _ _ s' _’
@@ -3116,7 +3121,7 @@ Proof
 
  *)
   >> gvs[Abbr ‘g’]
-  >> gvs[get_better_origin_def] get_num_errors_step_def*)
+  >> gvs[get_better_origin_def] get_num_errors_calculate_def*)
                                    
                                    
 QED
