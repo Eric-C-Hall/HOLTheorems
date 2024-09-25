@@ -1131,9 +1131,12 @@ Definition viterbi_trellis_row_def:
       GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_row) m.num_states
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Calculate a node in the trellis for the fast version when the previous row *)
+(* is not available (by calculating all prior rows of the trellis)            *)
+(* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_node_no_prev_data:
-  viterbi_trellis_node_no_prev_data m bs s t =
-  viterbi_trellis_node m bs s t (viterbi_trellis_row m bs (t - 1))
+  viterbi_trellis_node_no_prev_data m bs s t = EL s (viterbi_trellis_row m bs t)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1144,10 +1147,10 @@ End
 (* recursively dependent on each other.                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_slow:
-  get_num_errors_calculate_slow m bs (SUC 0) r = (if (r.origin = 0) then N0 else INFINITY) ∧
-  (get_num_errors_calculate_slow m bs (SUC (SUC t)) r =
-   (get_num_errors_calculate_slow m bs (SUC t) (best_origin_slow m bs (SUC t) r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC (SUC t))))
-  ) ∧ 
+  get_num_errors_calculate_slow m bs 0 r = (if ((m.transition_fn r).destination = 0) then N0 else INFINITY) ∧
+  (get_num_errors_calculate_slow m bs (SUC t) r =
+   (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)))
+   ) ∧ 
   (get_better_origin_slow m bs t r1 r2 =
    if (get_num_errors_calculate_slow m bs t r1) < (get_num_errors_calculate_slow m bs t r2) then r1 else r2) ∧
   (best_origin_slow m bs t s =
@@ -1206,23 +1209,37 @@ Definition viterbi_trellis_node_slow_def:
     best_origin_local = best_origin_slow m bs t s;
   in
     <| num_errors := get_num_errors_calculate_slow m bs t best_origin_local;
-       prev_state := SOME best_origin_local.origin; |>
-End
+       prev_state := if (t = 0) then NONE else SOME best_origin_local.origin; |>
+End  
 
+(* -------------------------------------------------------------------------- *)
+(* Test equivalance of slow version of trellis calculation with fast version  *)
+(* for some small values of s and t, through evaluation.                      *)
+(* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_node_slow_test:
-  let
-    s = 0;
-    t = 2
-  in
-    viterbi_trellis_node_slow example_state_machine test_path s t = ARB ∧
-    viterbi_trellis_node_no_prev_data example_state_machine test_path s t = ARB
+  ∀s t.
+  s < 4 ∧ t ≤ 3 ⇒
+  viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
 Proof
-  EVAL_TAC
-  >> qspecl_then [‘0’, ‘transition_origin 0 F’, ‘example_state_machine’, ‘test_path ’] assume_tac (cj 2 get_num_errors_calculate_slow_def)
-  >> gvs[]
-  >> gvs[example_state_machine_def, test_path_def]
+  rpt strip_tac
+  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3) ∧ (t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3)’ >> gvs[]
   >> EVAL_TAC
-  >> pop_assum (fn th => gvs[th])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Be extra careful with the special case at time step zero, and test to      *)
+(* ensure that it has the expected value, not just the same value as the      *)
+(* other implementation.                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_trellis_node_slow_time_step_zero_test:
+  ∀s.
+  s < 4 ⇒
+  viterbi_trellis_node_slow example_state_machine test_path s 0 =
+                     <| num_errors := if s = 0 then N0 else INFINITY; prev_state := NONE|>
+Proof
+  rpt strip_tac
+  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
+  >> EVAL_TAC
 QED
 
 
