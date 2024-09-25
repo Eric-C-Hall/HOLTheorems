@@ -1152,7 +1152,7 @@ End
 (* recursively dependent on each other.                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_slow:
-  get_num_errors_calculate_slow m bs 0 r = (if ((vd_step_tran m r).destination = 0) then N0 else INFINITY) ∧
+  get_num_errors_calculate_slow m bs 0 r = (if (vd_step_tran m r = 0) then N0 else INFINITY) ∧
   (get_num_errors_calculate_slow m bs (SUC t) r =
    (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)))
    ) ∧ 
