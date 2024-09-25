@@ -1135,7 +1135,7 @@ End
 (* Calculate a node in the trellis for the fast version when the previous row *)
 (* is not available (by calculating all prior rows of the trellis)            *)
 (* -------------------------------------------------------------------------- *)
-Definition viterbi_trellis_node_no_prev_data:
+Definition viterbi_trellis_node_no_prev_data_def:
   viterbi_trellis_node_no_prev_data m bs s t = EL s (viterbi_trellis_row m bs t)
 End
 
@@ -1242,18 +1242,107 @@ Proof
   >> EVAL_TAC
 QED
 
+Theorem viterbi_trellis_row_el:
+  ∀m bs s t. 
+  s < m.num_states ⇒
+  EL s (viterbi_trellis_row m bs (SUC t)) = viterbi_trellis_node m bs s (SUC t) (viterbi_trellis_row m bs t)
+Proof
+  gvs[viterbi_trellis_row_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Test that the slow and fast versions of the function that calculates       *)
+(* errors in the trellis are equivalent for some simple examples.             *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_num_errors_calculate_slow_get_num_errors_calculate_test:
+  ∀t r.
+  t < 4 ∧
+  r.origin < 4 ⇒
+  get_num_errors_calculate_slow example_state_machine test_path (SUC t) r = get_num_errors_calculate example_state_machine test_path (SUC t) (viterbi_trellis_row example_state_machine test_path t) r
+Proof
+  rpt strip_tac
+  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’
+  (* This sequence of tactics will simultaneously prove all 16 proof
+     obligations *)
+  >> (gvs[]
+      >> qmatch_asmsub_abbrev_tac ‘r.origin = r_val’
+      >> Cases_on ‘r’
+      >> ‘n = r_val’ by gvs[]
+      >> unabbrev_all_tac
+      >> gvs[]
+      >> Cases_on ‘b’
+      >> EVAL_TAC)
+QED
+
+Theorem get_num_errors_calculate_slow_get_num_errors_calculate:
+  ∀m bs t r.
+  (*wfmachine m ∧*)
+  r.origin < m.num_states ⇒
+              get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
+Proof
+  gen_tac
+  >> Induct_on ‘t’
+  >- (rpt strip_tac
+      (* expand stuff out *)
+      >> gvs[]
+      >> gvs[get_num_errors_calculate_slow_def, get_num_errors_calculate_def]
+      >> gvs[viterbi_trellis_row_def]
+      (* When r.origin is nonzero, the RHS simplifies to infinity. Deal
+         with this special case. *)
+      >> REVERSE (Cases_on ‘r.origin’)
+      >- (gvs[EL_REPLICATE]
+          >> PURE_REWRITE_TAC [ONE]
+          >> gvs[get_num_errors_calculate_slow_def]
+          >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+          >> Cases_on ‘b’ >> gvs[]
+
+                                
+          >> gvs[best_origin_slow_def]
+          >> gvs[get_better_origin_slow_def]
+          >> gvs[get_num_errors_calculate_slow_def]
+
+          
+          >> EVAL_TAC
+
+
+             
+          (* simplify this part to if r.origin = 0 then N0 else INFINITY *)
+          >> qmatch_goalsub_abbrev_tac ‘_ = n + _’
+          >> sg ‘n = if r.origin = 0 then N0 else INFINITY’
+          >- (Cases_on ‘r.origin’ >> gvs[]
+              >> unabbrev_all_tac
+              >> DEP_PURE_ONCE_REWRITE_TAC[EL_REPLICATE]
+              >> gvs[]
+             )
+          >> gvs[]
+          >> pop_assum kall_tac
+          >> PURE_REWRITE_TAC [ONE]
+          >> gvs[get_num_errors_calculate_slow_def]
+                
+QED
+
+Theorem best_origin_slow_best_origin:
+  best_origin_slow m bs t s = best_origin m bs t previous_row s  
+Proof
+QED         
 
 Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
   ∀m bs s t.
+  s < m.num_states ∧
   0 < t ⇒
   viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
 Proof
   Induct_on ‘t’ >> gvs[]
-  (*>- (gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_def]
-                 >> gvs[best_origin_slow_def]
-                 >> *)
   >> rpt strip_tac
-  >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_def]
+  >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_def, viterbi_trellis_node_no_prev_data_def]
+  >> gvs[viterbi_trellis_row_el]
+  >> gvs[viterbi_trellis_node_def]
+  >> gvs[get_num_errors_calculate_slow_def, get_num_errors_calculate_def]
+  >> 
+                
+  >> gvs[viterbi_trellis_row_def]
+        
+  >> gvs[viterbi_trellis_node_slow_def]
   >> gvs[best_origin_def, best_origin_slow_def]
   >> gvs[get_better_origin_def, get_better_origin_slow_def]
   >> gvs[get_num_errors_calculate_def]
