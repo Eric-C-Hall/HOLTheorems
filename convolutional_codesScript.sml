@@ -555,6 +555,11 @@ Definition vd_step_def:
   (vd_step_record m b s).destination
 End
 
+Definition vd_step_tran:
+  vd_step_tran m r =
+  vd_step m r.input r.origin
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the num state machine is well-formed                           *)
 (*                                                                            *)
@@ -1147,7 +1152,7 @@ End
 (* recursively dependent on each other.                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_slow:
-  get_num_errors_calculate_slow m bs 0 r = (if ((m.transition_fn r).destination = 0) then N0 else INFINITY) ∧
+  get_num_errors_calculate_slow m bs 0 r = (if ((vd_step_tran m r).destination = 0) then N0 else INFINITY) ∧
   (get_num_errors_calculate_slow m bs (SUC t) r =
    (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)))
    ) ∧ 
@@ -1295,7 +1300,9 @@ Proof
           >> gvs[get_num_errors_calculate_slow_def]
           >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
           >> Cases_on ‘b’ >> gvs[]
-
+          >>
+          
+                                
                                 
           >> gvs[best_origin_slow_def]
           >> gvs[get_better_origin_slow_def]
