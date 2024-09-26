@@ -1393,7 +1393,7 @@ Proof
       >> EVAL_TAC)
 QED
 
-Theorem vd_step_tran_best_origin_slow:
+Theorem vd_step_tran_best_origin_slow[simp]:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
@@ -1423,9 +1423,9 @@ QED
 
 Theorem get_num_errors_calculate_slow_get_num_errors_calculate:
   ∀m bs t r.
-       (*wfmachine m ∧*)
-       r.origin < m.num_states ⇒
-       get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
+  wfmachine m ∧
+  r.origin < m.num_states ⇒
+  get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
 Proof
   gen_tac
   >> Induct_on ‘t’
@@ -1442,7 +1442,13 @@ Proof
           >> gvs[get_num_errors_calculate_slow_def]
           >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
           >> Cases_on ‘b’ >> gvs[]
-          >>      
+          >> gvs[vd_step_tran_best_origin_slow])
+      >> gvs[]
+      >> PURE_REWRITE_TAC[ONE]
+      >> gvs[get_num_errors_calculate_slow_def]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
+      >> gvs[vd_step_tran_best_origin_slow])
 QED
 
 Theorem best_origin_slow_best_origin:
