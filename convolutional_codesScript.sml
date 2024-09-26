@@ -505,6 +505,14 @@ End
 (* -------------------------------------------------------------------------- *)
 val transition_origin_component_equality = fetch "convolutional_codes" "transition_origin_component_equality";
 
+Theorem transition_origin_literal_components[simp]:
+  ∀r.
+  <| origin := r.origin; input := r.input |> = r 
+Proof
+  rpt strip_tac
+  >> gvs[transition_origin_component_equality]
+QED
+
 Datatype:
   transition_destination = <|
     destination : num;
@@ -591,7 +599,7 @@ Definition vd_step_def:
   (vd_step_record m b s).destination
 End
 
-Definition vd_step_tran:
+Definition vd_step_tran_def:
   vd_step_tran m r =
   vd_step m r.input r.origin
 End
@@ -1019,6 +1027,17 @@ Definition transition_inverse_def:
   FILTER (λorgn. (m.transition_fn orgn).destination = dest) (all_transitions m)
 End
 
+Theorem transition_inverse_mem[simp]:
+  ∀m s r.
+  MEM r (transition_inverse m s) ⇒
+  vd_step_tran m r = s 
+Proof
+  rpt strip_tac
+  >> gvs[transition_inverse_def]
+  >> gvs[MEM_FILTER]
+  >> gvs[vd_step_tran_def, vd_step_def, vd_step_record_def]
+QED
+
 Theorem all_transitions_helper_mem:
   ∀m r b.
   r.origin < m.num_states ∧
@@ -1067,10 +1086,10 @@ Proof
   >> gvs[]
 QED
 
-Definition transition_inverse_set_def:
+(*Definition transition_inverse_set_def:
   transition_inverse_set (m : state_machine) =
   IMAGE 
-End
+End*)
 
 (*Theorem transition_inverse_test:
   transition_inverse example_state_machine 2 = ARB
@@ -1292,6 +1311,17 @@ Theorem get_num_errors_calculate_slow_def = LIST_CONJ [cj 1 viterbi_trellis_slow
 Theorem get_better_origin_slow_def = cj 3 viterbi_trellis_slow
 Theorem best_origin_slow_def = cj 4 viterbi_trellis_slow
 
+Theorem get_better_origin_slow_biswitch[simp]:
+  ∀m bs t x y.
+  get_better_origin_slow m bs t x y = x ∨
+  get_better_origin_slow m bs t x y = y
+Proof
+  rpt strip_tac
+  >> gvs[get_better_origin_slow_def]
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+  >> Cases_on ‘b’ >> gvs[]
+QED
+
 Definition viterbi_trellis_node_slow_def:
   viterbi_trellis_node_slow m bs s t =
   let
@@ -1378,10 +1408,7 @@ Proof
   >- (irule FOLDR_BISWITCH
       >> unabbrev_all_tac
       >> rpt strip_tac
-      >> gvs[]
-      >> gvs[get_better_origin_slow_def]
-      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gvs[])
+      >> gvs[])
   >> pop_assum mp_tac >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm] >> disch_tac
   (* Simplify h::ts into transition_inverse m s *)
   >> sg ‘h::ts = transition_inverse m s’
@@ -1391,22 +1418,7 @@ Proof
   >> gvs[]
   >> pop_assum kall_tac
   (* *)
-  >> gvs[transition_inverse_def]
-  
-  >> sg ‘MEM (FOLDR f h ts) (transition_inverse m s)’
-  >- metis_tac[]
-  >> pop_assum (fn th => pop_assum (fn th2 => pop_assum (fn th3 => assume_tac th)))
-
-  (* *)
-  >> 
-  >> pop_assum (fn th => PURE_REWRITE_TAC[th])
-  >- (gvs[]
-      >> sg ‘MEM (FOLDR f h ts) (transition_inverse m t)’
-      >- (simp [Abbr ‘h’, Abbr ‘ts’]
-          >> PURE_REWRITE_TAC[CONS])
-      >> unabbrev_all_tac
-      >> gvs[]
-      >> gvs[CONS]
+  >> gvs[MEM_DONOTEXPAND_thm]
 QED
 
 Theorem get_num_errors_calculate_slow_get_num_errors_calculate:
