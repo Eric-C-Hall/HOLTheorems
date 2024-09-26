@@ -21,3 +21,5 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* Maybe it's a good idea to induct on the length of a list sometimes. Strong induction. *)
 
 (* when using search, Cntl-W will add the next few characters of the currently selected text to the search. Allows you to choose what to search by selecting it from the text rather than typing it out manually. *)
+
+(* C-x C-space: select everything up until top*)

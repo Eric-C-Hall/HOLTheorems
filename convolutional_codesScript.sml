@@ -82,7 +82,43 @@ qmatch_asmsub_abbrev_tac ‘donotexpand donotexpand_var’
 >> qpat_x_assum ‘donotexpand donotexpand_var’ kall_tac
 (* unabbreviate assumption *)
 >> simp_tac empty_ss [Abbr ‘donotexpand_var’]
-                   
+
+Definition MEM_DONOTEXPAND_def:
+  MEM_DONOTEXPAND = $MEM
+End
+
+Theorem MEM_DONOTEXPAND_thm:
+  ∀l ls.
+  MEM_DONOTEXPAND l ls = MEM l ls
+Proof
+  rpt strip_tac >> EVAL_TAC
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Not sure what the term is for a function which returns one of its inputs   *)
+(* as its output, so I used the term "bi-switch", because the function        *)
+(* switches between two of its inputs.                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem FOLDR_BISWITCH:
+  ∀f h ts.
+  (∀x y.  f x y = x ∨ f x y = y) ⇒
+  MEM (FOLDR f h ts) (h::ts)
+Proof
+  rpt strip_tac
+  (* Induct over ts. Base case trivial *)
+  >> Induct_on ‘ts’
+  >- gvs[]
+  >> rpt strip_tac
+  >> PURE_REWRITE_TAC[FOLDR]
+  (* do not expand mem, it creates a messy case structure *)
+  >> pop_assum mp_tac
+  >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm]
+  >> rpt strip_tac
+  >> last_x_assum $ qspecl_then [‘h'’, ‘FOLDR f h ts’] assume_tac
+  >> gvs[]
+  >> gvs[MEM_DONOTEXPAND_thm]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Main property we need to prove:                                            *)
 (*                                                                            *)
@@ -983,6 +1019,54 @@ Definition transition_inverse_def:
   FILTER (λorgn. (m.transition_fn orgn).destination = dest) (all_transitions m)
 End
 
+Theorem all_transitions_helper_mem:
+  ∀m r b.
+  r.origin < m.num_states ∧
+  r.input = b ⇒
+  MEM r (all_transitions_helper m b)
+Proof
+  rpt strip_tac
+  >> gvs[all_transitions_helper_def]
+  >> gvs[MEM_GENLIST]
+  >> qexists ‘r.origin’
+  >> gvs[]
+  >> gvs[transition_origin_component_equality]
+QED
+
+Theorem all_transitions_mem:
+  ∀m r.
+  r.origin < m.num_states ⇒
+  MEM r (all_transitions m)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘r’
+  >> gvs[all_transitions_def]
+  >> Cases_on ‘b’ >> gvs[all_transitions_helper_mem]
+QED
+
+Theorem transition_inverse_nonempty[simp]:
+  ∀m s.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  transition_inverse m s ≠ []
+Proof
+  rpt strip_tac
+  >> gvs[transition_inverse_def]
+  >> drule (wfmachine_every_state_has_prior_state)
+  >> rpt strip_tac
+  >> pop_assum $ qspec_then ‘s’ assume_tac
+  >> gvs[]
+  >> gvs[vd_step_def, vd_step_record_def]
+  >> gvs[FILTER_EQ_NIL]
+  >> gvs[EVERY_MEM]
+  >> first_x_assum $ qspec_then ‘<|origin := s'; input := b |>’ assume_tac
+  >> gvs[]
+  >> pop_assum mp_tac
+  >> gvs[NOT_DEF]
+  >> irule all_transitions_mem
+  >> gvs[]
+QED
+
 Definition transition_inverse_set_def:
   transition_inverse_set (m : state_machine) =
   IMAGE 
@@ -1279,11 +1363,57 @@ Proof
       >> EVAL_TAC)
 QED
 
+Theorem vd_step_tran_best_origin_slow:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  vd_step_tran m (best_origin_slow m bs t s) = s
+Proof
+  rpt strip_tac
+  >> gvs[best_origin_slow_def]
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR f h ts’
+  (* Apply FOLDR_BISWITCH to prove that the result of this fold must be
+     contained within the list formed by the input to the FOLDR. *)
+  >> sg ‘MEM (FOLDR f h ts) (h::ts)’
+  >- (irule FOLDR_BISWITCH
+      >> unabbrev_all_tac
+      >> rpt strip_tac
+      >> gvs[]
+      >> gvs[get_better_origin_slow_def]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[])
+  >> pop_assum mp_tac >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm] >> disch_tac
+  (* Simplify h::ts into transition_inverse m s *)
+  >> sg ‘h::ts = transition_inverse m s’
+  >- (unabbrev_all_tac
+      >> gvs[CONS]
+     )
+  >> gvs[]
+  >> pop_assum kall_tac
+  (* *)
+  >> gvs[transition_inverse_def]
+  
+  >> sg ‘MEM (FOLDR f h ts) (transition_inverse m s)’
+  >- metis_tac[]
+  >> pop_assum (fn th => pop_assum (fn th2 => pop_assum (fn th3 => assume_tac th)))
+
+  (* *)
+  >> 
+  >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+  >- (gvs[]
+      >> sg ‘MEM (FOLDR f h ts) (transition_inverse m t)’
+      >- (simp [Abbr ‘h’, Abbr ‘ts’]
+          >> PURE_REWRITE_TAC[CONS])
+      >> unabbrev_all_tac
+      >> gvs[]
+      >> gvs[CONS]
+QED
+
 Theorem get_num_errors_calculate_slow_get_num_errors_calculate:
   ∀m bs t r.
-  (*wfmachine m ∧*)
-  r.origin < m.num_states ⇒
-              get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
+       (*wfmachine m ∧*)
+       r.origin < m.num_states ⇒
+       get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
 Proof
   gen_tac
   >> Induct_on ‘t’
@@ -1300,32 +1430,7 @@ Proof
           >> gvs[get_num_errors_calculate_slow_def]
           >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
           >> Cases_on ‘b’ >> gvs[]
-          >>
-          
-                                
-                                
-          >> gvs[best_origin_slow_def]
-          >> gvs[get_better_origin_slow_def]
-          >> gvs[get_num_errors_calculate_slow_def]
-
-          
-          >> EVAL_TAC
-
-
-             
-          (* simplify this part to if r.origin = 0 then N0 else INFINITY *)
-          >> qmatch_goalsub_abbrev_tac ‘_ = n + _’
-          >> sg ‘n = if r.origin = 0 then N0 else INFINITY’
-          >- (Cases_on ‘r.origin’ >> gvs[]
-              >> unabbrev_all_tac
-              >> DEP_PURE_ONCE_REWRITE_TAC[EL_REPLICATE]
-              >> gvs[]
-             )
-          >> gvs[]
-          >> pop_assum kall_tac
-          >> PURE_REWRITE_TAC [ONE]
-          >> gvs[get_num_errors_calculate_slow_def]
-                
+          >>      
 QED
 
 Theorem best_origin_slow_best_origin:
@@ -1335,9 +1440,9 @@ QED
 
 Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
   ∀m bs s t.
-  s < m.num_states ∧
-  0 < t ⇒
-  viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
+           s < m.num_states ∧
+           0 < t ⇒
+           viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
 Proof
   Induct_on ‘t’ >> gvs[]
   >> rpt strip_tac
@@ -1346,7 +1451,7 @@ Proof
   >> gvs[viterbi_trellis_node_def]
   >> gvs[get_num_errors_calculate_slow_def, get_num_errors_calculate_def]
   >> 
-                
+  
   >> gvs[viterbi_trellis_row_def]
         
   >> gvs[viterbi_trellis_node_slow_def]
@@ -1680,8 +1785,7 @@ Proof
 QED
 
 Theorem vd_find_optimal_code_time_zero[simp]:
-  ∀m bs s.
-  vd_find_optimal_code m bs s 0 = []
+  ∀m bs s. vd_find_optimal_code m bs s 0 = []
 Proof
   rpt strip_tac
   >> gvs[vd_find_optimal_code_def]
@@ -1988,54 +2092,6 @@ Proof
   >> gvs[]
 QED
 
-Theorem all_transitions_helper_mem:
-  ∀m r b.
-    r.origin < m.num_states ∧
-    r.input = b ⇒
-    MEM r (all_transitions_helper m b)
-Proof
-  rpt strip_tac
-  >> gvs[all_transitions_helper_def]
-  >> gvs[MEM_GENLIST]
-  >> qexists ‘r.origin’
-  >> gvs[]
-  >> gvs[transition_origin_component_equality]
-QED
-
-Theorem all_transitions_mem:
-  ∀m r.
-    r.origin < m.num_states ⇒
-    MEM r (all_transitions m)
-Proof
-  rpt strip_tac
-  >> Cases_on ‘r’
-  >> gvs[all_transitions_def]
-  >> Cases_on ‘b’ >> gvs[all_transitions_helper_mem]
-QED
-
-Theorem transition_inverse_nonempty[simp]:
-  ∀m s.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    transition_inverse m s ≠ []
-Proof
-  rpt strip_tac
-  >> gvs[transition_inverse_def]
-  >> drule (wfmachine_every_state_has_prior_state)
-  >> rpt strip_tac
-  >> pop_assum $ qspec_then ‘s’ assume_tac
-  >> gvs[]
-  >> gvs[vd_step_def, vd_step_record_def]
-  >> gvs[FILTER_EQ_NIL]
-  >> gvs[EVERY_MEM]
-  >> first_x_assum $ qspec_then ‘<|origin := s'; input := b |>’ assume_tac
-  >> gvs[]
-  >> pop_assum mp_tac
-  >> gvs[NOT_DEF]
-  >> irule all_transitions_mem
-  >> gvs[]
-QED
-
 (* TODO: Move this to a library *)
 
 fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum (fn th => delete_nth_assumption (n - 1) >> assume_tac th))
@@ -2056,52 +2112,16 @@ QED*)
 Proof
 QED*)
 
-Definition MEM_DONOTEXPAND_def:
-  MEM_DONOTEXPAND = $MEM
-End
-
-Theorem MEM_DONOTEXPAND_thm:
-  ∀l ls.
-    MEM_DONOTEXPAND l ls = MEM l ls
-Proof
-  rpt strip_tac >> EVAL_TAC
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Not sure what the term is for a function which returns one of its inputs   *)
-(* as its output, so I used the term "bi-identity"                            *)
-(* -------------------------------------------------------------------------- *)
-(* Probably call it something like a "switch" or something                    *)
-Theorem FOLDR_BIIDENTITY:
-  ∀f h ts.
-    (∀x y.  f x y = x ∨ f x y = y) ⇒
-    MEM (FOLDR f h ts) (h::ts)
-Proof
-  rpt strip_tac
-  (* Induct over ts. Base case trivial *)
-  >> Induct_on ‘ts’
-  >- gvs[]
-  >> rpt strip_tac
-  >> PURE_REWRITE_TAC[FOLDR]
-  (* do not expand mem, it creates a messy case structure *)
-  >> pop_assum mp_tac
-  >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm]
-  >> rpt strip_tac
-  >> last_x_assum $ qspecl_then [‘h'’, ‘FOLDR f h ts’] assume_tac
-  >> gvs[]
-  >> gvs[MEM_DONOTEXPAND_thm]
-QED
-
 (* -------------------------------------------------------------------------- *)
 (* The result of folding get_better_origin over a list is the list itself,    *)
 (* since at each stage, the output is equal to one of the inputs.             *)
 (* -------------------------------------------------------------------------- *)
 Theorem get_better_origin_foldr_mem:
   ∀m bs t ps h ts.
-  MEM (FOLDR (get_better_origin m bs t ps) h ts) (h::ts)
+           MEM (FOLDR (get_better_origin m bs t ps) h ts) (h::ts)
 Proof
   rpt strip_tac
-  >> irule FOLDR_BIIDENTITY
+  >> irule FOLDR_BISWITCH
   >> rpt strip_tac
   >> gvs[get_better_origin_def]
   >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
@@ -2111,9 +2131,9 @@ QED
 
 Theorem best_origin_is_valid:
   ∀m bs t ps s.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  (best_origin m bs t ps s).origin < m.num_states
+           wfmachine m ∧
+           s < m.num_states ⇒
+           (best_origin m bs t ps s).origin < m.num_states
 Proof
   rpt strip_tac
   >> gvs[best_origin_def]
@@ -2213,7 +2233,7 @@ Theorem get_better_final_state_foldr_mem:
     MEM (FOLDR (get_better_final_state rs) h ts) (h::ts)
 Proof
   rpt strip_tac
-  >> irule FOLDR_BIIDENTITY
+  >> irule FOLDR_BISWITCH
   >> rpt strip_tac
   >> gvs[get_better_final_state_def]
   >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
