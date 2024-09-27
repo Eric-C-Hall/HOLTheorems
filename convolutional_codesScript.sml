@@ -1057,7 +1057,7 @@ Proof
   >> gvs[vd_step_tran_def, vd_step_def, vd_step_record_def]
 QED
 
-Theorem transition_inverse_is_valid[simp]:
+Theorem transition_inverse_mem_is_valid[simp]:
   ∀m s r.
   MEM r (transition_inverse m s) ⇒
   r.origin < m.num_states
@@ -1390,18 +1390,13 @@ QED
 
 Theorem best_origin_slow_is_valid:
   ∀m bs t s.
+  wfmachine m ∧
+  s < m.num_states ⇒
   (best_origin_slow m bs t s).origin < m.num_states
 Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac best_origin_slow_transition_inverse
-  >> TODO
-  
-  >> sg ‘MEM (FOLDR f r rs) (r::rs)’
-  >- (irule FOLDR_BISWITCH
-      >> rpt strip_tac
-      >> unabbrev_all_tac
-      >> gvs[])
-  >> 
+  >> metis_tac[transition_inverse_mem_is_valid]
 QED
 
 Definition viterbi_trellis_node_slow_def:
