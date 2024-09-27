@@ -948,12 +948,30 @@ Definition all_transitions_helper_def:
   all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
 End
 
+Theorem all_transitions_helper_mem_is_valid[simp]:
+  ∀m b r.
+  MEM r (all_transitions_helper m b) ⇒ r.origin < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[all_transitions_helper_def]
+  >> gvs[MEM_GENLIST]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Returns a list of all valid choices of a transition_origin             *)
 (* -------------------------------------------------------------------------- *)
 Definition all_transitions_def:
   all_transitions (m : state_machine) = all_transitions_helper m T ⧺ all_transitions_helper m F
 End
+
+Theorem all_transitions_mem_is_valid[simp]:
+  ∀m r.
+  MEM r (all_transitions m) ⇒ r.origin < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[all_transitions_def]
+  >> metis_tac[all_transitions_helper_mem_is_valid]
+QED
 
 Definition all_transitions_set_helper_def:
   all_transitions_set_helper (m : state_machine) b = {<| origin := s; input := b |> | s < m.num_states}
@@ -1037,6 +1055,16 @@ Proof
   >> gvs[transition_inverse_def]
   >> gvs[MEM_FILTER]
   >> gvs[vd_step_tran_def, vd_step_def, vd_step_record_def]
+QED
+
+Theorem transition_inverse_is_valid[simp]:
+  ∀m s r.
+  MEM r (transition_inverse m s) ⇒
+  r.origin < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[transition_inverse_def]
+  >> gvs[MEM_FILTER]
 QED
 
 Theorem all_transitions_helper_mem:
@@ -1365,12 +1393,8 @@ Theorem best_origin_slow_is_valid:
   (best_origin_slow m bs t s).origin < m.num_states
 Proof
   rpt strip_tac
-  >> gvs[best_origin_slow_def]
-  >> qmatch_goalsub_abbrev_tac ‘FOLDR f r rs’
-  >> qspecl_then [‘m’, ‘bs’, ‘t’, ‘r’, ‘rs’] assume_tac FOLDR_get_better_origin_slow
-  >> unabbrev_all_tac
-  >> qmatch_goalsub_abbrev_tac ‘FOLDR f r rs’
-
+  >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac best_origin_slow_transition_inverse
+  >> TODO
   
   >> sg ‘MEM (FOLDR f r rs) (r::rs)’
   >- (irule FOLDR_BISWITCH
