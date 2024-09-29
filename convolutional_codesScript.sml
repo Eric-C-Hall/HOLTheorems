@@ -134,28 +134,50 @@ Proof
   >> rpt strip_tac >> gvs[]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* Advice: are there previous theorems that effectively do this?              *)
-(* -------------------------------------------------------------------------- *)
-Theorem FOLDR_DOMAIN:
-  ∀f g l ls.
-  (∀x y l ls. MEM x (l::ls) ∧ MEM y (l::ls) ⇒ f x y = g x y ∧ MEM (f x y) (l::ls)) ⇒
-  FOLDR f l ls = FOLDR g l ls ∧ MEM (FOLDR f l ls) (l::ls)
+
+Theorem FOLDR_DOMAIN_HELPER:
+  ∀f g l ls s.
+  (∀x. MEM x (l::ls) ⇒ x ∈ s) ∧
+  (∀x y. x ∈ s ∧ y ∈ s ⇒ f x y = g x y ∧ (f x y) ∈ s) ⇒
+  FOLDR f l ls = FOLDR g l ls ∧ (FOLDR f l ls) ∈ s
 Proof
-  rpt gen_tac
-  >> Induct_on ‘ls’
+  Induct_on ‘ls’
   >- gvs[]
-  >> MEM_DONOTEXPAND_TAC
   >> rpt gen_tac
   >> rpt disch_tac
-  >> last_x_assum drule
-  >> disch_tac
+  >> MEM_DONOTEXPAND_TAC
+  >> gvs[FOLDR]
+  >> qsuff_tac ‘FOLDR f l ls = FOLDR g l ls ∧ FOLDR f l ls ∈ s’
+  >- (disch_tac
+      >> gvs[]
+      >> first_assum irule
+      >> conj_tac
+      >- (MEM_DOEXPAND_TAC
+          >> gvs[])
+      >> gvs[])
+  >> last_assum irule
   >> gvs[]
-  >> last_assum $ qspecl_then [‘h’, ‘FOLDR g l ls’, ‘l’, ‘h::ls’] irule
   >> MEM_DOEXPAND_TAC
+  >> gvs[]
+  >> rpt strip_tac
   >> gvs[]
 QED
 
+val FOLDR_DOMAIN = cj 1 FOLDR_DOMAIN_HELPER;
+
+Theorem FOLDR_DOMAIN_MEM_HELPER:
+  ∀f g l ls.
+  (∀x y. MEM x (l::ls) ∧ MEM y (l::ls) ⇒ f x y = g x y ∧ MEM (f x y) (l::ls)) ⇒
+  FOLDR f l ls = FOLDR g l ls ∧ MEM (FOLDR f l ls) (l::ls)
+Proof
+  rpt gen_tac
+  >> rpt disch_tac
+  >> irule FOLDR_DOMAIN_HELPER
+  >> rpt strip_tac >> gvs[]
+QED
+
+val FOLDR_DOMAIN_MEM = cj 1 FOLDR_DOMAIN_MEM_HELPER;
+        
 (* -------------------------------------------------------------------------- *)
 (* Main property we need to prove:                                            *)
 (*                                                                            *)
