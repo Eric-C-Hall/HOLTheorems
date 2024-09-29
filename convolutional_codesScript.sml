@@ -36,7 +36,7 @@ val _ = monadsyntax.enable_monad "option"
 (* "get_num_errors_calculate_slow". Similarly, if I type "vtn", my emcs will  *)
 (* automatically expand this out to "viterbi_trellis_node".                   *)
 (* -------------------------------------------------------------------------- *)
-                  
+                   
 (*
 
         TODO: Temporary place for donotexpand while asking about how to use it properly as a library
@@ -121,6 +121,42 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Probably not widely applicable enough to become a proper theorem           *)
+(* -------------------------------------------------------------------------- *)
+Theorem MEM_CONS_CONS:
+  ∀x l l' ls.
+  MEM x (l::l'::ls) ⇔ MEM x (l::ls) ∨ x = l'
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (gvs[]
+      >> rpt strip_tac >> gvs[])
+  >> rpt strip_tac >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Advice: are there previous theorems that effectively do this?              *)
+(* -------------------------------------------------------------------------- *)
+Theorem FOLDR_DOMAIN:
+  ∀f g l ls.
+  (∀x y l ls. MEM x (l::ls) ∧ MEM y (l::ls) ⇒ f x y = g x y ∧ MEM (f x y) (l::ls)) ⇒
+  FOLDR f l ls = FOLDR g l ls ∧ MEM (FOLDR f l ls) (l::ls)
+Proof
+  rpt gen_tac
+  >> Induct_on ‘ls’
+  >- gvs[]
+  >> MEM_DONOTEXPAND_TAC
+  >> rpt gen_tac
+  >> rpt disch_tac
+  >> last_x_assum drule
+  >> disch_tac
+  >> gvs[]
+  >> last_assum $ qspecl_then [‘h’, ‘FOLDR g l ls’, ‘l’, ‘h::ls’] irule
+  >> MEM_DOEXPAND_TAC
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Main property we need to prove:                                            *)
 (*                                                                            *)
 (* The Viterbi algorithm determines the maximum likelihood encoded sequence   *)
@@ -150,9 +186,8 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Is it really a good idea to assign ⊕ to add_noise instead of to bxor?     *)
 (* -------------------------------------------------------------------------- *)
-val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "add_noise",
-tok = "⊕"}
-         
+val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "add_noise", tok = "⊕"}
+
 Definition hamming_weight_def:
   hamming_weight [] = 0 ∧
   hamming_weight (b::bs) = (if b then 1 else 0) + hamming_weight bs
@@ -199,8 +234,8 @@ QED
 
 Theorem bitwise_cons:
   ∀f b bs c cs.
-    LENGTH bs = LENGTH cs ⇒
-    bitwise f (b::bs) (c::cs) = (f b c)::(bitwise f bs cs)
+  LENGTH bs = LENGTH cs ⇒
+  bitwise f (b::bs) (c::cs) = (f b c)::(bitwise f bs cs)
 Proof
   rpt strip_tac
   >> gvs[bitwise_def]
@@ -208,8 +243,8 @@ QED
 
 Theorem bxor_cons:
   ∀b bs c cs.
-    LENGTH bs = LENGTH cs ⇒
-    bxor (b::bs) (c::cs) = (b ⇎ c) :: bxor bs cs
+  LENGTH bs = LENGTH cs ⇒
+  bxor (b::bs) (c::cs) = (b ⇎ c) :: bxor bs cs
 Proof
   rpt strip_tac
   >> gvs[bxor_def]
@@ -237,8 +272,8 @@ val bury_assumption = pop_assum (fn th => reverse_assum_list >> assume_tac th >>
 
 Theorem bitwise_commutative:
   ∀f bs cs.
-    (∀b c. f b c = f c b) ⇒
-    bitwise f bs cs = bitwise f cs bs
+  (∀b c. f b c = f c b) ⇒
+  bitwise f bs cs = bitwise f cs bs
 Proof
   rpt strip_tac
   >> gvs[bitwise_def]
@@ -305,7 +340,7 @@ QED*)
 Datatype:
   (* Placeholder while waiting for better parity equation definition *)
   parity_equation = <| temp_p : bool list; |>;
-  
+
   (* Why doesn't the following work: *)
   (* parity_equation = bool list; *)
   (* parity_equation = (min$bool list$list); *)
@@ -490,6 +525,11 @@ Datatype:
   |>
 End
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: rename this as transition. It's better to think of this as a         *)
+(* transition, because the transition origin is exclusively the state and not *)
+(* the provided input. Then the transition function will take a transition    *)(* and return the destination state and output.                               *)
+(* -------------------------------------------------------------------------- *)
 Datatype:
   transition_origin = <|
     (* possibly rename this, because t.origin sounds like you're finding the
@@ -508,7 +548,7 @@ val transition_origin_component_equality = fetch "convolutional_codes" "transiti
 
 Theorem transition_origin_literal_components[simp]:
   ∀r.
-  <| origin := r.origin; input := r.input |> = r 
+  <| origin := r.origin; input := r.input |> = r
 Proof
   rpt strip_tac
   >> gvs[transition_origin_component_equality]
@@ -653,8 +693,8 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem wfmachine_vd_step_is_valid:
   ∀m.
-    wfmachine m ⇒
-    (∀n b. n < m.num_states ⇒ vd_step m b n < m.num_states)
+  wfmachine m ⇒
+  (∀n b. n < m.num_states ⇒ vd_step m b n < m.num_states)
 Proof
   PURE_REWRITE_TAC[wfmachine_def]
   >> rpt strip_tac
@@ -667,8 +707,8 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem wfmachine_every_state_has_prior_state:
   ∀m.
-    wfmachine m ⇒
-    (∀s. s < m.num_states ⇒ (∃s' b. s' < m.num_states ∧ vd_step m b s' = s))
+  wfmachine m ⇒
+  (∀s. s < m.num_states ⇒ (∃s' b. s' < m.num_states ∧ vd_step m b s' = s))
 Proof
   PURE_REWRITE_TAC[wfmachine_def]
   >> rpt strip_tac  
@@ -680,8 +720,8 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem wfmachine_transition_fn_from_state_injective:
   ∀m.
-    wfmachine m ⇒
-    (∀s. s < m.num_states ⇒ vd_step m T s ≠ vd_step m F s)
+  wfmachine m ⇒
+  (∀s. s < m.num_states ⇒ vd_step m T s ≠ vd_step m F s)
 Proof
   PURE_REWRITE_TAC[wfmachine_def]
   >> rpt strip_tac
@@ -693,8 +733,8 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem wfmachine_transition_fn_output_length:
   ∀m.
-    wfmachine m ⇒
-    (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
+  wfmachine m ⇒
+  (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
 Proof
   PURE_REWRITE_TAC[wfmachine_def]
   >> rpt strip_tac
@@ -706,8 +746,8 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem wfmachine_output_length_greater_than_zero:
   ∀m.
-    wfmachine m ⇒
-    0 < m.output_length
+  wfmachine m ⇒
+  0 < m.output_length
 Proof
   PURE_REWRITE_TAC[wfmachine_def]
   >> rpt strip_tac
@@ -1002,7 +1042,7 @@ QED
 
 Theorem all_transitions_helper_listtoset:
   ∀m b.
-    set (all_transitions_helper m b) = all_transitions_set_helper m b
+  set (all_transitions_helper m b) = all_transitions_set_helper m b
 Proof
   rpt strip_tac
   >> gvs[all_transitions_helper_def, all_transitions_set_helper_def]
@@ -1023,7 +1063,7 @@ QED
 
 Theorem all_transitions_listtoset:
   ∀m.
-    set (all_transitions m) = all_transitions_set m
+  set (all_transitions m) = all_transitions_set m
 Proof
   rpt strip_tac
   >> gvs[all_transitions_def, all_transitions_set_all_transitions_set_helper]
@@ -1130,7 +1170,6 @@ Proof
   >> gvs[CONS]
 QED
 
-
 (*Definition transition_inverse_set_def:
   transition_inverse_set (m : state_machine) =
   IMAGE 
@@ -1188,6 +1227,8 @@ End
 (*    origins are at the prior time-step to t.                                *)
 (* r: the choice of origin that we are returning the number of errors for if  *)
 (*    we were to pass through this transition.                                *)
+(*                                                                            *)
+(* Invalid at time-step 0 because there is no previous row in this case.      *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_calculate_def:
   get_num_errors_calculate m bs t previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
@@ -1287,9 +1328,23 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Calculate a node in the trellis for the fast version when the previous row *)
 (* is not available (by calculating all prior rows of the trellis)            *)
+(*                                                                            *)
+(* Defined in such a way as to be valid even at time-step 0, when there isn't *)
+(* a previous row present.                                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_node_no_prev_data_def:
   viterbi_trellis_node_no_prev_data m bs s t = EL s (viterbi_trellis_row m bs t)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Version of get_num_errors_calculate which works even if you do not provide *)
+(* it with the previous row of errors                                         *)
+(*                                                                            *)
+(* Invalid at time-step 0 because there is no previous row in this case.      *)
+(* -------------------------------------------------------------------------- *)
+Definition get_num_errors_calculate_no_prev_data_def:
+  get_num_errors_calculate_no_prev_data m bs 0 r = ARB ∧
+  get_num_errors_calculate_no_prev_data m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1303,7 +1358,7 @@ Definition viterbi_trellis_slow:
   get_num_errors_calculate_slow m bs 0 r = (if (vd_step_tran m r = 0) then N0 else INFINITY) ∧
   (get_num_errors_calculate_slow m bs (SUC t) r =
    (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)))
-   ) ∧ 
+  ) ∧ 
   (get_better_origin_slow m bs t r1 r2 =
    if (get_num_errors_calculate_slow m bs t r1) < (get_num_errors_calculate_slow m bs t r2) then r1 else r2) ∧
   (best_origin_slow m bs t s =
@@ -1344,7 +1399,7 @@ Termination
                              else
                                3 * (FST $ SND $ SND $ OUTR x') + 2
                       )’
-   >> gvs[]
+  >> gvs[]
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1431,7 +1486,7 @@ Theorem viterbi_trellis_node_slow_time_step_zero_test:
   ∀s.
   s < 4 ⇒
   viterbi_trellis_node_slow example_state_machine test_path s 0 =
-                     <| num_errors := if s = 0 then N0 else INFINITY; prev_state := NONE|>
+  <| num_errors := if s = 0 then N0 else INFINITY; prev_state := NONE|>
 Proof
   rpt strip_tac
   >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
@@ -1444,30 +1499,6 @@ Theorem viterbi_trellis_row_el:
   EL s (viterbi_trellis_row m bs (SUC t)) = viterbi_trellis_node m bs s (SUC t) (viterbi_trellis_row m bs t)
 Proof
   gvs[viterbi_trellis_row_def]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Test that the slow and fast versions of the function that calculates       *)
-(* errors in the trellis are equivalent for some simple examples.             *)
-(* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_calculate_slow_get_num_errors_calculate_test:
-  ∀t r.
-  t < 4 ∧
-  r.origin < 4 ⇒
-  get_num_errors_calculate_slow example_state_machine test_path (SUC t) r = get_num_errors_calculate example_state_machine test_path (SUC t) (viterbi_trellis_row example_state_machine test_path t) r
-Proof
-  rpt strip_tac
-  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’
-  (* This sequence of tactics will simultaneously prove all 16 proof
-     obligations *)
-  >> (gvs[]
-      >> qmatch_asmsub_abbrev_tac ‘r.origin = r_val’
-      >> Cases_on ‘r’
-      >> ‘n = r_val’ by gvs[]
-      >> unabbrev_all_tac
-      >> gvs[]
-      >> Cases_on ‘b’
-      >> EVAL_TAC)
 QED
 
 Theorem vd_step_tran_best_origin_slow[simp]:
@@ -1499,15 +1530,59 @@ Proof
   >> gvs[]
 QED
 
-Theorem get_num_errors_calculate_slow_get_num_errors_calculate:
+(* -------------------------------------------------------------------------- *)
+(* Test that the slow and fast versions of the function that calculates       *)
+(* errors in the trellis are equivalent for some simple examples.             *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_num_errors_calculate_slow_get_num_errors_calculate_test:
+  ∀t r.
+  t < 4 ∧
+  r.origin < 4 ⇒
+  get_num_errors_calculate_slow example_state_machine test_path (SUC t) r = get_num_errors_calculate example_state_machine test_path (SUC t) (viterbi_trellis_row example_state_machine test_path t) r
+Proof
+  rpt strip_tac
+  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’
+  (* This sequence of tactics will simultaneously prove all 16 proof
+     obligations *)
+  >> (gvs[]
+      >> qmatch_asmsub_abbrev_tac ‘r.origin = r_val’
+      >> Cases_on ‘r’
+      >> ‘n = r_val’ by gvs[]
+      >> unabbrev_all_tac
+      >> gvs[]
+      >> Cases_on ‘b’
+      >> EVAL_TAC)
+QED
+
+Theorem get_num_errors_calculate_slow_get_num_errors_calculate_no_prev_data_test:
+  ∀t r.
+  t < 3 ∧
+  r.origin < 4 ⇒
+  get_num_errors_calculate_slow example_state_machine test_path (SUC t) r = get_num_errors_calculate_no_prev_data example_state_machine test_path (SUC t) r
+Proof
+  rpt strip_tac
+  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’ >> gvs[]
+  (* This sequence of tactics will simultaneously prove all 12 proof
+     obligations *)
+  >> (qmatch_asmsub_abbrev_tac ‘r.origin = r_val’
+      >> Cases_on ‘r’
+      >> ‘n = r_val’ by gvs[]
+      >> unabbrev_all_tac
+      >> gvs[]
+      >> Cases_on ‘b’
+      >> EVAL_TAC)
+QED
+
+Theorem get_num_errors_calculate_slow_get_num_errors_calculate_no_prev_data:
   ∀m bs t r.
   wfmachine m ∧
   r.origin < m.num_states ⇒
-  get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
-Proof  
+  get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate_no_prev_data m bs (SUC t) r
+Proof
   gen_tac
   >> Induct_on ‘t’
-  >- (rpt strip_tac
+  >- (gvs[get_num_errors_calculate_no_prev_data_def]
+      >> rpt strip_tac
       (* expand stuff out *)
       >> gvs[]
       >> gvs[get_num_errors_calculate_slow_def, get_num_errors_calculate_def]
@@ -1517,15 +1592,82 @@ Proof
       >> REVERSE (Cases_on ‘r.origin’)
       >- (gvs[EL_REPLICATE]
           >> PURE_REWRITE_TAC [ONE]
-          >> gvs[get_num_errors_calculate_slow_def])
+          >> gvs[get_num_errors_calculate_slow_def]
+          >> gvs[EL_REPLICATE])
       >> gvs[]
       >> PURE_REWRITE_TAC[ONE]
-      >> gvs[get_num_errors_calculate_slow_def])
+      >> gvs[get_num_errors_calculate_slow_def]
+     )
+  (* Inductive step *)
   >> rpt strip_tac
+  (* Expand out the slow version so that all slow version functions are
+     calculated at a lower time-step, and all slow version funcctions are
+     get_num_errors_calculate_slow, so that we can use our inductive
+     hypothesis to translate to a statement entirely in terms of fast version
+     functions. *)
   >> PURE_ONCE_REWRITE_TAC[get_num_errors_calculate_slow_def]
-  >> gvs[get_num_errors_calculate_def]
-  >> last_x_assum $ qspecl_then [‘bs’, ‘best_origin_slow m bs (SUC t) r.origin’] assume_tac
-  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> gvs[best_origin_slow_def]
+  >> gvs[get_better_origin_slow_def]
+  (* translate the inner function so that it is written in terms of the fast
+        version. *)
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR f _ _’
+  (* ------------------------------------------------------------------------ *)
+  (* Are there nicer ways to deal with functions that are equal to each other *)
+  (* only on a specific domain?                                               *)
+  (* ------------------------------------------------------------------------ *)
+  >> sg ‘f = (λa' a. if (a.origin < m.num_states ∧ a'.origin < m.num_states) then (if get_num_errors_calculate_no_prev_data m bs (SUC t) a' < get_num_errors_calculate_no_prev_data m bs (SUC t) a then a' else a) else f a' a)’
+  >- (unabbrev_all_tac
+      >> irule EQ_EXT >> rpt strip_tac >> gvs[]
+      >> irule EQ_EXT >> rpt strip_tac >> gvs[]
+      >> qmatch_goalsub_abbrev_tac ‘_ = if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
+      >> last_assum $ qspecl_then [‘bs’, ‘x’] assume_tac
+      >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+     )
+  (* Replace the other slow function with a fast function, using the inductive
+     hypothesis. *)
+  >> last_assum $ (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> conj_tac
+  >- (qmatch_goalsub_abbrev_tac ‘FOLDR f tr trs’
+      >> sg ‘MEM (FOLDR f tr trs) (tr::trs)’
+      >- (irule FOLDR_BISWITCH
+          >> rpt strip_tac
+          >> unabbrev_all_tac
+          >> gvs[]
+          >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+          >> Cases_on ‘b’ >> gvs[])
+      >> sg ‘MEM (FOLDR f tr trs) (transition_inverse m r.origin)’
+      >- (‘tr::trs = transition_inverse m r.origin’ suffices_by (disch_tac >> metis_tac[])
+          >> unabbrev_all_tac
+          >> simp[transition_inverse_cons])
+      >> metis_tac[transition_inverse_mem_is_valid])
+  >> irule EQ_SYM
+  >> gvs[get_num_errors_calculate_no_prev_data_def]
+  >> simp[Once get_num_errors_calculate_def]
+  >> AP_THM_TAC
+  >> AP_TERM_TAC
+  >> gvs[viterbi_trellis_row_def]
+  >> gvs[viterbi_trellis_node_def]
+  >> AP_TERM_TAC
+  >> gvs[best_origin_def]
+  >> unabbrev_all_tac
+  >> gvs[]
+  >> irule FOLDR_DOMAIN
+  >> rpt strip_tac
+  >> pop_assum mp_tac >> DEP_PURE_ONCE_REWRITE_TAC[transition_inverse_cons]
+  >> conj_tac
+  >- gvs[]
+  >> disch_tac
+  >> gvs[]
+
+QED
+
+Theorem get_num_errors_calculate_slow_get_num_errors_calculate:
+  ∀m bs t r.
+  wfmachine m ∧
+  r.origin < m.num_states ⇒
+  get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
+Proof
 QED
 
 Theorem best_origin_slow_best_origin:
@@ -1535,9 +1677,9 @@ QED
 
 Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
   ∀m bs s t.
-           s < m.num_states ∧
-           0 < t ⇒
-           viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
+  s < m.num_states ∧
+  0 < t ⇒
+  viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
 Proof
   Induct_on ‘t’ >> gvs[]
   >> rpt strip_tac
@@ -1927,8 +2069,8 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_helper_append:
   ∀m bs cs s.
-    vd_encode_helper m (bs ⧺ cs) s =
-    vd_encode_helper m bs s ⧺ vd_encode_helper m cs (vd_encode_state_helper m bs s)          
+  vd_encode_helper m (bs ⧺ cs) s =
+  vd_encode_helper m bs s ⧺ vd_encode_helper m cs (vd_encode_state_helper m bs s)          
 Proof
   gen_tac
   >> Induct_on ‘bs’
@@ -1946,8 +2088,8 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_append:
   ∀m bs cs.
-    vd_encode m (bs ⧺ cs) =
-    (vd_encode m bs) ⧺ (vd_encode_helper m cs (vd_encode_state m bs))
+  vd_encode m (bs ⧺ cs) =
+  (vd_encode m bs) ⧺ (vd_encode_helper m cs (vd_encode_state m bs))
 Proof
   rpt strip_tac
   >> gvs[vd_encode_def, vd_encode_state_def]
@@ -1968,8 +2110,8 @@ QED
 
 Theorem hamming_distance_cons:
   ∀b bs c cs.
-    LENGTH bs = LENGTH cs ⇒
-    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
+  LENGTH bs = LENGTH cs ⇒
+  hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
 Proof
   rpt strip_tac
   >> gvs[hamming_distance_def]
@@ -1981,8 +2123,8 @@ QED
 
 Theorem hamming_distance_append_left:
   ∀bs cs ds.
-    LENGTH bs + LENGTH cs = LENGTH ds ⇒
-    hamming_distance (bs ⧺ cs) ds = hamming_distance bs (TAKE (LENGTH bs) ds) + hamming_distance cs (DROP (LENGTH bs) ds)
+  LENGTH bs + LENGTH cs = LENGTH ds ⇒
+  hamming_distance (bs ⧺ cs) ds = hamming_distance bs (TAKE (LENGTH bs) ds) + hamming_distance cs (DROP (LENGTH bs) ds)
 Proof
   Induct_on ‘ds’
   >- (Cases_on ‘bs’ >> Cases_on ‘cs’ >> gvs[])
@@ -1995,17 +2137,17 @@ QED
 
 Theorem hamming_distance_append_right:
   ∀bs cs ds.
-    LENGTH bs = LENGTH cs + LENGTH ds ⇒
-    hamming_distance bs (cs ⧺ ds) = hamming_distance (TAKE (LENGTH cs) bs) cs + hamming_distance (DROP (LENGTH cs) bs) ds
+  LENGTH bs = LENGTH cs + LENGTH ds ⇒
+  hamming_distance bs (cs ⧺ ds) = hamming_distance (TAKE (LENGTH cs) bs) cs + hamming_distance (DROP (LENGTH cs) bs) ds
 Proof
   metis_tac[hamming_distance_append_left, hamming_distance_symmetric]
 QED
 
 Theorem vd_step_output_length[simp]:
   ∀m b s.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    LENGTH (vd_step_output m b s) = m.output_length
+  wfmachine m ∧
+  s < m.num_states ⇒
+  LENGTH (vd_step_output m b s) = m.output_length
 Proof
   rpt strip_tac
   >> drule wfmachine_transition_fn_output_length
@@ -2015,9 +2157,9 @@ QED
 
 Theorem vd_encode_helper_length[simp]:
   ∀m bs s.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    LENGTH (vd_encode_helper m bs s) = m.output_length * LENGTH bs
+  wfmachine m ∧
+  s < m.num_states ⇒
+  LENGTH (vd_encode_helper m bs s) = m.output_length * LENGTH bs
 Proof
   gen_tac
   >> Induct_on ‘bs’
@@ -2039,8 +2181,8 @@ QED
 
 Theorem vd_encode_length[simp]:
   ∀m bs.
-    wfmachine m ⇒
-    LENGTH (vd_encode m bs) = m.output_length * LENGTH bs
+  wfmachine m ⇒
+  LENGTH (vd_encode m bs) = m.output_length * LENGTH bs
 Proof
   rpt strip_tac
   >> gvs[vd_encode_def]
@@ -2050,9 +2192,9 @@ QED
 
 Theorem vd_step_is_valid[simp]:
   ∀m b s.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    vd_step m b s < m.num_states
+  wfmachine m ∧
+  s < m.num_states ⇒
+  vd_step m b s < m.num_states
 Proof
   rpt strip_tac
   >> drule wfmachine_vd_step_is_valid
@@ -2062,9 +2204,9 @@ QED
 
 Theorem vd_encode_state_helper_is_valid[simp]:
   ∀m bs s.
-    wfmachine m ∧ 
-    s < m.num_states ⇒
-    vd_encode_state_helper m bs s < m.num_states
+  wfmachine m ∧ 
+  s < m.num_states ⇒
+  vd_encode_state_helper m bs s < m.num_states
 Proof
   gen_tac
   >> Induct_on ‘bs’
@@ -2078,8 +2220,8 @@ QED
 
 Theorem vd_encode_state_is_valid[simp]:
   ∀m bs.
-    wfmachine m ⇒
-    vd_encode_state m bs < m.num_states
+  wfmachine m ⇒
+  vd_encode_state m bs < m.num_states
 Proof
   rpt strip_tac
   >> gvs[vd_encode_state_def]
@@ -2088,10 +2230,10 @@ QED
 
 Theorem vd_step_output_output_length_0[simp]:
   ∀m b s.
-    wfmachine m ∧
-    s < m.num_states ∧
-    m.output_length = 0 ⇒
-    vd_step_output m b s = []
+  wfmachine m ∧
+  s < m.num_states ∧
+  m.output_length = 0 ⇒
+  vd_step_output m b s = []
 Proof
   rpt strip_tac
   >> drule wfmachine_transition_fn_output_length
@@ -2102,10 +2244,10 @@ QED
 
 Theorem vd_encode_helper_output_length_0[simp]:
   ∀m bs s.
-    wfmachine m ∧
-    s < m.num_states ∧
-    m.output_length = 0 ⇒
-    vd_encode_helper m bs s = []
+  wfmachine m ∧
+  s < m.num_states ∧
+  m.output_length = 0 ⇒
+  vd_encode_helper m bs s = []
 Proof
   gen_tac
   >> Induct_on ‘bs’ >> rpt strip_tac
@@ -2115,9 +2257,9 @@ QED
 
 Theorem vd_encode_output_length_0[simp]:
   ∀m bs s.
-    wfmachine m ∧
-    m.output_length = 0 ⇒
-    vd_encode m bs = []
+  wfmachine m ∧
+  m.output_length = 0 ⇒
+  vd_encode m bs = []
 Proof
   gvs[vd_encode_def]
   >> rpt strip_tac
@@ -2127,7 +2269,7 @@ QED
 
 Theorem path_to_code_length[simp]:
   ∀m ps.
-    LENGTH (path_to_code m ps) = LENGTH ps - 1
+  LENGTH (path_to_code m ps) = LENGTH ps - 1
 Proof
   rpt strip_tac
   >> Induct_on ‘ps’
@@ -2140,7 +2282,7 @@ QED
 
 Theorem all_transitions_helper_valid:
   ∀m b.
-    EVERY (λs2. s2.origin < m.num_states) (all_transitions_helper m b)
+  EVERY (λs2. s2.origin < m.num_states) (all_transitions_helper m b)
 Proof
   rpt strip_tac
   >> gvs[EVERY_EL]
@@ -2150,16 +2292,16 @@ QED
 
 Theorem all_transitions_valid:
   ∀m.
-    EVERY (λs2. s2.origin < m.num_states) (all_transitions m)
+  EVERY (λs2. s2.origin < m.num_states) (all_transitions m)
 Proof
- rpt strip_tac
- >> gvs[all_transitions_def]
- >> gvs[all_transitions_helper_valid]
+  rpt strip_tac
+  >> gvs[all_transitions_def]
+  >> gvs[all_transitions_helper_valid]
 QED
 
 Theorem transition_inverse_valid:
   ∀m s.
-    EVERY (λs2. s2.origin < m.num_states) (transition_inverse m s)
+  EVERY (λs2. s2.origin < m.num_states) (transition_inverse m s)
 Proof
   rpt strip_tac
   >> gvs[transition_inverse_def]
@@ -2169,7 +2311,7 @@ QED
 
 Theorem FILTER_EXISTS:
   ∀f bs.
-    FILTER f bs ≠ [] ⇔ EXISTS f bs
+  FILTER f bs ≠ [] ⇔ EXISTS f bs
 Proof
   rpt strip_tac 
   >> Induct_on ‘bs’
@@ -2181,7 +2323,7 @@ QED
 
 Theorem FILTER_EXISTS2:
   ∀f bs.
-    FILTER f bs = [] ⇔ ¬(EXISTS f bs)
+  FILTER f bs = [] ⇔ ¬(EXISTS f bs)
 Proof
   PURE_REWRITE_TAC[GSYM FILTER_EXISTS]
   >> gvs[]
@@ -2213,7 +2355,7 @@ QED*)
 (* -------------------------------------------------------------------------- *)
 Theorem get_better_origin_foldr_mem:
   ∀m bs t ps h ts.
-           MEM (FOLDR (get_better_origin m bs t ps) h ts) (h::ts)
+  MEM (FOLDR (get_better_origin m bs t ps) h ts) (h::ts)
 Proof
   rpt strip_tac
   >> irule FOLDR_BISWITCH
@@ -2226,9 +2368,9 @@ QED
 
 Theorem best_origin_is_valid:
   ∀m bs t ps s.
-           wfmachine m ∧
-           s < m.num_states ⇒
-           (best_origin m bs t ps s).origin < m.num_states
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (best_origin m bs t ps s).origin < m.num_states
 Proof
   rpt strip_tac
   >> gvs[best_origin_def]
@@ -2265,11 +2407,11 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_row_prev_state_valid[simp]:
   ∀m bs t s.
-    wfmachine m ∧
-    s < m.num_states ∧
-    0 < t ⇒
-    (EL s (viterbi_trellis_row m bs t)).prev_state ≠ NONE ∧
-    THE (EL s (viterbi_trellis_row m bs t)).prev_state < m.num_states
+  wfmachine m ∧
+  s < m.num_states ∧
+  0 < t ⇒
+  (EL s (viterbi_trellis_row m bs t)).prev_state ≠ NONE ∧
+  THE (EL s (viterbi_trellis_row m bs t)).prev_state < m.num_states
 Proof
   (* Handle proving that previous state is not NONE *)
   rpt strip_tac
@@ -2286,9 +2428,9 @@ QED
 
 Theorem vd_find_optimal_reversed_path_length[simp]:
   ∀m bs s t.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    LENGTH (vd_find_optimal_reversed_path m bs s t) = t + 1
+  wfmachine m ∧
+  s < m.num_states ⇒
+  LENGTH (vd_find_optimal_reversed_path m bs s t) = t + 1
 Proof
   (* Induct over t *)
   gen_tac
@@ -2317,16 +2459,16 @@ QED
 
 Theorem vd_find_optimal_path_length[simp]:
   ∀m bs s t.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    LENGTH (vd_find_optimal_path m bs s t) = t + 1
+  wfmachine m ∧
+  s < m.num_states ⇒
+  LENGTH (vd_find_optimal_path m bs s t) = t + 1
 Proof
   gvs[vd_find_optimal_path_def]
 QED
 
 Theorem get_better_final_state_foldr_mem:
   ∀rs h ts.
-    MEM (FOLDR (get_better_final_state rs) h ts) (h::ts)
+  MEM (FOLDR (get_better_final_state rs) h ts) (h::ts)
 Proof
   rpt strip_tac
   >> irule FOLDR_BISWITCH
@@ -2373,10 +2515,10 @@ QED
 
 Theorem vd_decode_length[simp]:
   ∀m bs.
-    wfmachine m ∧
-    divides (LENGTH bs) m.output_length ∧
-    m.output_length ≠ 0 ⇒
-    LENGTH (vd_decode m bs) = LENGTH bs DIV m.output_length
+  wfmachine m ∧
+  divides (LENGTH bs) m.output_length ∧
+  m.output_length ≠ 0 ⇒
+  LENGTH (vd_decode m bs) = LENGTH bs DIV m.output_length
 Proof
   (* Prepare for induction with a stride of the output length.
      Need to expand out the definition of divides, and then put
@@ -2394,7 +2536,7 @@ QED
 
 Theorem vd_find_optimal_path_suc:
   ∀m bs s t.
-    vd_find_optimal_path m bs s (SUC t) = SNOC s (vd_find_optimal_path m bs (vd_step_back m bs s (SUC t)) t)
+  vd_find_optimal_path m bs s (SUC t) = SNOC s (vd_find_optimal_path m bs (vd_step_back m bs s (SUC t)) t)
 Proof
   rpt strip_tac
   >> PURE_REWRITE_TAC[vd_find_optimal_path_def]
@@ -2405,8 +2547,8 @@ QED
 
 Theorem path_to_code_append:
   ∀m ss ss'.
-    ss ≠ [] ∧ ss' ≠ [] ⇒
-    path_to_code m (ss ⧺ ss') = path_to_code m ss ⧺ (states_to_transition_input m (LAST ss) (HD ss')) :: (path_to_code m ss')
+  ss ≠ [] ∧ ss' ≠ [] ⇒
+  path_to_code m (ss ⧺ ss') = path_to_code m ss ⧺ (states_to_transition_input m (LAST ss) (HD ss')) :: (path_to_code m ss')
 Proof
   gen_tac
   >> Induct_on ‘ss’ >> rpt strip_tac
@@ -2418,11 +2560,11 @@ Proof
       >> gvs[path_to_code_def])
   >> gvs[path_to_code_def]
 QED
-        
+
 Theorem path_to_code_snoc:
   ∀m s ss.
-    ss ≠ [] ⇒
-    path_to_code m (SNOC s ss) = SNOC (states_to_transition_input m (LAST ss) s) (path_to_code m ss)
+  ss ≠ [] ⇒
+  path_to_code m (SNOC s ss) = SNOC (states_to_transition_input m (LAST ss) s) (path_to_code m ss)
 Proof
   rpt strip_tac
   >> gvs[path_to_code_append]
@@ -2430,7 +2572,7 @@ QED
 
 Theorem vd_find_optimal_path_nonempty[simp]:
   ∀m bs s t.
-    vd_find_optimal_path m bs s t ≠ []
+  vd_find_optimal_path m bs s t ≠ []
 Proof
   rpt strip_tac
   >> gvs[vd_find_optimal_path_def]
@@ -2440,10 +2582,10 @@ QED
 
 Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
-    wfmachine m ∧
-    s < m.num_states ∧
-    0 < t ⇒
-    vd_step_back m bs s t < m.num_states
+  wfmachine m ∧
+  s < m.num_states ∧
+  0 < t ⇒
+  vd_step_back m bs s t < m.num_states
 Proof
   rpt strip_tac
   >> gvs[vd_step_back_def]
@@ -2452,9 +2594,9 @@ QED
 
 Theorem vd_step_record_length[simp]:
   ∀m b s.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    LENGTH ((vd_step_record m b s).output) = m.output_length
+  wfmachine m ∧
+  s < m.num_states ⇒
+  LENGTH ((vd_step_record m b s).output) = m.output_length
 Proof
   rpt strip_tac
   >> drule wfmachine_transition_fn_output_length
@@ -2464,16 +2606,16 @@ QED
 
 Theorem vd_step_output_length[simp]:
   ∀m b s.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    LENGTH (vd_step_output m b s) = m.output_length
+  wfmachine m ∧
+  s < m.num_states ⇒
+  LENGTH (vd_step_output m b s) = m.output_length
 Proof
   gvs[vd_step_record_length, vd_step_output_def]
 QED
 
 Theorem length_suc_nonempty[simp]:
   ∀ls n.
-    LENGTH ls = SUC n ⇒ ls ≠ []
+  LENGTH ls = SUC n ⇒ ls ≠ []
 Proof
   Cases_on ‘ls’ >> gvs[]  
 QED
@@ -2495,7 +2637,7 @@ End
 
 Theorem code_to_path_helper_hd:
   ∀m bs s.
-    HD (code_to_path_helper m bs s) = s
+  HD (code_to_path_helper m bs s) = s
 Proof
   Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
@@ -2505,14 +2647,14 @@ QED
 
 Theorem code_to_path_hd:
   ∀m bs.
-    HD (code_to_path m bs) = 0
+  HD (code_to_path m bs) = 0
 Proof
   gvs[code_to_path_helper_hd, code_to_path_def]
 QED
 
 Theorem code_to_path_helper_null[simp]:
   ∀m bs s.
-    ¬NULL (code_to_path_helper m bs s)
+  ¬NULL (code_to_path_helper m bs s)
 Proof
   rpt strip_tac
   >> Cases_on ‘bs’
@@ -2521,14 +2663,14 @@ QED
 
 Theorem code_to_path_null[simp]:
   ∀m bs.
-    ¬NULL (code_to_path m bs)
+  ¬NULL (code_to_path m bs)
 Proof
   gvs[code_to_path_def, code_to_path_helper_null]
 QED
 
 Theorem code_to_path_helper_nonempty[simp]:
   ∀m bs s.
-    code_to_path_helper m bs s ≠ []
+  code_to_path_helper m bs s ≠ []
 Proof
   rpt strip_tac
   >> gvs[GSYM NULL_EQ, code_to_path_helper_null]
@@ -2536,14 +2678,14 @@ QED
 
 Theorem code_to_path_nonempty[simp]:
   ∀m bs.
-    code_to_path m bs ≠ []
+  code_to_path m bs ≠ []
 Proof
   gvs[code_to_path_helper_nonempty, code_to_path_def]
 QED
 
 Theorem code_to_path_helper_append:
   ∀m bs cs s.
-    code_to_path_helper m (bs ⧺ cs) s = (code_to_path_helper m bs s) ⧺ (TL (code_to_path_helper m cs (vd_encode_state_helper m bs s)))
+  code_to_path_helper m (bs ⧺ cs) s = (code_to_path_helper m bs s) ⧺ (TL (code_to_path_helper m cs (vd_encode_state_helper m bs s)))
 Proof
   Induct_on ‘bs’
   >- (EVAL_TAC
@@ -2562,7 +2704,7 @@ QED
 
 Theorem code_to_path_helper_snoc:
   ∀m b bs s.
-    code_to_path_helper m (SNOC b bs) s = SNOC (vd_step m b (vd_encode_state_helper m bs s)) (code_to_path_helper m bs s)
+  code_to_path_helper m (SNOC b bs) s = SNOC (vd_step m b (vd_encode_state_helper m bs s)) (code_to_path_helper m bs s)
 Proof
   rpt strip_tac
   >> gvs[SNOC]
@@ -2572,7 +2714,7 @@ QED
 
 Theorem code_to_path_append:
   ∀m bs cs.
-    code_to_path m (bs ⧺ cs) = (code_to_path m bs) ⧺ (TL (code_to_path_helper m cs (vd_encode_state m bs)))
+  code_to_path m (bs ⧺ cs) = (code_to_path m bs) ⧺ (TL (code_to_path_helper m cs (vd_encode_state m bs)))
 Proof
   rpt strip_tac
   >> gvs[code_to_path_def, code_to_path_helper_append, vd_encode_state_def]
@@ -2580,7 +2722,7 @@ QED
 
 Theorem code_to_path_snoc:
   ∀m b bs.
-    code_to_path m (SNOC b bs) = SNOC (vd_step m b (vd_encode_state m bs)) (code_to_path m bs)
+  code_to_path m (SNOC b bs) = SNOC (vd_step m b (vd_encode_state m bs)) (code_to_path m bs)
 Proof
   rpt strip_tac
   >> PURE_REWRITE_TAC[code_to_path_def]
@@ -2591,7 +2733,7 @@ QED
 
 Theorem code_to_path_helper_last:
   ∀m bs s.
-    LAST (code_to_path_helper m bs s) = (vd_encode_state_helper m bs s)
+  LAST (code_to_path_helper m bs s) = (vd_encode_state_helper m bs s)
 Proof
   Induct_on ‘bs’ >> rpt strip_tac
   >- EVAL_TAC
@@ -2604,16 +2746,16 @@ QED
 
 Theorem code_to_path_last:
   ∀m bs.
-    LAST (code_to_path m bs) = (vd_encode_state m bs)
+  LAST (code_to_path m bs) = (vd_encode_state m bs)
 Proof
   gvs[code_to_path_helper_last, code_to_path_def, vd_encode_state_def]
 QED
 
 Theorem states_to_transition_input_vd_step:
   ∀m b s.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    states_to_transition_input m s (vd_step m b s) = b
+  wfmachine m ∧
+  s < m.num_states ⇒
+  states_to_transition_input m s (vd_step m b s) = b
 Proof
   rpt strip_tac
   >> Cases_on ‘b’ >> EVAL_TAC
@@ -2624,8 +2766,8 @@ QED
 
 Theorem path_to_code_code_to_path:
   ∀m bs.
-    wfmachine m ⇒
-    path_to_code m (code_to_path m bs) = bs
+  wfmachine m ⇒
+  path_to_code m (code_to_path m bs) = bs
 Proof
   rpt strip_tac
   >> Induct_on ‘bs’ using SNOC_INDUCT
@@ -2658,7 +2800,7 @@ End
 
 Theorem path_is_valid_nonempty:
   ∀m ps.
-    path_is_valid m ps ⇒ ps ≠ []
+  path_is_valid m ps ⇒ ps ≠ []
 Proof
   rpt strip_tac
   >> gvs[path_is_valid_def]
@@ -2666,7 +2808,7 @@ QED
 
 Theorem not_path_is_valid_empty[simp]:
   ∀m ps.
-    ¬path_is_valid m []
+  ¬path_is_valid m []
 Proof
   gvs[path_is_valid_def]
 QED
@@ -2701,7 +2843,7 @@ QED
 
 Theorem path_is_valid_first_two_elements:
   ∀m h h' t.
-    path_is_valid m (h::h'::t) ⇒ ∃b. vd_step m b h = h'
+  path_is_valid m (h::h'::t) ⇒ ∃b. vd_step m b h = h'
 Proof
   rpt strip_tac
   >> gvs[path_is_valid_def]
@@ -2748,8 +2890,8 @@ QED*)
 
 Theorem path_is_connected_cons1:
   ∀m h t.
-    path_is_connected m (h::t) ⇒
-    path_is_connected m t
+  path_is_connected m (h::t) ⇒
+  path_is_connected m t
 Proof
   rpt strip_tac
   >> Induct_on ‘t’ >> gvs[path_is_connected_def]
@@ -2758,7 +2900,7 @@ QED
 
 Theorem path_is_connected_append1:
   ∀m p1 p2.
-    path_is_connected m (p1 ⧺ p2) ⇒ path_is_connected m p1 ∧ path_is_connected m p2
+  path_is_connected m (p1 ⧺ p2) ⇒ path_is_connected m p1 ∧ path_is_connected m p2
 Proof
   rpt strip_tac
   >- (Induct_on ‘p1’
@@ -2776,7 +2918,7 @@ QED
 
 Theorem path_is_connected_snoc1:
   ∀m p ps.
-    path_is_connected m (SNOC p ps) ⇒ path_is_connected m ps
+  path_is_connected m (SNOC p ps) ⇒ path_is_connected m ps
 Proof
   rpt strip_tac
   >> Induct_on ‘ps’
@@ -2787,9 +2929,9 @@ QED
 
 Theorem code_to_path_helper_path_to_code:
   ∀m ps.
-    ps ≠ [] ∧
-    path_is_connected m ps ⇒
-    code_to_path_helper m (path_to_code m ps) (HD ps) = ps
+  ps ≠ [] ∧
+  path_is_connected m ps ⇒
+  code_to_path_helper m (path_to_code m ps) (HD ps) = ps
 Proof
   rpt strip_tac
   >> Induct_on ‘ps’
@@ -2811,17 +2953,17 @@ QED
 
 Theorem code_to_path_path_to_code:
   ∀m ps.
-    ps ≠ [] ∧
-    HD ps = 0 ∧
-    path_is_connected m ps ⇒
-    code_to_path m (path_to_code m ps) = ps
+  ps ≠ [] ∧
+  HD ps = 0 ∧
+  path_is_connected m ps ⇒
+  code_to_path m (path_to_code m ps) = ps
 Proof
   metis_tac[code_to_path_def, code_to_path_helper_path_to_code]
 QED
 
 Theorem vd_encode_state_helper_snoc:
   ∀m b bs s.
-    vd_encode_state_helper m (SNOC b bs) s = vd_step m b (vd_encode_state_helper m bs s)
+  vd_encode_state_helper m (SNOC b bs) s = vd_step m b (vd_encode_state_helper m bs s)
 Proof
   Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
@@ -2832,15 +2974,15 @@ QED
 
 Theorem vd_encode_state_snoc:
   ∀m b bs.
-    vd_encode_state m (SNOC b bs) = vd_step m b (vd_encode_state m bs)
+  vd_encode_state m (SNOC b bs) = vd_step m b (vd_encode_state m bs)
 Proof
   gvs[vd_encode_state_def, vd_encode_state_helper_snoc]
 QED
 
 Theorem code_to_path_helper_vd_can_step_cons:
   ∀m bs p p' ps s.
-    code_to_path_helper m bs s = p::p'::ps ⇒
-    vd_can_step m p p'
+  code_to_path_helper m bs s = p::p'::ps ⇒
+  vd_can_step m p p'
 Proof
   rpt strip_tac
   >> Cases_on ‘bs’
@@ -2859,8 +3001,8 @@ QED
 
 Theorem code_to_path_helper_vd_can_step:
   ∀m bs p p' ps ps' s.
-    code_to_path_helper m bs s = (ps ⧺ [p; p'] ⧺ ps') ⇒
-    vd_can_step m p p'
+  code_to_path_helper m bs s = (ps ⧺ [p; p'] ⧺ ps') ⇒
+  vd_can_step m p p'
 Proof
   Induct_on ‘ps’
   >- (rpt strip_tac
@@ -2881,8 +3023,8 @@ QED
 
 Theorem code_to_path_helper_vd_can_step_snoc:
   ∀m bs p p' ps s.
-    code_to_path_helper m bs s  = SNOC p' (SNOC p ps) ⇒
-    vd_can_step m p p'
+  code_to_path_helper m bs s  = SNOC p' (SNOC p ps) ⇒
+  vd_can_step m p p'
 Proof
   rpt strip_tac
   >> irule code_to_path_helper_vd_can_step
@@ -2892,31 +3034,31 @@ QED
 
 Theorem code_to_path_vd_can_step_cons:
   ∀m bs p p' ps.
-    code_to_path m bs = p::p'::ps ⇒
-    vd_can_step m p p'
+  code_to_path m bs = p::p'::ps ⇒
+  vd_can_step m p p'
 Proof
   metis_tac[code_to_path_def, code_to_path_helper_vd_can_step_cons]
 QED
 
 Theorem code_to_path_vd_can_step:
   ∀m bs p p' ps ps'.
-    code_to_path m bs = (ps ⧺ [p; p'] ⧺ ps') ⇒
-    vd_can_step m p p'
+  code_to_path m bs = (ps ⧺ [p; p'] ⧺ ps') ⇒
+  vd_can_step m p p'
 Proof
   metis_tac[code_to_path_def, code_to_path_helper_vd_can_step]
 QED
 
 Theorem code_to_path_vd_can_step_snoc:
   ∀m bs p p' ps.
-    code_to_path m bs = SNOC p' (SNOC p ps) ⇒
-    vd_can_step m p p'
+  code_to_path m bs = SNOC p' (SNOC p ps) ⇒
+  vd_can_step m p p'
 Proof
   metis_tac[code_to_path_def, code_to_path_helper_vd_can_step_snoc]
 QED
 
 Theorem vd_can_step_vd_step[simp]:
   ∀m b s.
-    vd_can_step m s (vd_step m b s)
+  vd_can_step m s (vd_step m b s)
 Proof
   rpt strip_tac
   >> gvs[vd_can_step_def]
@@ -2930,12 +3072,12 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem path_is_connected_append:
   ∀m p p' ps ps'.
-    path_is_connected m (ps ⧺ [p; p'] ⧺ ps') ⇔
-      path_is_connected m ps ∧
-      path_is_connected m ps' ∧
-      vd_can_step m p p' ∧
-      (ps = [] ∨ vd_can_step m (LAST ps) p) ∧
-      (ps' = [] ∨ vd_can_step m p' (HD ps'))
+  path_is_connected m (ps ⧺ [p; p'] ⧺ ps') ⇔
+    path_is_connected m ps ∧
+    path_is_connected m ps' ∧
+    vd_can_step m p p' ∧
+    (ps = [] ∨ vd_can_step m (LAST ps) p) ∧
+    (ps' = [] ∨ vd_can_step m p' (HD ps'))
 Proof
   rpt strip_tac
   >> Induct_on ‘ps’ >> gvs[path_is_connected_def]
@@ -2961,7 +3103,7 @@ QED
 
 Theorem path_is_connected_snoc:
   ∀m p p' ps.
-    path_is_connected m (SNOC p' (SNOC p ps)) ⇔ vd_can_step m p p' ∧ path_is_connected m (SNOC p ps)
+  path_is_connected m (SNOC p' (SNOC p ps)) ⇔ vd_can_step m p p' ∧ path_is_connected m (SNOC p ps)
 Proof
   rpt strip_tac
   >> EQ_TAC
@@ -2984,7 +3126,7 @@ QED
 
 Theorem path_is_connected_cons:
   ∀m p p' ps.
-    path_is_connected m (p::p'::ps) ⇔ vd_can_step m p p' ∧ path_is_connected m (p'::ps)
+  path_is_connected m (p::p'::ps) ⇔ vd_can_step m p p' ∧ path_is_connected m (p'::ps)
 Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘p’, ‘p'’, ‘[]’, ‘ps’] assume_tac path_is_connected_append
@@ -2993,7 +3135,7 @@ QED
 
 Theorem HD_SNOC:
   ∀l ls.
-    HD (SNOC l ls) = if ls = [] then l else HD ls
+  HD (SNOC l ls) = if ls = [] then l else HD ls
 Proof
   rpt strip_tac
   >> Cases_on ‘ls’ >> gvs[]
@@ -3001,7 +3143,7 @@ QED
 
 Theorem path_is_connected_code_to_path_helper:
   ∀m bs s.
-    path_is_connected m (code_to_path_helper m bs s)
+  path_is_connected m (code_to_path_helper m bs s)
 Proof
   Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
@@ -3018,7 +3160,7 @@ QED
 
 Theorem path_is_valid_from_state_path_is_connected:
   ∀m ps s.
-    path_is_valid_from_state m ps s ⇔ path_is_connected m ps ∧ ps ≠ [] ∧ HD ps = s
+  path_is_valid_from_state m ps s ⇔ path_is_connected m ps ∧ ps ≠ [] ∧ HD ps = s
 Proof
   rpt strip_tac
   >> EQ_TAC
@@ -3055,7 +3197,7 @@ QED
 
 Theorem path_is_valid_path_is_valid_from_state:
   ∀m ps.
-    path_is_valid m ps ⇔ path_is_valid_from_state m ps 0
+  path_is_valid m ps ⇔ path_is_valid_from_state m ps 0
 Proof
   rpt strip_tac
   >> gvs[path_is_valid_def, path_is_valid_from_state_def, code_to_path_def]
@@ -3063,14 +3205,14 @@ QED
 
 Theorem path_is_valid_path_is_connected:
   ∀m ps.
-    path_is_valid m ps ⇔ path_is_connected m ps ∧ ps ≠ [] ∧ HD ps = 0
+  path_is_valid m ps ⇔ path_is_connected m ps ∧ ps ≠ [] ∧ HD ps = 0
 Proof
   gvs[path_is_valid_path_is_valid_from_state, path_is_valid_from_state_path_is_connected]
 QED
 
 Theorem path_is_valid_snoc:
   ∀m p ps.
-    path_is_valid m (SNOC p ps) ⇔ (SNOC p ps = [0]) ∨ (vd_can_step m (LAST ps) p ∧ path_is_valid m ps)
+  path_is_valid m (SNOC p ps) ⇔ (SNOC p ps = [0]) ∨ (vd_can_step m (LAST ps) p ∧ path_is_valid m ps)
 Proof
   rpt strip_tac
   >> gvs[path_is_valid_path_is_connected]
@@ -3086,7 +3228,7 @@ QED
 
 Theorem path_is_valid_cons:
   ∀m p ps.
-    path_is_valid m (p::ps) ⇔ (p::ps = [0] ∨ (p = 0 ∧ vd_can_step m p (HD ps) ∧ path_is_connected m ps))
+  path_is_valid m (p::ps) ⇔ (p::ps = [0] ∨ (p = 0 ∧ vd_can_step m p (HD ps) ∧ path_is_connected m ps))
 Proof
   rpt strip_tac
   >> gvs[path_is_valid_path_is_connected]
@@ -3101,14 +3243,14 @@ QED
 
 Theorem path_is_connected_code_to_path:
   ∀m bs s.
-    path_is_connected m (code_to_path m bs)
+  path_is_connected m (code_to_path m bs)
 Proof
   gvs[path_is_connected_code_to_path_helper, code_to_path_def]
 QED
 
 Theorem path_is_valid_code_to_path:
   ∀m bs.
-    path_is_valid m (code_to_path m bs)
+  path_is_valid m (code_to_path m bs)
 Proof
   rpt strip_tac
   >> gvs[path_is_valid_path_is_connected]
@@ -3118,15 +3260,15 @@ QED
 
 Theorem path_is_valid_or_empty_code_to_path:
   ∀m bs.
-    path_is_valid_or_empty m (code_to_path m bs)
+  path_is_valid_or_empty m (code_to_path m bs)
 Proof
   gvs[path_is_valid_or_empty_def, path_is_valid_code_to_path]
 QED
 
 Theorem states_to_transition_input_vd_encode_state_snoc:
   ∀m b bs.
-    wfmachine m ⇒
-    states_to_transition_input m (vd_encode_state m bs) (vd_encode_state m (SNOC b bs)) = b
+  wfmachine m ⇒
+  states_to_transition_input m (vd_encode_state m bs) (vd_encode_state m (SNOC b bs)) = b
 Proof
   rpt strip_tac
   >> gvs[vd_encode_state_snoc]
@@ -3135,10 +3277,10 @@ QED
 
 Theorem vd_encode_state_helper_path_to_code:
   ∀m ps s.
-    ps ≠ [] ∧
-    HD ps = s ∧
-    path_is_connected m ps ⇒
-    vd_encode_state_helper m (path_to_code m ps) s = LAST ps
+  ps ≠ [] ∧
+  HD ps = s ∧
+  path_is_connected m ps ⇒
+  vd_encode_state_helper m (path_to_code m ps) s = LAST ps
 Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘ps’] assume_tac code_to_path_helper_path_to_code
@@ -3149,9 +3291,9 @@ QED
 
 Theorem vd_encode_state_path_to_code:
   ∀m ps.
-    ps ≠ [] ∧
-    path_is_valid m ps ⇒
-    vd_encode_state m (path_to_code m ps) = LAST ps
+  ps ≠ [] ∧
+  path_is_valid m ps ⇒
+  vd_encode_state m (path_to_code m ps) = LAST ps
 Proof
   rpt strip_tac 
   >> gvs[vd_encode_state_def]
@@ -3244,12 +3386,12 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_correctness_general:
   ∀m bs rs s t.
-    wfmachine m ∧
-    s < m.num_states ∧
-    LENGTH bs = t ∧
-    LENGTH rs = m.output_length * t ∧
-    vd_encode_state m bs = s ⇒
-    get_num_errors m rs (vd_find_optimal_code m rs s t) ≤ get_num_errors m rs bs
+  wfmachine m ∧
+  s < m.num_states ∧
+  LENGTH bs = t ∧
+  LENGTH rs = m.output_length * t ∧
+  vd_encode_state m bs = s ⇒
+  get_num_errors m rs (vd_find_optimal_code m rs s t) ≤ get_num_errors m rs bs
 Proof
   (* Complete base case and simplify *)
   gen_tac
@@ -3348,9 +3490,9 @@ Proof
     The hamming distance to s via the optimal path to s' is less than or equal to the hamming distance to s via any other path.
  *)*)
 
-                               (* ---- *)
-                               
-                               
+  (* ---- *)
+  
+  
 (*(* Complete base case and simplify *)
   gen_tac
   >> Induct_on ‘t’
@@ -3412,16 +3554,16 @@ Proof
  *)
   >> gvs[Abbr ‘g’]
   >> gvs[get_better_origin_def] get_num_errors_calculate_def*)
-                                   
-                                   
+  
+  
 QED
 
 Theorem viterbi_correctness:
   ∀m : state_machine.
-       ∀bs rs : bool list.
-       wfmachine m ∧
-       LENGTH rs = m.output_length * LENGTH bs ⇒
-       get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
+  ∀bs rs : bool list.
+  wfmachine m ∧
+  LENGTH rs = m.output_length * LENGTH bs ⇒
+  get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
