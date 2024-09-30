@@ -3550,120 +3550,24 @@ Proof
   >> gvs[]
   >> conj_tac
   >- (Cases_on ‘bs’ >> gvs[code_to_path_def, code_to_path_helper_def])
-  >> gvs[vd_encode_append]
-  >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
-  >> gvs[vd_encode_length]
-  >> conj_tac
-  >- (DEP_PURE_ONCE_REWRITE_TAC[vd_find_optimal_path_length]
-      >> gvs[]
-      >> conj_tac
-      >- (gvs[Abbr ‘s'’]
-          >> gvs[best_origin_is_valid]
-         )
-      >> gvs[FRONT_LENGTH]
-      >> gvs[code_to_path_length]
-      >> gvs[ADD1])
-  >> DEP_PURE_ONCE_REWRITE_TAC[vd_find_optimal_path_length]
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
   >> gvs[]
   >> conj_tac
-  >- gvs[Abbr ‘s'’, best_origin_is_valid]
-  >> gvs[FRONT_LENGTH]
-  >> gvs[code_to_path_length]
-  >> gvs[ADD1]
+  >- gvs[ADD1]
+  (* Split the RHS appended paths apart *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
+  >> gvs[]
+  >> gvs[LENGTH_FRONT]
   >> gvs[PRE_SUB1]
+  >> gvs[ADD1]
+  >> gvs[code_to_path_length]
+  (* Give the components names. *)
   >> qmatch_goalsub_abbrev_tac ‘DROP n’
-  >> qmatch_goalsub_abbrev_tac ‘d1 + d2 ≤ d3 + d4’
-  (* The optimal path to s' is certainly better than any other path to s', but
-     is it better than any other path to another state in the same timestep?
-     Not necessarily, because it's only chosen such that the addition with the
-     current transition is optimal.
-.
-     Should probably aim to get the goal in the same form that best_origin
-     or get_num_errors_calculate uses.
-   *)
-  >> 
-  get_num_errors_calculate_def get_better_origin_def best_origin_def transition_inverse_def
-  >> 
-
-
-
-(*(* Assumptions:
-   - The distance to s' amongst all paths leading to s' is optimal.
-   - The choice of s' is such that amongst all choices of s', this will
-     minimize the total obtained by adding together the number of errors
-     obtained in the optimal path to this choice of s' to the number of errors
-     obtained by applying the transition from this state to the final state.
-    (see get_better_origin_def, get_num_errors_calculate_def)
-.
-    Desired Conclusion:
-    The hamming distance to s via the optimal path to s' is less than or equal to the hamming distance to s via any other path.
- *)*)
-
-  (* ---- *)
-
-
-(*(* Complete base case and simplify *)
-  gen_tac
-  >> Induct_on ‘t’
-  >- gvs[]
-  >> rpt strip_tac
-  >> donotexpand_tac
-  >> gvs[]
-  (* Expand out relevant definitions. *)
-  (* These are some of the relevant definitions
-     - vd_find_optimal_path_def
-     - vd_find_optimal_reversed_path_def
-     - vd_step_back_def
-     - viterbi_trellis_row_def
-     - viterbi_trellis_node_def
-     - get_better_origin_def
-     - get_num_errors_calculate_def *)
-  >> gvs[vd_find_optimal_path_def]
-  >> gvs[vd_find_optimal_reversed_path_def]
-  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path _ _ s' _’
-  >> gvs[vd_step_back_def]
-  >> gvs[viterbi_trellis_row_def]
-  >> gvs[viterbi_trellis_node_def]
-  >> qmatch_asmsub_abbrev_tac ‘get_better_origin _ bs' prev_row’
-  >> gvs[GSYM vd_find_optimal_path_def]
-  (* For any choice of bs, the encoding of m bs will be some path which
-     eventually reaches s. Thus, we can decompose it into ... s'' s.
-     The choice of s' was such that it minimizes the number of errors to
-     get to the previous state plus the number of errors in the transition
-     between s' and s. This is equal to the hamming distance from the
-     relevant parts of rs to ... s'' plus the hamming distance from the
-     relevant parts of rs to s'' s.*)
-  >> qspecl_then [‘m’, ‘bs’] assume_tac path_to_code_code_to_path
-  >> gvs[]
-  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
-  >> qspecl_then [‘code_to_path m bs’] assume_tac SNOC_LAST_FRONT
-  >> Cases_on ‘code_to_path m bs = []’
-  >- gvs[]
-  >> gvs[]
-  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
-  >> gvs[code_to_path_last]
-  >> doexpand_tac
-  >> first_assum (fn th => PURE_REWRITE_TAC[th])
-  >> donotexpand_tac
-  (* Now we see a clear parallel between the things we are comparing. Lets
-     rename them to make this parallel clearer. *)
-  >> qmatch_goalsub_abbrev_tac ‘f (f' (f'' a)) ≤ f (f' (f'' b))’
-  >> ‘(f ∘ f' ∘ f'') a ≤ (f ∘ f' ∘ f'') b’ suffices_by gvs[]
-  >> qmatch_goalsub_abbrev_tac ‘g a ≤ g b’
-  >> gvs[Abbr ‘f’, Abbr ‘f'’, Abbr ‘f''’, Abbr ‘a’, Abbr ‘b’]
-  (* s' is the choice of best origin to travel to the best ending state
-     Therefore, the total distance is less than or equal to any distance
-     consisting of a
-
-     Specifically, it is the choice which minimizes (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn s).output relevant_input)
-
-  In particular, g applied to the last part of each path corresponds to the hamming
-  distance of the result of the transition function compared to the relevant input, and 
-
- *)
-  >> gvs[Abbr ‘g’]
-  >> gvs[get_better_origin_def] get_num_errors_calculate_def*)
-
+  >> qmatch_goalsub_abbrev_tac ‘lInd + lStep ≤ rInd + rStep’
+  (* lInd + lStep is necessarily better than rInd + rStep, but it is not
+     necessarily the case that lInd is better than rInd, nor that lStep
+     is better than rStep, because s' is chosen to minimize the total sum
+     rather than either individual component. *)
 
 QED
 
