@@ -1674,21 +1674,31 @@ Proof
   >> gvs[best_origin_def]
   >> unabbrev_all_tac
   >> gvs[]
-  >> irule FOLDR_DOMAIN
-  >> rpt strip_tac
-  >> pop_assum mp_tac >> DEP_PURE_ONCE_REWRITE_TAC[transition_inverse_cons]
-  >> conj_tac
-  >- gvs[]
-  >> disch_tac
+  >> irule FOLDR_DOMAIN_MEM
+  >> rpt gen_tac
+  >> MEM_DONOTEXPAND_TAC
   >> gvs[]
-
+  >> REVERSE conj_tac
+  >- (gvs[get_better_origin_def]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
+     )
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+  >> sg ‘b’
+  >- (unabbrev_all_tac
+      >> MEM_DOEXPAND_TAC
+      >> metis_tac[transition_inverse_mem_is_valid]
+     )
+  >> gvs[]
+  >> gvs[get_better_origin_def]
 QED
 
 Theorem get_num_errors_calculate_slow_get_num_errors_calculate:
   ∀m bs t r.
-  wfmachine m ∧
-  r.origin < m.num_states ⇒
-  get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
+       wfmachine m ∧
+       r.origin < m.num_states ⇒
+       get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
 Proof
 QED
 
