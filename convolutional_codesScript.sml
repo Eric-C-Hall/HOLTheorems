@@ -913,6 +913,15 @@ Definition vd_encode_state_def:
   vd_encode_state (m : state_machine) bs = vd_encode_state_helper m bs 0
 End
 
+
+(* -------------------------------------------------------------------------- *)
+(* Returns true if it is possible to reach the state s at time t when         *)
+(* starting at 0.                                                             *)
+(* -------------------------------------------------------------------------- *)
+Definition is_reachable_def:
+  is_reachable m s t = ∃bs. (LENGTH bs = t ∧ vd_encode_state m bs = s)
+End
+
 (* -------------------------------------------------------------------------- *)
 (* This num state machine corresponds to the convolutional code which has a   *)
 (* window size of 3, and creates two parity bits, the first of which is       *)
@@ -1479,7 +1488,7 @@ Proof
   >> gvs[]
 QED
 
-Theorem best_origin_slow_is_valid:
+Theorem best_origin_slow_is_valid[simp]:
   ∀m bs t s.
   wfmachine m ∧
   s < m.num_states ⇒
@@ -1498,7 +1507,7 @@ Definition viterbi_trellis_node_slow_def:
     <| num_errors := get_num_errors_calculate_slow m bs t best_origin_local;
        prev_state := if (t = 0) then NONE else SOME best_origin_local.origin; |>
 End  
-
+     
 (* -------------------------------------------------------------------------- *)
 (* Test equivalance of slow version of trellis calculation with fast version  *)
 (* for some small values of s and t, through evaluation.                      *)
@@ -1662,21 +1671,21 @@ Proof
      )
   (* Replace the other slow function with a fast function, using the inductive
      hypothesis. *)
-  >> last_assum $ (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
-  >> conj_tac
-  >- (qmatch_goalsub_abbrev_tac ‘FOLDR f tr trs’
-      >> sg ‘MEM (FOLDR f tr trs) (tr::trs)’
-      >- (irule FOLDR_BISWITCH
-          >> rpt strip_tac
-          >> unabbrev_all_tac
-          >> gvs[]
-          >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-          >> Cases_on ‘b’ >> gvs[])
-      >> sg ‘MEM (FOLDR f tr trs) (transition_inverse m r.origin)’
-      >- (‘tr::trs = transition_inverse m r.origin’ suffices_by (disch_tac >> metis_tac[])
-          >> unabbrev_all_tac
-          >> simp[transition_inverse_cons])
-      >> metis_tac[transition_inverse_mem_is_valid])
+  (*>> last_assum $ (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+      >> conj_tac
+      >- (qmatch_goalsub_abbrev_tac ‘FOLDR f tr trs’
+          >> sg ‘MEM (FOLDR f tr trs) (tr::trs)’
+          >- (irule FOLDR_BISWITCH
+              >> rpt strip_tac
+              >> unabbrev_all_tac
+              >> gvs[]
+              >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+              >> Cases_on ‘b’ >> gvs[])
+          >> sg ‘MEM (FOLDR f tr trs) (transition_inverse m r.origin)’
+          >- (‘tr::trs = transition_inverse m r.origin’ suffices_by (disch_tac >> metis_tac[])
+              >> unabbrev_all_tac
+              >> simp[transition_inverse_cons])
+          >> metis_tac[transition_inverse_mem_is_valid])*)
   >> irule EQ_SYM
   >> gvs[get_num_errors_calculate_no_prev_data_def]
   >> simp[Once get_num_errors_calculate_def]
@@ -3414,39 +3423,6 @@ End
 Definition get_num_errors_def:
   get_num_errors m rs bs = get_num_errors_helper m rs bs 0
 End
-
-(* -------------------------------------------------------------------------- *)
-(* Describe the relationship between the function for calculating the number  *)
-(* of errors computationally during a single step of the Viterbi algorithm,   *)
-(* and the function for calculating the total number of errors                *)
-(*                                                                            *)
-(* m: the state machine                                                       *)
-(* bs: the input bitstring for which we're finding the code to recreate as    *)
-(* closely as possible.                                                       *)
-(* s: the state we are aiming to end up in                                    *)
-(* t: the time-step we are aiming to end up in                                *)
-(* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_calculate_get_num_errors:
-  ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ∧
-  LENGTH bs = t * m.num_states ⇒
-  get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s))
-Proof
-  Induct_on ‘t’ >> rpt strip_tac >> gvs[]
-  >- (gvs[get_num_errors_def, get_num_errors_helper_def, vd_encode_helper_def]
-      >> gvs[get_num_errors_calculate_slow_def]
-      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gvs[]
-      >> 
-     )
-
-  
-     rpt strip_tac
-  >> 
-  
-QED
-
 Theorem get_num_errors_helper_append:
   ∀m rs bs bs' s.
   wfmachine m ∧
@@ -3472,6 +3448,127 @@ Proof
   >> gvs[]
   >> gvs[vd_encode_state_def]
 QED
+
+Theorem is_reachable_zero_zero[simp]:
+  ∀m.
+  is_reachable m 0 0
+Proof
+  rpt strip_tac
+  >> EVAL_TAC
+  >> qexists ‘[]’
+  >> EVAL_TAC
+QED
+
+Theorem not_is_reachable_nonzero_zero[simp]:
+  ∀m s.
+  s ≠ 0 ⇒
+  ¬is_reachable m s 0
+Proof
+  rpt gen_tac
+  >> disch_tac
+  >> EVAL_TAC
+  >> gvs[]
+  >> EVAL_TAC
+  >> CCONTR_TAC
+  >> gvs[]
+QED
+
+Theorem is_reachable_vd_step:
+  ∀m s t b.
+  is_reachable m s t ⇒ is_reachable m (vd_step m b s) (SUC t)
+Proof
+  rpt strip_tac
+  >> gvs[is_reachable_def]
+  >> qexists ‘SNOC (b) bs’
+  >> gvs[]
+  >> gvs[vd_encode_state_snoc]
+QED
+
+Theorem is_reachable_vd_step_tran:
+  ∀m r t.
+  is_reachable m r.origin t ⇒ is_reachable m (vd_step_tran m r) (SUC t)
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_tran_def]
+  >> irule is_reachable_vd_step
+  >> gvs[]
+QED
+
+
+Theorem best_origin_slow_vd_encode_state_helper:
+  ∀m bs t s.
+  best_origin_slow m bs t (vd_encode_state_helper m bs s) = vd_encode_state_helper m (FRONT bs) s
+Proof
+QED
+
+
+Theorem best_origin_slow_vd_encode_state:
+  ∀m bs t.
+  best_origin_slow m bs t (vd_encode_state m bs)
+Proof
+QED
+
+        
+Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
+  ∀m s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (is_reachable m s t ⇔ (viterbi_trellis_node_slow m [] s t).num_errors ≠ INFINITY)
+Proof
+  Induct_on ‘t’ >> rpt strip_tac >> gvs[]
+  >- (gvs[viterbi_trellis_node_slow_def, get_num_errors_calculate_slow_def]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[])
+  >> gvs[viterbi_trellis_node_slow_def]
+  >> gvs[get_num_errors_calculate_slow_def]
+  >> qmatch_goalsub_abbrev_tac ‘i + N _’
+  >> Cases_on ‘i’ >> gvs[]
+  >- (CCONTR_TAC
+      >> gvs[]
+      (*>> gvs[is_reachable_def]*)
+      >> qmatch_asmsub_abbrev_tac ‘best_origin_slow m [] t s'’
+      >> last_x_assum $ qspecl_then [‘m’, ‘s'’] assume_tac
+      >> gvs[]
+      >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
+      >> sg ‘prem’
+      >- (unabbrev_all_tac >> gvs[])
+      >> gvs[]
+      >> gvs[best_origin_slow_vd_encode_state]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* Describe the relationship between the function for calculating the number  *)
+(* of errors computationally during a single step of the Viterbi algorithm,   *)
+(* and the function for calculating the total number of errors                *)
+(*                                                                            *)
+(* m: the state machine                                                       *)
+(* bs: the input bitstring for which we're finding the code to recreate as    *)
+(* closely as possible.                                                       *)
+(* s: the state we are aiming to end up in                                    *)
+(* t: the time-step we are aiming to end up in                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_num_errors_calculate_get_num_errors:
+  ∀m bs s t.
+         wfmachine m ∧
+         s < m.num_states ∧
+         LENGTH bs = t * m.num_states ⇒
+         get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s))
+Proof
+  Induct_on ‘t’ >> rpt strip_tac >> gvs[]
+  >- (gvs[get_num_errors_def, get_num_errors_helper_def, vd_encode_helper_def]
+      >> gvs[get_num_errors_calculate_slow_def]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
+      >> 
+     )
+
+     
+     rpt strip_tac
+  >> 
+  
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -3515,12 +3612,12 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_correctness_general:
   ∀m bs rs s t.
-  wfmachine m ∧
-  s < m.num_states ∧
-  LENGTH bs = t ∧
-  LENGTH rs = m.output_length * t ∧
-  vd_encode_state m bs = s ⇒
-  get_num_errors m rs (vd_find_optimal_code m rs s t) ≤ get_num_errors m rs bs
+       wfmachine m ∧
+       s < m.num_states ∧
+       LENGTH bs = t ∧
+       LENGTH rs = m.output_length * t ∧
+       vd_encode_state m bs = s ⇒
+       get_num_errors m rs (vd_find_optimal_code m rs s t) ≤ get_num_errors m rs bs
 Proof
   (* Complete base case and simplify *)
   gen_tac
@@ -3597,10 +3694,10 @@ QED
 
 Theorem viterbi_correctness:
   ∀m : state_machine.
-  ∀bs rs : bool list.
-  wfmachine m ∧
-  LENGTH rs = m.output_length * LENGTH bs ⇒
-  get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
+           ∀bs rs : bool list.
+           wfmachine m ∧
+           LENGTH rs = m.output_length * LENGTH bs ⇒
+           get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
