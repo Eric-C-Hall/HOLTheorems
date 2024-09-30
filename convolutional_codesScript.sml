@@ -1108,6 +1108,20 @@ Definition transition_inverse_def:
   FILTER (λorgn. (m.transition_fn orgn).destination = dest) (all_transitions m)
 End
 
+Theorem transition_inverse_mem_all_transitions_set[simp]:
+  ∀m s r.
+  MEM r (transition_inverse m s) ⇒
+  r ∈ all_transitions_set m
+Proof
+  rpt strip_tac
+  >> gvs[transition_inverse_def]
+  >> gvs[MEM_FILTER]
+  >> gvs[all_transitions_set_def]
+  >> gvs[all_transitions_def]
+  >> gvs[all_transitions_helper_def]
+  >> gvs[MEM_GENLIST]
+QED
+
 Theorem transition_inverse_mem[simp]:
   ∀m s r.
   MEM r (transition_inverse m s) ⇒
@@ -1365,7 +1379,7 @@ End
 (* Invalid at time-step 0 because there is no previous row in this case.      *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_calculate_no_prev_data_def:
-  get_num_errors_calculate_no_prev_data m bs 0 r = ARB ∧
+  get_num_errors_calculate_no_prev_data m bs 0 r = (if (vd_step_tran m r = 0) then N0 else INFINITY) ∧
   get_num_errors_calculate_no_prev_data m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
 End
 
@@ -1700,11 +1714,43 @@ Theorem get_num_errors_calculate_slow_get_num_errors_calculate:
        r.origin < m.num_states ⇒
        get_num_errors_calculate_slow m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
 Proof
+  gvs[get_num_errors_calculate_slow_get_num_errors_calculate_no_prev_data, get_num_errors_calculate_no_prev_data_def]
+QED
+
+
+Theorem get_better_origin_slow_get_better_origin:
+  ∀m bs t r1 r2.
+  wfmachine m ∧
+  r1.origin < m.num_states ∧
+  r2.origin < m.num_states ⇒
+  get_better_origin_slow m bs (SUC t) r1 r2 = get_better_origin m bs (SUC t) (viterbi_trellis_row m bs t) r1 r2
+Proof
+  rpt strip_tac
+  >> gvs[get_better_origin_slow_def, get_better_origin_def]
+  >> gvs[get_num_errors_calculate_slow_get_num_errors_calculate]
 QED
 
 Theorem best_origin_slow_best_origin:
-  best_origin_slow m bs t s = best_origin m bs t previous_row s  
+  ∀m bs t s.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  best_origin_slow m bs (SUC t) s = best_origin m bs (SUC t) (viterbi_trellis_row m bs t) s  
 Proof
+  rpt strip_tac
+  >> gvs[best_origin_slow_def, best_origin_def]
+  >> irule FOLDR_DOMAIN
+  >> MEM_DONOTEXPAND_TAC
+  >> qexists ‘all_transitions_set m’
+  >> gvs[]
+  >> rpt strip_tac
+  >- (DEP_PURE_ONCE_REWRITE_TAC[get_better_origin_slow_get_better_origin]
+      >> gvs[all_transitions_set_def]
+     )
+  >- (gvs[get_better_origin_slow_def]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[])
+  >> MEM_DOEXPAND_TAC
+  >> gvs[]
 QED         
 
 Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
@@ -3341,7 +3387,6 @@ Proof
   rpt strip_tac
   >> 
 QED*)
-
 
 Theorem code_to_path_helper_length:
   ∀m bs s.
