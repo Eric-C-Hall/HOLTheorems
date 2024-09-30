@@ -56,4 +56,9 @@ QED
 
 Overload "<=" = “λin1 in2. ¬(inlt in2 in1)”
 
+Definition infnum_to_num[simp]:
+  infnum_to_num (N n) = n ∧
+  infnum_to_num INFINITY = ARB
+End
+
 val _ = export_theory();

@@ -3419,12 +3419,33 @@ End
 (* Describe the relationship between the function for calculating the number  *)
 (* of errors computationally during a single step of the Viterbi algorithm,   *)
 (* and the function for calculating the total number of errors                *)
+(*                                                                            *)
+(* m: the state machine                                                       *)
+(* bs: the input bitstring for which we're finding the code to recreate as    *)
+(* closely as possible.                                                       *)
+(* s: the state we are aiming to end up in                                    *)
+(* t: the time-step we are aiming to end up in                                *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem get_num_errors_calculate_get_num_errors:
-  ∀m rs s r.
-  get_num_errors_calculate m bs t (viterbi_trellis_row m bs t) r = N (get_num_errors m rs (vd_find_optimal_code m s.origin )) + 
+Theorem get_num_errors_calculate_get_num_errors:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ∧
+  LENGTH bs = t * m.num_states ⇒
+  get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s))
 Proof
-QED*)
+  Induct_on ‘t’ >> rpt strip_tac >> gvs[]
+  >- (gvs[get_num_errors_def, get_num_errors_helper_def, vd_encode_helper_def]
+      >> gvs[get_num_errors_calculate_slow_def]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
+      >> 
+     )
+
+  
+     rpt strip_tac
+  >> 
+  
+QED
 
 Theorem get_num_errors_helper_append:
   ∀m rs bs bs' s.
@@ -3567,8 +3588,11 @@ Proof
   (* lInd + lStep is necessarily better than rInd + rStep, but it is not
      necessarily the case that lInd is better than rInd, nor that lStep
      is better than rStep, because s' is chosen to minimize the total sum
-     rather than either individual component. *)
-
+     rather than either individual component.
+   *)
+  >> 
+  
+  
 QED
 
 Theorem viterbi_correctness:
