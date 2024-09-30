@@ -3403,11 +3403,16 @@ Proof
   >> gvs[code_to_path_def, code_to_path_helper_length] 
 QED
 
+
+Definition get_num_errors_helper_def:
+  get_num_errors_helper m rs bs s = hamming_distance rs (vd_encode_helper m bs s)
+End
+        
 (* -------------------------------------------------------------------------- *)
 (* The number of errors present if we encoded the input bs with the state     *)(* machine m and compared it to the expected output rs.                       *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_def:
-  get_num_errors m rs bs = hamming_distance rs (vd_encode m bs)
+  get_num_errors m rs bs = get_num_errors_helper m rs bs 0
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -3415,10 +3420,36 @@ End
 (* of errors computationally during a single step of the Viterbi algorithm,   *)
 (* and the function for calculating the total number of errors                *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_calculate_get_num_errors:
+(*Theorem get_num_errors_calculate_get_num_errors:
   ∀m rs s r.
-  get_num_errors_calculate m () (viterbi_trellis_row m bs t) r = N (get_num_errors m rs (vd_find_optimal_code m s.origin )) + 
+  get_num_errors_calculate m bs t (viterbi_trellis_row m bs t) r = N (get_num_errors m rs (vd_find_optimal_code m s.origin )) + 
 Proof
+QED*)
+
+Theorem get_num_errors_helper_append:
+  ∀m rs bs bs' s.
+  wfmachine m ∧
+  s < m.num_states ∧
+  LENGTH rs = (LENGTH bs + LENGTH bs') * m.output_length ⇒
+  get_num_errors_helper m rs (bs ⧺ bs') s = get_num_errors_helper m (TAKE (LENGTH bs * m.output_length) rs) bs s + get_num_errors_helper m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state_helper m bs s) 
+Proof
+  rpt strip_tac
+  >> gvs[get_num_errors_helper_def]
+  >> gvs[vd_encode_helper_append]
+  >> gvs[hamming_distance_append_right]
+QED
+
+Theorem get_num_errors_append:
+  ∀m rs bs bs'.
+  wfmachine m ∧
+  LENGTH rs = (LENGTH bs + LENGTH bs') * m.output_length ⇒
+  get_num_errors m rs (bs ⧺ bs') = get_num_errors m (TAKE (LENGTH bs * m.output_length) rs) bs + get_num_errors_helper m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state m bs)
+Proof
+  rpt strip_tac
+  >> gvs[get_num_errors_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_helper_append]
+  >> gvs[]
+  >> gvs[vd_encode_state_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -3486,6 +3517,7 @@ Proof
      - viterbi_trellis_node_def
      - get_better_origin_def
      - get_num_errors_calculate_def *)
+  >> gvs[vd_find_optimal_code_def]
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
   >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path _ _ s' _’
@@ -3517,7 +3549,7 @@ Proof
   >> DEP_PURE_REWRITE_TAC[path_to_code_append]
   >> gvs[]
   >> conj_tac
-  >- (Cases_on ‘bs’ >> gvs[code_to_path_def, code_to_path_helper_def])       
+  >- (Cases_on ‘bs’ >> gvs[code_to_path_def, code_to_path_helper_def])
   >> gvs[vd_encode_append]
   >> DEP_PURE_REWRITE_TAC[hamming_distance_append_right]
   >> gvs[vd_encode_length]
@@ -3568,8 +3600,8 @@ Proof
  *)*)
 
   (* ---- *)
-  
-  
+
+
 (*(* Complete base case and simplify *)
   gen_tac
   >> Induct_on ‘t’
@@ -3631,8 +3663,8 @@ Proof
  *)
   >> gvs[Abbr ‘g’]
   >> gvs[get_better_origin_def] get_num_errors_calculate_def*)
-  
-  
+
+
 QED
 
 Theorem viterbi_correctness:
@@ -3675,6 +3707,6 @@ Proof
       >> gvs[wfmachine_output_length_greater_than_zero]
      )
   >> gvs[vd_encode_state_def, vd_encode_state_helper_def]
-        
+
 QED
 val _ = export_theory();
