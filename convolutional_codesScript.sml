@@ -1108,7 +1108,7 @@ Definition transition_inverse_def:
   FILTER (λorgn. (m.transition_fn orgn).destination = dest) (all_transitions m)
 End
 
-Theorem transition_inverse_mem_all_transitions_set[simp]:
+Theorem transition_inverse_mem_all_transitions_set:
   ∀m s r.
   MEM r (transition_inverse m s) ⇒
   r ∈ all_transitions_set m
@@ -1750,32 +1750,32 @@ Proof
       >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
       >> Cases_on ‘b’ >> gvs[])
   >> MEM_DOEXPAND_TAC
-  >> gvs[]
+  >> metis_tac[transition_inverse_mem_all_transitions_set]
 QED         
 
 Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
   ∀m bs s t.
-  s < m.num_states ∧
-  0 < t ⇒
+  wfmachine m ∧
+  s < m.num_states ⇒
   viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
 Proof
-  Induct_on ‘t’ >> gvs[]
-  >> rpt strip_tac
-  >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_def, viterbi_trellis_node_no_prev_data_def]
-  >> gvs[viterbi_trellis_row_el]
-  >> gvs[viterbi_trellis_node_def]
-  >> gvs[get_num_errors_calculate_slow_def, get_num_errors_calculate_def]
-  >> 
-  
-  >> gvs[viterbi_trellis_row_def]
-        
-  >> gvs[viterbi_trellis_node_slow_def]
-  >> gvs[best_origin_def, best_origin_slow_def]
-  >> gvs[get_better_origin_def, get_better_origin_slow_def]
-  >> gvs[get_num_errors_calculate_def]
-  >> Cases_on ‘t’ >> gvs[get_num_errors_calculate_slow_def]
-  >> conj_tac
+  rpt strip_tac
+  >> Cases_on ‘t’ >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_no_prev_data_def, viterbi_trellis_node_def]
+  >- (gvs[get_num_errors_calculate_slow_def]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
+      >- gvs[viterbi_trellis_row_def]
+      >> Cases_on ‘s’
+      >- gvs[]
+      >> gvs[]
+      >> gvs[viterbi_trellis_row_def]
+      >> gvs[EL_REPLICATE])
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_calculate_slow_get_num_errors_calculate]
   >> gvs[]
+  >> gvs[best_origin_slow_is_valid]
+  >> gvs[best_origin_slow_best_origin]
+  >> gvs[viterbi_trellis_row_def]
+  >> gvs[viterbi_trellis_node_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
