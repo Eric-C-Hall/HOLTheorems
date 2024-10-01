@@ -98,6 +98,11 @@ val MEM_DONOTEXPAND_TAC = rpt (pop_assum mp_tac) >> PURE_REWRITE_TAC[GSYM MEM_DO
 val MEM_DOEXPAND_TAC = rpt (pop_assum mp_tac) >> PURE_REWRITE_TAC[MEM_DONOTEXPAND_thm] >> rpt disch_tac
 
 (* -------------------------------------------------------------------------- *)
+(* This seems like a particularly useful function that could potentially be   *)
+(* added to HOL, although I haven't spent much time polishing it              *)
+(* -------------------------------------------------------------------------- *)
+fun GCONTRAPOS th = GEN_ALL (CONTRAPOS (SPEC_ALL th));                                                                                
+(* -------------------------------------------------------------------------- *)
 (* Not sure what the term is for a function which returns one of its inputs   *)
 (* as its output, so I used the term "bi-switch", because the function        *)
 (* switches between two of its inputs.                                        *)
@@ -177,7 +182,7 @@ Proof
 QED
 
 val FOLDR_DOMAIN_MEM = cj 1 FOLDR_DOMAIN_MEM_HELPER;
-        
+
 (* -------------------------------------------------------------------------- *)
 (* Main property we need to prove:                                            *)
 (*                                                                            *)
@@ -3423,6 +3428,7 @@ End
 Definition get_num_errors_def:
   get_num_errors m rs bs = get_num_errors_helper m rs bs 0
 End
+
 Theorem get_num_errors_helper_append:
   ∀m rs bs bs' s.
   wfmachine m ∧
@@ -3494,21 +3500,42 @@ Proof
   >> gvs[]
 QED
 
-
-Theorem best_origin_slow_vd_encode_state_helper:
-  ∀m bs t s.
-  best_origin_slow m bs t (vd_encode_state_helper m bs s) = vd_encode_state_helper m (FRONT bs) s
+Theorem is_reachable_suc:
+  is_reachable m s (SUC t) ⇔ ∃s' b. is_reachable m s' t ∧ vd_step m b s' = s
 Proof
+  EQ_TAC
+  >- (disch_tac
+      >> gvs[is_reachable_def]
+      >> qexistsl [‘vd_encode_state m (FRONT bs)’, ‘LAST bs’]
+      >> conj_tac
+      >- (qexists ‘FRONT bs’
+          >> gvs[]
+          >> gvs[FRONT_LENGTH])
+      >> Cases_on ‘bs’ using SNOC_CASES
+      >- gvs[]
+      >> gvs[vd_encode_state_snoc])
+  >> rpt strip_tac
+  >> gvs[]
+  >> irule is_reachable_vd_step
+  >> gvs[]
 QED
 
-
-Theorem best_origin_slow_vd_encode_state:
-  ∀m bs t.
-  best_origin_slow m bs t (vd_encode_state m bs)
+Theorem is_reachable_suc_vd_step_tran:
+  ∀m s t.
+  is_reachable m s (SUC t) ⇔ ∃r. is_reachable m r.origin t ∧ vd_step_tran m r = s
 Proof
+  rpt strip_tac
+  >> gvs[vd_step_tran_def]
+  >> gvs[is_reachable_suc]
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >> qexists ‘<| origin := s'; input := b|>’
+      >> gvs[])
+  >> rpt strip_tac
+  >> qexistsl [‘r.origin’, ‘r.input’]
+  >> gvs[]
 QED
 
-        
 Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
   ∀m s t.
   wfmachine m ∧
@@ -3525,15 +3552,16 @@ Proof
   >> Cases_on ‘i’ >> gvs[]
   >- (CCONTR_TAC
       >> gvs[]
-      (*>> gvs[is_reachable_def]*)
       >> qmatch_asmsub_abbrev_tac ‘best_origin_slow m [] t s'’
       >> last_x_assum $ qspecl_then [‘m’, ‘s'’] assume_tac
       >> gvs[]
+      (* Prove the premise of an implication in the assumptions *)
       >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
       >> sg ‘prem’
       >- (unabbrev_all_tac >> gvs[])
       >> gvs[]
-      >> gvs[best_origin_slow_vd_encode_state]
+      (* *)
+     )
 QED
 
 
@@ -3560,12 +3588,7 @@ Proof
       >> gvs[get_num_errors_calculate_slow_def]
       >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
       >> Cases_on ‘b’ >> gvs[]
-      >> 
      )
-
-     
-     rpt strip_tac
-  >> 
   
 QED
 
