@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -101,7 +102,12 @@ val MEM_DOEXPAND_TAC = rpt (pop_assum mp_tac) >> PURE_REWRITE_TAC[MEM_DONOTEXPAN
 (* This seems like a particularly useful function that could potentially be   *)
 (* added to HOL, although I haven't spent much time polishing it              *)
 (* -------------------------------------------------------------------------- *)
-fun GCONTRAPOS th = GEN_ALL (CONTRAPOS (SPEC_ALL th));                                                                                
+fun GCONTRAPOS th = GEN_ALL (CONTRAPOS (SPEC_ALL th));
+
+val Cases_on_if_goal = qmatch_goalsub_abbrev_tac ‘if jwlifmn then _ else _’ >> Cases_on ‘jwlifmn’;
+
+val Cases_on_if_asm = qmatch_asmsub_abbrev_tac ‘if jwlifmn then _ else _’ >> Cases_on ‘jwlifmn’;
+
 (* -------------------------------------------------------------------------- *)
 (* Not sure what the term is for a function which returns one of its inputs   *)
 (* as its output, so I used the term "bi-switch", because the function        *)
@@ -3520,6 +3526,8 @@ Proof
   >> gvs[]
 QED
 
+val is_reachable_suc_vd_step = is_reachable_suc;
+
 Theorem is_reachable_suc_vd_step_tran:
   ∀m s t.
   is_reachable m s (SUC t) ⇔ ∃r. is_reachable m r.origin t ∧ vd_step_tran m r = s
@@ -3535,6 +3543,80 @@ Proof
   >> qexistsl [‘r.origin’, ‘r.input’]
   >> gvs[]
 QED
+
+Theorem FOLDR_LEQ:
+  ∀s h t (f : α -> infnum).
+  MEM s (h::t) ⇒
+  f (FOLDR (λx y. if f x ≤ f y then x else y) h t) ≤ f s 
+Proof
+  rpt strip_tac
+  >> Induct_on ‘t’
+  >- (rpt strip_tac
+      >> gvs[])
+  >> rpt strip_tac
+  >> MEM_DONOTEXPAND_TAC
+  >> Cases_on ‘s = h'’ >> gvs[]
+  >- (Cases_on_if_asm >> gvs[]
+      >> qmatch_asmsub_abbrev_tac ‘f h' < f v’
+      >> 
+                                  
+QED
+
+
+Theorem best_origin_slow_get_num_errors_calculate_slow:
+  ∀m bs t r s.
+  wfmachine m ∧
+  s < m.num_states ∧
+  MEM r (transition_inverse m s) ⇒
+  get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s) ≤ get_num_errors_calculate_slow m bs t r
+Proof
+  rpt strip_tac
+  >> drule_all best_origin_slow_transition_inverse
+  >> rpt strip_tac
+  >> first_x_assum $ qspecl_then [‘bs’, ‘t’] assume_tac
+  >> gvs[best_origin_slow_def]
+  >>
+  >>
+  >> gvs[best_origin_slow_def]
+  >> 
+  >>
+  >> gvs[get_better_origin_slow_def]
+QED
+
+(* This is false, because there might be multiple best origins
+Theorem best_origin_slow_get_num_errors_calculate_slow:
+  ∀m bs t r.
+  get_num_errors_calculate_slow m bs t r ≤
+  get_num_errors_calculate_slow m bs t
+                                (best_origin_slow m bs t (vd_step_tran m r)) ⇔
+    r = best_origin_slow m bs t (vd_step_tran m r)
+Proof
+  rpt strip_tac
+  >> REVERSE EQ_TAC
+  >- (rpt strip_tac
+      >> qmatch_asmsub_abbrev_tac ‘best_origin_slow _ _ _ step’
+      >> gvs[])
+  >> rpt strip_tac
+  >> Cases_on ‘t’ >> gvs[get_num_errors_calculate_slow_def]
+  >- (gvs[best_origin_slow_def]
+     )
+
+QED*)
+
+(* This is false, because there might be multiple best origins *)
+(*Theorem best_origin_slow_get_better_origin:
+  ∀m bs t r.
+       get_better_origin_slow m bs t (best_origin_slow m bs t (vd_step_tran m r)) r = (best_origin_slow m bs t (vd_step_tran m r))
+Proof
+  rpt strip_tac
+  >> gvs[get_better_origin_slow_def]
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+  >> Cases_on ‘b’ >> gvs[]
+  >> gvs[best_origin_slow_get_num_errors_calculate_slow]
+        QED*)
+
+
+(*best_origin_slow m bs (SUC t) (vd_step m b s) *)
 
 Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
   ∀m s t.
@@ -3561,7 +3643,12 @@ Proof
       >- (unabbrev_all_tac >> gvs[])
       >> gvs[]
       (* *)
-     )
+      >> gs[is_reachable_suc]
+      >> gvs[]
+      >> sg ‘∃b. s = vd_step m b s'’
+      >- (unabbrev_all_tac
+          >> gvs[vd_step_best_origin_slow]
+         )
 QED
 
 

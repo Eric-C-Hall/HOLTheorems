@@ -61,4 +61,21 @@ Definition infnum_to_num[simp]:
   infnum_to_num INFINITY = ARB
 End
 
+Theorem infnum_less_leq:
+  ∀a b : infnum.
+  a < b ⇒ a ≤ b
+Proof
+  rpt strip_tac
+  >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[]
+QED
+
+Theorem infnum_less_less_F:
+  ∀a b.
+  a < b ∧ b < a ⇒ F
+Proof
+  rpt strip_tac
+  >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[]
+QED
+
+
 val _ = export_theory();
