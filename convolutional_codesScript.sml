@@ -3810,16 +3810,16 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_calculate_get_num_errors:
   ∀m bs s t.
-       wfmachine m ∧
-       s < m.num_states ∧
-       LENGTH bs = t * m.num_states ⇒
-       get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s))
+  wfmachine m ∧
+  s < m.num_states ∧
+  is_reachable m s t ∧
+  LENGTH bs = t * m.num_states ⇒
+  get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   >- (gvs[get_num_errors_def, get_num_errors_helper_def, vd_encode_helper_def]
       >> gvs[get_num_errors_calculate_slow_def]
-      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gvs[]
+      >> Cases_on_if_goal >> gvs[]
      )
      
 QED
