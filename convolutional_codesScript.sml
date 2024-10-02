@@ -111,6 +111,8 @@ val imp_prove = qmatch_asmsub_abbrev_tac ‘jwlifmn ⇒ _’ >> sg ‘jwlifmn’
 
 fun with_all_in_goal t = rpt (pop_assum mp_tac) >> t >> rpt disch_tac;
 
+fun ignoring_top t = pop_assum (fn th => (t >> assume_tac th))
+
 (* -------------------------------------------------------------------------- *)
 (* Not sure what the term is for a function which returns one of its inputs   *)
 (* as its output, so I used the term "bi-switch", because the function        *)
@@ -3574,6 +3576,33 @@ Proof
   >> metis_tac[inle_TRANS]
 QED
 
+Theorem FOLDR_LEQ_LT:
+  ∀s h t (f : α -> infnum).
+  MEM s (h::t) ⇒
+  f (FOLDR (λx y. if f x < f y then x else y) h t) ≤ f s 
+Proof
+  rpt strip_tac
+  >> Induct_on ‘t’
+  >- (rpt strip_tac
+      >> gvs[])
+  >> rpt strip_tac
+  >> MEM_DONOTEXPAND_TAC
+  >> Cases_on ‘s = h'’ >> gvs[]
+  >- (Cases_on_if_asm >> gvs[]
+      >> qmatch_asmsub_abbrev_tac ‘f h' < f v’
+      >> gvs[inlt_inlt_F]
+     )
+  >> qmatch_asmsub_abbrev_tac ‘f v' ≤ f s’
+  >> imp_prove
+  >- (MEM_DOEXPAND_TAC
+      >> with_all_in_goal (PURE_REWRITE_TAC[MEM_CONS_CONS])
+      >> MEM_DONOTEXPAND_TAC
+      >> gvs[])
+  >> gvs[]
+  >> Cases_on_if_asm >> gvs[]
+  >> metis_tac[inlt_TRANS]
+QED
+        
 Theorem best_origin_slow_get_num_errors_calculate_slow:
   ∀m bs t r s.
   wfmachine m ∧
@@ -3582,16 +3611,15 @@ Theorem best_origin_slow_get_num_errors_calculate_slow:
   get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s) ≤ get_num_errors_calculate_slow m bs t r
 Proof
   rpt strip_tac
-  >> drule_all best_origin_slow_transition_inverse
-  >> rpt strip_tac
-  >> first_x_assum $ qspecl_then [‘bs’, ‘t’] assume_tac
+  >> MEM_DONOTEXPAND_TAC
+  (*>> drule_all best_origin_slow_transition_inverse
+   >> rpt strip_tac
+   >> first_x_assum $ qspecl_then [‘bs’, ‘t’] assume_tac*)
   >> gvs[best_origin_slow_def]
-  >>
-  >>
-  >> gvs[best_origin_slow_def]
-  >> 
-  >>
-  >> gvs[get_better_origin_slow_def]
+  >> qspecl_then [‘r’, ‘HD (transition_inverse m s)’, ‘TL (transition_inverse m s)’, ‘get_num_errors_calculate_slow m bs t’] assume_tac FOLDR_LEQ_LT
+  >> MEM_DONOTEXPAND_TAC
+  >> gvs[transition_inverse_cons]
+  >> gvs[get_better_origin_slow_def]  
 QED
 
 (* This is false, because there might be multiple best origins
@@ -3611,7 +3639,6 @@ Proof
   >> Cases_on ‘t’ >> gvs[get_num_errors_calculate_slow_def]
   >- (gvs[best_origin_slow_def]
      )
-
 QED*)
 
 (* This is false, because there might be multiple best origins *)
