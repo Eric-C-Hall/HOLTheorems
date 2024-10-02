@@ -3797,6 +3797,32 @@ Proof
   >> Cases_on ‘i’ >> gvs[]
 QED
 
+Theorem vd_find_optimal_path_last[simp]:
+  ∀m bs s t.
+  LAST (vd_find_optimal_path m bs s t) = s
+Proof
+  Induct_on ‘t’ >> rpt strip_tac >> gvs[]
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Theorem statement not designed by hand: identified after seeing what       *)
+(* happens when we expand out vd_find_optimal_code in order to remove the     *)
+(* SUC, intended for use in applying the inductive step.                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_code_suc:
+  vd_find_optimal_code m bs s (SUC t) = vd_find_optimal_code m bs (vd_step_back m bs s (SUC t)) t ⧺ [states_to_transition_input m (vd_step_back m bs s (SUC t))s] 
+Proof
+  gvs[vd_find_optimal_code_def]
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+  >> gvs[GSYM vd_find_optimal_reversed_path_def]
+  >> gvs[GSYM vd_find_optimal_path_def]
+  >> gvs[path_to_code_append]
+  >> gvs[GSYM vd_find_optimal_code_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Describe the relationship between the function for calculating the number  *)
 (* of errors computationally during a single step of the Viterbi algorithm,   *)
@@ -3821,7 +3847,13 @@ Proof
       >> gvs[get_num_errors_calculate_slow_def]
       >> Cases_on_if_goal >> gvs[]
      )
-     
+  (* Reduce SUC in LHS to allow usage of inductive hypothesis *)
+  >> gvs[vd_find_optimal_code_suc]
+  (* The inductive hypothesis will be applicable to cs, and the inductive step
+     will be applicable to c. *)
+  >> qmatch_goalsub_abbrev_tac ‘get_num_errors _ _ (cs ⧺ c) = _’
+  (* Reduce SUC in RHS to allow usage of inductive hypothesis *)
+  >> 
 QED
 
 
