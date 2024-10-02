@@ -1147,15 +1147,23 @@ Proof
   >> gvs[MEM_GENLIST]
 QED
 
-Theorem transition_inverse_mem[simp]:
+Theorem transition_inverse_mem:
   ∀m s r.
-  MEM r (transition_inverse m s) ⇒
-  vd_step_tran m r = s 
+  MEM r (transition_inverse m s) ⇔
+    vd_step_tran m r = s ∧ MEM r (all_transitions m)
 Proof
   rpt strip_tac
   >> gvs[transition_inverse_def]
   >> gvs[MEM_FILTER]
   >> gvs[vd_step_tran_def, vd_step_def, vd_step_record_def]
+QED
+
+Theorem transition_inverse_mem_forward[simp]:
+  ∀m s r.
+  MEM r (transition_inverse m s) ⇒
+  vd_step_tran m r = s
+Proof
+  metis_tac[transition_inverse_mem]
 QED
 
 Theorem transition_inverse_mem_is_valid[simp]:
@@ -3656,6 +3664,16 @@ Proof
 
 (*best_origin_slow m bs (SUC t) (vd_step m b s) *)
 
+Theorem vd_step_best_origin_slow:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  vd_step m (best_origin_slow m bs t s).input (best_origin_slow m bs t s).origin = s
+Proof
+  rpt strip_tac
+  >> metis_tac[vd_step_tran_best_origin_slow, vd_step_tran_def]
+QED
+
 Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
   ∀m s t.
   wfmachine m ∧
@@ -3665,30 +3683,35 @@ Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   >- (gvs[viterbi_trellis_node_slow_def, get_num_errors_calculate_slow_def]
       >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gvs[])
+      >> Cases_on ‘b’ >> gvs[]
+     )
   >> gvs[viterbi_trellis_node_slow_def]
   >> gvs[get_num_errors_calculate_slow_def]
   >> qmatch_goalsub_abbrev_tac ‘i + N _’
-  >> Cases_on ‘i’ >> gvs[]
-  >- (CCONTR_TAC
+  >> qmatch_asmsub_abbrev_tac ‘best_origin_slow m [] t s'’
+  (* Not sure if its a good idea to delete the inductive hypothesis here *)
+  >> last_x_assum $ qspecl_then [‘m’, ‘s'’] assume_tac
+  >> gvs[]
+  (* Prove the premise of an implication in the assumptions *)
+  >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
+  >> sg ‘prem’
+  >- (unabbrev_all_tac >> gvs[])
+  >> gvs[]
+  (* *)
+  >> REVERSE (Cases_on ‘i’) >> gvs[]
+  >> gs[is_reachable_suc]
+  >- (qexists ‘s'’
       >> gvs[]
-      >> qmatch_asmsub_abbrev_tac ‘best_origin_slow m [] t s'’
-      >> last_x_assum $ qspecl_then [‘m’, ‘s'’] assume_tac
-      >> gvs[]
-      (* Prove the premise of an implication in the assumptions *)
-      >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
-      >> sg ‘prem’
-      >- (unabbrev_all_tac >> gvs[])
-      >> gvs[]
-      (* *)
-      >> gs[is_reachable_suc]
-      >> gvs[]
-      >> sg ‘∃b. s = vd_step m b s'’
-      >- (unabbrev_all_tac
-          >> gvs[vd_step_best_origin_slow]
-         )
+      >> qexists ‘(best_origin_slow m [] (SUC t) s).input’
+      >> unabbrev_all_tac
+      >> gvs[vd_step_best_origin_slow])
+  >> rpt strip_tac
+  >> qspecl_then [‘m’, ‘[]’, ‘(SUC t)’, ‘<| origin := s''; input := b |>’, ‘s’] assume_tac best_origin_slow_get_num_errors_calculate_slow
+  >> gs[]
+  >> imp_prove
+  >- (gvs[]
+      >> transition_inverse_mem
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* Describe the relationship between the function for calculating the number  *)
@@ -3703,10 +3726,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_calculate_get_num_errors:
   ∀m bs s t.
-         wfmachine m ∧
-         s < m.num_states ∧
-         LENGTH bs = t * m.num_states ⇒
-         get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s))
+       wfmachine m ∧
+       s < m.num_states ∧
+       LENGTH bs = t * m.num_states ⇒
+       get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   >- (gvs[get_num_errors_def, get_num_errors_helper_def, vd_encode_helper_def]
@@ -3714,7 +3737,7 @@ Proof
       >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
       >> Cases_on ‘b’ >> gvs[]
      )
-  
+     
 QED
 
 
@@ -3842,10 +3865,10 @@ QED
 
 Theorem viterbi_correctness:
   ∀m : state_machine.
-           ∀bs rs : bool list.
-           wfmachine m ∧
-           LENGTH rs = m.output_length * LENGTH bs ⇒
-           get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
+       ∀bs rs : bool list.
+       wfmachine m ∧
+       LENGTH rs = m.output_length * LENGTH bs ⇒
+       get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
