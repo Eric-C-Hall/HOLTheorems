@@ -18,6 +18,8 @@ open dep_rewrite;
 open ConseqConv; (* SPEC_ALL_TAC *)
 (*use "donotexpandLib.sml"*)
 
+open simpLib;
+
 open WFTheoremsTheory;
 
 val _ = monadsyntax.enable_monadsyntax()
@@ -54,8 +56,6 @@ Theorem donotexpand_thm:
 Proof
   gvs[donotexpand_def]
 QED
-
-open simpLib
 
 (* tactic that allows you to tell HOL4 to not expand the top theorem *)
 val donotexpand_tac =
@@ -113,6 +113,12 @@ fun with_all_in_goal t = rpt (pop_assum mp_tac) >> t >> rpt disch_tac;
 
 fun ignoring_top t = pop_assum (fn th => (t >> assume_tac th))
 
+fun assume_at th n = (if n = 0 then assume_tac th else pop_assum (fn th2 => assume_at th (n - 1) >> assume_tac th2));
+
+fun assume_bottom th = ASSUM_LIST (fn ths => assume_at th (length ths));
+
+val bury_assum = pop_assum assume_bottom;
+                               
 (* -------------------------------------------------------------------------- *)
 (* Not sure what the term is for a function which returns one of its inputs   *)
 (* as its output, so I used the term "bi-switch", because the function        *)
@@ -301,18 +307,6 @@ Proof
   >> gvs[]
   >> gvs[hamming_weight_def]
 QED
-
-(*
-(* Note: reverse_assum_list doens't work, it maintains the order*)
-val reverse_assum_list = pop_assum (fn th => (TRY reverse_assum_list; assume_tac th))
-
-val bury_assumption = pop_assum (fn th => reverse_assum_list >> assume_tac th >> reverse_assum_list)*)
-
-fun assume_at th n = (if n = 0 then assume_tac th else pop_assum (fn th2 => assume_at th (n - 1) >> assume_tac th2));
-
-fun assume_bottom th = ASSUM_LIST (fn ths => assume_at th (length ths));
-
-val bury_assumption = pop_assum assume_bottom;
 
 Theorem bitwise_commutative:
   ∀f bs cs.
@@ -637,7 +631,7 @@ Datatype:
     output_length : num;
   |>
 End
-[
+
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the state machine is well-formed                               *)
 (* -------------------------------------------------------------------------- *)
@@ -3694,6 +3688,36 @@ Proof
   >> gvs[is_reachable_def]
 QED
 
+
+Theorem mem_transition_inverse_vd_step_tran:
+  ∀m r.
+  r.origin < m.num_states ⇒
+  MEM r (transition_inverse m (vd_step_tran m r))
+Proof
+  rpt strip_tac
+  >> irule (iffRL transition_inverse_mem)
+  >> gvs[]
+  >> gvs[all_transitions_def, all_transitions_helper_def]
+  >> gvs[MEM_GENLIST]
+  >> Cases_on ‘r.input’
+  >- (disj1_tac
+      >> qexists ‘r.origin’
+      >> gvs[transition_origin_component_equality])
+  >> disj2_tac
+  >> qexists ‘r.origin’
+  >> gvs[transition_origin_component_equality]
+QED
+
+Theorem mem_transition_inverse_vd_step:
+  ∀m s b.
+  s < m.num_states ⇒
+  MEM <|origin := s; input := b|> (transition_inverse m (vd_step m b s))
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘m’, ‘<| origin := s; input := b |>’] assume_tac mem_transition_inverse_vd_step_tran
+  >> gvs[vd_step_tran_def]
+QED
+
 Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
   ∀m s t.
   wfmachine m ∧
@@ -3701,32 +3725,51 @@ Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
   (is_reachable m s t ⇔ (viterbi_trellis_node_slow m [] s t).num_errors ≠ INFINITY)
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
+  (* Prove the base case *)
   >- (gvs[viterbi_trellis_node_slow_def, get_num_errors_calculate_slow_def]
       >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
       >> Cases_on ‘b’ >> gvs[]
      )
+  (* Start the inductive step. Reduce the suc using the definition of
+     get_num_errors_calculate_slow, so that we are at the previous stage and
+     can therefore use the inductive hypothesis. *)
   >> gvs[viterbi_trellis_node_slow_def]
   >> gvs[get_num_errors_calculate_slow_def]
+  (* The left of the addition is what causes the result to be either
+     infinity or not infinity. Give it a name *)
   >> qmatch_goalsub_abbrev_tac ‘i + N _’
+  (* Let s' denote the best origin leading to s *)
   >> qmatch_asmsub_abbrev_tac ‘best_origin_slow m [] t s'’
-  (* Not sure if its a good idea to delete the inductive hypothesis here *)
-  >> last_x_assum $ qspecl_then [‘m’, ‘s'’] assume_tac
+  (* Use the inductive hypothesis on the part up to s', which has a length
+     of 1 less than the part up to s.*)
+  >> last_assum $ qspecl_then [‘m’, ‘s'’] assume_tac
+  (* Tell HOL not to use the inductive hypothesis, because otherwise it will
+     undo my use of the inductive hypothesis, since it is subsumed by the
+     general inductive hypothesis. *)
+  >> last_x_assum assume_tac >> donotexpand_tac >> bury_assum
+  (* Simplify preconditions *)
   >> gvs[]
-  (* Prove the premise of an implication in the assumptions *)
-  >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
-  >> sg ‘prem’
+  (* Prove that s' is a valid state, as it is the precondition of one of the
+     assumptions. *)
+  >> imp_prove
   >- (unabbrev_all_tac >> gvs[])
+  (* Simplify preconditions *)
   >> gvs[]
-  (* *)
-  >> REVERSE (Cases_on ‘i’) >> gvs[] >> gs[is_reachable_suc]
-  >- (qexists ‘s'’
+  (* Reduce the SUC in is_reachable, so that we are in the earlier stage and
+     can use the inductive hypothesis. *)
+  >> gs[is_reachable_suc]
+  (* Simplify depending on whether or not the sum is infinity. One of the
+     options is easier to prove than the other, so we prove it here. *)
+  >> REVERSE (Cases_on ‘i’) >> gvs[]
+  >- (qexistsl [‘s'’, ‘(best_origin_slow m [] (SUC t) s).input’]
       >> gvs[]
-      >> qexists ‘(best_origin_slow m [] (SUC t) s).input’
       >> unabbrev_all_tac
       >> gvs[vd_step_best_origin_slow])
   >> rpt strip_tac
+  (* Also use the inductive hypothesis on the path to s''*)
   >> qspecl_then [‘m’, ‘[]’, ‘(SUC t)’, ‘<| origin := s''; input := b |>’, ‘s’] assume_tac best_origin_slow_get_num_errors_calculate_slow
   >> gs[]
+  (* Prove relevant precondition in order to use the inducive hypothesis *)
   >> imp_prove
   >- (gvs[]
       >> irule (iffRL transition_inverse_mem)
@@ -3740,6 +3783,12 @@ Proof
   >> qmatch_asmsub_abbrev_tac ‘LHS ≤ _’
   >> sg ‘LHS = INFINITY’ >> gs[Abbr ‘LHS’]
   >- gvs[get_num_errors_calculate_slow_def]
+  >> doexpand_tac >> first_assum $ qspecl_then [‘m’, ‘s''’] mp_tac
+  >> donotexpand_tac >> bury_assum
+  >> gs[]
+  >> conj_tac
+  >- metis_tac[is_reachable_is_valid]
+  >> gs[]
   >> 
 QED
 
