@@ -3719,10 +3719,10 @@ Proof
 QED
 
 Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
-  ∀m s t.
+  ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
-  (is_reachable m s t ⇔ (viterbi_trellis_node_slow m [] s t).num_errors ≠ INFINITY)
+  (is_reachable m s t ⇔ (viterbi_trellis_node_slow m bs s t).num_errors ≠ INFINITY)
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   (* Prove the base case *)
@@ -3740,10 +3740,10 @@ Proof
      it can be infinity. *)
   >> qmatch_goalsub_abbrev_tac ‘i + N _’
   (* Let s' denote the best origin leading to s *)
-  >> qmatch_asmsub_abbrev_tac ‘best_origin_slow m [] t s'’
+  >> qmatch_asmsub_abbrev_tac ‘best_origin_slow m _ t s'’
   (* Use the inductive hypothesis on the part up to s', which has a length
      of 1 less than the part up to s.*)
-  >> last_assum $ qspecl_then [‘m’, ‘s'’] assume_tac
+  >> last_assum $ qspecl_then [‘m’, ‘bs’, ‘s'’] assume_tac
   (* Tell HOL not to use the inductive hypothesis, because otherwise it will
      undo my use of the inductive hypothesis, since it is subsumed by the
      general inductive hypothesis. *)
@@ -3762,13 +3762,13 @@ Proof
   (* Simplify depending on whether or not the sum is infinity. One of the
      options is easier to prove than the other, so we prove it here. *)
   >> REVERSE (Cases_on ‘i’) >> gvs[]
-  >- (qexistsl [‘s'’, ‘(best_origin_slow m [] (SUC t) s).input’]
+  >- (qexistsl [‘s'’, ‘(best_origin_slow m bs (SUC t) s).input’]
       >> gvs[]
       >> unabbrev_all_tac
       >> gvs[vd_step_best_origin_slow])
   >> rpt strip_tac
   (* Also use the inductive hypothesis on the path to s''*)
-  >> qspecl_then [‘m’, ‘[]’, ‘(SUC t)’, ‘<| origin := s''; input := b |>’, ‘s’] assume_tac best_origin_slow_get_num_errors_calculate_slow
+  >> qspecl_then [‘m’, ‘bs’, ‘(SUC t)’, ‘<| origin := s''; input := b |>’, ‘s’] assume_tac best_origin_slow_get_num_errors_calculate_slow
   >> gs[]
   (* Prove relevant precondition in order to use the inducive hypothesis *)
   >> imp_prove
@@ -3783,7 +3783,7 @@ Proof
   >- gvs[get_num_errors_calculate_slow_def]
   (* Also use the inductive hypothesis on s''. This path is also one less than
      the path which arrives at s. *)
-  >> doexpand_tac >> first_assum $ qspecl_then [‘m’, ‘s''’] mp_tac
+  >> doexpand_tac >> first_assum $ qspecl_then [‘m’, ‘bs’, ‘s''’] mp_tac
   >> donotexpand_tac >> bury_assum
   (* Prove preconditions *)
   >> gs[]
@@ -3823,6 +3823,14 @@ Proof
   >> gvs[GSYM vd_find_optimal_code_def]
 QED
 
+
+Theorem get_num_errors_calculate_slow_is_reachable:
+  ∀m bs s t.
+  is_reachable m s t ⇔ get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s) ≠ INFINITY
+Proof
+  rpt strip_tac
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Describe the relationship between the function for calculating the number  *)
 (* of errors computationally during a single step of the Viterbi algorithm,   *)
@@ -3853,7 +3861,11 @@ Proof
      will be applicable to c. *)
   >> qmatch_goalsub_abbrev_tac ‘get_num_errors _ _ (cs ⧺ c) = _’
   (* Reduce SUC in RHS to allow usage of inductive hypothesis *)
-  >> 
+  >> gvs[get_num_errors_calculate_slow_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
+  >> gvs[]
+  >> conj_tac
+  >- (
 QED
 
 
