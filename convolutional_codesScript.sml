@@ -3674,6 +3674,20 @@ Proof
   >> metis_tac[vd_step_tran_best_origin_slow, vd_step_tran_def]
 QED
 
+Theorem is_reachable_is_valid[simp]:
+  ∀m s t.
+  wfmachine m ∧
+  is_reachable m s t
+  ⇒ s < m.num_states
+Proof
+  Induct_on ‘t’
+  >- (rpt strip_tac
+      >> gvs[is_reachable_def]
+      >> gvs[vd_encode_state_def, vd_encode_state_helper_def])
+  >> rpt strip_tac
+  >> gvs[is_reachable_def]
+QED
+
 Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
   ∀m s t.
   wfmachine m ∧
@@ -3698,8 +3712,7 @@ Proof
   >- (unabbrev_all_tac >> gvs[])
   >> gvs[]
   (* *)
-  >> REVERSE (Cases_on ‘i’) >> gvs[]
-  >> gs[is_reachable_suc]
+  >> REVERSE (Cases_on ‘i’) >> gvs[] >> gs[is_reachable_suc]
   >- (qexists ‘s'’
       >> gvs[]
       >> qexists ‘(best_origin_slow m [] (SUC t) s).input’
@@ -3710,7 +3723,11 @@ Proof
   >> gs[]
   >> imp_prove
   >- (gvs[]
-      >> transition_inverse_mem
+      >> irule (iffRL transition_inverse_mem)
+      >> REVERSE conj_tac
+      >- (gvs[all_transitions_def]
+          >> Cases_on ‘b’ >> gvs[all_transitions_helper_def, MEM_GENLIST]
+          >> unabbrev_all_tac
 QED
 
 (* -------------------------------------------------------------------------- *)
