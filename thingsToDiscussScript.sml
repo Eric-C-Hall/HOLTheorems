@@ -2,8 +2,6 @@
 
 open HolKernel Parse boolLib bossLib;
 
-open donotexpandLib;
-
 val _ = new_theory "relevant";
 
 (* thingsToDiscuss commits start on 15 Sep *)
@@ -15,13 +13,13 @@ val _ = new_theory "relevant";
 (* I've tried using Excl "SNOC_APPEND", and the simplifier trace doesn't say  *)
 (* what is causing SNOC to be transformed to an append.                       *)
 (* -------------------------------------------------------------------------- *)
-Theorem snoc_automatically_simplifying:
+(*Theorem snoc_automatically_simplifying:
   ∀l ls.
-    SNOC l ls = ARB
+  SNOC l ls = ARB
 Proof
   gvs[Excl "SNOC_APPEND"]
   >> 
-QED
+QED*)
 
 (* It's probably a good idea to avoid state. *)
 

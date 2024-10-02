@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -107,6 +106,10 @@ fun GCONTRAPOS th = GEN_ALL (CONTRAPOS (SPEC_ALL th));
 val Cases_on_if_goal = qmatch_goalsub_abbrev_tac ‘if jwlifmn then _ else _’ >> Cases_on ‘jwlifmn’;
 
 val Cases_on_if_asm = qmatch_asmsub_abbrev_tac ‘if jwlifmn then _ else _’ >> Cases_on ‘jwlifmn’;
+
+val imp_prove = qmatch_asmsub_abbrev_tac ‘jwlifmn ⇒ _’ >> sg ‘jwlifmn’ >> asm_simp_tac bool_ss [Abbr ‘jwlifmn’];
+
+fun with_all_in_goal t = rpt (pop_assum mp_tac) >> t >> rpt disch_tac;
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what the term is for a function which returns one of its inputs   *)
@@ -3558,10 +3561,18 @@ Proof
   >> Cases_on ‘s = h'’ >> gvs[]
   >- (Cases_on_if_asm >> gvs[]
       >> qmatch_asmsub_abbrev_tac ‘f h' < f v’
-      >> 
-                                  
+      >> gvs[inlt_inlt_F]
+     )
+  >> qmatch_asmsub_abbrev_tac ‘f v' ≤ f s’
+  >> imp_prove
+  >- (MEM_DOEXPAND_TAC
+      >> with_all_in_goal (PURE_REWRITE_TAC[MEM_CONS_CONS])
+      >> MEM_DONOTEXPAND_TAC
+      >> gvs[])
+  >> gvs[]
+  >> Cases_on_if_asm >> gvs[]
+  >> metis_tac[inle_TRANS]
 QED
-
 
 Theorem best_origin_slow_get_num_errors_calculate_slow:
   ∀m bs t r s.
@@ -3844,4 +3855,5 @@ Proof
   >> gvs[vd_encode_state_def, vd_encode_state_helper_def]
 
 QED
+
 val _ = export_theory();

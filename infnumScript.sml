@@ -61,7 +61,7 @@ Definition infnum_to_num[simp]:
   infnum_to_num INFINITY = ARB
 End
 
-Theorem infnum_less_leq:
+Theorem inlt_inle:
   ∀a b : infnum.
   a < b ⇒ a ≤ b
 Proof
@@ -69,12 +69,19 @@ Proof
   >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[]
 QED
 
-Theorem infnum_less_less_F:
+Theorem inlt_inlt_F:
   ∀a b.
   a < b ∧ b < a ⇒ F
 Proof
   rpt strip_tac
   >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[]
+QED
+
+Theorem inle_TRANS:
+  ∀a b c.
+  a ≤ b ∧ b ≤ c ⇒ a ≤ c
+Proof
+  Cases_on ‘a’ >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[]
 QED
 
 
