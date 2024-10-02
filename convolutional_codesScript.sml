@@ -308,6 +308,12 @@ val reverse_assum_list = pop_assum (fn th => (TRY reverse_assum_list; assume_tac
 
 val bury_assumption = pop_assum (fn th => reverse_assum_list >> assume_tac th >> reverse_assum_list)*)
 
+fun assume_at th n = (if n = 0 then assume_tac th else pop_assum (fn th2 => assume_at th (n - 1) >> assume_tac th2));
+
+fun assume_bottom th = ASSUM_LIST (fn ths => assume_at th (length ths));
+
+val bury_assumption = pop_assum assume_bottom;
+
 Theorem bitwise_commutative:
   ∀f bs cs.
   (∀b c. f b c = f c b) ⇒
@@ -631,7 +637,7 @@ Datatype:
     output_length : num;
   |>
 End
-
+[
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the state machine is well-formed                               *)
 (* -------------------------------------------------------------------------- *)
@@ -3727,7 +3733,14 @@ Proof
       >> REVERSE conj_tac
       >- (gvs[all_transitions_def]
           >> Cases_on ‘b’ >> gvs[all_transitions_helper_def, MEM_GENLIST]
-          >> unabbrev_all_tac
+          >> metis_tac[is_reachable_is_valid]
+         )
+      >> gvs[vd_step_tran_def])
+  >> gs[]
+  >> qmatch_asmsub_abbrev_tac ‘LHS ≤ _’
+  >> sg ‘LHS = INFINITY’ >> gs[Abbr ‘LHS’]
+  >- gvs[get_num_errors_calculate_slow_def]
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)
