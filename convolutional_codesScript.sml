@@ -3826,9 +3826,13 @@ QED
 
 Theorem get_num_errors_calculate_slow_is_reachable:
   ∀m bs s t.
-  is_reachable m s t ⇔ get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s) ≠ INFINITY
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (is_reachable m s t ⇔ get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s) ≠ INFINITY)
 Proof
   rpt strip_tac
+  >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac viterbi_trellis_node_slow_num_errors_is_reachable
+  >> gvs[viterbi_trellis_node_slow_def]        
 QED
 
 (* -------------------------------------------------------------------------- *)
