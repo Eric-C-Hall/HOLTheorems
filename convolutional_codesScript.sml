@@ -3736,7 +3736,8 @@ Proof
   >> gvs[viterbi_trellis_node_slow_def]
   >> gvs[get_num_errors_calculate_slow_def]
   (* The left of the addition is what causes the result to be either
-     infinity or not infinity. Give it a name *)
+     infinity or not infinity. Give it a name. i stands for infnum, because
+     it can be infinity. *)
   >> qmatch_goalsub_abbrev_tac ‘i + N _’
   (* Let s' denote the best origin leading to s *)
   >> qmatch_asmsub_abbrev_tac ‘best_origin_slow m [] t s'’
@@ -3772,24 +3773,28 @@ Proof
   (* Prove relevant precondition in order to use the inducive hypothesis *)
   >> imp_prove
   >- (gvs[]
-      >> irule (iffRL transition_inverse_mem)
-      >> REVERSE conj_tac
-      >- (gvs[all_transitions_def]
-          >> Cases_on ‘b’ >> gvs[all_transitions_helper_def, MEM_GENLIST]
-          >> metis_tac[is_reachable_is_valid]
-         )
-      >> gvs[vd_step_tran_def])
+      >> irule mem_transition_inverse_vd_step
+      >> metis_tac[is_reachable_is_valid])
   >> gs[]
+  (* The left hand side of the ≤ has to be infinity because s' is the best
+     origin for s and the number of errors to s' is infinity. *)
   >> qmatch_asmsub_abbrev_tac ‘LHS ≤ _’
   >> sg ‘LHS = INFINITY’ >> gs[Abbr ‘LHS’]
   >- gvs[get_num_errors_calculate_slow_def]
+  (* Also use the inductive hypothesis on s''. This path is also one less than
+     the path which arrives at s. *)
   >> doexpand_tac >> first_assum $ qspecl_then [‘m’, ‘s''’] mp_tac
   >> donotexpand_tac >> bury_assum
+  (* Prove preconditions *)
   >> gs[]
   >> conj_tac
   >- metis_tac[is_reachable_is_valid]
-  >> gs[]
-  >> 
+  (* Simplify via the definition to remove the SUC, to bring us down to the
+     prior length where we have used the inductive hypothesis*)
+  >> gvs[get_num_errors_calculate_slow_def]
+  >> qpat_x_assum ‘_ + N _ = INFINITY’ assume_tac
+  >> qmatch_asmsub_abbrev_tac ‘i + N _’
+  >> Cases_on ‘i’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
