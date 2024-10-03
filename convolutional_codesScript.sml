@@ -3823,7 +3823,6 @@ Proof
   >> gvs[GSYM vd_find_optimal_code_def]
 QED
 
-
 Theorem get_num_errors_calculate_slow_is_reachable:
   ∀m bs s t.
   wfmachine m ∧
@@ -3833,6 +3832,21 @@ Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac viterbi_trellis_node_slow_num_errors_is_reachable
   >> gvs[viterbi_trellis_node_slow_def]        
+QED
+
+Theorem is_reachable_best_origin_slow:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (is_reachable m (best_origin_slow m bs (SUC t) s).origin t ⇔ is_reachable m s (SUC t))
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >- (gvs[is_reachable_suc_vd_step_tran]
+      >> qexists ‘best_origin_slow m bs (SUC t) s’
+      >> gvs[vd_step_tran_best_origin_slow]
+         )
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -3869,7 +3883,8 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
   >> gvs[]
   >> conj_tac
-  >- (
+  >- (irule (iffLR get_num_errors_calculate_slow_is_reachable)
+      >> gvs[]
 QED
 
 
