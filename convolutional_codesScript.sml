@@ -109,6 +109,8 @@ val Cases_on_if_asm = qmatch_asmsub_abbrev_tac ‘if jwlifmn then _ else _’ >>
 
 val imp_prove = qmatch_asmsub_abbrev_tac ‘jwlifmn ⇒ _’ >> sg ‘jwlifmn’ >> asm_simp_tac bool_ss [Abbr ‘jwlifmn’];
 
+val conj_prove = qmatch_goalsub_abbrev_tac ‘jwlifmn ∧ _’ >> sg ‘jwlifmn’ >> asm_simp_tac bool_ss [Abbr ‘jwlifmn’];
+
 fun with_all_in_goal t = rpt (pop_assum mp_tac) >> t >> rpt disch_tac;
 
 fun ignoring_top t = pop_assum (fn th => (t >> assume_tac th))
@@ -118,7 +120,11 @@ fun assume_at th n = (if n = 0 then assume_tac th else pop_assum (fn th2 => assu
 fun assume_bottom th = ASSUM_LIST (fn ths => assume_at th (length ths));
 
 val bury_assum = pop_assum assume_bottom;
-                               
+
+val duplicate_assum = pop_assum (fn th => NTAC 2 (assume_tac th));
+
+val swap_assums = pop_assum (fn th => pop_assum (fn th2 => assume_tac th >> assume_tac th2));
+
 (* -------------------------------------------------------------------------- *)
 (* Not sure what the term is for a function which returns one of its inputs   *)
 (* as its output, so I used the term "bi-switch", because the function        *)
@@ -719,6 +725,7 @@ End
 (* Automatically apply commonly used property of a well-formed machine        *)
 (* -------------------------------------------------------------------------- *)
 Theorem wfmachine_zero_is_valid[simp]:
+  ∀m.
   wfmachine m ⇒ 0 < m.num_states
 Proof
   PURE_REWRITE_TAC[wfmachine_def]
@@ -2313,6 +2320,16 @@ Proof
   >> gvs[vd_step_def, vd_step_record_def]
 QED
 
+Theorem vd_step_tran_is_valid:
+  ∀m r.
+  wfmachine m ∧
+  r.origin < m.num_states ⇒
+  vd_step_tran m r < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_tran_def]
+QED
+
 Theorem vd_encode_state_helper_is_valid[simp]:
   ∀m bs s.
   wfmachine m ∧ 
@@ -3520,9 +3537,11 @@ Proof
 QED
 
 Theorem is_reachable_suc:
-  is_reachable m s (SUC t) ⇔ ∃s' b. is_reachable m s' t ∧ vd_step m b s' = s
+  ∀ m s t.
+    is_reachable m s (SUC t) ⇔ ∃s' b. is_reachable m s' t ∧ vd_step m b s' = s
 Proof
-  EQ_TAC
+  rpt strip_tac
+  >> EQ_TAC
   >- (disch_tac
       >> gvs[is_reachable_def]
       >> qexistsl [‘vd_encode_state m (FRONT bs)’, ‘LAST bs’]
@@ -3718,7 +3737,7 @@ Proof
   >> gvs[vd_step_tran_def]
 QED
 
-Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
+Theorem is_reachable_viterbi_trellis_node_slow_num_errors:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
@@ -3812,6 +3831,7 @@ QED
 (* SUC, intended for use in applying the inductive step.                      *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_find_optimal_code_suc:
+  ∀m bs s t.
   vd_find_optimal_code m bs s (SUC t) = vd_find_optimal_code m bs (vd_step_back m bs s (SUC t)) t ⧺ [states_to_transition_input m (vd_step_back m bs s (SUC t))s] 
 Proof
   gvs[vd_find_optimal_code_def]
@@ -3823,14 +3843,14 @@ Proof
   >> gvs[GSYM vd_find_optimal_code_def]
 QED
 
-Theorem get_num_errors_calculate_slow_is_reachable:
+Theorem is_reachable_get_num_errors_calculate_slow:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
   (is_reachable m s t ⇔ get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s) ≠ INFINITY)
 Proof
   rpt strip_tac
-  >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac viterbi_trellis_node_slow_num_errors_is_reachable
+  >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac is_reachable_viterbi_trellis_node_slow_num_errors
   >> gvs[viterbi_trellis_node_slow_def]        
 QED
 
@@ -3845,7 +3865,23 @@ Proof
   >- (gvs[is_reachable_suc_vd_step_tran]
       >> qexists ‘best_origin_slow m bs (SUC t) s’
       >> gvs[vd_step_tran_best_origin_slow]
-         )
+     )
+  (* Step back so that we know that one state leading to s is reachable
+     on the same time-step as the best origin leading to s *)
+  >> gs[is_reachable_suc_vd_step_tran]
+  (* Rewrite reachability in terms of whether or not an infinite number of
+     errors are calculated at that location, so that we can use the property
+     of best_origin_slow that it minimizes the number of errors to determine
+     that it must have less errors than the other state on the same time-step
+     leading to s and thus it must have a finite number of errors and thus must
+     be reachable. Requires a little bit of annoying fiddling in order to
+     prove preconditions of the necessary theorem. *)
+  >> ‘r.origin < m.num_states’ by metis_tac[is_reachable_is_valid]
+  >> qpat_x_assum ‘is_reachable _ _ _’ mp_tac
+  >> DEP_PURE_REWRITE_TAC[is_reachable_viterbi_trellis_node_slow_num_errors] (*is_reachable_get_num_errors_calculate_slow*)
+  >> gs[]
+  >> disch_tac
+  (* *)
   >> 
 QED
 
@@ -3883,7 +3919,7 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
   >> gvs[]
   >> conj_tac
-  >- (irule (iffLR get_num_errors_calculate_slow_is_reachable)
+  >- (irule (iffLR is_reachable_get_num_errors_calculate_slow)
       >> gvs[]
 QED
 
