@@ -936,7 +936,6 @@ Definition vd_encode_state_def:
   vd_encode_state (m : state_machine) bs = vd_encode_state_helper m bs 0
 End
 
-
 (* -------------------------------------------------------------------------- *)
 (* Returns true if it is possible to reach the state s at time t when         *)
 (* starting at 0.                                                             *)
@@ -3831,8 +3830,12 @@ QED
 (* SUC, intended for use in applying the inductive step.                      *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_find_optimal_code_suc:
+<<<<<<< Updated upstream
   ∀m bs s t.
   vd_find_optimal_code m bs s (SUC t) = vd_find_optimal_code m bs (vd_step_back m bs s (SUC t)) t ⧺ [states_to_transition_input m (vd_step_back m bs s (SUC t))s] 
+=======
+vd_find_optimal_code m bs s (SUC t) = vd_find_optimal_code m bs (vd_step_back m bs s (SUC t)) t ⧺ [states_to_transition_input m (vd_step_back m bs s (SUC t))s]
+>>>>>>> Stashed changes
 Proof
   gvs[vd_find_optimal_code_def]
   >> gvs[vd_find_optimal_path_def]
@@ -3843,7 +3846,48 @@ Proof
   >> gvs[GSYM vd_find_optimal_code_def]
 QED
 
+<<<<<<< Updated upstream
 Theorem is_reachable_get_num_errors_calculate_slow:
+=======
+
+(* -------------------------------------------------------------------------- *)
+(* Alternate definit                                                          *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_code_suc':
+  vd_find_optimal_code m bs s (SUC t) =
+  let
+    x = vd_step_back m bs s (SUC t)
+  in
+    vd_find_optimal_code m bs x t ⧺ [states_to_transition_input m x s]
+Proof
+  gvs[vd_find_optimal_code_def]
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+  >> gvs[GSYM vd_find_optimal_reversed_path_def]
+  >> gvs[GSYM vd_find_optimal_path_def]
+  >> gvs[path_to_code_append]
+  >> gvs[GSYM vd_find_optimal_code_def]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_code_suc =
+        “vd_find_optimal_code m bs s (SUC t)”
+          |> SCONV  [vd_find_optimal_code_def, vd_find_optimal_path_def,
+                     vd_find_optimal_reversed_path_def]
+          |> SRULE [GSYM vd_find_optimal_reversed_path_def,
+                    GSYM vd_find_optimal_path_def,
+                    path_to_code_append,
+                    GSYM vd_find_optimal_code_def]
+
+Theorem get_num_errors_calculate_slow_is_reachable:
+>>>>>>> Stashed changes
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
