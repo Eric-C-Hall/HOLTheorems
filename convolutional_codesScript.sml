@@ -1955,22 +1955,29 @@ Definition vd_step_back_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Returns the optimal path going from back to front.                         *)
+(* Returns the optimal path leading to state s at timestep t, with respect to *)
+(* the bitstring bs that we are trying to approximate.                        *)
 (*                                                                            *)
 (* Returns the path as a list of all states encountered along the path,       *)
 (* including the very first and last states, with the first element of this   *)
-(* list being the last state encountered in the path, and the last element of *)
-(* this list being the first state encountered in the path.                   *)
+(* list being the first state encountered in the path, and the last element   *)
+(* of this list being the last state encountered in the path.                 *)
 (*                                                                            *)
 (* vd stands for Viterbi Decode                                               *)
 (* -------------------------------------------------------------------------- *)
 (* TODO: Repeatedly calling vd_step_back is slow, because it regenerates the  *)
 (* trellis at each step.                                                      *)
 (* -------------------------------------------------------------------------- *)
+Definition vd_find_optimal_path_def:
+  vd_find_optimal_path m bs s 0 = [s] ∧
+  vd_find_optimal_path m bs s (SUC t) =
+  SNOC s (vd_find_optimal_path m bs (vd_step_back m bs s (SUC t)) t)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Added for legacy reasons. Do not use in new code. Phase out where possible.*)(* -------------------------------------------------------------------------- *)
 Definition vd_find_optimal_reversed_path_def:
-  vd_find_optimal_reversed_path m bs s 0 = [s] ∧
-  vd_find_optimal_reversed_path m bs s (SUC t) =
-  s :: vd_find_optimal_reversed_path m bs (vd_step_back m bs s (SUC t)) t
+  vd_find_optimal_reversed_path m bs s t = REVERSE (vd_find_optimal_path m bs s t)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -2018,19 +2025,6 @@ Theorem vd_find_optimal_reversed_path_test:
 Proof
   EVAL_TAC
 QED
-
-(*
---------------------------------------------------------------------------
-*)
-(* See comment for vd_find_optimal_reversed_path                              *)
-(*                                                                            *)
-(* Reverses the path returned
- by that function to ensure the path is returned *)
-(* in the forwards direction                                                  *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_find_optimal_path_def:
-  vd_find_optimal_path m bs s t = REVERSE (vd_find_optimal_reversed_path m bs s t)
-End
 
 (* -------------------------------------------------------------------------- *)
 (* An unknown, valid state, used for testing purposes                         *)
@@ -2553,44 +2547,23 @@ Proof
   >> gvs[best_origin_is_valid]   
 QED
 
-Theorem vd_find_optimal_reversed_path_length[simp]:
-  ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  LENGTH (vd_find_optimal_reversed_path m bs s t) = t + 1
-Proof
-  (* Induct over t *)
-  gen_tac
-  >> Induct_on ‘t’ >> rpt strip_tac
-  >- EVAL_TAC
-  (* Expand out definitions *)
-  >> gvs[vd_find_optimal_reversed_path_def, vd_step_back_def]
-  (* Deal with the case where the previous state is NONE, so that we can work
-     on the more interesting case where there is a preivous state *)
-  >> qspecl_then [‘m’, ‘bs’, ‘SUC t’, ‘s’] assume_tac (cj 1 viterbi_trellis_row_prev_state_valid)
-  >> gvs[]
-  >> qmatch_asmsub_abbrev_tac ‘s' ≠ NONE’
-  >> Cases_on ‘s'’ >> gvs[]
-  (* Use the inductive hypothesis to finish the proof, leaving open the
-     unproven assumption that travelling back to a prior state resulted
-     om a valid state.*)
-  >> last_x_assum $ qspecl_then [‘bs’, ‘x’] assume_tac
-  >> gvs[]
-  >> ‘x < m.num_states’ suffices_by decide_tac
-  >> pop_assum kall_tac
-  (* We just need to prove that travelling back through the trellis
-        results in a valid state *)
-  >> qspecl_then [‘m’, ‘bs’, ‘(SUC t)’, ‘s’] assume_tac (cj 2 viterbi_trellis_row_prev_state_valid)
-  >> gvs[]
-QED
-
 Theorem vd_find_optimal_path_length[simp]:
   ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ⇒
   LENGTH (vd_find_optimal_path m bs s t) = t + 1
 Proof
-  gvs[vd_find_optimal_path_def]
+  gen_tac
+  (* Induct over t *)
+  >> Induct_on ‘t’
+  >- (rpt strip_tac >> EVAL_TAC)
+  (* Expand out definitions *)
+  >> gvs[vd_find_optimal_path_def, vd_step_back_def]
+QED
+
+Theorem vd_find_optimal_reversed_path_length[simp]:
+  ∀m bs s t.
+  LENGTH (vd_find_optimal_reversed_path m bs s t) = t + 1
+Proof
+  gvs[vd_find_optimal_reversed_path_def]
 QED
 
 Theorem get_better_final_state_foldr_mem:
@@ -2615,21 +2588,6 @@ Theorem vd_find_optimal_reversed_path_time_zero[simp]:
   vd_find_optimal_reversed_path m bs s 0 = [s]
 Proof
   rpt strip_tac >> EVAL_TAC
-QED
-
-Theorem vd_find_optimal_reversed_path_length[simp]:
-  ∀m bs s t.
-  LENGTH (vd_find_optimal_reversed_path m bs s t) = t + 1
-Proof
-  Induct_on ‘t’ >> rpt strip_tac >> gvs[]
-  >> gvs[vd_find_optimal_reversed_path_def]
-QED
-
-Theorem vd_find_optimal_path_length[simp]:
-  ∀m bs s t.
-  LENGTH (vd_find_optimal_path m bs s t) = t + 1
-Proof
-  gvs[vd_find_optimal_path_def, vd_find_optimal_reversed_path_length]
 QED
 
 Theorem vd_find_optimal_code_length[simp]:
@@ -2702,9 +2660,8 @@ Theorem vd_find_optimal_path_nonempty[simp]:
   vd_find_optimal_path m bs s t ≠ []
 Proof
   rpt strip_tac
-  >> gvs[vd_find_optimal_path_def]
   >> Cases_on ‘t’
-  >> gvs[vd_find_optimal_reversed_path_def]
+  >> gvs[vd_find_optimal_path_def]
 QED
 
 Theorem vd_step_back_is_valid[simp]:

@@ -76,6 +76,8 @@ val _ = new_theory "thingsToDiscuss";
 
 (* LIST_CONJ <- connects theorems in list with conjunctions *)
 
+(* avoid writing an excessive number of new definitions. Do not unnecessarily multiply entities *)
+
 val _ = export_theory();
 
 
