@@ -4,22 +4,24 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "convolutional_codes";
 
+(* Standard library theories *)
 open arithmeticTheory;
 open listTheory;
 open bitstringTheory;
-open infnumTheory;
 open pred_setTheory;
 open prim_recTheory;
 open relationTheory;
 open rich_listTheory;
 open dividesTheory;
 
+(* Standard library tactics, etc *)
 open dep_rewrite;
 open ConseqConv; (* SPEC_ALL_TAC *)
-(*use "donotexpandLib.sml"*)
-
 open simpLib;
 
+(* My own libraries *)
+open infnumTheory;
+(*use "donotexpandLib.sml"*)
 open WFTheoremsTheory;
 
 val _ = monadsyntax.enable_monadsyntax()
