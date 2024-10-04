@@ -1245,11 +1245,6 @@ Proof
   >> gvs[CONS]
 QED
 
-(*Definition transition_inverse_set_def:
-  transition_inverse_set (m : state_machine) =
-  IMAGE 
-End*)
-
 (*Theorem transition_inverse_test:
   transition_inverse example_state_machine 2 = ARB
 Proof
@@ -1755,7 +1750,6 @@ Theorem get_num_errors_calculate_slow_get_num_errors_calculate:
 Proof
   gvs[get_num_errors_calculate_slow_get_num_errors_calculate_no_prev_data, get_num_errors_calculate_no_prev_data_def]
 QED
-
 
 Theorem get_better_origin_slow_get_better_origin:
   ∀m bs t r1 r2.
