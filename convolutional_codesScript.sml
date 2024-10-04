@@ -3830,12 +3830,8 @@ QED
 (* SUC, intended for use in applying the inductive step.                      *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_find_optimal_code_suc:
-<<<<<<< Updated upstream
   ∀m bs s t.
   vd_find_optimal_code m bs s (SUC t) = vd_find_optimal_code m bs (vd_step_back m bs s (SUC t)) t ⧺ [states_to_transition_input m (vd_step_back m bs s (SUC t))s] 
-=======
-vd_find_optimal_code m bs s (SUC t) = vd_find_optimal_code m bs (vd_step_back m bs s (SUC t)) t ⧺ [states_to_transition_input m (vd_step_back m bs s (SUC t))s]
->>>>>>> Stashed changes
 Proof
   gvs[vd_find_optimal_code_def]
   >> gvs[vd_find_optimal_path_def]
@@ -3846,14 +3842,8 @@ Proof
   >> gvs[GSYM vd_find_optimal_code_def]
 QED
 
-<<<<<<< Updated upstream
-Theorem is_reachable_get_num_errors_calculate_slow:
-=======
-
 (* -------------------------------------------------------------------------- *)
-(* Alternate definit                                                          *)
-(*                                                                            *)
-(*                                                                            *)
+(* Alternate definition that could be used for vd_find_optimal_code           *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_find_optimal_code_suc':
   vd_find_optimal_code m bs s (SUC t) =
@@ -3871,13 +3861,11 @@ Proof
   >> gvs[GSYM vd_find_optimal_code_def]
 QED
 
-
 (* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
+(* Alternate method to prove a theorem without having to re-write out the     *)
+(* entire statement of the theorem.                                           *)
 (* -------------------------------------------------------------------------- *)
-Theorem vd_find_optimal_code_suc =
+Theorem vd_find_optimal_code_suc'' =
         “vd_find_optimal_code m bs s (SUC t)”
           |> SCONV  [vd_find_optimal_code_def, vd_find_optimal_path_def,
                      vd_find_optimal_reversed_path_def]
@@ -3886,8 +3874,7 @@ Theorem vd_find_optimal_code_suc =
                     path_to_code_append,
                     GSYM vd_find_optimal_code_def]
 
-Theorem get_num_errors_calculate_slow_is_reachable:
->>>>>>> Stashed changes
+Theorem is_reachable_get_num_errors_calculate_slow:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
@@ -4002,7 +3989,6 @@ QED
 (*   essentially make the current node optimal. I skimmed over quite a bit,   *)
 (*  there, but that's the idea                                                *)
 (*                                                                            *)
-(* -------------------------------------------------------------------------- *)
 (* -------------------------------------------------------------------------- *)
 (* Proof of the more general statement of optimality of the viterbi algorithm *)
 (* when arriving at any point.                                                *)
