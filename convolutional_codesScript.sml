@@ -3846,6 +3846,7 @@ QED
 (* Alternate definition that could be used for vd_find_optimal_code           *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_find_optimal_code_suc':
+  ∀m bs s t.
   vd_find_optimal_code m bs s (SUC t) =
   let
     x = vd_step_back m bs s (SUC t)
@@ -3873,6 +3874,7 @@ Theorem vd_find_optimal_code_suc'' =
                     GSYM vd_find_optimal_path_def,
                     path_to_code_append,
                     GSYM vd_find_optimal_code_def]
+          |> GEN_ALL
 
 Theorem is_reachable_get_num_errors_calculate_slow:
   ∀m bs s t.
