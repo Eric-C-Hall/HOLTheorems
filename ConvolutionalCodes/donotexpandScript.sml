@@ -13,4 +13,15 @@ Proof
   gvs[donotexpand_def]
 QED
 
+Definition MEM_DONOTEXPAND_def:
+  MEM_DONOTEXPAND = $MEM
+End
+
+Theorem MEM_DONOTEXPAND_thm:
+  ∀l ls.
+  MEM_DONOTEXPAND l ls = MEM l ls
+Proof
+  rpt strip_tac >> EVAL_TAC
+QED
+
 val _ = export_theory();

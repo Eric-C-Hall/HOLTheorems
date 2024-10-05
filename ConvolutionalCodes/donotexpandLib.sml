@@ -32,4 +32,7 @@ qmatch_asmsub_abbrev_tac ‘donotexpand donotexpand_var’
 (* unabbreviate assumption *)
 >> simp_tac empty_ss [Abbr ‘donotexpand_var’]
 
+val MEM_DONOTEXPAND_TAC = rpt (pop_assum mp_tac) >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm] >> rpt disch_tac
+val MEM_DOEXPAND_TAC = rpt (pop_assum mp_tac) >> PURE_REWRITE_TAC[MEM_DONOTEXPAND_thm] >> rpt disch_tac
+
 end

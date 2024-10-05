@@ -40,20 +40,6 @@ val _ = monadsyntax.enable_monad "option"
 (* automatically expand this out to "viterbi_trellis_node".                   *)
 (* -------------------------------------------------------------------------- *)
 
-Definition MEM_DONOTEXPAND_def:
-  MEM_DONOTEXPAND = $MEM
-End
-
-Theorem MEM_DONOTEXPAND_thm:
-  ∀l ls.
-  MEM_DONOTEXPAND l ls = MEM l ls
-Proof
-  rpt strip_tac >> EVAL_TAC
-QED
-
-val MEM_DONOTEXPAND_TAC = rpt (pop_assum mp_tac) >> PURE_REWRITE_TAC[GSYM MEM_DONOTEXPAND_thm] >> rpt disch_tac
-val MEM_DOEXPAND_TAC = rpt (pop_assum mp_tac) >> PURE_REWRITE_TAC[MEM_DONOTEXPAND_thm] >> rpt disch_tac
-
 (* -------------------------------------------------------------------------- *)
 (* This seems like a particularly useful function that could potentially be   *)
 (* added to HOL, although I haven't spent much time polishing it              *)
