@@ -197,33 +197,6 @@ QED
 val FOLDR_DOMAIN_MEM = cj 1 FOLDR_DOMAIN_MEM_HELPER;
 
 (* -------------------------------------------------------------------------- *)
-(* Not sure what the term is for a function which returns one of its inputs   *)
-(* as its output, so I used the term "bi-switch", because the function        *)
-(* switches between two of its inputs.                                        *)
-(* -------------------------------------------------------------------------- *)
-(* -------------------------------------------------------------------------- *)
-(* TODO: Remove: obsolete due to addition of argmin library                   *)
-(* -------------------------------------------------------------------------- *)
-Theorem FOLDR_BISWITCH:
-  ∀f h ts.
-  (∀x y.  f x y = x ∨ f x y = y) ⇒
-  MEM (FOLDR f h ts) (h::ts)
-Proof
-  rpt strip_tac
-  (* Induct over ts. Base case trivial *)
-  >> Induct_on ‘ts’
-  >- gvs[]
-  >> rpt strip_tac
-  >> PURE_REWRITE_TAC[FOLDR]
-  (* do not expand mem, it creates a messy case structure *)
-  >> MEM_DONOTEXPAND_TAC
-  >> last_x_assum $ qspecl_then [‘h'’, ‘FOLDR f h ts’] assume_tac
-  >> MEM_DOEXPAND_TAC
-  >> gvs[]
-QED
-
-
-(* -------------------------------------------------------------------------- *)
 (* VITERBI DECODING                                                           *)
 (* -------------------------------------------------------------------------- *)
 

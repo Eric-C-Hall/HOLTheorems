@@ -4,6 +4,8 @@ open arithmeticTheory;
 
 val _ = new_theory "useful_theorems";
 
+open listTheory;
+
 (* One of the more useful theorems in this file *)
 Theorem MAX_SUC:
   ∀n m. MAX (SUC n) (SUC m) = SUC (MAX n m)
