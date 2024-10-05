@@ -356,20 +356,9 @@ Proof
   >- (gvs[example_state_machine_def])
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* Simple test to make sure the convolutional code is providing the output    *)
-(* I would expect if I manually did the computation myself                    *)
-(* -------------------------------------------------------------------------- *)
-Theorem vd_encode_test1:
-  vd_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
-Proof
-  EVAL_TAC
-QED
-
 (* Originally used the following definition, but this led to issues:
   all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
  *)
-
 
 Definition all_transitions_helper_def:
   all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
@@ -456,12 +445,6 @@ Proof
   >> gvs[all_transitions_def, all_transitions_set_all_transitions_set_helper]
   >> gvs[all_transitions_helper_listtoset]
 QED
-
-(*Theorem all_transitions_test:
-  all_transitions example_state_machine = faz
-Proof
-  EVAL_TAC
-End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Returns a list of transitions that lead to the given state, as well as the *)
@@ -579,10 +562,29 @@ Proof
   >> gvs[CONS]
 QED
 
-(*Theorem transition_inverse_test:
-  transition_inverse example_state_machine 2 = ARB
+(* -------------------------------------------------------------------------- *)
+(* Unit tests                                                                 *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Simple test to make sure the convolutional code is providing the output    *)
+(* I would expect if I manually did the computation myself                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_encode_test1:
+  vd_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
 Proof
   EVAL_TAC
-End*)
+QED
+
+Theorem transition_inverse_test:
+  let
+    test_inverse = transition_inverse example_state_machine 2;
+  in
+    LENGTH test_inverse = 2 ∧
+    MEM (<| origin := 1; input := F |>) test_inverse ∧
+    MEM (<| origin := 3; input := F |>) test_inverse
+Proof
+  EVAL_TAC
+QED
 
 val _ = export_theory();
