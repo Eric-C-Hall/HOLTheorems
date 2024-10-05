@@ -7,6 +7,7 @@ val _ = new_theory "parity_equations";
 (* equations interpretation of convolutional codes.                           *)
 (* -------------------------------------------------------------------------- *)
 
+(*
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
 (* -------------------------------------------------------------------------- *)
@@ -174,6 +175,6 @@ Definition parity_equations_to_gen_state_machine_def:
       output_length := num_parity_equations : num;
     |>
 End
-
+*)
 
 val _ = export_theory();
