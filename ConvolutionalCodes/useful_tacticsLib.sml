@@ -29,4 +29,6 @@ val duplicate_assum = pop_assum (fn th => NTAC 2 (assume_tac th));
 
 val swap_assums = pop_assum (fn th => pop_assum (fn th2 => assume_tac th >> assume_tac th2));
 
+fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum (fn th => delete_nth_assumption (n - 1) >> assume_tac th))
+
 end
