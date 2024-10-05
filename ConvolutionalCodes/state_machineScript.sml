@@ -157,19 +157,7 @@ Theorem wfmachine_vd_step_is_valid = cj 2 (iffLR wfmachine_def);
 Theorem wfmachine_every_state_has_prior_state = cj 3 (iffLR wfmachine_def);
 Theorem wfmachine_transition_fn_from_state_injective = cj 4 (iffLR wfmachine_def);
 Theorem wfmachine_transition_fn_output_length = cj 5 (iffLR wfmachine_def);
-
-(* -------------------------------------------------------------------------- *)
-(* Extract the property of a well-formed machine which says that the output   *)
-(* length must be greater than zero                                           *)
-(* -------------------------------------------------------------------------- *)
-Theorem wfmachine_output_length_greater_than_zero:
-  ∀m.
-  wfmachine m ⇒
-  0 < m.output_length
-Proof
-  PURE_REWRITE_TAC[wfmachine_def]
-  >> rpt strip_tac
-QED
+Theorem wfmachine_output_length_greater_than_zero = cj 6 (iffLR wfmachine_def);
 
 (* -------------------------------------------------------------------------- *)
 (* Helper function that does the actual work to encode a binary string using  *)
