@@ -4,6 +4,7 @@ open arithmeticTheory;
 
 val _ = new_theory "useful_theorems";
 
+(* One of the more useful theorems in this file *)
 Theorem MAX_SUC:
   ∀n m. MAX (SUC n) (SUC m) = SUC (MAX n m)
 Proof
@@ -38,5 +39,12 @@ Proof
   Cases_on ‘ls’ >> gvs[]  
 QED
 
+Theorem HD_SNOC:
+  ∀l ls.
+  HD (SNOC l ls) = if ls = [] then l else HD ls
+Proof
+  rpt strip_tac
+  >> Cases_on ‘ls’ >> gvs[]
+QED
 
 val _ = export_theory();
