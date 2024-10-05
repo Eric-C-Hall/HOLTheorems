@@ -22,6 +22,7 @@ open simpLib;
 (* My own theories *)
 open infnumTheory;
 open hamming_distanceTheory;
+open useful_theoremsTheory;
 
 (* My own libraries *)
 open donotexpandLib;
@@ -177,13 +178,6 @@ val FOLDR_DOMAIN_MEM = cj 1 FOLDR_DOMAIN_MEM_HELPER;
 (* likely sequence of states that could have taken through that Hidden Markov *)
 (* Model.                                                                     *)
 (* -------------------------------------------------------------------------- *)
-
-Theorem MAX_SUC:
-  ∀n m. MAX (SUC n) (SUC m) = SUC (MAX n m)
-Proof
-  rpt strip_tac
-  >> gvs[MAX_DEF]
-QED
 
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
