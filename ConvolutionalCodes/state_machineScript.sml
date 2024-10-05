@@ -152,69 +152,11 @@ Definition wfmachine_def:
     0 < m.output_length
 End
 
-(* -------------------------------------------------------------------------- *)
-(* Automatically apply commonly used property of a well-formed machine        *)
-(* -------------------------------------------------------------------------- *)
-Theorem wfmachine_zero_is_valid[simp]:
-  ∀m.
-  wfmachine m ⇒ 0 < m.num_states
-Proof
-  PURE_REWRITE_TAC[wfmachine_def]
-  >> rpt strip_tac
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Extract the property of a wfmachine that says that taking a step from a    *)
-(* valid state will result in a valid state.                                  *)
-(* -------------------------------------------------------------------------- *)
-Theorem wfmachine_vd_step_is_valid:
-  ∀m.
-  wfmachine m ⇒
-  (∀n b. n < m.num_states ⇒ vd_step m b n < m.num_states)
-Proof
-  PURE_REWRITE_TAC[wfmachine_def]
-  >> rpt strip_tac
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Extract the property of a wfmachine that says that every state has a prior *)
-(* state, i.e. one from which it is possible to take a step to arrive at the  *)
-(* state.                                                                     *)
-(* -------------------------------------------------------------------------- *)
-Theorem wfmachine_every_state_has_prior_state:
-  ∀m.
-  wfmachine m ⇒
-  (∀s. s < m.num_states ⇒ (∃s' b. s' < m.num_states ∧ vd_step m b s' = s))
-Proof
-  PURE_REWRITE_TAC[wfmachine_def]
-  >> rpt strip_tac  
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Extract the property of a wfmachine that says that the two transitions     *)
-(* leading from a state do not arrive at the same state.                      *)
-(* -------------------------------------------------------------------------- *)
-Theorem wfmachine_transition_fn_from_state_injective:
-  ∀m.
-  wfmachine m ⇒
-  (∀s. s < m.num_states ⇒ vd_step m T s ≠ vd_step m F s)
-Proof
-  PURE_REWRITE_TAC[wfmachine_def]
-  >> rpt strip_tac
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Extract the property of a wfmachine that says that all transition outputs  *)
-(* have the same length as the output length of the wfmachine.                *)
-(* -------------------------------------------------------------------------- *)
-Theorem wfmachine_transition_fn_output_length:
-  ∀m.
-  wfmachine m ⇒
-  (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length)
-Proof
-  PURE_REWRITE_TAC[wfmachine_def]
-  >> rpt strip_tac
-QED
+Theorem wfmachine_zero_is_valid[simp] = cj 1 (iffLR wfmachine_def);
+Theorem wfmachine_vd_step_is_valid = cj 2 (iffLR wfmachine_def);
+Theorem wfmachine_every_state_has_prior_state = cj 3 (iffLR wfmachine_def);
+Theorem wfmachine_transition_fn_from_state_injective = cj 4 (iffLR wfmachine_def);
+Theorem wfmachine_transition_fn_output_length = cj 5 (iffLR wfmachine_def);
 
 (* -------------------------------------------------------------------------- *)
 (* Extract the property of a well-formed machine which says that the output   *)
@@ -427,7 +369,7 @@ Definition states_to_transition_input_def:
   in
     if output_on_F.destination = s2 then F else T
 End
-        
+
 (* -------------------------------------------------------------------------- *)
 (* Takes a sequence of states which denotes a path through the state machine, *)
 (* and returns the sequence of 0s/1s which would produce that path through    *)
