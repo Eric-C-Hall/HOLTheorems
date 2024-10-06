@@ -65,8 +65,7 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Returns the total number of errors that would be present if we took a path *)
 (* through the transition with origin r, given the number of errors in the    *)
-(* previous row and the part of the received message which corresponds to     *)
-(* this transition.                                                           *)
+(* previous row.                                                              *)
 (*                                                                            *)
 (* m: the state machine                                                       *)
 (* bs: the entire input bitstring                                             *)
@@ -79,6 +78,15 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_after_step_def:
   get_num_errors_after_step m bs t previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns the best choice of origin you should take if you want to arrive at *)
+(* the state s at timestep t, given the number of errors at each state in the *)
+(* previous row.                                                              *)
+(* -------------------------------------------------------------------------- *)
+Definition best_origin_def:
+  best_origin m bs previous_row t s = inargmin (get_num_errors_after_step m bs t previous_row) (transition_inverse m s)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -98,11 +106,12 @@ End
 Definition viterbi_trellis_node_def:
   viterbi_trellis_node m bs s t previous_row =
   let
-    best_origin = inargmin (get_num_errors_after_step m bs t previous_row) (transition_inverse m s);
-    local_num_errors = get_num_errors_after_step m bs t previous_row best_origin;
+    local_best_origin = best_origin m bs previous_row t s;
+    local_num_errors = get_num_errors_after_step m bs t previous_row local_best_origin;
+    local_prev_state = (if local_num_errors = INFINITY then NONE else SOME local_best_origin.origin);
   in
     <| num_errors := local_num_errors;
-       prev_state := if local_num_errors = INFINITY then NONE else SOME best_origin.origin; |>
+       prev_state := local_prev_state; |>
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -358,7 +367,7 @@ Theorem vd_step_back_is_valid[simp]:
 Proof
   rpt strip_tac
   >> gvs[vd_step_back_def]
-  >> gvs[cj 2 viterbi_trellis_row_prev_state_valid]
+  >> gvs[viterbi_trellis_row_prev_state_valid]
 QED
 
 Theorem vd_find_optimal_path_nonempty[simp]:
