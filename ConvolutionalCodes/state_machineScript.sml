@@ -166,13 +166,13 @@ Theorem wfmachine_output_length_greater_than_zero = cj 6 (iffLR wfmachine_def);
 (* This function additionally has a parameter to keep track of the current    *)
 (* state that the state machine is in.                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition vd_encode_helper_def:
-  vd_encode_helper _ [] _ = [] ∧
-  vd_encode_helper (m : state_machine) (b::bs : bool list) (s : num) =
+Definition vd_encode_from_state_def:
+  vd_encode_from_state _ [] _ = [] ∧
+  vd_encode_from_state (m : state_machine) (b::bs : bool list) (s : num) =
   let
     d = vd_step_record m b s
   in
-    d.output ⧺ vd_encode_helper m bs d.destination
+    d.output ⧺ vd_encode_from_state m bs d.destination
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -180,7 +180,7 @@ End
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_encode_def:
-  vd_encode (m : state_machine) bs = vd_encode_helper m bs 0
+  vd_encode (m : state_machine) bs = vd_encode_from_state m bs 0
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -311,13 +311,13 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_encode_cons                             *)
 (* -------------------------------------------------------------------------- *)
-Theorem vd_encode_helper_cons:
+Theorem vd_encode_from_state_cons:
   ∀m b bs s.
-  vd_encode_helper m (b :: bs) s =
-  (vd_step_output m b s) ⧺ (vd_encode_helper m bs (vd_step  m b s))
+  vd_encode_from_state m (b :: bs) s =
+  (vd_step_output m b s) ⧺ (vd_encode_from_state m bs (vd_step  m b s))
 Proof
   rpt strip_tac
-  >> gvs[vd_encode_helper_def]
+  >> gvs[vd_encode_from_state_def]
   >> gvs[vd_encode_state_helper_def]
   >> gvs[vd_step_def, vd_step_record_def, vd_step_output_def]
 QED
@@ -328,12 +328,12 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_cons:
   ∀m b bs. vd_encode m (b :: bs) =
-           (vd_step_output m b 0) ⧺ (vd_encode_helper m bs (vd_step m b 0))
+           (vd_step_output m b 0) ⧺ (vd_encode_from_state m bs (vd_step m b 0))
 Proof
   rpt strip_tac
   >> gvs[vd_encode_def]
   >> gvs[vd_encode_state_def]
-  >> PURE_ONCE_REWRITE_TAC[vd_encode_helper_cons]
+  >> PURE_ONCE_REWRITE_TAC[vd_encode_from_state_cons]
   >> gvs[]
 QED
 
@@ -341,17 +341,17 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_encode_append                           *)
 (* -------------------------------------------------------------------------- *)
-Theorem vd_encode_helper_append:
+Theorem vd_encode_from_state_append:
   ∀m bs cs s.
-  vd_encode_helper m (bs ⧺ cs) s =
-  vd_encode_helper m bs s ⧺ vd_encode_helper m cs (vd_encode_state_helper m bs s)          
+  vd_encode_from_state m (bs ⧺ cs) s =
+  vd_encode_from_state m bs s ⧺ vd_encode_from_state m cs (vd_encode_state_helper m bs s)          
 Proof
   gen_tac
   >> Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
   >> rpt strip_tac
   >> gvs[APPEND]
-  >> gvs[vd_encode_helper_cons]
+  >> gvs[vd_encode_from_state_cons]
   >> gvs[vd_encode_state_helper_def]
 QED
 
@@ -363,11 +363,11 @@ QED
 Theorem vd_encode_append:
   ∀m bs cs.
   vd_encode m (bs ⧺ cs) =
-  (vd_encode m bs) ⧺ (vd_encode_helper m cs (vd_encode_state m bs))
+  (vd_encode m bs) ⧺ (vd_encode_from_state m cs (vd_encode_state m bs))
 Proof
   rpt strip_tac
   >> gvs[vd_encode_def, vd_encode_state_def]
-  >> gvs[vd_encode_helper_append]
+  >> gvs[vd_encode_from_state_append]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -376,7 +376,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_snoc:
   ∀m b bs. vd_encode m (SNOC b bs) =
-           (vd_encode m bs) ⧺ (vd_encode_helper m [b] (vd_encode_state m bs))
+           (vd_encode m bs) ⧺ (vd_encode_from_state m [b] (vd_encode_state m bs))
 Proof
   gvs[SNOC]
   >> gvs[vd_encode_append]
@@ -590,19 +590,19 @@ Proof
   gvs[vd_step_record_length, vd_step_output_def]
 QED
 
-Theorem vd_encode_helper_length[simp]:
+Theorem vd_encode_from_state_length[simp]:
   ∀m bs s.
   wfmachine m ∧
   s < m.num_states ⇒
-  LENGTH (vd_encode_helper m bs s) = m.output_length * LENGTH bs
+  LENGTH (vd_encode_from_state m bs s) = m.output_length * LENGTH bs
 Proof
   gen_tac
   >> Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
   >> rpt strip_tac
-  >> gvs[vd_encode_helper_cons]
+  >> gvs[vd_encode_from_state_cons]
   >> gvs[vd_step_output_length]
-  >> qmatch_goalsub_abbrev_tac ‘vd_encode_helper _ _ s2’
+  >> qmatch_goalsub_abbrev_tac ‘vd_encode_from_state _ _ s2’
   >> last_x_assum $ qspec_then ‘s2’ assume_tac
   >> gvs[]
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
@@ -621,7 +621,7 @@ Theorem vd_encode_length[simp]:
 Proof
   rpt strip_tac
   >> gvs[vd_encode_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_helper_length]
+  >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_from_state_length]
   >> gvs[]
 QED
 
@@ -688,17 +688,17 @@ Proof
   >> gvs[]
 QED
 
-Theorem vd_encode_helper_output_length_0[simp]:
+Theorem vd_encode_from_state_output_length_0[simp]:
   ∀m bs s.
   wfmachine m ∧
   s < m.num_states ∧
   m.output_length = 0 ⇒
-  vd_encode_helper m bs s = []
+  vd_encode_from_state m bs s = []
 Proof
   gen_tac
   >> Induct_on ‘bs’ >> rpt strip_tac
-  >- gvs[vd_encode_helper_def]
-  >> gvs[vd_encode_helper_cons]
+  >- gvs[vd_encode_from_state_def]
+  >> gvs[vd_encode_from_state_cons]
 QED
 
 Theorem vd_encode_output_length_0[simp]:
@@ -709,7 +709,7 @@ Theorem vd_encode_output_length_0[simp]:
 Proof
   gvs[vd_encode_def]
   >> rpt strip_tac
-  >> irule vd_encode_helper_output_length_0
+  >> irule vd_encode_from_state_output_length_0
   >> gvs[]
 QED
 

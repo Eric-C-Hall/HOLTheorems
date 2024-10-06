@@ -73,13 +73,13 @@ End
 (* This function additionally has a parameter to keep track of the current    *)
 (* state that the state machine is in.                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition gen_vd_encode_helper_def:
-  gen_vd_encode_helper _ [] _ = [] ∧
-  gen_vd_encode_helper (m : α gen_state_machine) (b::bs : bool list) (s : α) =
+Definition gen_vd_encode_from_state_def:
+  gen_vd_encode_from_state _ [] _ = [] ∧
+  gen_vd_encode_from_state (m : α gen_state_machine) (b::bs : bool list) (s : α) =
   let
     d = m.transition_fn <| origin := s; input := b |>
   in
-    d.output ⧺ gen_vd_encode_helper m bs d.destination
+    d.output ⧺ gen_vd_encode_from_state m bs d.destination
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -87,7 +87,7 @@ End
 (* state machine                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition gen_vd_encode_def:
-  gen_vd_encode (m : α gen_state_machine) bs = gen_vd_encode_helper m bs m.init
+  gen_vd_encode (m : α gen_state_machine) bs = gen_vd_encode_from_state m bs m.init
 End
 
 (* -------------------------------------------------------------------------- *)

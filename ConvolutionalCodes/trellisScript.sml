@@ -287,7 +287,7 @@ Definition vd_find_optimal_reversed_path_def:
 End
 
 Definition get_num_errors_helper_def:
-  get_num_errors_helper m rs bs s = hamming_distance rs (vd_encode_helper m bs s)
+  get_num_errors_helper m rs bs s = hamming_distance rs (vd_encode_from_state m bs s)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -454,7 +454,7 @@ Theorem get_num_errors_helper_append:
 Proof
   rpt strip_tac
   >> gvs[get_num_errors_helper_def]
-  >> gvs[vd_encode_helper_append]
+  >> gvs[vd_encode_from_state_append]
   >> gvs[hamming_distance_append_right]
 QED
 
