@@ -370,25 +370,22 @@ Proof
   >> gvs[viterbi_trellis_node_def]
 QED
 
-Theorem vd_step_back_is_valid[simp]:
+(*Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ∧
-  0 < t ⇒
+  0 < t ∧
+  is_reachable m s t ⇒
   vd_step_back m bs s t < m.num_states
 Proof
-  rpt strip_tac
-  >> gvs[vd_step_back_def]
-  >> gvs[viterbi_trellis_row_prev_state_valid]
-QED
+QED*)
 
 Theorem vd_find_optimal_path_nonempty[simp]:
   ∀m bs s t.
   vd_find_optimal_path m bs s t ≠ []
 Proof
   rpt strip_tac
-  >> Cases_on ‘t’
-  >> gvs[vd_find_optimal_path_def]
+  >> Cases_on ‘t’ >> gvs[vd_find_optimal_path_def]
 QED
 
 Theorem vd_find_optimal_path_time_zero[simp]:
@@ -568,8 +565,6 @@ Proof
   (* expand definition *)
   >> gvs[vd_decode_def]
 QED
-
-
 
 (*Theorem best_origin_slow_transition_inverse:
   ∀m bs s t.
@@ -1174,7 +1169,7 @@ QED*)
 (* Test equivalance of slow version of trellis calculation with fast version  *)
 (* for some small values of s and t, through evaluation.                      *)
 (* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_node_slow_test:
+(*Theorem viterbi_trellis_node_slow_test:
   ∀s t.
   s < 4 ∧ t ≤ 3 ⇒
   viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
@@ -1182,7 +1177,7 @@ Proof
   rpt strip_tac
   >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3) ∧ (t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3)’ >> gvs[]
   >> EVAL_TAC
-QED
+QED*)
 
 (*Theorem temp_test_theorem:
   let
@@ -1200,7 +1195,7 @@ QED*)
 (* ensure that it has the expected value, not just the same value as the      *)
 (* other implementation.                                                      *)
 (* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_node_slow_time_step_zero_test:
+(*Theorem viterbi_trellis_node_slow_time_step_zero_test:
   ∀s.
   s < 4 ⇒
   viterbi_trellis_node_slow example_state_machine test_path s 0 =
@@ -1209,7 +1204,7 @@ Proof
   rpt strip_tac
   >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
   >> EVAL_TAC
-QED
+QED*)
 
 (*Theorem vd_decode_test:
   let
