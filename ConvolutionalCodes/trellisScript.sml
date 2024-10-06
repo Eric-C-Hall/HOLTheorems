@@ -1340,16 +1340,26 @@ QED*)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_row_test:
   let
-    test_row = viterbi_trellis_row example_state_machine test_path 4
+    t = 4;
+    test_row = viterbi_trellis_row example_state_machine test_path t
   in
     (EL 0 test_row).num_errors = N 3 ∧
     (EL 1 test_row).num_errors = N 3 ∧
     (EL 2 test_row).num_errors = N 2 ∧
     (EL 3 test_row).num_errors = N 4
-(*viterbi_trellis_row example_state_machine test_path 4 = ARB*)
 Proof
   EVAL_TAC
 QED
+
+(*Theorem viterbi_trellis_row_eval:
+  let
+    t = 5;
+    test_row = viterbi_trellis_row example_state_machine test_path t
+  in
+    test_row = ARB
+Proof
+  EVAL_TAC
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
@@ -1396,6 +1406,21 @@ Theorem vd_find_optimal_reversed_path_test:
 Proof
   EVAL_TAC
 QED
+
+(*Theorem vd_find_optimal_reversed_path_eval:
+  let
+    result1 = (vd_find_optimal_reversed_path example_state_machine test_path 0 6);
+    result2 = (vd_find_optimal_reversed_path example_state_machine test_path 1 4);
+    result3 = (vd_find_optimal_reversed_path example_state_machine test_path 2 4);
+    result4 = (vd_find_optimal_reversed_path example_state_machine test_path 3 6);
+  in
+    result1 = ARB ∧
+    result2 = ARB ∧
+    result3 = ARB ∧
+    result4 = ARB
+Proof
+  EVAL_TAC
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Test equivalance of slow version of trellis calculation with fast version  *)
