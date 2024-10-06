@@ -1340,7 +1340,7 @@ QED*)
 (*                                                                            *)
 (* Hand-calculated previous states:                                           *)
 (*                                                                            *)
-(* -  0  0  2  2  01 0                                                        *)
+(* -  0  0  2  2  02 0                                                        *)
 (* -  0  0  0  02 2  0                                                        *)
 (* -  -  1  1  1  13 13                                                       *)
 (* -  -  1  3  13 1  3                                                        *)
@@ -1362,7 +1362,7 @@ Proof
   EVAL_TAC
 QED
 
-(*Theorem viterbi_trellis_row_eval:
+Theorem viterbi_trellis_row_eval:
   let
     t = 5;
     test_row = viterbi_trellis_row example_state_machine test_path t
@@ -1370,7 +1370,7 @@ QED
     test_row = ARB
 Proof
   EVAL_TAC
-QED*)
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
@@ -1384,15 +1384,14 @@ QED*)
 (*   3 -> 0/01 -> 2                                                           *)
 (*     -> 1/10 -> 3                                                           *)
 (*                                                                            *)
-(* 0  1  2  3  3  3  4                -  0  0  2  2  01 0                     *)
+(* 0  1  2  3  3  3  4                -  0  0  2  2  02 0                     *)
 (* -  1  2  2  3  3  4                -  0  0  0  02 2  0                     *)
 (* -  -  2  2  2  5  4                -  -  1  1  1  13 13                    *)
 (* -  -  2  3  4  3  3                -  -  1  3  13 1  3                     *)
 (*    FT TF TT TT FF TF                  FT TF TT TT FF TF                    *)
 (*                                                                            *)
 (* Starting at state 0, t=6: [0, 0, 0, 2, 1, 0, 0]                            *)
-(*                               .. 1, 0, 2, 1, 0]                            *)
-(*                                  .. 2, 1, 0, 0]                            *)
+(*                               .. 2, 1, 0, 0, 0]                            *)
 (*                                                                            *)
 (*                                                                            *)
 (* Starting at state 1, t=4: [1, 0, 2, 1, 0]                                  *)
@@ -1410,7 +1409,7 @@ Theorem vd_find_optimal_reversed_path_test:
     result3 = (vd_find_optimal_reversed_path example_state_machine test_path 2 4);
     result4 = (vd_find_optimal_reversed_path example_state_machine test_path 3 6);
   in
-    (result1 = [0;0;0;2;1;0;0] ∨ result1 = [0;0;1;0;2;1;0] ∨ result1 = [0;0;1;2;1;0;0]) ∧
+    (result1 = [0;0;0;2;1;0;0] ∨ result1 = [0;0;2;1;0;0;0]) ∧
     (result2 = [1;0;2;1;0] ∨ result2 = [1;2;1;0;0]) ∧
     (result3 = [2;1;0;0;0]) ∧
     (result4 = [3;3;1;0;2;1;0] ∨ result4 = [3;3;1;2;1;0;0])
