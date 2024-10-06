@@ -1347,22 +1347,31 @@ QED*)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_row_test:
   let
-    t = 4;
-    test_row = viterbi_trellis_row example_state_machine test_path t
+    node s t = (EL s (viterbi_trellis_row example_state_machine test_path t));
   in
-    (EL 0 test_row).num_errors = N 3 ∧
-    (EL 1 test_row).num_errors = N 3 ∧
-    (EL 2 test_row).num_errors = N 2 ∧
-    (EL 3 test_row).num_errors = N 4 ∧
-    (EL 0 test_row).prev_state = SOME 2 ∧
-    ((EL 1 test_row).prev_state = SOME 0 ∨ (EL 1 test_row).prev_state = SOME 2) ∧
-    (EL 2 test_row).prev_state = SOME 1 ∧
-    ((EL 3 test_row).prev_state = SOME 1 ∨ (EL 3 test_row).prev_state = SOME 3)
+    (* First row first state *)
+    (node 0 0).num_errors = N 0 ∧
+    (node 0 0).prev_state = NONE ∧
+    (* First row other state *)
+    (node 2 0).num_errors = INFINITY ∧
+    (node 2 0).prev_state = NONE ∧
+    (* Row in the middle *)
+    (node 0 4).num_errors = N 3 ∧
+    (node 1 4).num_errors = N 3 ∧
+    (node 2 4).num_errors = N 2 ∧
+    (node 3 4).num_errors = N 4 ∧
+    (node 0 4).prev_state = SOME 2 ∧
+    ((node 1 4).prev_state = SOME 0 ∨ (node 1 4).prev_state = SOME 2) ∧
+    (node 2 4).prev_state = SOME 1 ∧
+    ((node 3 4).prev_state = SOME 1 ∨ (node 3 4).prev_state = SOME 3) ∧
+(* Node which isn't reachable, but isn't in the first row *)
+    (node 2 2).num_errors = INFINITY ∧
+    (node 2 2).prev_state = NONE
 Proof
   EVAL_TAC
 QED
 
-Theorem viterbi_trellis_row_eval:
+(*Theorem viterbi_trellis_row_eval:
   let
     t = 5;
     test_row = viterbi_trellis_row example_state_machine test_path t
@@ -1370,7 +1379,7 @@ Theorem viterbi_trellis_row_eval:
     test_row = ARB
 Proof
   EVAL_TAC
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
