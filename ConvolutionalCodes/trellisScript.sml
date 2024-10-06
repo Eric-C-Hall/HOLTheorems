@@ -129,8 +129,8 @@ Definition viterbi_trellis_row_def:
     in
       GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_row) m.num_states
 End
-⦃
-(* -------------------------------------------------------------------------- *)
+
+(*(* -------------------------------------------------------------------------- *)
 (* Version of get_num_errors_after_step which works even if you do not provide *)
 (* it with the previous row of errors                                         *)
 (*                                                                            *)
@@ -150,7 +150,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_node_no_prev_data_def:
   viterbi_trellis_node_no_prev_data m bs s t = EL s (viterbi_trellis_row m bs t)
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* A slower but mathematically simpler implementation of the function for     *)
@@ -207,14 +207,23 @@ Termination
   >> gvs[]
 End
 
-(* -------------------------------------------------------------------------- *)
+(*Definition viterbi_trellis_node_slow_def:
+  viterbi_trellis_node_slow m bs s t =
+  let
+    best_origin_local = best_origin_slow m bs t s;
+  in
+    <| num_errors := get_num_errors_after_step_slow m bs t best_origin_local;
+       prev_state := if (t = 0) then NONE else SOME best_origin_local.origin; |>
+End*)  
+
+(*(* -------------------------------------------------------------------------- *)
 (* Creating theorems in order to adhere to standard naming conventions for    *)
 (* function definitions, as this was not possible because multiple functions  *)
 (* were defined in the same definition                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_after_step_slow_def = LIST_CONJ [cj 1 viterbi_trellis_slow, cj 2 viterbi_trellis_slow]
 Theorem get_better_origin_slow_def = cj 3 viterbi_trellis_slow
-Theorem best_origin_slow_def = cj 4 viterbi_trellis_slow
+Theorem best_origin_slow_def = cj 4 viterbi_trellis_slow*)
 
 (* -------------------------------------------------------------------------- *)
 (* Performs one step back through the trellis.                                *)
@@ -264,15 +273,6 @@ End
 Definition vd_find_optimal_reversed_path_def:
   vd_find_optimal_reversed_path m bs s t = REVERSE (vd_find_optimal_path m bs s t)
 End
-
-Definition viterbi_trellis_node_slow_def:
-  viterbi_trellis_node_slow m bs s t =
-  let
-    best_origin_local = best_origin_slow m bs t s;
-  in
-    <| num_errors := get_num_errors_after_step_slow m bs t best_origin_local;
-       prev_state := if (t = 0) then NONE else SOME best_origin_local.origin; |>
-End  
 
 Definition get_num_errors_helper_def:
   get_num_errors_helper m rs bs s = hamming_distance rs (vd_encode_helper m bs s)
