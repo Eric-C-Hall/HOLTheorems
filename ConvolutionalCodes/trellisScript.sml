@@ -300,17 +300,6 @@ Definition viterbi_trellis_row_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Calculate a node in the trellis for the fast version when the previous row *)
-(* is not available (by calculating all prior rows of the trellis)            *)
-(*                                                                            *)
-(* Defined in such a way as to be valid even at time-step 0, when there isn't *)
-(* a previous row present.                                                    *)
-(* -------------------------------------------------------------------------- *)
-Definition viterbi_trellis_node_no_prev_data_def:
-  viterbi_trellis_node_no_prev_data m bs s t = EL s (viterbi_trellis_row m bs t)
-End
-
-(* -------------------------------------------------------------------------- *)
 (* Version of get_num_errors_calculate which works even if you do not provide *)
 (* it with the previous row of errors                                         *)
 (*                                                                            *)
@@ -319,6 +308,17 @@ End
 Definition get_num_errors_calculate_no_prev_data_def:
   get_num_errors_calculate_no_prev_data m bs 0 r = (if (vd_step_tran m r = 0) then N0 else INFINITY) ∧
   get_num_errors_calculate_no_prev_data m bs (SUC t) r = get_num_errors_calculate m bs (SUC t) (viterbi_trellis_row m bs t) r
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Calculate a node in the trellis for the fast version when the previous row *)
+(* is not available (by calculating all prior rows of the trellis)            *)
+(*                                                                            *)
+(* Defined in such a way as to be valid even at time-step 0, when there isn't *)
+(* a previous row present.                                                    *)
+(* -------------------------------------------------------------------------- *)
+Definition viterbi_trellis_node_no_prev_data_def:
+  viterbi_trellis_node_no_prev_data m bs s t = EL s (viterbi_trellis_row m bs t)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1328,47 +1328,6 @@ QED*)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* Test equivalance of slow version of trellis calculation with fast version  *)
-(* for some small values of s and t, through evaluation.                      *)
-(* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_node_slow_test:
-  ∀s t.
-  s < 4 ∧ t ≤ 3 ⇒
-  viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
-Proof
-  rpt strip_tac
-  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3) ∧ (t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3)’ >> gvs[]
-  >> EVAL_TAC
-QED
-
-(*Theorem temp_test_theorem:
-  let
-    s = 2;
-    t = 1;
-  in
-    viterbi_trellis_node_slow example_state_machine test_path s t = ARB ∧
-    viterbi_trellis_node_no_prev_data example_state_machine test_path s t = ARB
-Proof
-  EVAL_TAC
-QED*)
-
-(* -------------------------------------------------------------------------- *)
-(* Be extra careful with the special case at time step zero, and test to      *)
-(* ensure that it has the expected value, not just the same value as the      *)
-(* other implementation.                                                      *)
-(* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_node_slow_time_step_zero_test:
-  ∀s.
-  s < 4 ⇒
-  viterbi_trellis_node_slow example_state_machine test_path s 0 =
-  <| num_errors := if s = 0 then N0 else INFINITY; prev_state := NONE|>
-Proof
-  rpt strip_tac
-  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
-  >> EVAL_TAC
-QED
-
-(* -------------------------------------------------------------------------- *)
 (* Unit test to ensure that the values returned by the trellis data function  *)
 (* are those you would expect.                                                *)
 (*                                                                            *)
@@ -1391,7 +1350,6 @@ Theorem viterbi_trellis_row_test:
 Proof
   EVAL_TAC
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
@@ -1439,5 +1397,45 @@ Proof
   EVAL_TAC
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Test equivalance of slow version of trellis calculation with fast version  *)
+(* for some small values of s and t, through evaluation.                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_trellis_node_slow_test:
+  ∀s t.
+  s < 4 ∧ t ≤ 3 ⇒
+  viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
+Proof
+  rpt strip_tac
+  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3) ∧ (t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3)’ >> gvs[]
+  >> EVAL_TAC
+QED
+
+(*Theorem temp_test_theorem:
+  let
+    s = 2;
+    t = 1;
+  in
+    viterbi_trellis_node_slow example_state_machine test_path s t = ARB ∧
+    viterbi_trellis_node_no_prev_data example_state_machine test_path s t = ARB
+Proof
+  EVAL_TAC
+QED*)
+
+(* -------------------------------------------------------------------------- *)
+(* Be extra careful with the special case at time step zero, and test to      *)
+(* ensure that it has the expected value, not just the same value as the      *)
+(* other implementation.                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_trellis_node_slow_time_step_zero_test:
+  ∀s.
+  s < 4 ⇒
+  viterbi_trellis_node_slow example_state_machine test_path s 0 =
+  <| num_errors := if s = 0 then N0 else INFINITY; prev_state := NONE|>
+Proof
+  rpt strip_tac
+  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
+  >> EVAL_TAC
+QED
 
 val _ = export_theory();
