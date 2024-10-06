@@ -7,12 +7,7 @@ val _ = new_theory "convolutional_codes";
 (* Standard library theories *)
 open arithmeticTheory;
 open listTheory;
-open bitstringTheory;
-open pred_setTheory;
-open prim_recTheory;
-open relationTheory;
 open rich_listTheory;
-open dividesTheory;
 
 (* Standard library tactics, etc *)
 open dep_rewrite;
@@ -74,7 +69,7 @@ val _ = monadsyntax.enable_monad "option"
 
 (* TODO: function for bringing nth assumption to top *)
 
-Theorem is_reachable_best_origin_slow:
+(*Theorem is_reachable_best_origin_slow:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
@@ -103,7 +98,7 @@ Proof
   >> disch_tac
   (* *)
   >> 
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Describe the relationship between the function for calculating the number  *)
@@ -116,7 +111,7 @@ QED
 (* s: the state we are aiming to end up in                                    *)
 (* t: the time-step we are aiming to end up in                                *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_after_step_get_num_errors:
+(*Theorem get_num_errors_after_step_get_num_errors:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ∧
@@ -141,7 +136,7 @@ Proof
   >> conj_tac
   >- (irule (iffLR is_reachable_get_num_errors_after_step_slow)
       >> gvs[]
-QED
+QED*)
 
 
 (* -------------------------------------------------------------------------- *)
@@ -210,8 +205,6 @@ Proof
      - get_num_errors_after_step_def *)
   >> gvs[vd_find_optimal_code_def]
   >> gvs[vd_find_optimal_path_def]
-  >> gvs[vd_find_optimal_reversed_path_def]
-  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_reversed_path _ _ s' _’
   >> gvs[vd_step_back_def]
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
