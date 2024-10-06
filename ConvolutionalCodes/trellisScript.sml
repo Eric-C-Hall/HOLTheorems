@@ -152,7 +152,7 @@ Definition viterbi_trellis_node_no_prev_data_def:
   viterbi_trellis_node_no_prev_data m bs s t = EL s (viterbi_trellis_row m bs t)
 End*)
 
-(* -------------------------------------------------------------------------- *)
+(*(* -------------------------------------------------------------------------- *)
 (* A slower but mathematically simpler implementation of the function for     *)
 (* working out the best origin in the viterbi trellis.                        *)
 (*                                                                            *)
@@ -205,7 +205,7 @@ Termination
                                3 * (FST $ SND $ SND $ OUTR x') + 2
                       )’
   >> gvs[]
-End
+End*)
 
 (*Definition viterbi_trellis_node_slow_def:
   viterbi_trellis_node_slow m bs s t =
@@ -284,6 +284,39 @@ End
 Definition get_num_errors_def:
   get_num_errors m rs bs = get_num_errors_helper m rs bs 0
 End
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: use argmin instead of this                                           *)
+(* -------------------------------------------------------------------------- *)
+Definition get_better_final_state_def:
+  get_better_final_state last_row s1 s2 = if (EL s1 last_row).num_errors < (EL s2 last_row).num_errors then s1 else s2
+End
+
+(* -------------------------------------------------------------------------- *)
+(* vd_find_optimal_path, but converted to code form                           *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_find_optimal_code_def:
+  vd_find_optimal_code m bs s t = path_to_code m (vd_find_optimal_path m bs s t)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Input: bitstring and state machine                                         *)
+(* Output: Most likely original bitstring                                     *)
+(* -------------------------------------------------------------------------- *)
+(* TODO: This recalculates the whole trellis again, which is already          *)
+(* recalculated several times when producing the path back through the        *)
+(* trellis                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_decode_def:
+  vd_decode m bs =
+  let
+    max_timestep = (LENGTH bs) DIV m.output_length;
+    last_row = viterbi_trellis_row m bs max_timestep;
+    best_state = FOLDR (get_better_final_state last_row) 0 (COUNT_LIST m.num_states)
+  in
+    vd_find_optimal_code m bs best_state max_timestep
+End
+
 
 Theorem best_origin_slow_transition_inverse:
   ∀m bs s t.
@@ -556,51 +589,6 @@ Proof
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
 QED
-
-(* Perhaps this and get_better_origin can be combined somehow.
-   In general, perhaps there should be general code for taking the
-   argmax of a function over a list. Is that code avaialable somewhere? *)
-Definition get_better_final_state_def:
-  get_better_final_state last_row s1 s2 = if (EL s1 last_row).num_errors < (EL s2 last_row).num_errors then s1 else s2
-End
-
-(* -------------------------------------------------------------------------- *)
-(* vd_find_optimal_path, but converted to code form                           *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_find_optimal_code_def:
-  vd_find_optimal_code m bs s t = path_to_code m (vd_find_optimal_path m bs s t)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Input: bitstring and state machine                                         *)
-(* Output: Most likely original bitstring                                     *)
-(* -------------------------------------------------------------------------- *)
-(* TODO: This recalculates the whole trellis again, which is already          *)
-(* recalculated several times when producing the path back through the        *)
-(* trellis                                                                    *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_decode_def:
-  vd_decode m bs =
-  let
-    max_timestep = (LENGTH bs) DIV m.output_length;
-    last_row = viterbi_trellis_row m bs max_timestep;
-    best_state = FOLDR (get_better_final_state last_row) 0 (COUNT_LIST m.num_states)
-  in
-    vd_find_optimal_code m bs best_state max_timestep
-End
-
-(*Theorem vd_decode_test:
-  let
-    decoded_path = vd_decode example_state_machine test_path;
-    encoded_decoded_path = vd_encode example_state_machine decoded_path
-  in
-    decoded_path = ARB ∧
-    encoded_decoded_path = ARB ∧
-    test_path = ARB ∧
-    hamming_distance encoded_decoded_path test_path = ARB                
-Proof
-  EVAL_TAC
-QED*)
 
 Theorem vd_find_optimal_path_time_zero[simp]:
   ∀m bs s t. vd_find_optimal_path m bs s 0 = [s]
@@ -1287,5 +1275,19 @@ Proof
   >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
   >> EVAL_TAC
 QED
+
+
+(*Theorem vd_decode_test:
+  let
+    decoded_path = vd_decode example_state_machine test_path;
+    encoded_decoded_path = vd_encode example_state_machine decoded_path
+  in
+    decoded_path = ARB ∧
+    encoded_decoded_path = ARB ∧
+    test_path = ARB ∧
+    hamming_distance encoded_decoded_path test_path = ARB                
+Proof
+  EVAL_TAC
+QED*)
 
 val _ = export_theory();
