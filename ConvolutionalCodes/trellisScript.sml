@@ -19,6 +19,7 @@ open useful_tacticsLib;
 (* My own utility theories *)
 open infnumTheory;
 open hamming_distanceTheory;
+open argminTheory;
 
 (* My own core theories *)
 open state_machineTheory;
@@ -53,7 +54,6 @@ Proof
   >> gvs[]
 QED
 
-
 (* -------------------------------------------------------------------------- *)
 (* Probably not widely applicable enough to become a proper theorem           *)
 (* -------------------------------------------------------------------------- *)
@@ -70,7 +70,6 @@ Proof
       >> rpt strip_tac >> gvs[])
   >> rpt strip_tac >> gvs[]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: Remove: obsolete due to addition of argmin library                   *)
@@ -105,7 +104,6 @@ Proof
   >> rpt strip_tac
   >> gvs[]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: obsolete                                                             *)
@@ -254,49 +252,6 @@ Definition get_num_errors_calculate_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Returns which of the given two origins would be a better choice to pass    *)
-(* through if we want to minimize the number of errors in the final path      *)
-(*                                                                            *)
-(* m: the state machine                                                       *)
-(* bs: the entire input bitstring                                             *)
-(* t: the time-step that we will arrive at. The origins are at the prior      *)
-(*    time-step to t.                                                         *)
-(* previous_row: the row of data in the trellis at time-step t - 1            *)
-(* r1: the first potential choice of origin to compare                        *)
-(* r2: the second potential choice of origin to compare                       *)
-(*                                                                            *)
-(* Output: either r1 or r2, depending on which choice of origin will minimize *)
-(*         the number of errors in the final path.                            *)
-(* -------------------------------------------------------------------------- *)
-Definition get_better_origin_def:
-  get_better_origin m bs t previous_row r1 r2 =
-  if (get_num_errors_calculate m bs t previous_row r1) < (get_num_errors_calculate m bs t previous_row r2) then r1 else r2
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Works out which origin is the best origin to pass through in order to      *)
-(* arrive at s optimally, given the previous row of errors and the part of    *)
-(* the input which is relevant to this transition.                            *)
-(*                                                                            *)
-(* m: the state machine                                                       *)
-(* bs: the entire input that needs to be decoded                              *)
-(* t: the time step that s is at, when we arrive at it. This means that the   *)(*    best origin will be at the prior time-step to t.                        *)
-(* previous_row: the row of data in the trellis at time-step t - 1            *)
-(* s: the state that we would like to arrive at.                              *)
-(*                                                                            *)
-(* Output: The choice of origin which will optimally arrive at the state s at *)
-(*         time-step t, as a transition_origin including an origin state and  *)
-(*         an input boolean.                                                  *)
-(* -------------------------------------------------------------------------- *)
-Definition best_origin_def:
-  best_origin m bs t previous_row s =
-  let
-    possible_origins = transition_inverse m s;
-  in
-    FOLDR (get_better_origin m bs t previous_row) (HD possible_origins) (TL possible_origins)
-End
-
-(* -------------------------------------------------------------------------- *)
 (* Returns a specific node in the trellis. Takes the previous row as input,   *)
 (* so that we can reuse those precomputed values rather than recomputing them,*)
 (* which would end up taking exponential time.                                *)
@@ -313,10 +268,10 @@ End
 Definition viterbi_trellis_node_def:
   viterbi_trellis_node m bs s t previous_row =
   let
-    best_origin_local = best_origin m bs t previous_row s;
+    best_origin = inargmin (get_num_errors_calculate m bs t previous_row) (transition_inverse m s);
   in
-    <| num_errors := get_num_errors_calculate m bs t previous_row best_origin_local;
-       prev_state := SOME best_origin_local.origin; |>
+    <| num_errors := get_num_errors_calculate m bs t previous_row best_origin;
+       prev_state := SOME best_origin.origin; |>
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -496,6 +451,17 @@ Proof
   >> EVAL_TAC
 QED
 
+(*Theorem temp_test_theorem:
+  let
+    s = 2;
+    t = 1;
+  in
+    viterbi_trellis_node_slow example_state_machine test_path s t = ARB ∧
+    viterbi_trellis_node_no_prev_data example_state_machine test_path s t = ARB
+Proof
+  EVAL_TAC
+QED*)
+        
 (* -------------------------------------------------------------------------- *)
 (* Be extra careful with the special case at time step zero, and test to      *)
 (* ensure that it has the expected value, not just the same value as the      *)
