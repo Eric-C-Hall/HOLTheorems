@@ -233,7 +233,7 @@ Proof
   >> DEP_PURE_REWRITE_TAC[path_to_code_append]
   >> gvs[]
   >> conj_tac
-  >- (Cases_on ‘bs’ >> gvs[code_to_path_def, code_to_path_helper_def])
+  >- (Cases_on ‘bs’ >> gvs[code_to_path_def, code_to_path_from_state_def])
   >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
   >> gvs[]
   >> conj_tac
