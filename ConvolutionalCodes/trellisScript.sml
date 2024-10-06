@@ -269,9 +269,10 @@ Definition viterbi_trellis_node_def:
   viterbi_trellis_node m bs s t previous_row =
   let
     best_origin = inargmin (get_num_errors_calculate m bs t previous_row) (transition_inverse m s);
+    local_num_errors = get_num_errors_calculate m bs t previous_row best_origin;
   in
-    <| num_errors := get_num_errors_calculate m bs t previous_row best_origin;
-       prev_state := SOME best_origin.origin; |>
+    <| num_errors := local_num_errors;
+       prev_state := if local_num_errors = INFINITY then NONE else SOME best_origin.origin; |>
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1365,8 +1366,8 @@ Theorem viterbi_trellis_row_test:
     (node 2 4).prev_state = SOME 1 ∧
     ((node 3 4).prev_state = SOME 1 ∨ (node 3 4).prev_state = SOME 3) ∧
 (* Node which isn't reachable, but isn't in the first row *)
-    (node 2 2).num_errors = INFINITY ∧
-    (node 2 2).prev_state = NONE
+    (node 2 1).num_errors = INFINITY ∧
+    (node 2 1).prev_state = NONE
 Proof
   EVAL_TAC
 QED
