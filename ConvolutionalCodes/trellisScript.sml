@@ -1331,12 +1331,19 @@ QED*)
 (* Unit test to ensure that the values returned by the trellis data function  *)
 (* are those you would expect.                                                *)
 (*                                                                            *)
-(* Hand-calculated trellis:                                                   *)
+(* Hand-calculated trellis (num errors):                                      *)
 (*                                                                            *)
 (* 0  1  2  3  3  3  4                                                        *)
 (* -  1  2  2  3  3  4                                                        *)
 (* -  -  2  2  2  5  4                                                        *)
 (* -  -  2  3  4  3  3                                                        *)
+(*                                                                            *)
+(* Hand-calculated previous states:                                           *)
+(*                                                                            *)
+(* -  0  0  2  2  01 0                                                        *)
+(* -  0  0  0  02 2  0                                                        *)
+(* -  -  1  1  1  13 13                                                       *)
+(* -  -  1  3  13 1  3                                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_row_test:
   let
@@ -1346,7 +1353,11 @@ Theorem viterbi_trellis_row_test:
     (EL 0 test_row).num_errors = N 3 ∧
     (EL 1 test_row).num_errors = N 3 ∧
     (EL 2 test_row).num_errors = N 2 ∧
-    (EL 3 test_row).num_errors = N 4
+    (EL 3 test_row).num_errors = N 4 ∧
+    (EL 0 test_row).prev_state = SOME 2 ∧
+    ((EL 1 test_row).prev_state = SOME 0 ∨ (EL 1 test_row).prev_state = SOME 2) ∧
+    (EL 2 test_row).prev_state = SOME 1 ∧
+    ((EL 3 test_row).prev_state = SOME 1 ∨ (EL 3 test_row).prev_state = SOME 3)
 Proof
   EVAL_TAC
 QED
