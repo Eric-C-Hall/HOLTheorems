@@ -285,31 +285,6 @@ Definition get_num_errors_def:
   get_num_errors m rs bs = get_num_errors_helper m rs bs 0
 End
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: obsolete                                                             *)
-(* -------------------------------------------------------------------------- *)
-Theorem get_better_origin_slow_biswitch[simp]:
-  ∀m bs t x y.
-  get_better_origin_slow m bs t x y = x ∨
-  get_better_origin_slow m bs t x y = y
-Proof
-  rpt strip_tac
-  >> gvs[get_better_origin_slow_def]
-  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-  >> Cases_on ‘b’ >> gvs[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* TODO: obsolete                                                             *)
-(* -------------------------------------------------------------------------- *)
-Theorem FOLDR_get_better_origin_slow:
-  ∀m bs t r rs.
-  MEM (FOLDR (λa' a. get_better_origin_slow m bs t a' a) r rs) (r::rs)
-Proof
-  rpt strip_tac
-  >> gvs[FOLDR_BISWITCH]
-QED
-
 Theorem best_origin_slow_transition_inverse:
   ∀m bs s t.
   wfmachine m ∧
