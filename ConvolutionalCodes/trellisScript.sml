@@ -385,6 +385,78 @@ Theorem get_num_errors_calculate_slow_def = LIST_CONJ [cj 1 viterbi_trellis_slow
 Theorem get_better_origin_slow_def = cj 3 viterbi_trellis_slow
 Theorem best_origin_slow_def = cj 4 viterbi_trellis_slow
 
+(* -------------------------------------------------------------------------- *)
+(* Performs one step back through the trellis.                                *)
+(*                                                                            *)
+(* m: the state machine which generates the trellis                           *)
+(* bs: the bitstring being decoded                                            *)
+(* s: the state to step back from                                             *)
+(* t: the time-step to step back from                                         *)
+(*                                                                            *)
+(* Only valid for t > 0, since we can't step back at t = 0.                   *)
+(* -------------------------------------------------------------------------- *)
+(* Note: this requires generating the entire trellis up to this point, which  *)
+(* is slow. Repeatedly calling this function should therefore in theory be    *)
+(* less efficient than generating the trellis once and then stepping back     *)(* through the thing.                                                         *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_step_back_def:
+  vd_step_back m bs s t =
+  let
+    trellis_row = viterbi_trellis_row m bs t;
+    trellis_node = EL s trellis_row
+  in
+    THE trellis_node.prev_state
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns the optimal path leading to state s at timestep t, with respect to *)
+(* the bitstring bs that we are trying to approximate.                        *)
+(*                                                                            *)
+(* Returns the path as a list of all states encountered along the path,       *)
+(* including the very first and last states, with the first element of this   *)
+(* list being the first state encountered in the path, and the last element   *)
+(* of this list being the last state encountered in the path.                 *)
+(*                                                                            *)
+(* vd stands for Viterbi Decode                                               *)
+(* -------------------------------------------------------------------------- *)
+(* TODO: Repeatedly calling vd_step_back is slow, because it regenerates the  *)
+(* trellis at each step.                                                      *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_find_optimal_path_def:
+  vd_find_optimal_path m bs s 0 = [s] ∧
+  vd_find_optimal_path m bs s (SUC t) =
+  SNOC s (vd_find_optimal_path m bs (vd_step_back m bs s (SUC t)) t)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Added for legacy reasons. Do not use in new code. Phase out where possible.*)(* -------------------------------------------------------------------------- *)
+Definition vd_find_optimal_reversed_path_def:
+  vd_find_optimal_reversed_path m bs s t = REVERSE (vd_find_optimal_path m bs s t)
+End
+
+Definition viterbi_trellis_node_slow_def:
+  viterbi_trellis_node_slow m bs s t =
+  let
+    best_origin_local = best_origin_slow m bs t s;
+  in
+    <| num_errors := get_num_errors_calculate_slow m bs t best_origin_local;
+       prev_state := if (t = 0) then NONE else SOME best_origin_local.origin; |>
+End  
+
+Definition get_num_errors_helper_def:
+  get_num_errors_helper m rs bs s = hamming_distance rs (vd_encode_helper m bs s)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The number of errors present if we encoded the input bs with the state     *)(* machine m and compared it to the expected output rs.                       *)
+(* -------------------------------------------------------------------------- *)
+Definition get_num_errors_def:
+  get_num_errors m rs bs = get_num_errors_helper m rs bs 0
+End
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: obsolete                                                             *)
+(* -------------------------------------------------------------------------- *)
 Theorem get_better_origin_slow_biswitch[simp]:
   ∀m bs t x y.
   get_better_origin_slow m bs t x y = x ∨
@@ -396,6 +468,9 @@ Proof
   >> Cases_on ‘b’ >> gvs[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: obsolete                                                             *)
+(* -------------------------------------------------------------------------- *)
 Theorem FOLDR_get_better_origin_slow:
   ∀m bs t r rs.
   MEM (FOLDR (λa' a. get_better_origin_slow m bs t a' a) r rs) (r::rs)
@@ -426,56 +501,6 @@ Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac best_origin_slow_transition_inverse
   >> metis_tac[transition_inverse_mem_is_valid]
-QED
-
-Definition viterbi_trellis_node_slow_def:
-  viterbi_trellis_node_slow m bs s t =
-  let
-    best_origin_local = best_origin_slow m bs t s;
-  in
-    <| num_errors := get_num_errors_calculate_slow m bs t best_origin_local;
-       prev_state := if (t = 0) then NONE else SOME best_origin_local.origin; |>
-End  
-
-(* -------------------------------------------------------------------------- *)
-(* Test equivalance of slow version of trellis calculation with fast version  *)
-(* for some small values of s and t, through evaluation.                      *)
-(* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_node_slow_test:
-  ∀s t.
-  s < 4 ∧ t ≤ 3 ⇒
-  viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
-Proof
-  rpt strip_tac
-  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3) ∧ (t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3)’ >> gvs[]
-  >> EVAL_TAC
-QED
-
-(*Theorem temp_test_theorem:
-  let
-    s = 2;
-    t = 1;
-  in
-    viterbi_trellis_node_slow example_state_machine test_path s t = ARB ∧
-    viterbi_trellis_node_no_prev_data example_state_machine test_path s t = ARB
-Proof
-  EVAL_TAC
-QED*)
-        
-(* -------------------------------------------------------------------------- *)
-(* Be extra careful with the special case at time step zero, and test to      *)
-(* ensure that it has the expected value, not just the same value as the      *)
-(* other implementation.                                                      *)
-(* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_node_slow_time_step_zero_test:
-  ∀s.
-  s < 4 ⇒
-  viterbi_trellis_node_slow example_state_machine test_path s 0 =
-  <| num_errors := if s = 0 then N0 else INFINITY; prev_state := NONE|>
-Proof
-  rpt strip_tac
-  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
-  >> EVAL_TAC
 QED
 
 Theorem viterbi_trellis_row_el:
@@ -724,215 +749,6 @@ Proof
   >> gvs[best_origin_slow_best_origin]
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* An example function which generates a grid recursively, in a similar       *)
-(* manner to the Viterbi algorithm.                                           *)
-(*                                                                            *)
-(* I wanted to test whether or not this kind of recursive implementation is   *)
-(* super inefficient in HOL. In particular, I was concerned that since at     *)
-(* each stage it needs to recurse multiple times, this might cause it to take *)
-(* exponential time overall. Luckily, this doesn't seem to be the case.       *)
-(* Perhaps it evaluates the previous row fully before substituting it in      *)
-(* multiple places.                                                           *)
-(* -------------------------------------------------------------------------- *)
-Definition example_recursive_grid_row_def:
-  example_recursive_grid_row 0 = REPLICATE 10 1 ∧
-  example_recursive_grid_row (SUC n) =
-  let
-    prior_grid_row = example_recursive_grid_row n
-  in
-    MAP (λm. (if 0 < m then EL (m - 1) prior_grid_row else 0) + EL m prior_grid_row + (if m < 9 then EL (m + 1) prior_grid_row else 0)) (COUNT_LIST 10)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Testing whether or not example_recursive_grid_row takes an exponential     *)
-(* amount of time to compute. It could theoretically take an exponential      *)
-(* amount of time if the previous row was substituted in multiple places, and *)
-(* expanded out fully multiple times. Each subsequent row would double the    *)
-(* amount of time taken because it has to do the computation from the         *)
-(* previous row twice.                                                        *)
-(*                                                                            *)
-(* 100: 0.681                                                                 *)
-(* 200: 2.311                                                                 *)
-(* 300: 5.196                                                                 *)
-(* 400: 8.997                                                                 *)
-(* 500: 14.070                                                                *)
-(* 600: 19.658                                                                *)
-(* 700: 26.521                                                                *)
-(* 800: 34.426                                                                *)
-(* -------------------------------------------------------------------------- *)
-(*Theorem example_recursive_grid_row_time_test:
-  example_recursive_grid_row 100 = ARB
-Proof
-  EVAL_TAC
-QED*)
-
-(* -------------------------------------------------------------------------- *)
-(* A similar test as above, with a slightly different definition.             *)
-(* -------------------------------------------------------------------------- *)
-Definition example_recursive_grid_row2_def:
-  example_recursive_grid_row2 0 = REPLICATE 10 1 ∧
-  example_recursive_grid_row2 (SUC n) =
-  MAP (λm. (if 0 < m then EL (m - 1) (example_recursive_grid_row2 n) else 0) + EL m (example_recursive_grid_row2 n) + (if m < 9 then EL (m + 1) (example_recursive_grid_row2 n) else 0)) (COUNT_LIST 10)
-End
-
-Theorem example_recursive_grid_row_example_recursive_grid_row2:
-  ∀n. example_recursive_grid_row n = example_recursive_grid_row2 n
-Proof
-  Induct_on ‘n’ >> gvs[example_recursive_grid_row_def, example_recursive_grid_row2_def]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* This implementation is much slower, as expected.                           *)
-(*                                                                            *)
-(* 2: 0.201                                                                   *)
-(* 3: 5.443                                                                   *)
-(* 4: 145.7                                                                   *)
-(* -------------------------------------------------------------------------- *)
-(*Theorem example_recursive_grid_row_time_test:
-  example_recursive_grid_row2 4 = ARB
-Proof
-  EVAL_TAC
-QED*)
-
-(* -------------------------------------------------------------------------- *)
-(* Unit test to ensure that the values returned by the trellis data function  *)
-(* are those you would expect.                                                *)
-(*                                                                            *)
-(* Hand-calculated trellis:                                                   *)
-(*                                                                            *)
-(* 0  1  2  3  3  3  4                                                        *)
-(* -  1  2  2  3  3  4                                                        *)
-(* -  -  2  2  2  5  4                                                        *)
-(* -  -  2  3  4  3  3                                                        *)
-(* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_row_test:
-  let
-    test_row = viterbi_trellis_row example_state_machine test_path 4
-  in
-    (EL 0 test_row).num_errors = N 3 ∧
-    (EL 1 test_row).num_errors = N 3 ∧
-    (EL 2 test_row).num_errors = N 2 ∧
-    (EL 3 test_row).num_errors = N 4
-(*viterbi_trellis_row example_state_machine test_path 4 = ARB*)
-Proof
-  EVAL_TAC
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Prior to making the relevant input calculated at the point at which it is  *)
-(* actually needed, resulting in the relevant input being calculated multiple *)
-(* times:                                                                     *)
-(*                                                                            *)
-(* 200: 3.700                                                                 *)(*                                                                            *)
-(* After the aforementioned relevant input change:                            *)
-(*                                                                            *)(* 200: 9.070                                                                 *)
-(* -------------------------------------------------------------------------- *)
-(* Theorem viterbi_trellis_row_efficiency_test:
-  let
-    n = 200;
-    n' = n * example_state_machine.output_length
-  in
-    viterbi_trellis_row example_state_machine (REPLICATE n' T) n = ARB
-Proof
-  EVAL_TAC
-QED*)
-
-(* -------------------------------------------------------------------------- *)
-(* Performs one step back through the trellis.                                *)
-(*                                                                            *)
-(* m: the state machine which generates the trellis                           *)
-(* bs: the bitstring being decoded                                            *)
-(* s: the state to step back from                                             *)
-(* t: the time-step to step back from                                         *)
-(*                                                                            *)
-(* Only valid for t > 0, since we can't step back at t = 0.                   *)
-(* -------------------------------------------------------------------------- *)
-(* Note: this requires generating the entire trellis up to this point, which  *)
-(* is slow. Repeatedly calling this function should therefore in theory be    *)
-(* less efficient than generating the trellis once and then stepping back     *)(* through the thing.                                                         *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_step_back_def:
-  vd_step_back m bs s t =
-  let
-    trellis_row = viterbi_trellis_row m bs t;
-    trellis_node = EL s trellis_row
-  in
-    THE trellis_node.prev_state
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Returns the optimal path leading to state s at timestep t, with respect to *)
-(* the bitstring bs that we are trying to approximate.                        *)
-(*                                                                            *)
-(* Returns the path as a list of all states encountered along the path,       *)
-(* including the very first and last states, with the first element of this   *)
-(* list being the first state encountered in the path, and the last element   *)
-(* of this list being the last state encountered in the path.                 *)
-(*                                                                            *)
-(* vd stands for Viterbi Decode                                               *)
-(* -------------------------------------------------------------------------- *)
-(* TODO: Repeatedly calling vd_step_back is slow, because it regenerates the  *)
-(* trellis at each step.                                                      *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_find_optimal_path_def:
-  vd_find_optimal_path m bs s 0 = [s] ∧
-  vd_find_optimal_path m bs s (SUC t) =
-  SNOC s (vd_find_optimal_path m bs (vd_step_back m bs s (SUC t)) t)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Added for legacy reasons. Do not use in new code. Phase out where possible.*)(* -------------------------------------------------------------------------- *)
-Definition vd_find_optimal_reversed_path_def:
-  vd_find_optimal_reversed_path m bs s t = REVERSE (vd_find_optimal_path m bs s t)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
-(*                                                                            *)
-(*   0 -> 0/00 -> 0                                                           *)
-(*     -> 1/11 -> 1                                                           *)
-(*   1 -> 0/11 -> 2                                                           *)
-(*     -> 1/00 -> 3                                                           *)
-(*   2 -> 0/10 -> 0                                                           *)
-(*     -> 1/01 -> 1                                                           *)
-(*   3 -> 0/01 -> 2                                                           *)
-(*     -> 1/10 -> 3                                                           *)
-(*                                                                            *)
-(* 0  1  2  3  3  3  4                -  0  0  2  2  01 0                     *)
-(* -  1  2  2  3  3  4                -  0  0  0  02 2  0                     *)
-(* -  -  2  2  2  5  4                -  -  1  1  1  13 13                    *)
-(* -  -  2  3  4  3  3                -  -  1  3  13 1  3                     *)
-(*    FT TF TT TT FF TF                  FT TF TT TT FF TF                    *)
-(*                                                                            *)
-(* Starting at state 0, t=6: [0, 0, 0, 2, 1, 0, 0]                            *)
-(*                               .. 1, 0, 2, 1, 0]                            *)
-(*                                  .. 2, 1, 0, 0]                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* Starting at state 1, t=4: [1, 0, 2, 1, 0]                                  *)
-(*                            .. 2, 1, 0, 0]                                  *)
-(*                                                                            *)
-(* Starting at state 2, t=4: [2, 1, 0, 0, 0]                                  *)
-(*                                                                            *)
-(* Starting at state 3, t=6; [3, 3, 1, 0, 2, 1, 0]                            *)
-(*                                  .. 2, 1, 0, 0]                            *)
-(* -------------------------------------------------------------------------- *)
-Theorem vd_find_optimal_reversed_path_test:
-  let
-    result1 = (vd_find_optimal_reversed_path example_state_machine test_path 0 6);
-    result2 = (vd_find_optimal_reversed_path example_state_machine test_path 1 4);
-    result3 = (vd_find_optimal_reversed_path example_state_machine test_path 2 4);
-    result4 = (vd_find_optimal_reversed_path example_state_machine test_path 3 6);
-  in
-    (result1 = [0;0;0;2;1;0;0] ∨ result1 = [0;0;1;0;2;1;0] ∨ result1 = [0;0;1;2;1;0;0]) ∧
-    (result2 = [1;0;2;1;0] ∨ result2 = [1;2;1;0;0]) ∧
-    (result3 = [2;1;0;0;0]) ∧
-    (result4 = [3;3;1;0;2;1;0] ∨ result4 = [3;3;1;2;1;0;0])
-Proof
-  EVAL_TAC
 QED
 
 (* Perhaps this and get_better_origin can be combined somehow.
@@ -1207,17 +1023,6 @@ Proof
   >> gvs[cj 2 viterbi_trellis_row_prev_state_valid]
 QED
 
-Definition get_num_errors_helper_def:
-  get_num_errors_helper m rs bs s = hamming_distance rs (vd_encode_helper m bs s)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* The number of errors present if we encoded the input bs with the state     *)(* machine m and compared it to the expected output rs.                       *)
-(* -------------------------------------------------------------------------- *)
-Definition get_num_errors_def:
-  get_num_errors m rs bs = get_num_errors_helper m rs bs 0
-End
-
 Theorem get_num_errors_helper_append:
   ∀m rs bs bs' s.
   wfmachine m ∧
@@ -1423,5 +1228,216 @@ Proof
   >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac is_reachable_viterbi_trellis_node_slow_num_errors
   >> gvs[viterbi_trellis_node_slow_def]        
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* Efficiency tests                                                           *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* An example function which generates a grid recursively, in a similar       *)
+(* manner to the Viterbi algorithm.                                           *)
+(*                                                                            *)
+(* I wanted to test whether or not this kind of recursive implementation is   *)
+(* super inefficient in HOL. In particular, I was concerned that since at     *)
+(* each stage it needs to recurse multiple times, this might cause it to take *)
+(* exponential time overall. Luckily, this doesn't seem to be the case.       *)
+(* Perhaps it evaluates the previous row fully before substituting it in      *)
+(* multiple places.                                                           *)
+(* -------------------------------------------------------------------------- *)
+Definition example_recursive_grid_row_def:
+  example_recursive_grid_row 0 = REPLICATE 10 1 ∧
+  example_recursive_grid_row (SUC n) =
+  let
+    prior_grid_row = example_recursive_grid_row n
+  in
+    MAP (λm. (if 0 < m then EL (m - 1) prior_grid_row else 0) + EL m prior_grid_row + (if m < 9 then EL (m + 1) prior_grid_row else 0)) (COUNT_LIST 10)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Testing whether or not example_recursive_grid_row takes an exponential     *)
+(* amount of time to compute. It could theoretically take an exponential      *)
+(* amount of time if the previous row was substituted in multiple places, and *)
+(* expanded out fully multiple times. Each subsequent row would double the    *)
+(* amount of time taken because it has to do the computation from the         *)
+(* previous row twice.                                                        *)
+(*                                                                            *)
+(* 100: 0.681                                                                 *)
+(* 200: 2.311                                                                 *)
+(* 300: 5.196                                                                 *)
+(* 400: 8.997                                                                 *)
+(* 500: 14.070                                                                *)
+(* 600: 19.658                                                                *)
+(* 700: 26.521                                                                *)
+(* 800: 34.426                                                                *)
+(* -------------------------------------------------------------------------- *)
+(*Theorem example_recursive_grid_row_time_test:
+  example_recursive_grid_row 100 = ARB
+Proof
+  EVAL_TAC
+QED*)
+
+(* -------------------------------------------------------------------------- *)
+(* A similar test as above, with a slightly different definition.             *)
+(* -------------------------------------------------------------------------- *)
+Definition example_recursive_grid_row2_def:
+  example_recursive_grid_row2 0 = REPLICATE 10 1 ∧
+  example_recursive_grid_row2 (SUC n) =
+  MAP (λm. (if 0 < m then EL (m - 1) (example_recursive_grid_row2 n) else 0) + EL m (example_recursive_grid_row2 n) + (if m < 9 then EL (m + 1) (example_recursive_grid_row2 n) else 0)) (COUNT_LIST 10)
+End
+
+Theorem example_recursive_grid_row_example_recursive_grid_row2:
+  ∀n. example_recursive_grid_row n = example_recursive_grid_row2 n
+Proof
+  Induct_on ‘n’ >> gvs[example_recursive_grid_row_def, example_recursive_grid_row2_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This implementation is much slower, as expected.                           *)
+(*                                                                            *)
+(* 2: 0.201                                                                   *)
+(* 3: 5.443                                                                   *)
+(* 4: 145.7                                                                   *)
+(* -------------------------------------------------------------------------- *)
+(*Theorem example_recursive_grid_row_time_test:
+  example_recursive_grid_row2 4 = ARB
+Proof
+  EVAL_TAC
+QED*)
+
+(* -------------------------------------------------------------------------- *)
+(* Prior to making the relevant input calculated at the point at which it is  *)
+(* actually needed, resulting in the relevant input being calculated multiple *)
+(* times:                                                                     *)
+(*                                                                            *)
+(* 200: 3.700                                                                 *)(*                                                                            *)
+(* After the aforementioned relevant input change:                            *)
+(*                                                                            *)(* 200: 9.070                                                                 *)
+(* -------------------------------------------------------------------------- *)
+(* Theorem viterbi_trellis_row_efficiency_test:
+  let
+    n = 200;
+    n' = n * example_state_machine.output_length
+  in
+    viterbi_trellis_row example_state_machine (REPLICATE n' T) n = ARB
+Proof
+  EVAL_TAC
+QED*)
+        
+(* -------------------------------------------------------------------------- *)
+(* Unit tests                                                                 *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Test equivalance of slow version of trellis calculation with fast version  *)
+(* for some small values of s and t, through evaluation.                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_trellis_node_slow_test:
+  ∀s t.
+  s < 4 ∧ t ≤ 3 ⇒
+  viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
+Proof
+  rpt strip_tac
+  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3) ∧ (t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3)’ >> gvs[]
+  >> EVAL_TAC
+QED
+
+(*Theorem temp_test_theorem:
+  let
+    s = 2;
+    t = 1;
+  in
+    viterbi_trellis_node_slow example_state_machine test_path s t = ARB ∧
+    viterbi_trellis_node_no_prev_data example_state_machine test_path s t = ARB
+Proof
+  EVAL_TAC
+QED*)
+
+(* -------------------------------------------------------------------------- *)
+(* Be extra careful with the special case at time step zero, and test to      *)
+(* ensure that it has the expected value, not just the same value as the      *)
+(* other implementation.                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_trellis_node_slow_time_step_zero_test:
+  ∀s.
+  s < 4 ⇒
+  viterbi_trellis_node_slow example_state_machine test_path s 0 =
+  <| num_errors := if s = 0 then N0 else INFINITY; prev_state := NONE|>
+Proof
+  rpt strip_tac
+  >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
+  >> EVAL_TAC
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Unit test to ensure that the values returned by the trellis data function  *)
+(* are those you would expect.                                                *)
+(*                                                                            *)
+(* Hand-calculated trellis:                                                   *)
+(*                                                                            *)
+(* 0  1  2  3  3  3  4                                                        *)
+(* -  1  2  2  3  3  4                                                        *)
+(* -  -  2  2  2  5  4                                                        *)
+(* -  -  2  3  4  3  3                                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_trellis_row_test:
+  let
+    test_row = viterbi_trellis_row example_state_machine test_path 4
+  in
+    (EL 0 test_row).num_errors = N 3 ∧
+    (EL 1 test_row).num_errors = N 3 ∧
+    (EL 2 test_row).num_errors = N 2 ∧
+    (EL 3 test_row).num_errors = N 4
+(*viterbi_trellis_row example_state_machine test_path 4 = ARB*)
+Proof
+  EVAL_TAC
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
+(*                                                                            *)
+(*   0 -> 0/00 -> 0                                                           *)
+(*     -> 1/11 -> 1                                                           *)
+(*   1 -> 0/11 -> 2                                                           *)
+(*     -> 1/00 -> 3                                                           *)
+(*   2 -> 0/10 -> 0                                                           *)
+(*     -> 1/01 -> 1                                                           *)
+(*   3 -> 0/01 -> 2                                                           *)
+(*     -> 1/10 -> 3                                                           *)
+(*                                                                            *)
+(* 0  1  2  3  3  3  4                -  0  0  2  2  01 0                     *)
+(* -  1  2  2  3  3  4                -  0  0  0  02 2  0                     *)
+(* -  -  2  2  2  5  4                -  -  1  1  1  13 13                    *)
+(* -  -  2  3  4  3  3                -  -  1  3  13 1  3                     *)
+(*    FT TF TT TT FF TF                  FT TF TT TT FF TF                    *)
+(*                                                                            *)
+(* Starting at state 0, t=6: [0, 0, 0, 2, 1, 0, 0]                            *)
+(*                               .. 1, 0, 2, 1, 0]                            *)
+(*                                  .. 2, 1, 0, 0]                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* Starting at state 1, t=4: [1, 0, 2, 1, 0]                                  *)
+(*                            .. 2, 1, 0, 0]                                  *)
+(*                                                                            *)
+(* Starting at state 2, t=4: [2, 1, 0, 0, 0]                                  *)
+(*                                                                            *)
+(* Starting at state 3, t=6; [3, 3, 1, 0, 2, 1, 0]                            *)
+(*                                  .. 2, 1, 0, 0]                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_reversed_path_test:
+  let
+    result1 = (vd_find_optimal_reversed_path example_state_machine test_path 0 6);
+    result2 = (vd_find_optimal_reversed_path example_state_machine test_path 1 4);
+    result3 = (vd_find_optimal_reversed_path example_state_machine test_path 2 4);
+    result4 = (vd_find_optimal_reversed_path example_state_machine test_path 3 6);
+  in
+    (result1 = [0;0;0;2;1;0;0] ∨ result1 = [0;0;1;0;2;1;0] ∨ result1 = [0;0;1;2;1;0;0]) ∧
+    (result2 = [1;0;2;1;0] ∨ result2 = [1;2;1;0;0]) ∧
+    (result3 = [2;1;0;0;0]) ∧
+    (result4 = [3;3;1;0;2;1;0] ∨ result4 = [3;3;1;2;1;0;0])
+Proof
+  EVAL_TAC
+QED
+
 
 val _ = export_theory();
