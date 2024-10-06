@@ -45,7 +45,7 @@ val _ = monadsyntax.enable_monad "option"
 (* If you want to work on my code, I recommend using abbreviations, because   *)
 (* many of my variable names are quite long. for example, when I type the     *)
 (* letters "gnecs", my emacs will automatically expand this out to            *)
-(* "get_num_errors_calculate_slow". Similarly, if I type "vtn", my emcs will  *)
+(* "get_num_errors_after_step_slow". Similarly, if I type "vtn", my emcs will  *)
 (* automatically expand this out to "viterbi_trellis_node".                   *)
 (* -------------------------------------------------------------------------- *)
 
@@ -98,7 +98,7 @@ Proof
      prove preconditions of the necessary theorem. *)
   >> ‘r.origin < m.num_states’ by metis_tac[is_reachable_is_valid]
   >> qpat_x_assum ‘is_reachable _ _ _’ mp_tac
-  >> DEP_PURE_REWRITE_TAC[is_reachable_viterbi_trellis_node_slow_num_errors] (*is_reachable_get_num_errors_calculate_slow*)
+  >> DEP_PURE_REWRITE_TAC[is_reachable_viterbi_trellis_node_slow_num_errors] (*is_reachable_get_num_errors_after_step_slow*)
   >> gs[]
   >> disch_tac
   (* *)
@@ -116,17 +116,17 @@ QED
 (* s: the state we are aiming to end up in                                    *)
 (* t: the time-step we are aiming to end up in                                *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_calculate_get_num_errors:
+Theorem get_num_errors_after_step_get_num_errors:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ∧
   is_reachable m s t ∧
   LENGTH bs = t * m.num_states ⇒
-  get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_calculate_slow m bs t (best_origin_slow m bs t s))
+  get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   >- (gvs[get_num_errors_def, get_num_errors_helper_def, vd_encode_helper_def]
-      >> gvs[get_num_errors_calculate_slow_def]
+      >> gvs[get_num_errors_after_step_slow_def]
       >> Cases_on_if_goal >> gvs[]
      )
   (* Reduce SUC in LHS to allow usage of inductive hypothesis *)
@@ -135,11 +135,11 @@ Proof
      will be applicable to c. *)
   >> qmatch_goalsub_abbrev_tac ‘get_num_errors _ _ (cs ⧺ c) = _’
   (* Reduce SUC in RHS to allow usage of inductive hypothesis *)
-  >> gvs[get_num_errors_calculate_slow_def]
+  >> gvs[get_num_errors_after_step_slow_def]
   >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
   >> gvs[]
   >> conj_tac
-  >- (irule (iffLR is_reachable_get_num_errors_calculate_slow)
+  >- (irule (iffLR is_reachable_get_num_errors_after_step_slow)
       >> gvs[]
 QED
 
@@ -207,7 +207,7 @@ Proof
      - viterbi_trellis_row_def
      - viterbi_trellis_node_def
      - get_better_origin_def
-     - get_num_errors_calculate_def *)
+     - get_num_errors_after_step_def *)
   >> gvs[vd_find_optimal_code_def]
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
