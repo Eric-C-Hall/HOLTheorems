@@ -24,6 +24,10 @@ open hamming_distanceTheory;
 open state_machineTheory;
 
 (* -------------------------------------------------------------------------- *)
+(* TODO: tidy this file up                                                    *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* Not sure what the term is for a function which returns one of its inputs   *)
 (* as its output, so I used the term "bi-switch", because the function        *)
 (* switches between two of its inputs.                                        *)

@@ -27,3 +27,5 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* USE_SG_THEN *)
 
 (* RES_TAC *)
+
+(* Make sure to keep code clean. If there's a clear, straightforward change you can make to improve the clenliness of the code, it's probably a good idea to do it *)
