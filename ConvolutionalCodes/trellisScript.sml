@@ -102,6 +102,9 @@ End
 (*                                                                            *)
 (* Outputs a tuple containing the number of errors at this point as well as   *)
 (* the previous state on the optimal path towards this point                  *)
+(*                                                                            *)
+(* Only valid when a previous row exists, i.e. when we aren't in the zeroth   *)
+(* time-step.                                                                 *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_node_def:
   viterbi_trellis_node m bs s t previous_row =
@@ -334,6 +337,20 @@ Proof
   gvs[viterbi_trellis_row_def]
 QED
 
+Theorem best_origin_is_valid[simp]:
+  ∀m bs prev_row t s.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (best_origin m bs prev_row t s).origin < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[best_origin_def]
+  >> irule transition_inverse_mem_is_valid
+  >> qexists ‘s’
+  >> irule inargmin_mem
+  >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that each previous state in the trellis is valid.                    *)
 (* -------------------------------------------------------------------------- *)
@@ -351,11 +368,6 @@ Proof
   >- (Cases_on ‘s’ >> gvs[]
       >> gvs[EL_REPLICATE])
   >> gvs[viterbi_trellis_node_def]
-  >> gvs[get_num_errors_after_step_def]
-  >> irule transition_inverse_mem_is_valid
-  >> qexists ‘s’
-  >> irule inargmin_mem
-  >> gvs[]
 QED
 
 Theorem vd_step_back_is_valid[simp]:
