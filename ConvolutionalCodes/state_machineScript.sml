@@ -18,16 +18,8 @@ open dep_rewrite;
 (* CONVOLUTIONAL STATE MACHINE ENCODING                                       *)
 (* -------------------------------------------------------------------------- *)
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: rename this as transition. It's better to think of this as a         *)
-(* transition, because the transition origin is exclusively the state and not *)
-(* the provided input. Then the transition function will take a transition    *)(* and return the destination state and output.                               *)
-(* -------------------------------------------------------------------------- *)
 Datatype:
-  transition_origin = <|
-    (* possibly rename this, because t.origin sounds like you're finding the
-       origin of the origin, rather than finding the state that comprises the
-       origin. Maybe call it state, or something. *)
+  transition = <|
     origin : num;
     input : bool;
   |>
@@ -37,14 +29,14 @@ End
 (* The automatically generated record theorems don't seem to be automatically *)
 (* fetched or something, so I have to fetch them manually.                    *)
 (* -------------------------------------------------------------------------- *)
-val transition_origin_component_equality_local = fetch "state_machine" "transition_origin_component_equality";
+val transition_component_equality_local = fetch "state_machine" "transition_component_equality";
 
-Theorem transition_origin_literal_components[simp]:
+Theorem transition_literal_components[simp]:
   ∀r.
   <| origin := r.origin; input := r.input |> = r
 Proof
   rpt strip_tac
-  >> gvs[transition_origin_component_equality_local]
+  >> gvs[transition_component_equality_local]
 QED
 
 Datatype:
@@ -82,7 +74,7 @@ End
 Datatype:
   state_machine = <|
     num_states : num;
-    transition_fn : transition_origin -> transition_destination;
+    transition_fn : transition -> transition_destination;
     output_length : num;
   |>
 End
@@ -207,7 +199,7 @@ Definition all_transitions_helper_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Returns a list of all valid choices of a transition_origin             *)
+(* Returns a list of all valid choices of a transition             *)
 (* -------------------------------------------------------------------------- *)
 Definition all_transitions_def:
   all_transitions (m : state_machine) = all_transitions_helper m T ⧺ all_transitions_helper m F
@@ -229,7 +221,7 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Returns a list of transitions that lead to the given state, as well as the *)
 (* input which leads to them. Each element of the list is a                   *)
-(* transition_origin                                                          *)
+(* transition                                                          *)
 (* -------------------------------------------------------------------------- *)
 Definition transition_inverse_def:
   transition_inverse (m : state_machine) dest =
@@ -432,7 +424,7 @@ Proof
   >> gvs[MEM_GENLIST]
   >> qexists ‘r.origin’
   >> gvs[]
-  >> gvs[transition_origin_component_equality_local]
+  >> gvs[transition_component_equality_local]
 QED
 
 Theorem all_transitions_mem:
@@ -757,10 +749,10 @@ Proof
   >> Cases_on ‘r.input’
   >- (disj1_tac
       >> qexists ‘r.origin’
-      >> gvs[transition_origin_component_equality_local])
+      >> gvs[transition_component_equality_local])
   >> disj2_tac
   >> qexists ‘r.origin’
-  >> gvs[transition_origin_component_equality_local]
+  >> gvs[transition_component_equality_local]
 QED
 
 Theorem mem_transition_inverse_vd_step:

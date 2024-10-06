@@ -170,7 +170,7 @@ Definition parity_equations_to_gen_state_machine_def:
       transition_fn := (λorigin.
                           <| destination := TL (SNOC origin.input origin.origin);
                              output := apply_parity_equations ps (SNOC origin.input origin.origin) |>
-                       ) : (bool list) gen_transition_origin -> (bool list) gen_transition_destination;
+                       ) : (bool list) gen_transition -> (bool list) gen_transition_destination;
       init := REPLICATE window_length F : (bool list);
       output_length := num_parity_equations : num;
     |>

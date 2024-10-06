@@ -7,7 +7,7 @@ val _ = new_theory "gen_convolutional_codes";
 (* The datatype used as the input of a transition in a state machine          *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
-  gen_transition_origin = <|
+  gen_transition = <|
     origin : α;
     input : bool;
   |>
@@ -36,7 +36,7 @@ End
 Datatype:
   gen_state_machine = <|
     states : α set;
-    transition_fn : α gen_transition_origin -> α gen_transition_destination;
+    transition_fn : α gen_transition -> α gen_transition_destination;
     init : α;
     output_length : num;
     state_ordering : α -> α -> bool;
