@@ -325,6 +325,30 @@ Proof
   gvs[viterbi_trellis_row_def]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Prove that each previous state in the trellis is valid.                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_trellis_row_prev_state_valid[simp]:
+  ∀m bs t s.
+  wfmachine m ∧
+  s < m.num_states ∧
+  (EL s (viterbi_trellis_row m bs t)).prev_state ≠ NONE ⇒
+  THE (EL s (viterbi_trellis_row m bs t)).prev_state < m.num_states
+Proof
+  rpt strip_tac
+  >> qmatch_goalsub_abbrev_tac ‘THE n’
+  >> Cases_on ‘n’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[viterbi_trellis_row_def]
+  >- (Cases_on ‘s’ >> gvs[]
+      >> gvs[EL_REPLICATE])
+  >> gvs[viterbi_trellis_node_def]
+  >> gvs[get_num_errors_after_step_def]
+  >> irule transition_inverse_mem_is_valid
+  >> qexists ‘s’
+  >> irule inargmin_mem
+  >> gvs[]
+QED
+
 Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
   wfmachine m ∧
@@ -524,29 +548,6 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-(*(* -------------------------------------------------------------------------- *)
-(* Prove that each previous state in the trellis is valid.                    *)
-(* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_row_prev_state_valid[simp]:
-  ∀m bs t s.
-  wfmachine m ∧
-  s < m.num_states ∧
-  0 < t ⇒
-  (EL s (viterbi_trellis_row m bs t)).prev_state ≠ NONE ∧
-  THE (EL s (viterbi_trellis_row m bs t)).prev_state < m.num_states
-Proof
-  (* Handle proving that previous state is not NONE *)
-  rpt strip_tac
-  >- (Cases_on ‘t’ >> gvs[]
-      >> gvs[viterbi_trellis_row_def]
-      >> gvs[viterbi_trellis_node_def])
-  (* Start of proof that previous state is within the valid range for states *)
-  (* Expand definitions, and use abbreviations insted to make it readable *)
-  >> Cases_on ‘t’ >> gvs[]
-  >> gvs[viterbi_trellis_row_def]
-  >> gvs[viterbi_trellis_node_def]
-  >> gvs[best_origin_is_valid]   
-QED*)
 
 
 (*Theorem best_origin_slow_transition_inverse:
