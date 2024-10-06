@@ -1023,6 +1023,19 @@ Proof
   >> EVAL_TAC
 QED
 
+Theorem path_to_code_length[simp]:
+  ∀m ps.
+  LENGTH (path_to_code m ps) = LENGTH ps - 1
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ps’
+  >- EVAL_TAC
+  >> rpt strip_tac
+  >> Cases_on ‘ps’
+  >- EVAL_TAC
+  >> gvs[path_to_code_def]
+QED
+
 Theorem path_to_code_append:
   ∀m ss ss'.
   ss ≠ [] ∧ ss' ≠ [] ⇒

@@ -195,3 +195,75 @@ Proof
   rpt strip_tac
   >> gvs[FOLDR_BISWITCH]
 QED
+
+
+(*(* -------------------------------------------------------------------------- *)
+(* The result of folding get_better_origin over a list is the list itself,    *)
+(* since at each stage, the output is equal to one of the inputs.             *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_better_origin_foldr_mem:
+  ∀m bs t ps h ts.
+  MEM (FOLDR (get_better_origin m bs t ps) h ts) (h::ts)
+Proof
+  rpt strip_tac
+  >> irule FOLDR_BISWITCH
+  >> rpt strip_tac
+  >> gvs[get_better_origin_def]
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+  >> Cases_on ‘b’
+  >> gvs[]
+QED
+ *)
+
+
+(*
+Theorem best_origin_is_valid:
+  ∀m bs t ps s.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (best_origin m bs t ps s).origin < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[best_origin_def]
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR fn _ _’
+  >> qmatch_goalsub_abbrev_tac ‘FOLDR _ (HD ts)’
+  >> qmatch_goalsub_abbrev_tac ‘tran.origin < _’
+  (* Use the proof that transition_inverse always returns a valid state
+     to simplify to merely needing to prove that t is a member of ts. *)
+  >> qsuff_tac ‘MEM tran ts’
+  >- (strip_tac
+      >> qspecl_then [‘m’, ‘s’] assume_tac transition_inverse_valid
+      >> gvs[Abbr ‘ts’]
+      >> gvs[EVERY_MEM])
+  (* t can only be a member of ts if ts is nonempty, so prove that ts is nonempty, using the fact that transition_inverse is nonempty given a well formed machine and valid state.*)
+  >> sg ‘ts ≠ []’
+  >- (gvs[Abbr ‘ts’]
+      >> gvs[transition_inverse_nonempty])
+  (* No longer need the information provided by the exact form of ts. The fact that it is a nonempty bitstring is enough. *)
+  >> delete_nth_assumption 2
+  (* Use get_better_origin_foldr_mem to finish the proof. Since the function's
+     output is always one of the inputs, folding the function over a list
+     will always give you a member of that list. *)
+  >> unabbrev_all_tac
+  >> Cases_on ‘ts’
+  >- gvs[]
+  >> MEM_DONOTEXPAND_TAC
+  >> simp[get_better_origin_foldr_mem]
+  >> MEM_DOEXPAND_TAC
+  >> PURE_REWRITE_TAC[get_better_origin_foldr_mem]
+QED
+*)
+
+
+(*Theorem get_better_final_state_foldr_mem:
+  ∀rs h ts.
+  MEM (FOLDR (get_better_final_state rs) h ts) (h::ts)
+Proof
+  rpt strip_tac
+  >> irule FOLDR_BISWITCH
+  >> rpt strip_tac
+  >> gvs[get_better_final_state_def]
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+  >> Cases_on ‘b’
+  >> gvs[]
+QED*)
