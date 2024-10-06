@@ -450,7 +450,7 @@ Theorem get_num_errors_helper_append:
   wfmachine m ∧
   s < m.num_states ∧
   LENGTH rs = (LENGTH bs + LENGTH bs') * m.output_length ⇒
-  get_num_errors_helper m rs (bs ⧺ bs') s = get_num_errors_helper m (TAKE (LENGTH bs * m.output_length) rs) bs s + get_num_errors_helper m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state_helper m bs s) 
+  get_num_errors_helper m rs (bs ⧺ bs') s = get_num_errors_helper m (TAKE (LENGTH bs * m.output_length) rs) bs s + get_num_errors_helper m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state_from_state m bs s) 
 Proof
   rpt strip_tac
   >> gvs[get_num_errors_helper_def]

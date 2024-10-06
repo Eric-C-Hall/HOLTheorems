@@ -297,7 +297,7 @@ Proof
       >> gvs[]
       >> gvs[wfmachine_output_length_greater_than_zero]
      )
-  >> gvs[vd_encode_state_def, vd_encode_state_helper_def]
+  >> gvs[vd_encode_state_def, vd_encode_state_from_state_def]
 
 QED
 

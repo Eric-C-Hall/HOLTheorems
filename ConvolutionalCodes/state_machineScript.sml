@@ -188,10 +188,10 @@ End
 (* the given state machine to the given bitstring. Also has a variable to     *)
 (* keep track of the current state we're in.                                  *)
 (* -------------------------------------------------------------------------- *)
-Definition vd_encode_state_helper_def:
-  vd_encode_state_helper (m : state_machine) [] s = s ∧
-  vd_encode_state_helper m (b::bs) s =
-  vd_encode_state_helper m bs (vd_step m b s)
+Definition vd_encode_state_from_state_def:
+  vd_encode_state_from_state (m : state_machine) [] s = s ∧
+  vd_encode_state_from_state m (b::bs) s =
+  vd_encode_state_from_state m bs (vd_step m b s)
 End 
 
 (* -------------------------------------------------------------------------- *)
@@ -199,7 +199,7 @@ End
 (* machine to the given bitstring.                                            *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_encode_state_def:
-  vd_encode_state (m : state_machine) bs = vd_encode_state_helper m bs 0
+  vd_encode_state (m : state_machine) bs = vd_encode_state_from_state m bs 0
 End
 
 Definition all_transitions_helper_def:
@@ -318,7 +318,7 @@ Theorem vd_encode_from_state_cons:
 Proof
   rpt strip_tac
   >> gvs[vd_encode_from_state_def]
-  >> gvs[vd_encode_state_helper_def]
+  >> gvs[vd_encode_state_from_state_def]
   >> gvs[vd_step_def, vd_step_record_def, vd_step_output_def]
 QED
 
@@ -344,7 +344,7 @@ QED
 Theorem vd_encode_from_state_append:
   ∀m bs cs s.
   vd_encode_from_state m (bs ⧺ cs) s =
-  vd_encode_from_state m bs s ⧺ vd_encode_from_state m cs (vd_encode_state_helper m bs s)          
+  vd_encode_from_state m bs s ⧺ vd_encode_from_state m cs (vd_encode_state_from_state m bs s)          
 Proof
   gen_tac
   >> Induct_on ‘bs’
@@ -352,7 +352,7 @@ Proof
   >> rpt strip_tac
   >> gvs[APPEND]
   >> gvs[vd_encode_from_state_cons]
-  >> gvs[vd_encode_state_helper_def]
+  >> gvs[vd_encode_state_from_state_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -382,22 +382,22 @@ Proof
   >> gvs[vd_encode_append]
 QED
 
-Theorem vd_encode_state_helper_snoc:
+Theorem vd_encode_state_from_state_snoc:
   ∀m b bs s.
-  vd_encode_state_helper m (SNOC b bs) s = vd_step m b (vd_encode_state_helper m bs s)
+  vd_encode_state_from_state m (SNOC b bs) s = vd_step m b (vd_encode_state_from_state m bs s)
 Proof
   Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
   >> rpt strip_tac
   >> gvs[]
-  >> gvs[vd_encode_state_helper_def]
+  >> gvs[vd_encode_state_from_state_def]
 QED
 
 Theorem vd_encode_state_snoc:
   ∀m b bs.
   vd_encode_state m (SNOC b bs) = vd_step m b (vd_encode_state m bs)
 Proof
-  gvs[vd_encode_state_def, vd_encode_state_helper_snoc]
+  gvs[vd_encode_state_def, vd_encode_state_from_state_snoc]
 QED
 
 Theorem all_transitions_helper_mem_is_valid[simp]:
@@ -648,18 +648,18 @@ Proof
   >> gvs[vd_step_tran_def]
 QED
 
-Theorem vd_encode_state_helper_is_valid[simp]:
+Theorem vd_encode_state_from_state_is_valid[simp]:
   ∀m bs s.
   wfmachine m ∧ 
   s < m.num_states ⇒
-  vd_encode_state_helper m bs s < m.num_states
+  vd_encode_state_from_state m bs s < m.num_states
 Proof
   gen_tac
   >> Induct_on ‘bs’
   >- (rpt strip_tac
-      >> gvs[vd_encode_state_helper_def])
+      >> gvs[vd_encode_state_from_state_def])
   >> rpt strip_tac
-  >> gvs[vd_encode_state_helper_def]
+  >> gvs[vd_encode_state_from_state_def]
   >> last_x_assum $ qspec_then ‘vd_step m h s’ assume_tac
   >> gvs[vd_step_is_valid]
 QED
@@ -671,7 +671,7 @@ Theorem vd_encode_state_is_valid[simp]:
 Proof
   rpt strip_tac
   >> gvs[vd_encode_state_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_helper_is_valid]
+  >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_from_state_is_valid]
 QED
 
 Theorem vd_step_output_output_length_0[simp]:
@@ -836,7 +836,7 @@ QED
 
 Theorem code_to_path_helper_append:
   ∀m bs cs s.
-  code_to_path_helper m (bs ⧺ cs) s = (code_to_path_helper m bs s) ⧺ (TL (code_to_path_helper m cs (vd_encode_state_helper m bs s)))
+  code_to_path_helper m (bs ⧺ cs) s = (code_to_path_helper m bs s) ⧺ (TL (code_to_path_helper m cs (vd_encode_state_from_state m bs s)))
 Proof
   Induct_on ‘bs’
   >- (EVAL_TAC
@@ -850,12 +850,12 @@ Proof
   >> rpt strip_tac
   >> gvs[]
   >> gvs[code_to_path_helper_def]
-  >> gvs[vd_encode_state_helper_def]
+  >> gvs[vd_encode_state_from_state_def]
 QED
 
 Theorem code_to_path_helper_snoc:
   ∀m b bs s.
-  code_to_path_helper m (SNOC b bs) s = SNOC (vd_step m b (vd_encode_state_helper m bs s)) (code_to_path_helper m bs s)
+  code_to_path_helper m (SNOC b bs) s = SNOC (vd_step m b (vd_encode_state_from_state m bs s)) (code_to_path_helper m bs s)
 Proof
   rpt strip_tac
   >> gvs[SNOC]
@@ -884,11 +884,11 @@ QED
 
 Theorem code_to_path_helper_last:
   ∀m bs s.
-  LAST (code_to_path_helper m bs s) = (vd_encode_state_helper m bs s)
+  LAST (code_to_path_helper m bs s) = (vd_encode_state_from_state m bs s)
 Proof
   Induct_on ‘bs’ >> rpt strip_tac
   >- EVAL_TAC
-  >> gvs[vd_encode_state_helper_def]
+  >> gvs[vd_encode_state_from_state_def]
   >> gvs[code_to_path_helper_def]
   >> pop_assum $ qspecl_then [‘m’, ‘vd_step m h s’] assume_tac
   >> pop_assum (fn th => gvs[SYM th])
@@ -1083,7 +1083,7 @@ Proof
   >> gvs[code_to_path_helper_last]
   >> DEP_PURE_ONCE_REWRITE_TAC[states_to_transition_input_vd_step]
   >> gvs[]
-  >> irule vd_encode_state_helper_is_valid
+  >> irule vd_encode_state_from_state_is_valid
   >> gvs[]
 QED
 
@@ -1421,7 +1421,7 @@ Proof
   Induct_on ‘t’
   >- (rpt strip_tac
       >> gvs[is_reachable_def]
-      >> gvs[vd_encode_state_def, vd_encode_state_helper_def])
+      >> gvs[vd_encode_state_def, vd_encode_state_from_state_def])
   >> rpt strip_tac
   >> gvs[is_reachable_def]
 QED
@@ -1494,12 +1494,12 @@ Proof
   metis_tac[code_to_path_def, code_to_path_helper_path_to_code]
 QED
 
-Theorem vd_encode_state_helper_path_to_code:
+Theorem vd_encode_state_from_state_path_to_code:
   ∀m ps s.
   ps ≠ [] ∧
   HD ps = s ∧
   path_is_connected m ps ⇒
-  vd_encode_state_helper m (path_to_code m ps) s = LAST ps
+  vd_encode_state_from_state m (path_to_code m ps) s = LAST ps
 Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘ps’] assume_tac code_to_path_helper_path_to_code
@@ -1516,7 +1516,7 @@ Theorem vd_encode_state_path_to_code:
 Proof
   rpt strip_tac 
   >> gvs[vd_encode_state_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_helper_path_to_code]
+  >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_from_state_path_to_code]
   >> gvs[]
   >> gvs[path_is_valid_path_is_connected]
 QED
