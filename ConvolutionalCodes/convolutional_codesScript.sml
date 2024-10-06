@@ -120,7 +120,7 @@ QED*)
   get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
-  >- (gvs[get_num_errors_def, get_num_errors_helper_def, vd_encode_from_state_def]
+  >- (gvs[get_num_errors_def, get_num_errors_from_state_def, vd_encode_from_state_def]
       >> gvs[get_num_errors_after_step_slow_def]
       >> Cases_on_if_goal >> gvs[]
      )

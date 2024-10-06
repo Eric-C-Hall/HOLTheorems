@@ -286,15 +286,15 @@ Definition vd_find_optimal_reversed_path_def:
   vd_find_optimal_reversed_path m bs s t = REVERSE (vd_find_optimal_path m bs s t)
 End
 
-Definition get_num_errors_helper_def:
-  get_num_errors_helper m rs bs s = hamming_distance rs (vd_encode_from_state m bs s)
+Definition get_num_errors_from_state_def:
+  get_num_errors_from_state m rs bs s = hamming_distance rs (vd_encode_from_state m bs s)
 End
 
 (* -------------------------------------------------------------------------- *)
 (* The number of errors present if we encoded the input bs with the state     *)(* machine m and compared it to the expected output rs.                       *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_def:
-  get_num_errors m rs bs = get_num_errors_helper m rs bs 0
+  get_num_errors m rs bs = get_num_errors_from_state m rs bs 0
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -445,15 +445,15 @@ Proof
   rpt strip_tac >> EVAL_TAC
 QED
 
-Theorem get_num_errors_helper_append:
+Theorem get_num_errors_from_state_append:
   ∀m rs bs bs' s.
   wfmachine m ∧
   s < m.num_states ∧
   LENGTH rs = (LENGTH bs + LENGTH bs') * m.output_length ⇒
-  get_num_errors_helper m rs (bs ⧺ bs') s = get_num_errors_helper m (TAKE (LENGTH bs * m.output_length) rs) bs s + get_num_errors_helper m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state_from_state m bs s) 
+  get_num_errors_from_state m rs (bs ⧺ bs') s = get_num_errors_from_state m (TAKE (LENGTH bs * m.output_length) rs) bs s + get_num_errors_from_state m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state_from_state m bs s) 
 Proof
   rpt strip_tac
-  >> gvs[get_num_errors_helper_def]
+  >> gvs[get_num_errors_from_state_def]
   >> gvs[vd_encode_from_state_append]
   >> gvs[hamming_distance_append_right]
 QED
@@ -462,11 +462,11 @@ Theorem get_num_errors_append:
   ∀m rs bs bs'.
   wfmachine m ∧
   LENGTH rs = (LENGTH bs + LENGTH bs') * m.output_length ⇒
-  get_num_errors m rs (bs ⧺ bs') = get_num_errors m (TAKE (LENGTH bs * m.output_length) rs) bs + get_num_errors_helper m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state m bs)
+  get_num_errors m rs (bs ⧺ bs') = get_num_errors m (TAKE (LENGTH bs * m.output_length) rs) bs + get_num_errors_from_state m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state m bs)
 Proof
   rpt strip_tac
   >> gvs[get_num_errors_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_helper_append]
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_from_state_append]
   >> gvs[]
   >> gvs[vd_encode_state_def]
 QED
