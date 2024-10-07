@@ -388,6 +388,17 @@ Proof
   >> metis_tac[transition_inverse_mem_is_valid]
 QED
 
+Theorem best_origin_slow_get_num_errors_after_step_slow:
+  ∀m bs t r s.
+  wfmachine m ∧
+  s < m.num_states ∧
+  MEM r (transition_inverse m s) ⇒
+  get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) ≤ get_num_errors_after_step_slow m bs t r
+Proof
+  rpt strip_tac
+  >> gvs[best_origin_slow_def]
+QED
+
 Theorem vd_step_tran_best_origin_slow[simp]:
   ∀m bs s t.
   wfmachine m ∧
@@ -584,26 +595,7 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-(*Theorem best_origin_slow_get_num_errors_after_step_slow:
-  ∀m bs t r s.
-  wfmachine m ∧
-  s < m.num_states ∧
-  MEM r (transition_inverse m s) ⇒
-  get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) ≤ get_num_errors_after_step_slow m bs t r
-Proof
-  rpt strip_tac
-  >> MEM_DONOTEXPAND_TAC
-  (*>> drule_all best_origin_slow_transition_inverse
-   >> rpt strip_tac
-   >> first_x_assum $ qspecl_then [‘bs’, ‘t’] assume_tac*)
-  >> gvs[best_origin_slow_def]
-  >> qspecl_then [‘r’, ‘HD (transition_inverse m s)’, ‘TL (transition_inverse m s)’, ‘get_num_errors_after_step_slow m bs t’] assume_tac FOLDR_LEQ_LT
-  >> MEM_DONOTEXPAND_TAC
-  >> gvs[transition_inverse_cons]
-  >> gvs[get_better_origin_slow_def]  
-QED
-
-Theorem vd_step_best_origin_slow:
+(*Theorem vd_step_best_origin_slow:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
