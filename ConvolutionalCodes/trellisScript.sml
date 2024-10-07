@@ -372,6 +372,17 @@ Proof
   >> gvs[inargmin_mem]
 QED
 
+Theorem best_origin_slow_is_valid[simp]:
+  ∀m bs t s.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (best_origin_slow m bs t s).origin < m.num_states
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac best_origin_slow_transition_inverse
+  >> metis_tac[transition_inverse_mem_is_valid]
+QED
+        
 (*Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
   wfmachine m ∧
@@ -568,18 +579,6 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-(*Theorem best_origin_slow_is_valid[simp]:
-  ∀m bs t s.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  (best_origin_slow m bs t s).origin < m.num_states
-Proof
-  rpt strip_tac
-  >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac best_origin_slow_transition_inverse
-  >> metis_tac[transition_inverse_mem_is_valid]
-QED*)
-
-
 (*Theorem vd_step_tran_best_origin_slow[simp]:
   ∀m bs s t.
   wfmachine m ∧
@@ -608,7 +607,6 @@ Proof
   >> MEM_DOEXPAND_TAC
   >> gvs[]
 QED*)
-
 
 (*Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data_test:
   ∀t r.
