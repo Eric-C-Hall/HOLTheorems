@@ -60,7 +60,7 @@ End
 (* First defining property of inargmin: the result is an element of the list  *)
 (* that we took the argmin over                                               *)
 (* -------------------------------------------------------------------------- *)
-Theorem inargmin_mem:
+Theorem inargmin_mem[simp]:
   ∀f ls.
   ls ≠ [] ⇒
   MEM (inargmin f ls) ls
@@ -81,8 +81,8 @@ QED
 (* Second defining property of inargmin: the result has a lower value of f    *)
 (* than any other member of the list we took the argmin over                  *)
 (* -------------------------------------------------------------------------- *)
-Theorem inargmin_inle:
-  ∀f l ls.
+Theorem inargmin_inle[simp]:
+∀f l ls.
   MEM l ls ⇒
   f (inargmin f ls) ≤ f l
 Proof

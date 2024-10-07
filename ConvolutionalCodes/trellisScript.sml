@@ -219,14 +219,14 @@ Termination
   >> gvs[]
 End
 
-(*(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
 (* Creating theorems in order to adhere to standard naming conventions for    *)
 (* function definitions, as this was not possible because multiple functions  *)
 (* were defined in the same definition                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_after_step_slow_def = LIST_CONJ [cj 1 viterbi_trellis_slow, cj 2 viterbi_trellis_slow]
 Theorem best_origin_slow_def = cj 3 viterbi_trellis_slow
-Theorem viterbi_trellis_node_slow_def = cj 4 viterbi_trellis_slow*)
+Theorem viterbi_trellis_node_slow_def = cj 4 viterbi_trellis_slow
 
 (* -------------------------------------------------------------------------- *)
 (* Performs one step back through the trellis.                                *)
@@ -557,7 +557,7 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-(*Theorem best_origin_slow_transition_inverse:
+Theorem best_origin_slow_transition_inverse:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
@@ -565,12 +565,10 @@ QED
 Proof
   rpt strip_tac
   >> gvs[best_origin_slow_def]
-  >> qspecl_then [‘m’, ‘bs’, ‘t’, ‘HD (transition_inverse m s)’, ‘TL (transition_inverse m s)’] assume_tac FOLDR_get_better_origin_slow
-  >> MEM_DONOTEXPAND_TAC
-  >> gvs[]
+  >> gvs[inargmin_mem]
 QED
 
-Theorem best_origin_slow_is_valid[simp]:
+(*Theorem best_origin_slow_is_valid[simp]:
   ∀m bs t s.
   wfmachine m ∧
   s < m.num_states ⇒
