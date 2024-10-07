@@ -382,6 +382,16 @@ Proof
   >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac best_origin_slow_transition_inverse
   >> metis_tac[transition_inverse_mem_is_valid]
 QED
+
+Theorem vd_step_tran_best_origin_slow[simp]:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  vd_step_tran m (best_origin_slow m bs t s) = s
+Proof
+  rpt strip_tac
+  >> simp[best_origin_slow_def]
+QED
         
 (*Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
@@ -578,35 +588,6 @@ Proof
   (* expand definition *)
   >> gvs[vd_decode_def]
 QED
-
-(*Theorem vd_step_tran_best_origin_slow[simp]:
-  ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  vd_step_tran m (best_origin_slow m bs t s) = s
-Proof
-  rpt strip_tac
-  >> gvs[best_origin_slow_def]
-  >> qmatch_goalsub_abbrev_tac ‘FOLDR f h ts’
-  (* Apply FOLDR_BISWITCH to prove that the result of this fold must be
-     contained within the list formed by the input to the FOLDR. *)
-  >> sg ‘MEM (FOLDR f h ts) (h::ts)’
-  >- (irule FOLDR_BISWITCH
-      >> unabbrev_all_tac
-      >> rpt strip_tac
-      >> gvs[])
-  >> MEM_DONOTEXPAND_TAC
-  (* Simplify h::ts into transition_inverse m s *)
-  >> sg ‘h::ts = transition_inverse m s’
-  >- (unabbrev_all_tac
-      >> gvs[CONS]
-     )
-  >> gvs[]
-  >> pop_assum kall_tac
-  (* *)
-  >> MEM_DOEXPAND_TAC
-  >> gvs[]
-QED*)
 
 (*Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data_test:
   ∀t r.
