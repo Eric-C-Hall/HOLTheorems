@@ -184,7 +184,7 @@ Definition viterbi_trellis_slow:
   let
     local_best_origin = best_origin_slow m bs t s;
     local_num_errors = get_num_errors_after_step_slow m bs t local_best_origin;
-    local_prev_state = (if (local_num_errors = INFINITY) then NONE else SOME local_best_origin.origin);
+    local_prev_state = (if (t = 0 ∨ local_num_errors = INFINITY) then NONE else SOME local_best_origin.origin);
   in
     <| num_errors := local_num_errors;
        prev_state := local_prev_state; |>    
@@ -1142,13 +1142,25 @@ QED*)
 (* Test equivalance of slow version of trellis calculation with fast version  *)
 (* for some small values of s and t, through evaluation.                      *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem viterbi_trellis_node_slow_test:
+Theorem viterbi_trellis_node_slow_test:
   ∀s t.
   s < 4 ∧ t ≤ 3 ⇒
   viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
 Proof
   rpt strip_tac
   >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3) ∧ (t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3)’ >> gvs[]
+  >> EVAL_TAC
+QED
+
+(*Theorem viterbi_trellis_node_slow_eval:
+  let
+    s = 0;
+    t = 0
+  in
+    viterbi_trellis_node_slow example_state_machine test_path s t = ARB ∧
+    viterbi_trellis_node_no_prev_data example_state_machine test_path s t = ARB
+Proof
+  rpt strip_tac
   >> EVAL_TAC
 QED*)
 
