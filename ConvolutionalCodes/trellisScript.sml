@@ -138,27 +138,32 @@ Definition viterbi_trellis_row_def:
       GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_row) m.num_states
 End
 
-(*(* -------------------------------------------------------------------------- *)
-(* Version of get_num_errors_after_step which works even if you do not provide *)
-(* it with the previous row of errors                                         *)
-(*                                                                            *)
-(* Invalid at time-step 0 because there is no previous row in this case.      *)
-(* -------------------------------------------------------------------------- *)
-Definition get_num_errors_after_step_no_prev_data_def:
-  get_num_errors_after_step_no_prev_data m bs 0 r = (if (vd_step_tran m r = 0) then N0 else INFINITY) ∧
-  get_num_errors_after_step_no_prev_data m bs (SUC t) r = get_num_errors_after_step m bs (SUC t) (viterbi_trellis_row m bs t) r
-End
-
 (* -------------------------------------------------------------------------- *)
 (* Calculate a node in the trellis for the fast version when the previous row *)
 (* is not available (by calculating all prior rows of the trellis)            *)
 (*                                                                            *)
 (* Defined in such a way as to be valid even at time-step 0, when there isn't *)
 (* a previous row present.                                                    *)
+(*                                                                            *)
+(* Note: avoid writing theorems for this definition, as it may cause          *)
+(* duplication with theorems for viterbi_trellis_row and viterbi_trellis_node *)
 (* -------------------------------------------------------------------------- *)
-Definition viterbi_trellis_node_no_prev_data_def:
+Definition viterbi_trellis_node_no_prev_data_def[simp]:
   viterbi_trellis_node_no_prev_data m bs s t = EL s (viterbi_trellis_row m bs t)
-End*)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Version of get_num_errors_after_step which works even if you do not provide*)
+(* it with the previous row of errors                                         *)
+(*                                                                            *)
+(* TODO: should this be removed, because it's not significant enough to be    *)
+(* worth adding a definition, which may cause duplication in necessary        *)
+(* theorems between this function and get_num_errors_after_step?              *)
+(* -------------------------------------------------------------------------- *)
+Definition get_num_errors_after_step_no_prev_data_def:
+  get_num_errors_after_step_no_prev_data m bs 0 r = (if (vd_step_tran m r = 0) then N0 else INFINITY) ∧
+  get_num_errors_after_step_no_prev_data m bs (SUC t) r = get_num_errors_after_step m bs (SUC t) (viterbi_trellis_row m bs t) r
+End
 
 (* -------------------------------------------------------------------------- *)
 (* A slower but mathematically simpler implementation of the function for     *)
@@ -589,26 +594,7 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-(*Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data_test:
-  ∀t r.
-  t < 3 ∧
-  r.origin < 4 ⇒
-  get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step_no_prev_data example_state_machine test_path (SUC t) r
-Proof
-  rpt strip_tac
-  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’ >> gvs[]
-  (* This sequence of tactics will simultaneously prove all 12 proof
-     obligations *)
-  >> (qmatch_asmsub_abbrev_tac ‘r.origin = r_val’
-      >> Cases_on ‘r’
-      >> ‘n = r_val’ by gvs[]
-      >> unabbrev_all_tac
-      >> gvs[]
-      >> Cases_on ‘b’
-      >> EVAL_TAC)
-QED
-
-Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data:
+(*Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data:
   ∀m bs t r.
   wfmachine m ∧
   r.origin < m.num_states ⇒
@@ -1072,6 +1058,25 @@ QED
 Proof
   EVAL_TAC
 QED*)
+
+Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data_test:
+  ∀t r.
+  t < 3 ∧
+  r.origin < 4 ⇒
+  get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step_no_prev_data example_state_machine test_path (SUC t) r
+Proof
+  rpt strip_tac
+  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’ >> gvs[]
+  (* This sequence of tactics will simultaneously prove all 12 proof
+     obligations *)
+  >> (qmatch_asmsub_abbrev_tac ‘r.origin = r_val’
+      >> Cases_on ‘r’
+      >> ‘n = r_val’ by gvs[]
+      >> unabbrev_all_tac
+      >> gvs[]
+      >> Cases_on ‘b’
+      >> EVAL_TAC)
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
