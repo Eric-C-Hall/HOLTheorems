@@ -409,6 +409,16 @@ Proof
   >> simp[best_origin_slow_def]
 QED
 
+Theorem vd_step_best_origin_slow:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  vd_step m (best_origin_slow m bs t s).input (best_origin_slow m bs t s).origin = s
+Proof
+  rpt strip_tac
+  >> metis_tac[vd_step_tran_best_origin_slow, vd_step_tran_def]
+QED
+        
 Theorem vd_find_optimal_path_nonempty[simp]:
   ∀m bs s t.
   vd_find_optimal_path m bs s t ≠ []
@@ -595,17 +605,7 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-(*Theorem vd_step_best_origin_slow:
-  ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  vd_step m (best_origin_slow m bs t s).input (best_origin_slow m bs t s).origin = s
-Proof
-  rpt strip_tac
-  >> metis_tac[vd_step_tran_best_origin_slow, vd_step_tran_def]
-QED
-
-Theorem is_reachable_viterbi_trellis_node_slow_num_errors:
+(*Theorem is_reachable_viterbi_trellis_node_slow_num_errors:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
