@@ -361,6 +361,17 @@ Proof
   >> gvs[viterbi_trellis_node_def]
 QED
 
+Theorem best_origin_slow_transition_inverse:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  MEM (best_origin_slow m bs t s) (transition_inverse m s)
+Proof
+  rpt strip_tac
+  >> gvs[best_origin_slow_def]
+  >> gvs[inargmin_mem]
+QED
+
 (*Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
   wfmachine m ∧
@@ -555,17 +566,6 @@ Proof
   >- gvs[] (* Deal with invalid case with output length of 0 *)
   (* expand definition *)
   >> gvs[vd_decode_def]
-QED
-
-Theorem best_origin_slow_transition_inverse:
-  ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  MEM (best_origin_slow m bs t s) (transition_inverse m s)
-Proof
-  rpt strip_tac
-  >> gvs[best_origin_slow_def]
-  >> gvs[inargmin_mem]
 QED
 
 (*Theorem best_origin_slow_is_valid[simp]:
