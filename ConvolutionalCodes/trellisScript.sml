@@ -25,10 +25,6 @@ open argminTheory;
 open state_machineTheory;
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: tidy this file up                                                    *)
-(* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
 (* VITERBI DECODING                                                           *)
 (* -------------------------------------------------------------------------- *)
 
@@ -164,25 +160,29 @@ Definition viterbi_trellis_node_no_prev_data_def:
   viterbi_trellis_node_no_prev_data m bs s t = EL s (viterbi_trellis_row m bs t)
 End*)
 
-(*(* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
 (* A slower but mathematically simpler implementation of the function for     *)
 (* working out the best origin in the viterbi trellis.                        *)
+(*                                                                            *)
+(* We remove the previous_row argument, which effectively holds state. This   *)
+(* makes the definitions more purely functional.                              *)
 (*                                                                            *)
 (* Combined definition of several functions because these functions are       *)
 (* recursively dependent on each other.                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_slow:
   get_num_errors_after_step_slow m bs 0 r = (if (vd_step_tran m r = 0) then N0 else INFINITY) ∧
-  (get_num_errors_after_step_slow m bs (SUC t) r =
-   (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t r.origin)) + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)))
-  ) ∧ 
-  (get_better_origin_slow m bs t r1 r2 =
-   if (get_num_errors_after_step_slow m bs t r1) < (get_num_errors_after_step_slow m bs t r2) then r1 else r2) ∧
-  (best_origin_slow m bs t s =
-   let
-     possible_origins = transition_inverse m s;
-   in
-     FOLDR (get_better_origin_slow m bs t) (HD possible_origins) (TL possible_origins))
+  get_num_errors_after_step_slow m bs (SUC t) r = 
+  (viterbi_trellis_node_slow m bs r.origin t).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t))) ∧
+  (best_origin_slow m bs t s = inargmin (get_num_errors_after_step_slow m bs t) (transition_inverse m s)) ∧
+  viterbi_trellis_node_slow m bs s t = 
+  let
+    local_best_origin = best_origin_slow m bs t s;
+    local_num_errors = get_num_errors_after_step_slow m bs t local_best_origin;
+    local_prev_state = (if (local_num_errors = INFINITY) then NONE else SOME local_best_origin.origin);
+  in
+    <| num_errors := local_num_errors;
+       prev_state := local_prev_state; |>    
 Termination
   (* Use a standard measure-based method for proving termination. (see the
      HOL System Description on proving termination). We have a circular
@@ -214,19 +214,10 @@ Termination
                              then
                                3 * (FST $ SND $ SND $ OUTL x') + 1
                              else
-                               3 * (FST $ SND $ SND $ OUTR x') + 2
+                               3 * (SND $ SND $ SND $ OUTR x') + 2
                       )’
   >> gvs[]
-End*)
-
-(*Definition viterbi_trellis_node_slow_def:
-  viterbi_trellis_node_slow m bs s t =
-  let
-    best_origin_local = best_origin_slow m bs t s;
-  in
-    <| num_errors := get_num_errors_after_step_slow m bs t best_origin_local;
-       prev_state := if (t = 0) then NONE else SOME best_origin_local.origin; |>
-End*)  
+End
 
 (*(* -------------------------------------------------------------------------- *)
 (* Creating theorems in order to adhere to standard naming conventions for    *)
@@ -234,8 +225,8 @@ End*)
 (* were defined in the same definition                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_after_step_slow_def = LIST_CONJ [cj 1 viterbi_trellis_slow, cj 2 viterbi_trellis_slow]
-Theorem get_better_origin_slow_def = cj 3 viterbi_trellis_slow
-Theorem best_origin_slow_def = cj 4 viterbi_trellis_slow*)
+Theorem best_origin_slow_def = cj 3 viterbi_trellis_slow
+Theorem viterbi_trellis_node_slow_def = cj 4 viterbi_trellis_slow*)
 
 (* -------------------------------------------------------------------------- *)
 (* Performs one step back through the trellis.                                *)
@@ -415,7 +406,7 @@ Proof
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
 QED
-        
+   
 Theorem vd_find_optimal_path_suc:
   ∀m bs s t.
   vd_find_optimal_path m bs s (SUC t) = SNOC s (vd_find_optimal_path m bs (vd_step_back m bs s (SUC t)) t)
