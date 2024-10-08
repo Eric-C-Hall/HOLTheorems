@@ -135,4 +135,11 @@ Proof
   Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
 QED
 
+Theorem insub_N_infinity[simp]:
+  ∀i n.
+  (i - N n = INFINITY) ⇔ (i = INFINITY)
+Proof
+  Cases_on ‘i’ >> gvs[]
+QED
+
 val _ = export_theory();
