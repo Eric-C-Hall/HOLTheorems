@@ -691,16 +691,6 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-(*Theorem vd_step_back_is_valid[simp]:
-  ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ∧
-  0 < t ∧
-  is_reachable m s t ⇒
-  vd_step_back m bs s t < m.num_states
-Proof
-QED*)
-
 (*Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
   ∀m bs s t.
   wfmachine m ∧
@@ -867,6 +857,24 @@ Proof
       >> Cases_on ‘b’ >> gvs[])
   >> MEM_DOEXPAND_TAC
   >> metis_tac[transition_inverse_mem_all_transitions_set]
+QED*)
+
+(*Theorem vd_step_back_is_valid[simp]:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ∧
+  0 < t ∧
+  is_reachable m s t ⇒
+  vd_step_back m bs s t < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_back_def]
+  >> Cases_on ‘t’ >> gvs[]
+  >> gvs[viterbi_trellis_row_el]
+  >> qmatch_goalsub_abbrev_tac ‘THE node’
+  >> REVERSE (Cases_on ‘node’) >> gvs[]
+  >- gvs[viterbi_trellis_node_def]
+  >> gvs[viterbi_trellis_node_def]
 QED*)
 
 (* -------------------------------------------------------------------------- *)
