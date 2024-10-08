@@ -294,9 +294,6 @@ Definition get_num_errors_def:
   get_num_errors m rs bs = get_num_errors_from_state m rs bs 0
 End
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: use argmin instead of this                                           *)
-(* -------------------------------------------------------------------------- *)
 Definition get_better_final_state_def:
   get_better_final_state last_row s1 s2 = if (EL s1 last_row).num_errors < (EL s2 last_row).num_errors then s1 else s2
 End
@@ -1130,7 +1127,7 @@ Proof
       >> EVAL_TAC)
 QED
 
-(*Theorem temp_test_theorem:
+(*Theorem viterbi_trellis_node_slow_eval
   let
     s = 2;
     t = 1;
