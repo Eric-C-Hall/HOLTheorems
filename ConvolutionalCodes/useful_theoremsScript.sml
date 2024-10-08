@@ -5,6 +5,7 @@ open arithmeticTheory;
 val _ = new_theory "useful_theorems";
 
 open listTheory;
+open rich_listTheory;
 
 (* One of the more useful theorems in this file *)
 Theorem MAX_SUC:
@@ -47,6 +48,17 @@ Theorem HD_SNOC:
 Proof
   rpt strip_tac
   >> Cases_on ‘ls’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Copy of EL_REPLICATE, but added to the simpset so it is automatically      *)
+(* applied, because this seems like a sensible simplification rule.           *)
+(* -------------------------------------------------------------------------- *)
+Theorem EL_REPLICATE_AUTO[simp]:
+  ∀n1 n2 x.
+  n1 < n2 ⇒ EL n1 (REPLICATE n2 x) = x
+Proof
+  gvs[EL_REPLICATE]
 QED
 
 val _ = export_theory();
