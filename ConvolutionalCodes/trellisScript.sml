@@ -715,9 +715,15 @@ Proof
 QED
 
 Theorem viterbi_trellis_node_slow_zero[simp]:
+  ∀m bs s.
+  wfmachine m ∧
+  s < m.num_states ⇒
   viterbi_trellis_node_slow m bs s 0 =
-  <| num_errors := ;
+  <| num_errors := if s = 0 then N0 else INFINITY;
+     prev_state := NONE |>
 Proof
+  rpt strip_tac
+  >> gvs[viterbi_trellis_node_slow_def]
 QED
 
 Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data:
@@ -739,104 +745,20 @@ Proof
   >> AP_THM_TAC
   >> AP_TERM_TAC
   >> namedCases_on ‘t’ ["", "t"]
-  >- (gvs[viterbi_trellis_node_slow_def]
-      >> gvs[get_num_errors_after_step_no_prev_data_def]
-      >> gvs[viterbi_trellis_row_def]
-      >> Cases_on ‘r.origin’ >> gvs[]
-      >> gvs[EL_REPLICATE]
-     )
-            
-     gen_tac
-      >> Induct_on ‘t’
-      >- (gvs[get_num_errors_after_step_no_prev_data_def]
-          >> rpt strip_tac
-          (* expand stuff out *)
-          >> gvs[]
-          >> gvs[get_num_errors_after_step_slow_def, get_num_errors_after_step_def]
-          >> gvs[viterbi_trellis_row_def]
-          (* When r.origin is nonzero, the RHS simplifies to infinity. Deal
-         with this special case. *)
-          >> REVERSE (Cases_on ‘r.origin’)
-          >- (gvs[EL_REPLICATE]
-              >> PURE_REWRITE_TAC [ONE]
-              >> gvs[get_num_errors_after_step_slow_def]
-              >> gvs[viterbi_trellis_node_slow_def, get_num_errors_after_step_slow_def])
-          >> gvs[]
-          >> PURE_REWRITE_TAC[ONE]
-          >> gvs[get_num_errors_after_step_slow_def]
-          >> gvs[viterbi_trellis_node_slow_def, get_num_errors_after_step_slow_def]
-         )
-      (* Inductive step *)
-      >> rpt strip_tac
-      (* Expand out the slow version so that all slow version functions are
-     calculated at a lower time-step, and all slow version funcctions are
-     get_num_errors_after_step_slow, so that we can use our inductive
-     hypothesis to translate to a statement entirely in terms of fast version
-     functions. *)
-      >> PURE_ONCE_REWRITE_TAC[get_num_errors_after_step_slow_def]
-      >> gvs[best_origin_slow_def]
-      (* translate the inner function so that it is written in terms of the fast
-        version. *)
-      >> qmatch_goalsub_abbrev_tac ‘FOLDR f _ _’
-      (* ------------------------------------------------------------------------ *)
-      (* Are there nicer ways to deal with functions that are equal to each other *)
-      (* only on a specific domain?                                               *)
-      (* ------------------------------------------------------------------------ *)
-      >> sg ‘f = (λa' a. if (a.origin < m.num_states ∧ a'.origin < m.num_states) then (if get_num_errors_after_step_no_prev_data m bs (SUC t) a' < get_num_errors_after_step_no_prev_data m bs (SUC t) a then a' else a) else f a' a)’
-      >- (unabbrev_all_tac
-          >> irule EQ_EXT >> rpt strip_tac >> gvs[]
-          >> irule EQ_EXT >> rpt strip_tac >> gvs[]
-          >> qmatch_goalsub_abbrev_tac ‘_ = if b then _ else _’
-          >> Cases_on ‘b’ >> gvs[]
-          >> last_assum $ qspecl_then [‘bs’, ‘x’] assume_tac
-          >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
-         )
-      (* Replace the other slow function with a fast function, using the inductive
-     hypothesis. *)
-      (*>> last_assum $ (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
-      >> conj_tac
-      >- (qmatch_goalsub_abbrev_tac ‘FOLDR f tr trs’
-          >> sg ‘MEM (FOLDR f tr trs) (tr::trs)’
-          >- (irule FOLDR_BISWITCH
-              >> rpt strip_tac
-              >> unabbrev_all_tac
-              >> gvs[]
-              >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-              >> Cases_on ‘b’ >> gvs[])
-          >> sg ‘MEM (FOLDR f tr trs) (transition_inverse m r.origin)’
-          >- (‘tr::trs = transition_inverse m r.origin’ suffices_by (disch_tac >> metis_tac[])
-              >> unabbrev_all_tac
-              >> simp[transition_inverse_cons])
-          >> metis_tac[transition_inverse_mem_is_valid])*)
-      >> irule EQ_SYM
-      >> gvs[get_num_errors_after_step_no_prev_data_def]
-      >> simp[Once get_num_errors_after_step_def]
-      >> AP_THM_TAC
-      >> AP_TERM_TAC
-      >> gvs[viterbi_trellis_row_def]
-      >> gvs[viterbi_trellis_node_def]
-      >> AP_TERM_TAC
-      >> gvs[best_origin_def]
-      >> unabbrev_all_tac
-      >> gvs[]
-      >> irule FOLDR_DOMAIN_MEM
-      >> rpt gen_tac
-  >> MEM_DONOTEXPAND_TAC
+  >- (gvs[viterbi_trellis_row_def]
+      >> Cases_on ‘r.origin’ >> gvs[])
+  >> gvs[viterbi_trellis_node_slow_def]
+  >> gvs[viterbi_trellis_row_el]
+  >> gvs[viterbi_trellis_node_def]
+  >> gvs[get_num_errors_after_step_no_prev_data_def]
+  >> AP_TERM_TAC
+  >> gvs[best_origin_slow_def]
+  >> gvs[best_origin_def]
+  >> irule inargmin_domain
   >> gvs[]
-  >> REVERSE conj_tac
-  >- (gvs[get_better_origin_def]
-      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gvs[]
-     )
-  >> gvs[]
-  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-  >> sg ‘b’
-  >- (unabbrev_all_tac
-      >> MEM_DOEXPAND_TAC
-      >> metis_tac[transition_inverse_mem_is_valid]
-     )
-  >> gvs[]
-  >> gvs[get_better_origin_def]
+  >> rpt strip_tac
+  >> last_x_assum irule
+  >> metis_tac[transition_inverse_mem_is_valid]
 QED
 
 
