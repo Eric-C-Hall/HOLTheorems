@@ -31,4 +31,6 @@ val swap_assums = pop_assum (fn th => pop_assum (fn th2 => assume_tac th >> assu
 
 fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum (fn th => delete_nth_assumption (n - 1) >> assume_tac th))
 
+val EXT_ALL = rpt (irule EQ_EXT >> gen_tac)
+
 end
