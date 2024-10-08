@@ -182,23 +182,23 @@ Theorem get_num_errors_after_step_restrict_input:
   get_num_errors_after_step m (TAKE n bs) t = get_num_errors_after_step m bs t
 Proof
   rpt strip_tac
-  >> EXT_ALL
+  >> EXT_ALL_TAC
   >> gvs[get_num_errors_after_step_def]
   >> gvs[relevant_input_restrict_input]
 QED
 
 Theorem best_origin_restrict_input:
-  ∀m bs previous_row t s n.
+  ∀m bs previous_row t n.
   t * m.output_length ≤ n ∧
   0 < t ⇒
   best_origin m (TAKE n bs) previous_row t = best_origin m bs previous_row t
 Proof
   rpt strip_tac
-  >> EXT_ALL
+  >> EXT_ALL_TAC
   >> gvs[best_origin_def]
   >> gvs[get_num_errors_after_step_restrict_input]  
 QED
-        
+
 Theorem viterbi_trellis_node_restrict_input:
   ∀m bs s t previous_row n.
   t * m.output_length ≤ n ∧
@@ -268,6 +268,48 @@ Proof
   gvs[vd_find_optimal_code_restrict_input]
 QED
 
+Theorem get_num_errors_after_step_slow_restrict_input:
+  ∀m bs t n.
+  t * m.output_length ≤ n ⇒
+  get_num_errors_after_step_slow m (TAKE n bs) t = get_num_errors_after_step_slow m bs t
+Proof
+  Induct_on ‘t’ >> rpt strip_tac >> EXT_ALL_TAC >> gvs[get_num_errors_after_step_slow_def]
+  >> gvs[relevant_input_restrict_input]
+  >> gvs[viterbi_trellis_node_slow_def, best_origin_slow_def]
+  >> AP_THM_TAC
+  >> AP_TERM_TAC
+  >> Cases_on ‘SUC t * m.output_length = n’ >> gvs[]
+  >> last_x_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+  >> gvs[]
+  >> gvs[ADD1]
+QED
+
+Theorem best_origin_slow_restrict_input:
+  ∀m bs t n.
+          t * m.output_length ≤ n ⇒
+          best_origin_slow m (TAKE n bs) t = best_origin_slow m bs t
+Proof
+  rpt strip_tac
+  >> EXT_ALL_TAC
+  >> gvs[best_origin_slow_def]
+  >> AP_THM_TAC
+  >> AP_TERM_TAC
+  >> EXT_ALL_TAC
+  >> gvs[]
+  >> gvs[get_num_errors_after_step_slow_restrict_input]
+QED
+
+Theorem viterbi_trellis_node_slow_restrict_input:
+  ∀m bs s t n.
+  t * m.output_length ≤ n ⇒
+  viterbi_trellis_node_slow m (TAKE n bs) s t = viterbi_trellis_node_slow m bs s t
+Proof
+  rpt strip_tac
+  >> gvs[viterbi_trellis_node_slow_def]
+  >> gvs[best_origin_slow_def]
+  >> gvs[get_num_errors_after_step_slow_restrict_input]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Describe the relationship between the function for calculating the number  *)
 (* of errors computationally during a single step of the Viterbi algorithm,   *)
@@ -281,11 +323,11 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_after_step_get_num_errors:
   ∀m bs s t.
-       wfmachine m ∧
-       s < m.num_states ∧
-       is_reachable m s t ∧
-       LENGTH bs = t * m.output_length ⇒
-       get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
+          wfmachine m ∧
+          s < m.num_states ∧
+          is_reachable m s t ∧
+          LENGTH bs = t * m.output_length ⇒
+          get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   >- (gvs[get_num_errors_def, get_num_errors_from_state_def, vd_encode_from_state_def]
@@ -304,16 +346,21 @@ Proof
   >> gvs[get_num_errors_after_step_slow_def]
   >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
   >> qmatch_goalsub_abbrev_tac ‘_ = indR + stepR’
+  (* Prove dependencies *)
   >> gvs[]
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM is_reachable_viterbi_trellis_node_slow_num_errors]
   >> gvs[]
   >> gvs[is_reachable_best_origin_slow]
+  (* It suffices to prove that the inductive parts are equal and that the step
+     parts are equal*)
   >> ‘indL = indR ∧ stepL = stepR’ suffices_by gvs[]
   >> conj_tac
   >- (unabbrev_all_tac
       >> last_x_assum (qspecl_then [‘m’, ‘TAKE (t * m.output_length) bs’, ‘vd_step_back m bs s (SUC t)’] assume_tac)
       >> gvs[]
+      >> gvs[vd_find_optimal_code_restrict_input]
       >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+      >> gvs[best_origin_slow_restrict_input]
 QED
 
 (* -------------------------------------------------------------------------- *)
