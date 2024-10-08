@@ -22,6 +22,15 @@ Proof
   Cases >> simp[]
 QED
 
+Definition insub_def[simp]:
+  insub (N n) (N m) = N (n - m) ∧
+  insub (N n) INFINITY = N0 ∧
+  insub INFINITY (N m) = INFINITY ∧
+  insub INFINITY INFINITY = ARB
+End
+
+Overload "-" = “insub”
+
 Definition inlt_def[simp]:
   (inlt m INFINITY ⇔ m ≠ INFINITY) ∧
   (inlt INFINITY _ ⇔ F) ∧
@@ -92,6 +101,14 @@ Theorem infnum_to_num_inplus:
 Proof
   rpt strip_tac
   >> Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
+QED
+
+Theorem infnum_add_N_infinity[simp]:
+  ∀i n.
+  (i + N n = INFINITY) ⇔ (i = INFINITY)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘i’ >> gvs[]
 QED
 
 val _ = export_theory();
