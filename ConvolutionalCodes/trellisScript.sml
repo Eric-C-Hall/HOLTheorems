@@ -761,6 +761,30 @@ Proof
   >> metis_tac[transition_inverse_mem_is_valid]
 QED
 
+Theorem get_num_errors_after_step_slow_get_num_errors_after_step:
+  ∀m bs t r.
+  wfmachine m ∧
+  r.origin < m.num_states ⇒
+  get_num_errors_after_step_slow m bs (SUC t) r = get_num_errors_after_step m bs (SUC t) (viterbi_trellis_row m bs t) r
+Proof
+  gvs[get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data, get_num_errors_after_step_no_prev_data_def]
+QED
+
+Theorem best_origin_slow_best_origin:
+  ∀m bs t s.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  best_origin_slow m bs (SUC t) s = best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s
+Proof
+  rpt strip_tac
+  >> gvs[best_origin_slow_def, best_origin_def]
+  >> irule inargmin_domain
+  >> rpt strip_tac >> gvs[]
+  >> irule get_num_errors_after_step_slow_get_num_errors_after_step
+  >> gvs[]
+  >> metis_tac[transition_inverse_mem_is_valid]
+QED
+
 
 (*Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
   ∀m bs s t.
@@ -785,50 +809,6 @@ Proof
   >> gvs[best_origin_slow_best_origin]
   >> gvs[viterbi_trellis_row_def]
   >> gvs[viterbi_trellis_node_def]
-  QED*)
-
-(*Theorem get_num_errors_after_step_slow_get_num_errors_after_step:
-  ∀m bs t r.
-  wfmachine m ∧
-  r.origin < m.num_states ⇒
-  get_num_errors_after_step_slow m bs (SUC t) r = get_num_errors_after_step m bs (SUC t) (viterbi_trellis_row m bs t) r
-Proof
-  gvs[get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data, get_num_errors_after_step_no_prev_data_def]
-QED*)
-
-(*Theorem get_better_origin_slow_get_better_origin:
-  ∀m bs t r1 r2.
-  wfmachine m ∧
-  r1.origin < m.num_states ∧
-  r2.origin < m.num_states ⇒
-  get_better_origin_slow m bs (SUC t) r1 r2 = get_better_origin m bs (SUC t) (viterbi_trellis_row m bs t) r1 r2
-Proof
-  rpt strip_tac
-  >> gvs[get_better_origin_slow_def, get_better_origin_def]
-  >> gvs[get_num_errors_after_step_slow_get_num_errors_after_step]
-QED*)
-
-(*Theorem best_origin_slow_best_origin:
-  ∀m bs t s.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  best_origin_slow m bs (SUC t) s = best_origin m bs (SUC t) (viterbi_trellis_row m bs t) s  
-Proof
-  rpt strip_tac
-  >> gvs[best_origin_slow_def, best_origin_def]
-  >> irule FOLDR_DOMAIN
-  >> MEM_DONOTEXPAND_TAC
-  >> qexists ‘all_transitions_set m’
-  >> gvs[]
-  >> rpt strip_tac
-  >- (DEP_PURE_ONCE_REWRITE_TAC[get_better_origin_slow_get_better_origin]
-      >> gvs[all_transitions_set_def]
-     )
-  >- (gvs[get_better_origin_slow_def]
-      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gvs[])
-  >> MEM_DOEXPAND_TAC
-  >> metis_tac[transition_inverse_mem_all_transitions_set]
 QED*)
      
 (*Theorem vd_step_back_is_valid[simp]:
