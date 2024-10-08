@@ -103,12 +103,36 @@ Proof
   >> Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
 QED
 
-Theorem infnum_add_N_infinity[simp]:
+Theorem inplus_N_infinity[simp]:
   ∀i n.
   (i + N n = INFINITY) ⇔ (i = INFINITY)
 Proof
   rpt strip_tac
   >> Cases_on ‘i’ >> gvs[]
+QED
+
+Theorem insub_id[simp]:
+  ∀i.
+  i ≠ INFINITY ⇒
+  i - i = N0
+Proof
+  Cases_on ‘i’ >> gvs[]
+QED
+
+Theorem insub_N0[simp]:
+  ∀i.
+  i - N0 = i
+Proof
+  Cases_on ‘i’
+  >> gvs[]
+QED
+
+Theorem inplus_insub[simp]:
+  ∀i j.
+  j ≠ INFINITY ⇒
+  (i + j) - j  = i
+Proof
+  Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
 QED
 
 val _ = export_theory();
