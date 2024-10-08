@@ -152,6 +152,122 @@ Proof
   >> metis_tac[viterbi_trellis_node_slow_best_origin_slow_num_errors_infinity]
 QED
 
+Theorem relevant_input_restrict_input:
+  ∀m bs t n.
+  0 < t ∧
+  t * m.output_length ≤ n ⇒
+  relevant_input m (TAKE n bs) t = relevant_input m bs t
+Proof
+  rpt strip_tac 
+  >> gvs[relevant_input_def]
+  >> gvs[DROP_TAKE]
+  >> gvs[TAKE_TAKE_MIN]
+  >> gvs[MIN_DEF]
+  >> Cases_on_if_goal >> gvs[]
+  >> Cases_on ‘n - m.output_length * (t - 1) = m.output_length’ >> gvs[]
+  >> ‘F’ suffices_by gvs[]
+  >> swap_assums
+  >> pop_assum mp_tac
+  >> gvs[]
+  >> qsuff_tac ‘m.output_length ≤ n - m.output_length * (t-1)’ >> gvs[]
+  >> pop_assum kall_tac
+  >> Cases_on ‘t’ >> gvs[]
+  >> gvs[ADD1]
+QED
+
+Theorem get_num_errors_after_step_restrict_input:
+  ∀m bs t n.
+  t * m.output_length ≤ n ∧
+  0 < t ⇒
+  get_num_errors_after_step m (TAKE n bs) t = get_num_errors_after_step m bs t
+Proof
+  rpt strip_tac
+  >> EXT_ALL
+  >> gvs[get_num_errors_after_step_def]
+  >> gvs[relevant_input_restrict_input]
+QED
+
+Theorem best_origin_restrict_input:
+  ∀m bs previous_row t s n.
+  t * m.output_length ≤ n ∧
+  0 < t ⇒
+  best_origin m (TAKE n bs) previous_row t = best_origin m bs previous_row t
+Proof
+  rpt strip_tac
+  >> EXT_ALL
+  >> gvs[best_origin_def]
+  >> gvs[get_num_errors_after_step_restrict_input]  
+QED
+        
+Theorem viterbi_trellis_node_restrict_input:
+  ∀m bs s t previous_row n.
+  t * m.output_length ≤ n ∧
+  0 < t ⇒
+  viterbi_trellis_node m (TAKE n bs) s t previous_row = viterbi_trellis_node m bs s t previous_row
+Proof
+  rpt strip_tac
+  >> gvs[viterbi_trellis_node_def]
+  >> gvs[get_num_errors_after_step_restrict_input]
+  >> gvs[best_origin_restrict_input]
+QED
+              
+Theorem viterbi_trellis_row_restrict_input:
+  ∀m bs t n.
+               t * m.output_length ≤ n ⇒
+               viterbi_trellis_row m (TAKE n bs) t = viterbi_trellis_row m bs t
+Proof
+  Induct_on ‘t’ >> rpt strip_tac >> gvs[viterbi_trellis_row_def]
+  >> AP_THM_TAC
+  >> AP_TERM_TAC
+  >> irule EQ_EXT
+  >> rpt strip_tac >> gvs[]
+  >> last_x_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+  >> conj_tac >- gvs[ADD1]
+  >> gvs[viterbi_trellis_node_restrict_input]
+QED
+
+Theorem vd_step_back_restrict_input:
+  ∀m bs s t n.
+               t * m.output_length ≤ n ⇒
+               vd_step_back m (TAKE n bs) s t = vd_step_back m bs s t
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_back_def]
+  >> gvs[viterbi_trellis_row_restrict_input]
+QED
+
+Theorem vd_step_back_restrict_input_apply:
+  ∀m bs s t.
+  vd_step_back m bs s t = vd_step_back m (TAKE (t * m.output_length) bs) s t
+Proof
+  gvs[vd_step_back_restrict_input]
+QED
+
+Theorem vd_find_optimal_code_restrict_input:
+  ∀m bs s t n.
+  t * m.output_length ≤ n ⇒
+  vd_find_optimal_code m (TAKE n bs) s t = vd_find_optimal_code m bs s t
+Proof
+  Induct_on ‘t’
+  >- gvs[]
+  >> rpt strip_tac
+  >> gvs[vd_find_optimal_code_suc]
+  >> REVERSE conj_tac
+  >- gvs[vd_step_back_restrict_input]
+  >> gvs[vd_step_back_restrict_input]
+  >> Cases_on ‘n = (SUC t) * m.output_length’ >> gvs[]
+  >> last_x_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+  >> gvs[]
+  >> gvs[ADD1]
+QED
+
+Theorem vd_find_optimal_code_restrict_input_apply:
+  ∀m bs s t.
+  vd_find_optimal_code m bs s t = vd_find_optimal_code m (TAKE (t * m.output_length) bs) s t
+Proof
+  gvs[vd_find_optimal_code_restrict_input]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Describe the relationship between the function for calculating the number  *)
 (* of errors computationally during a single step of the Viterbi algorithm,   *)
@@ -163,13 +279,13 @@ QED
 (* s: the state we are aiming to end up in                                    *)
 (* t: the time-step we are aiming to end up in                                *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem get_num_errors_after_step_get_num_errors:
+Theorem get_num_errors_after_step_get_num_errors:
   ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ∧
-  is_reachable m s t ∧
-  LENGTH bs = t * m.num_states ⇒
-  get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
+       wfmachine m ∧
+       s < m.num_states ∧
+       is_reachable m s t ∧
+       LENGTH bs = t * m.output_length ⇒
+       get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   >- (gvs[get_num_errors_def, get_num_errors_from_state_def, vd_encode_from_state_def]
@@ -178,17 +294,27 @@ Proof
      )
   (* Reduce SUC in LHS to allow usage of inductive hypothesis *)
   >> gvs[vd_find_optimal_code_suc]
-  (* The inductive hypothesis will be applicable to cs, and the inductive step
-     will be applicable to c. *)
-  >> qmatch_goalsub_abbrev_tac ‘get_num_errors _ _ (cs ⧺ c) = _’
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
+  >> gvs[]
+  >> conj_tac >- gvs[ADD1]
+  (* The inductive hypothesis will be applicable to indL, and the inductive step
+     will be applicable to stepL. *)
+  >> qmatch_goalsub_abbrev_tac ‘indL + stepL = _’
   (* Reduce SUC in RHS to allow usage of inductive hypothesis *)
   >> gvs[get_num_errors_after_step_slow_def]
   >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
+  >> qmatch_goalsub_abbrev_tac ‘_ = indR + stepR’
   >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM is_reachable_viterbi_trellis_node_slow_num_errors]
+  >> gvs[]
+  >> gvs[is_reachable_best_origin_slow]
+  >> ‘indL = indR ∧ stepL = stepR’ suffices_by gvs[]
   >> conj_tac
-  >- (irule (iffLR is_reachable_get_num_errors_after_step_slow)
+  >- (unabbrev_all_tac
+      >> last_x_assum (qspecl_then [‘m’, ‘TAKE (t * m.output_length) bs’, ‘vd_step_back m bs s (SUC t)’] assume_tac)
       >> gvs[]
-QED*)
+      >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -311,10 +437,10 @@ QED
 
 Theorem viterbi_correctness:
   ∀m : state_machine.
-  ∀bs rs : bool list.
-  wfmachine m ∧
-  LENGTH rs = m.output_length * LENGTH bs ⇒
-  get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
+       ∀bs rs : bool list.
+       wfmachine m ∧
+       LENGTH rs = m.output_length * LENGTH bs ⇒
+       get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
