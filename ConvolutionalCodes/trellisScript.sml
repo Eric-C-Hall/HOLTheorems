@@ -325,14 +325,6 @@ Definition vd_decode_def:
     vd_find_optimal_code m bs best_state max_timestep
 End
 
-Theorem viterbi_trellis_row_el:
-  ∀m bs s t. 
-  s < m.num_states ⇒
-  EL s (viterbi_trellis_row m bs (SUC t)) = viterbi_trellis_node m bs s (SUC t) (viterbi_trellis_row m bs t)
-Proof
-  gvs[viterbi_trellis_row_def]
-QED
-
 Theorem best_origin_is_valid[simp]:
   ∀m bs prev_row t s.
   wfmachine m ∧
@@ -345,6 +337,22 @@ Proof
   >> qexists ‘s’
   >> irule inargmin_mem
   >> gvs[]
+QED
+
+Theorem viterbi_trellis_node_slow_num_errors:
+  ∀m bs t r.
+  (viterbi_trellis_node_slow m bs r.origin t).num_errors = get_num_errors_after_step_slow m bs (SUC t) r - N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)))
+Proof
+  rpt strip_tac
+  >> gvs[get_num_errors_after_step_slow_def]
+QED
+
+Theorem viterbi_trellis_row_el:
+  ∀m bs s t. 
+  s < m.num_states ⇒
+  EL s (viterbi_trellis_row m bs (SUC t)) = viterbi_trellis_node m bs s (SUC t) (viterbi_trellis_row m bs t)
+Proof
+  gvs[viterbi_trellis_row_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -364,6 +372,23 @@ Proof
   >- (Cases_on ‘s’ >> gvs[]
       >> gvs[EL_REPLICATE])
   >> gvs[viterbi_trellis_node_def]
+QED
+
+Theorem get_num_errors_after_step_slow_best_origin_slow:
+  ∀m bs t s r.
+  r.origin < m.num_states ∧
+  vd_step_tran m r = s ⇒
+  get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) ≤ get_num_errors_after_step_slow m bs t r
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> gs[best_origin_slow_def]
+  >> qmatch_goalsub_abbrev_tac ‘get_num_errors_after_step_slow _ _ _ (inargmin f _) ≤ _’
+  >> qspecl_then [‘f’, ‘r’, ‘transition_inverse m s’] assume_tac inargmin_inle
+  >> imp_prove
+  >- (gvs[]
+      >> irule mem_transition_inverse_vd_step_tran
+      >> gvs[])
 QED
 
 Theorem best_origin_slow_transition_inverse:
@@ -605,7 +630,7 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-(*Theorem is_reachable_viterbi_trellis_node_slow_num_errors:
+Theorem is_reachable_viterbi_trellis_node_slow_num_errors:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
@@ -620,14 +645,36 @@ Proof
   (* Start the inductive step. Reduce the suc using the definition of
      get_num_errors_after_step_slow, so that we are at the previous stage and
      can therefore use the inductive hypothesis. *)
-  >> gvs[viterbi_trellis_node_slow_def]
-  >> gvs[get_num_errors_after_step_slow_def]
-  (* The left of the addition is what causes the result to be either
-     infinity or not infinity. Give it a name. i stands for infnum, because
-     it can be infinity. *)
-  >> qmatch_goalsub_abbrev_tac ‘i + N _’
-  (* Let s' denote the best origin leading to s *)
-  >> qmatch_asmsub_abbrev_tac ‘best_origin_slow m _ t s'’
+  >> simp[viterbi_trellis_node_slow_def]
+  >> simp[get_num_errors_after_step_slow_def]
+  (* Let r denote the best origin leading to s *)
+  >> qmatch_goalsub_abbrev_tac ‘viterbi_trellis_node_slow m bs r.origin t’
+  >> simp[is_reachable_suc_vd_step_tran]
+  (* The second goal turns out to be easier, so we do it first *)
+  >> REVERSE EQ_TAC
+  >- (rpt strip_tac
+      >> qexists ‘r’
+      >> gvs[]
+      >> REVERSE conj_tac
+      >- (unabbrev_all_tac
+          >> gvs[vd_step_tran_best_origin_slow])
+      >> last_x_assum (fn th => (irule (iffRL th)))
+      >> gvs[]
+      >> conj_tac
+      >- (qexists ‘bs’ >> gvs[])
+      >> unabbrev_all_tac
+      >> gvs[best_origin_slow_is_valid])
+  >> strip_tac
+  >> last_x_assum (qspecl_then [‘m’, ‘bs’, ‘r'.origin’] assume_tac)
+  >> gs[]
+  >> imp_prove
+  >- (unabbrev_all_tac
+      >> metis_tac[is_reachable_is_valid])
+  >> gs[]
+  (* r' and r both lead to s, *)
+  >> gvs[viterbi_trellis_node_slow_num_errors]
+  >>
+        
   (* Use the inductive hypothesis on the part up to s', which has a length
      of 1 less than the part up to s.*)
   >> last_assum $ qspecl_then [‘m’, ‘bs’, ‘s'’] assume_tac
@@ -641,48 +688,61 @@ Proof
      assumptions. *)
   >> imp_prove
   >- (unabbrev_all_tac >> gvs[])
-  (* Simplify preconditions *)
+  (* Simplify *)
   >> gvs[]
   (* Reduce the SUC in is_reachable, so that we are in the earlier stage and
      can use the inductive hypothesis. *)
-  >> gs[is_reachable_suc]
   (* Simplify depending on whether or not the sum is infinity. One of the
      options is easier to prove than the other, so we prove it here. *)
-  >> REVERSE (Cases_on ‘i’) >> gvs[]
-  >- (qexistsl [‘s'’, ‘(best_origin_slow m bs (SUC t) s).input’]
+  >> REVERSE EQ_TAC >> gvs[]
+  >- (rpt strip_tac
+      >> qexistsl [‘s'’, ‘(best_origin_slow m bs (SUC t) s).input’]
       >> gvs[]
       >> unabbrev_all_tac
       >> gvs[vd_step_best_origin_slow])
-  >> rpt strip_tac
-  (* Also use the inductive hypothesis on the path to s''*)
-  >> qspecl_then [‘m’, ‘bs’, ‘(SUC t)’, ‘<| origin := s''; input := b |>’, ‘s’] assume_tac best_origin_slow_get_num_errors_after_step_slow
+  >>
+  >> strip_tac
+  >> doexpand_tac
+  >> pop_assum $ qspecl_then [‘m’, ‘bs’, ‘s''’] assume_tac
   >> gs[]
-  (* Prove relevant precondition in order to use the inducive hypothesis *)
   >> imp_prove
-  >- (gvs[]
-      >> irule mem_transition_inverse_vd_step
-      >> metis_tac[is_reachable_is_valid])
-  >> gs[]
-  (* The left hand side of the ≤ has to be infinity because s' is the best
+  >- (unabbrev_all_tac
+      >> qpat_x_assum ‘is_reachable _ _ _ ⇔ _’ (fn th => (irule (iffLR th)))
+      >> 
+      >>
+      >>
+      >>
+      >>
+      >> rpt strip_tac
+      (* Also use the inductive hypothesis on the path to s''*)
+      >> qspecl_then [‘m’, ‘bs’, ‘(SUC t)’, ‘<| origin := s''; input := b |>’, ‘s’] assume_tac best_origin_slow_get_num_errors_after_step_slow
+      >> gs[]
+      (* Prove relevant precondition in order to use the inducive hypothesis *)
+      >> imp_prove
+      >- (gvs[]
+          >> irule mem_transition_inverse_vd_step
+          >> metis_tac[is_reachable_is_valid])
+      >> gs[]
+      (* The left hand side of the ≤ has to be infinity because s' is the best
      origin for s and the number of errors to s' is infinity. *)
-  >> qmatch_asmsub_abbrev_tac ‘LHS ≤ _’
-  >> sg ‘LHS = INFINITY’ >> gs[Abbr ‘LHS’]
-  >- gvs[get_num_errors_after_step_slow_def]
-  (* Also use the inductive hypothesis on s''. This path is also one less than
+      >> qmatch_asmsub_abbrev_tac ‘LHS ≤ _’
+      >> sg ‘LHS = INFINITY’ >> gs[Abbr ‘LHS’]
+      >- gvs[get_num_errors_after_step_slow_def]
+      (* Also use the inductive hypothesis on s''. This path is also one less than
      the path which arrives at s. *)
-  >> doexpand_tac >> first_assum $ qspecl_then [‘m’, ‘bs’, ‘s''’] mp_tac
-  >> donotexpand_tac >> bury_assum
-  (* Prove preconditions *)
-  >> gs[]
-  >> conj_tac
-  >- metis_tac[is_reachable_is_valid]
-  (* Simplify via the definition to remove the SUC, to bring us down to the
+      >> doexpand_tac >> first_assum $ qspecl_then [‘m’, ‘bs’, ‘s''’] mp_tac
+      >> donotexpand_tac >> bury_assum
+      (* Prove preconditions *)
+      >> gs[]
+      >> conj_tac
+      >- metis_tac[is_reachable_is_valid]
+      (* Simplify via the definition to remove the SUC, to bring us down to the
      prior length where we have used the inductive hypothesis*)
-  >> gvs[get_num_errors_after_step_slow_def]
-  >> qpat_x_assum ‘_ + N _ = INFINITY’ assume_tac
-  >> qmatch_asmsub_abbrev_tac ‘i + N _’
-  >> Cases_on ‘i’ >> gvs[]
-QED*)
+      >> gvs[get_num_errors_after_step_slow_def]
+      >> qpat_x_assum ‘_ + N _ = INFINITY’ assume_tac
+      >> qmatch_asmsub_abbrev_tac ‘i + N _’
+      >> Cases_on ‘i’ >> gvs[]
+QED
 
 (*Theorem is_reachable_get_num_errors_after_step_slow:
   ∀m bs s t.
@@ -966,7 +1026,7 @@ QED*)
 Proof
   EVAL_TAC
 QED*)
-        
+
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* -------------------------------------------------------------------------- *)
@@ -1008,7 +1068,7 @@ Theorem viterbi_trellis_row_test:
     ((node 1 4).prev_state = SOME 0 ∨ (node 1 4).prev_state = SOME 2) ∧
     (node 2 4).prev_state = SOME 1 ∧
     ((node 3 4).prev_state = SOME 1 ∨ (node 3 4).prev_state = SOME 3) ∧
-(* Node which isn't reachable, but isn't in the first row *)
+    (* Node which isn't reachable, but isn't in the first row *)
     (node 2 1).num_errors = INFINITY ∧
     (node 2 1).prev_state = NONE
 Proof
@@ -1027,9 +1087,9 @@ QED*)
 
 Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data_test:
   ∀t r.
-  t < 3 ∧
-  r.origin < 4 ⇒
-  get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step_no_prev_data example_state_machine test_path (SUC t) r
+       t < 3 ∧
+       r.origin < 4 ⇒
+       get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step_no_prev_data example_state_machine test_path (SUC t) r
 Proof
   rpt strip_tac
   >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’ >> gvs[]
@@ -1110,8 +1170,8 @@ QED*)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_node_slow_test:
   ∀s t.
-  s < 4 ∧ t ≤ 3 ⇒
-  viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
+           s < 4 ∧ t ≤ 3 ⇒
+           viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
 Proof
   rpt strip_tac
   >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3) ∧ (t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3)’ >> gvs[]
@@ -1136,9 +1196,9 @@ QED*)
 (* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_after_step_slow_get_num_errors_after_step_test:
   ∀t r.
-  t < 4 ∧
-  r.origin < 4 ⇒
-  get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step example_state_machine test_path (SUC t) (viterbi_trellis_row example_state_machine test_path t) r
+           t < 4 ∧
+           r.origin < 4 ⇒
+           get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step example_state_machine test_path (SUC t) (viterbi_trellis_row example_state_machine test_path t) r
 Proof
   rpt strip_tac
   >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’
@@ -1153,7 +1213,7 @@ Proof
       >> Cases_on ‘b’
       >> EVAL_TAC)
 QED
-        
+
 (*Theorem temp_test_theorem:
   let
     s = 2;
