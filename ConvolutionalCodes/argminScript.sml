@@ -1,9 +1,10 @@
-
 open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "argmin";
 
 open infnumTheory;
+open useful_tacticsLib;
+open dep_rewrite;
 
 (* -------------------------------------------------------------------------- *)
 (* Infnum argmin for pairs of elements                                        *)
@@ -134,6 +135,35 @@ Proof
   >> rpt strip_tac
   >> Cases_on ‘xs = []’ >> gns[]
   >> gns[inargmin2_assoc]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If two functions are the same on every element of the list, then the       *)
+(* result of applying argmin on those functions over the list will be the     *)
+(* same, even if the functions are not identical on elements which are not    *)
+(* contained in the list.                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem inargmin_domain:
+  ∀f g ls.
+  ls ≠ [] ∧
+  (∀l. MEM l ls ⇒ f l = g l) ⇒
+  inargmin f ls = inargmin g ls 
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ls’
+  >- gvs[]
+  >> rpt strip_tac
+  >> gvs[inargmin_def]
+  >> Cases_on ‘ls’ >> gvs[]
+  >> gvs[inargmin2_def]
+  >> pop_assum $ qspec_then ‘inargmin g (h'::t)’ assume_tac
+  >> Cases_on ‘inargmin g (h'::t) = h'’ >> gvs[]
+  >> swap_assums
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+  >> gvs[]
+  >> disj2_tac
+  >> qspecl_then [‘g’, ‘h'::t’] assume_tac inargmin_mem
+  >> gvs[Excl "inargmin_mem"]
 QED
 
 val _ = export_theory();
