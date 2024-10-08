@@ -691,38 +691,17 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-(*Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
-  ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
-Proof
-  rpt strip_tac
-  >> Cases_on ‘t’ >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_no_prev_data_def, viterbi_trellis_node_def]
-  >- (gvs[get_num_errors_after_step_slow_def]
-      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gvs[]
-      >- gvs[viterbi_trellis_row_def]
-      >> Cases_on ‘s’
-      >- gvs[]
-      >> gvs[]
-      >> gvs[viterbi_trellis_row_def]
-      >> gvs[EL_REPLICATE])
-  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_after_step_slow_get_num_errors_after_step]
-  >> gvs[]
-  >> gvs[best_origin_slow_is_valid]
-  >> gvs[best_origin_slow_best_origin]
-  >> gvs[viterbi_trellis_row_def]
-  >> gvs[viterbi_trellis_node_def]
-QED*)
-
 (*Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data:
   ∀m bs t r.
   wfmachine m ∧
   r.origin < m.num_states ⇒
-  get_num_errors_after_step_slow m bs (SUC t) r = get_num_errors_after_step_no_prev_data m bs (SUC t) r
+  get_num_errors_after_step_slow m bs t r = get_num_errors_after_step_no_prev_data m bs t r
 Proof
-  gen_tac
+  NTAC 2 gen_tac
+  >> Induct_on ‘t’
+
+  
+               gen_tac
   >> Induct_on ‘t’
   >- (gvs[get_num_errors_after_step_no_prev_data_def]
       >> rpt strip_tac
@@ -736,10 +715,11 @@ Proof
       >- (gvs[EL_REPLICATE]
           >> PURE_REWRITE_TAC [ONE]
           >> gvs[get_num_errors_after_step_slow_def]
-          >> gvs[EL_REPLICATE])
+          >> gvs[viterbi_trellis_node_slow_def, get_num_errors_after_step_slow_def])
       >> gvs[]
       >> PURE_REWRITE_TAC[ONE]
       >> gvs[get_num_errors_after_step_slow_def]
+      >> gvs[viterbi_trellis_node_slow_def, get_num_errors_after_step_slow_def]
      )
   (* Inductive step *)
   >> rpt strip_tac
@@ -750,7 +730,6 @@ Proof
      functions. *)
   >> PURE_ONCE_REWRITE_TAC[get_num_errors_after_step_slow_def]
   >> gvs[best_origin_slow_def]
-  >> gvs[get_better_origin_slow_def]
   (* translate the inner function so that it is written in terms of the fast
         version. *)
   >> qmatch_goalsub_abbrev_tac ‘FOLDR f _ _’
@@ -815,6 +794,32 @@ Proof
   >> gvs[get_better_origin_def]
 QED*)
 
+
+(*Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
+Proof
+  rpt strip_tac
+  >> Cases_on ‘t’ >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_no_prev_data_def, viterbi_trellis_node_def]
+  >- (gvs[get_num_errors_after_step_slow_def]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
+      >- gvs[viterbi_trellis_row_def]
+      >> Cases_on ‘s’
+      >- gvs[]
+      >> gvs[]
+      >> gvs[viterbi_trellis_row_def]
+      >> gvs[EL_REPLICATE])
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_after_step_slow_get_num_errors_after_step]
+  >> gvs[]
+  >> gvs[best_origin_slow_is_valid]
+  >> gvs[best_origin_slow_best_origin]
+  >> gvs[viterbi_trellis_row_def]
+  >> gvs[viterbi_trellis_node_def]
+  QED*)
+
 (*Theorem get_num_errors_after_step_slow_get_num_errors_after_step:
   ∀m bs t r.
   wfmachine m ∧
@@ -858,7 +863,7 @@ Proof
   >> MEM_DOEXPAND_TAC
   >> metis_tac[transition_inverse_mem_all_transitions_set]
 QED*)
-
+     
 (*Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
   wfmachine m ∧
@@ -1174,7 +1179,7 @@ QED*)
 (* ensure that it has the expected value, not just the same value as the      *)
 (* other implementation.                                                      *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem viterbi_trellis_node_slow_time_step_zero_test:
+Theorem viterbi_trellis_node_slow_time_step_zero_test:
   ∀s.
   s < 4 ⇒
   viterbi_trellis_node_slow example_state_machine test_path s 0 =
@@ -1183,9 +1188,9 @@ Proof
   rpt strip_tac
   >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
   >> EVAL_TAC
-QED*)
+QED
 
-(*Theorem vd_decode_test:
+(*Theorem vd_decode_eval:
   let
     decoded_path = vd_decode example_state_machine test_path;
     encoded_decoded_path = vd_encode example_state_machine decoded_path
