@@ -494,6 +494,17 @@ Proof
   >> gvs[]
 QED
 
+Theorem is_reachable_get_num_errors_after_step_slow:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (is_reachable m s t ⇔ get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) ≠ INFINITY)
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac is_reachable_viterbi_trellis_node_slow_num_errors
+  >> gvs[viterbi_trellis_node_slow_def]        
+QED
+
 Theorem vd_find_optimal_path_nonempty[simp]:
   ∀m bs s t.
   vd_find_optimal_path m bs s t ≠ []
@@ -679,17 +690,6 @@ Proof
   (* expand definition *)
   >> gvs[vd_decode_def]
 QED
-
-(*Theorem is_reachable_get_num_errors_after_step_slow:
-  ∀m bs s t.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  (is_reachable m s t ⇔ get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) ≠ INFINITY)
-Proof
-  rpt strip_tac
-  >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac is_reachable_viterbi_trellis_node_slow_num_errors
-  >> gvs[viterbi_trellis_node_slow_def]        
-QED*)
 
 (*Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
