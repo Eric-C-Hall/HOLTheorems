@@ -69,10 +69,75 @@ val _ = monadsyntax.enable_monad "option"
 
 (* TODO: function for bringing nth assumption to top *)
 
-(*Theorem is_reachable_best_origin_slow:
+Theorem best_origin_slow_get_num_errors_after_step_slow_infinity:
+  ∀m bs t r s.
+  wfmachine m ∧
+  s < m.num_states ∧
+  MEM r (transition_inverse m s) ∧
+  get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) = INFINITY ⇒
+  get_num_errors_after_step_slow m bs t r = INFINITY
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘m’, ‘bs’, ‘t’, ‘r’, ‘s’] assume_tac best_origin_slow_get_num_errors_after_step_slow
+  >> gvs[]
+QED
+
+Theorem viterbi_trellis_node_slow_best_origin_slow_num_errors:
+  ∀m bs t s r.
+  wfmachine m ∧
+  s < m.num_states ∧
+  MEM r (transition_inverse m s) ∧
+  (viterbi_trellis_node_slow m bs (best_origin_slow m bs (SUC t) s).origin t).num_errors = INFINITY ⇒ (viterbi_trellis_node_slow m bs r.origin t).num_errors = INFINITY
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> pop_assum mp_tac
+  >> gs[viterbi_trellis_node_slow_num_errors]
+  >> disch_tac
+  >> metis_tac[best_origin_slow_get_num_errors_after_step_slow_infinity]
+QED
+
+Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
+  ((viterbi_trellis_node_slow m bs s t).num_errors = INFINITY ⇔
+     ¬is_reachable m s t)
+Proof
+  metis_tac[is_reachable_viterbi_trellis_node_slow_num_errors]
+QED
+
+Theorem viterbi_trellis_node_slow_best_origin_slow_num_errors_infinity:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states  ⇒
+  ((viterbi_trellis_node_slow m bs (best_origin_slow m bs (SUC t) s).origin t).num_errors = INFINITY ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).num_errors = INFINITY)
+Proof
+  rpt strip_tac
+  (* this direction is easier when using the is_reachable definition, so do
+     that *)
+  >> REVERSE EQ_TAC
+  >- (qmatch_goalsub_abbrev_tac ‘b ⇒ b'’
+      >> qsuff_tac ‘¬b' ⇒ ¬b’
+      >- decide_tac
+      >> unabbrev_all_tac
+      >> DEP_PURE_REWRITE_TAC [GSYM is_reachable_viterbi_trellis_node_slow_num_errors]
+      >> gvs[]
+      >> rpt strip_tac
+      >> gvs[is_reachable_suc_vd_step_tran]
+      >> qexists ‘best_origin_slow m bs (SUC t) s’
+      >> gvs[vd_step_tran_best_origin_slow])
+  >> rpt strip_tac
+  >> qspecl_then [‘m’, ‘bs’, ‘t’, ‘s’] assume_tac viterbi_trellis_node_slow_best_origin_slow_num_errors
+  >> gvs[]
+  >> simp[viterbi_trellis_node_slow_def]
+  >> simp[get_num_errors_after_step_slow_def]
+QED
+
+Theorem is_reachable_best_origin_slow:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states  ⇒
   (is_reachable m (best_origin_slow m bs (SUC t) s).origin t ⇔ is_reachable m s (SUC t))
 Proof
   rpt strip_tac
@@ -81,24 +146,11 @@ Proof
       >> qexists ‘best_origin_slow m bs (SUC t) s’
       >> gvs[vd_step_tran_best_origin_slow]
      )
-  (* Step back so that we know that one state leading to s is reachable
-     on the same time-step as the best origin leading to s *)
-  >> gs[is_reachable_suc_vd_step_tran]
-  (* Rewrite reachability in terms of whether or not an infinite number of
-     errors are calculated at that location, so that we can use the property
-     of best_origin_slow that it minimizes the number of errors to determine
-     that it must have less errors than the other state on the same time-step
-     leading to s and thus it must have a finite number of errors and thus must
-     be reachable. Requires a little bit of annoying fiddling in order to
-     prove preconditions of the necessary theorem. *)
-  >> ‘r.origin < m.num_states’ by metis_tac[is_reachable_is_valid]
-  >> qpat_x_assum ‘is_reachable _ _ _’ mp_tac
-  >> DEP_PURE_REWRITE_TAC[is_reachable_viterbi_trellis_node_slow_num_errors] (*is_reachable_get_num_errors_after_step_slow*)
-  >> gs[]
-  >> disch_tac
-  (* *)
-  >> 
-QED*)
+  >> pop_assum mp_tac
+  >> DEP_PURE_REWRITE_TAC [is_reachable_viterbi_trellis_node_slow_num_errors]
+  >> gvs[]
+  >> metis_tac[viterbi_trellis_node_slow_best_origin_slow_num_errors_infinity]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Describe the relationship between the function for calculating the number  *)
@@ -137,7 +189,6 @@ Proof
   >- (irule (iffLR is_reachable_get_num_errors_after_step_slow)
       >> gvs[]
 QED*)
-
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -260,10 +311,10 @@ QED
 
 Theorem viterbi_correctness:
   ∀m : state_machine.
-       ∀bs rs : bool list.
-       wfmachine m ∧
-       LENGTH rs = m.output_length * LENGTH bs ⇒
-       get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
+  ∀bs rs : bool list.
+  wfmachine m ∧
+  LENGTH rs = m.output_length * LENGTH bs ⇒
+  get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
