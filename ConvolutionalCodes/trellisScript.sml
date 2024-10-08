@@ -711,18 +711,6 @@ Proof
   >> gvs[vd_decode_def]
 QED
 
-Theorem viterbi_trellis_node_slow_zero[simp]:
-  ∀m bs s.
-  wfmachine m ∧
-  s < m.num_states ⇒
-  viterbi_trellis_node_slow m bs s 0 =
-  <| num_errors := if s = 0 then N0 else INFINITY;
-     prev_state := NONE |>
-Proof
-  rpt strip_tac
-  >> gvs[viterbi_trellis_node_slow_def]
-QED
-
 Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data:
   ∀m bs t r.
   wfmachine m ∧
