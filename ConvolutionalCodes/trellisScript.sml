@@ -386,7 +386,7 @@ Proof
   rpt strip_tac
   >> metis_tac[vd_step_tran_best_origin_slow, vd_step_tran_def]
 QED
-        
+
 Theorem get_num_errors_after_step_slow_best_origin_slow_zero[simp]:
   ∀m bs s.
   wfmachine m ∧ s < m.num_states ⇒
@@ -396,7 +396,7 @@ Proof
   >> Cases_on ‘s’
   >> gvs[get_num_errors_after_step_slow_def]
 QED
-        
+
 Theorem get_num_errors_after_step_slow_best_origin_slow:
   ∀m bs t s r.
   r.origin < m.num_states ∧
@@ -413,7 +413,7 @@ Proof
       >> irule mem_transition_inverse_vd_step_tran
       >> gvs[])
 QED
-        
+
 Theorem best_origin_slow_transition_inverse:
   ∀m bs s t.
   wfmachine m ∧
@@ -466,7 +466,7 @@ Proof
   rpt strip_tac
   >> gvs[get_num_errors_after_step_slow_def]
 QED
-        
+
 Theorem is_reachable_viterbi_trellis_node_slow_num_errors:
   ∀m bs s t.
   wfmachine m ∧
@@ -563,7 +563,7 @@ Proof
   >> gvs[vd_find_optimal_path_def]
   >> gvs[vd_find_optimal_reversed_path_def]
 QED
-   
+
 Theorem vd_find_optimal_path_suc:
   ∀m bs s t.
   vd_find_optimal_path m bs s (SUC t) = SNOC s (vd_find_optimal_path m bs (vd_step_back m bs s (SUC t)) t)
@@ -785,33 +785,52 @@ Proof
   >> metis_tac[transition_inverse_mem_is_valid]
 QED
 
-
-(*Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
+Theorem viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ⇒
   viterbi_trellis_node_slow m bs s t = viterbi_trellis_node_no_prev_data m bs s t
 Proof
   rpt strip_tac
-  >> Cases_on ‘t’ >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_no_prev_data_def, viterbi_trellis_node_def]
-  >- (gvs[get_num_errors_after_step_slow_def]
-      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gvs[]
-      >- gvs[viterbi_trellis_row_def]
-      >> Cases_on ‘s’
-      >- gvs[]
-      >> gvs[]
-      >> gvs[viterbi_trellis_row_def]
-      >> gvs[EL_REPLICATE])
-  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_after_step_slow_get_num_errors_after_step]
-  >> gvs[]
-  >> gvs[best_origin_slow_is_valid]
-  >> gvs[best_origin_slow_best_origin]
-  >> gvs[viterbi_trellis_row_def]
+  >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_no_prev_data_def]
+  >> Cases_on ‘t’ >> gvs[]
+  >- (gvs[viterbi_trellis_row_def] >> Cases_on ‘s’ >> gvs[])
+  >> gvs[viterbi_trellis_row_el]
   >> gvs[viterbi_trellis_node_def]
-QED*)
-     
-(*Theorem vd_step_back_is_valid[simp]:
+  >> gvs[get_num_errors_after_step_slow_get_num_errors_after_step]
+  >> gvs[best_origin_slow_best_origin]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Does not hold at time-step 0 because the state 0 at time-step 0 has no     *)
+(* predecessor but has 0 errors. This is why we use SUC t instead of t.       *)
+(* -------------------------------------------------------------------------- *)
+Theorem viterbi_trellis_node_slow_prev_state_num_errors:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  ((viterbi_trellis_node_slow m bs s (SUC t)).prev_state = NONE ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).num_errors = INFINITY)
+Proof
+  rpt strip_tac
+  >> gvs[viterbi_trellis_node_slow_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Does not hold at time-step 0 because the state 0 at time-step 0 is         *)
+(* reachable but does not have a previous state. This is why we use SUC t     *)
+(* instead of t.                                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem is_reachable_viterbi_trellis_node_slow_prev_state:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (is_reachable m s (SUC t) ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).prev_state ≠ NONE)
+Proof
+  rpt strip_tac
+  >> metis_tac[is_reachable_viterbi_trellis_node_slow_num_errors, viterbi_trellis_node_slow_prev_state_num_errors]
+QED
+
+Theorem vd_step_back_is_valid[simp]:
   ∀m bs s t.
   wfmachine m ∧
   s < m.num_states ∧
@@ -822,12 +841,13 @@ Proof
   rpt strip_tac
   >> gvs[vd_step_back_def]
   >> Cases_on ‘t’ >> gvs[]
-  >> gvs[viterbi_trellis_row_el]
-  >> qmatch_goalsub_abbrev_tac ‘THE node’
-  >> REVERSE (Cases_on ‘node’) >> gvs[]
-  >- gvs[viterbi_trellis_node_def]
-  >> gvs[viterbi_trellis_node_def]
-QED*)
+  >> PURE_REWRITE_TAC[GSYM viterbi_trellis_node_no_prev_data_def]
+  >> gvs[GSYM viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data]
+  >> Cases_on ‘(viterbi_trellis_node_slow m bs s (SUC n)).prev_state’
+  >- metis_tac[is_reachable_viterbi_trellis_node_slow_prev_state]
+  >> gvs[]
+  >> gvs[viterbi_trellis_node_slow_def]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Efficiency tests                                                           *)
@@ -983,9 +1003,9 @@ QED*)
 
 Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data_test:
   ∀t r.
-              t < 3 ∧
-              r.origin < 4 ⇒
-              get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step_no_prev_data example_state_machine test_path (SUC t) r
+  t < 3 ∧
+  r.origin < 4 ⇒
+  get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step_no_prev_data example_state_machine test_path (SUC t) r
 Proof
   rpt strip_tac
   >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’ >> gvs[]
@@ -1066,8 +1086,8 @@ QED*)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_node_slow_test:
   ∀s t.
-           s < 4 ∧ t ≤ 3 ⇒
-           viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
+  s < 4 ∧ t ≤ 3 ⇒
+  viterbi_trellis_node_slow example_state_machine test_path s t = viterbi_trellis_node_no_prev_data example_state_machine test_path s t
 Proof
   rpt strip_tac
   >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3) ∧ (t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3)’ >> gvs[]
