@@ -18,6 +18,12 @@ open dep_rewrite;
 (* CONVOLUTIONAL STATE MACHINE ENCODING                                       *)
 (* -------------------------------------------------------------------------- *)
 
+(* -------------------------------------------------------------------------- *)
+(* It makes sense for all the definitions to be contained at the top of the   *)
+(* file because then people can browse through all the definitions, without   *)
+(* being distracted by long, verbose proofs that get in the way.              *)
+(* -------------------------------------------------------------------------- *)
+
 Datatype:
   transition = <|
     origin : num;
@@ -1517,8 +1523,10 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
-(* -------------------------------------------------------------------------- *)
-
+(* (It makes sense for tests to be at the end because then they won't slow    *)
+(*  down computation when writing theories and modifying the file, but they   *)
+(*  will be run once during holmake to ensure correctness of the final        *)
+(*  combined binary)                                                          *)
 (* -------------------------------------------------------------------------- *)
 (* This num state machine corresponds to the convolutional code which has a   *)
 (* window size of 3, and creates two parity bits, the first of which is       *)
