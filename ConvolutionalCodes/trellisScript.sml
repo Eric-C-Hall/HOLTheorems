@@ -390,8 +390,7 @@ Theorem get_num_errors_after_step_slow_best_origin_slow_zero[simp]:
   get_num_errors_after_step_slow m bs 0 (best_origin_slow m bs 0 s) = (if s = 0 then N0 else INFINITY)
 Proof
   rpt strip_tac
-  >> Cases_on ‘s’
-  >> gvs[get_num_errors_after_step_slow_def]
+  >> Cases_on ‘s’ >> gvs[get_num_errors_after_step_slow_def]
 QED
 
 Theorem get_num_errors_after_step_slow_best_origin_slow:
@@ -1073,6 +1072,24 @@ Proof
   >> gvs[viterbi_trellis_node_slow_def]
   >> gvs[best_origin_slow_def]
   >> gvs[get_num_errors_after_step_slow_restrict_input]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Alternate definition of the step_back function which uses the slow trellis *)
+(* code                                                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_step_back_def_slow:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  vd_step_back m bs s t = THE (viterbi_trellis_node_slow m bs s t).prev_state
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_back_def]
+  >> Cases_on ‘t’ >> gvs[]
+  >- (gvs[viterbi_trellis_node_slow_def]
+      >> EVAL_TAC >> Cases_on ‘s’ >> gvs[])
+  >> gvs[viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data]
 QED
 
 (* -------------------------------------------------------------------------- *)
