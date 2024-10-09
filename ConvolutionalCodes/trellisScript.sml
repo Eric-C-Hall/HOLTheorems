@@ -1429,4 +1429,18 @@ Proof
   >> metis_tac[is_reachable_get_num_errors_after_step_slow]
 QED
 
+Theorem is_reachable_vd_step_back:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ∧
+  is_reachable m s (SUC t) ⇒
+  is_reachable m (vd_step_back m bs s (SUC t)) t
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_back_def_slow]
+  >> gvs[viterbi_trellis_node_slow_def]
+  >> gvs[get_num_errors_after_step_slow_is_reachable]
+  >> gvs[is_reachable_best_origin_slow]
+QED
+        
 val _ = export_theory();
