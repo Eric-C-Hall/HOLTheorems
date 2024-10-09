@@ -5,6 +5,10 @@ open HolKernel Parse boolLib bossLib;
 (* -------------------------------------------------------------------------- *)
 (* This seems like a particularly useful function that could potentially be   *)
 (* added to HOL, although I haven't spent much time polishing it              *)
+(*                                                                            *)
+(* Todo: check whether or not this handles multiple implications correctly.   *)
+(* Should probably work on the innermost implication rather than the          *)
+(* outermost? Handle there-exists correctly.                                  *)
 (* -------------------------------------------------------------------------- *)
 fun GCONTRAPOS th = GEN_ALL (CONTRAPOS (SPEC_ALL th));
 
@@ -32,5 +36,7 @@ val swap_assums = pop_assum (fn th => pop_assum (fn th2 => assume_tac th >> assu
 fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum (fn th => delete_nth_assumption (n - 1) >> assume_tac th))
 
 val EXT_ALL_TAC = rpt (irule EQ_EXT >> gen_tac)
+
+(* TODO: write a function to negate both sides of an if and only if statement, even in the presence of quantifiers *)
 
 end

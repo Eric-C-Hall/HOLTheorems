@@ -1413,4 +1413,20 @@ Proof
   EVAL_TAC
 QED*)
 
+(* -------------------------------------------------------------------------- *)
+(* Version of is_reachable_get_num_errors_after_step_slow which can be used   *)
+(* as a rewrite from get_num_errors_after_step_slow to is_reachable. The      *)
+(* other theorem cannot be used in that way even after applying GSYM, because *)
+(* the left hand side is negated.                                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_num_errors_after_step_slow_is_reachable:
+  ∀m bs s t.
+  wfmachine m ∧
+  s < m.num_states ⇒
+  (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) = INFINITY ⇔ ¬is_reachable m s t)
+Proof
+  rpt strip_tac
+  >> metis_tac[is_reachable_get_num_errors_after_step_slow]
+QED
+
 val _ = export_theory();
