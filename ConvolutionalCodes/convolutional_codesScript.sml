@@ -117,7 +117,22 @@ Proof
       >> gvs[]
       >> gvs[vd_find_optimal_code_restrict_input]
       >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
-      >> gvs[best_origin_slow_restrict_input]
+      >> gvs[is_reachable_vd_step_back]
+      >> gvs[best_origin_slow_restrict_input, get_num_errors_after_step_slow_restrict_input]
+      >> gvs[vd_step_back_def_slow]
+            
+      >>
+      >> conj_tac
+      >- (gvs[vd_step_back_def]
+          >> gvs[viterbi_trellis_row_el]
+          >> gvs[best_origin_slow_restrict_input]
+          >> gvs[viterbi_trellis_node_slow_def]
+          >> gvs[get_num_errors_after_step_slow_restrict_input]
+          >> gvs[vd_step_back_def]
+          >> gvs[viterbi_trellis_row_el]
+          >>
+         )
+     )
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -161,12 +176,12 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_correctness_general:
   ∀m bs rs s t.
-       wfmachine m ∧
-       s < m.num_states ∧
-       LENGTH bs = t ∧
-       LENGTH rs = m.output_length * t ∧
-       vd_encode_state m bs = s ⇒
-       get_num_errors m rs (vd_find_optimal_code m rs s t) ≤ get_num_errors m rs bs
+  wfmachine m ∧
+  s < m.num_states ∧
+  LENGTH bs = t ∧
+  LENGTH rs = m.output_length * t ∧
+  vd_encode_state m bs = s ⇒
+  get_num_errors m rs (vd_find_optimal_code m rs s t) ≤ get_num_errors m rs bs
 Proof
   (* Complete base case and simplify *)
   gen_tac
@@ -234,17 +249,16 @@ Proof
      is better than rStep, because s' is chosen to minimize the total sum
      rather than either individual component.
    *)
-  >> 
-  
+  >>  
   
 QED
 
 Theorem viterbi_correctness:
   ∀m : state_machine.
-       ∀bs rs : bool list.
-       wfmachine m ∧
-       LENGTH rs = m.output_length * LENGTH bs ⇒
-       get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
+  ∀bs rs : bool list.
+  wfmachine m ∧
+  LENGTH rs = m.output_length * LENGTH bs ⇒
+  get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
