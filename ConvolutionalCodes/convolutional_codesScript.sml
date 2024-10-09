@@ -113,26 +113,44 @@ Proof
   >> ‘indL = indR ∧ stepL = stepR’ suffices_by gvs[]
   >> conj_tac
   >- (unabbrev_all_tac
+      (* Apply the inductive hypothesis *)
       >> last_x_assum (qspecl_then [‘m’, ‘TAKE (t * m.output_length) bs’, ‘vd_step_back m bs s (SUC t)’] assume_tac)
       >> gvs[]
       >> gvs[vd_find_optimal_code_restrict_input]
       >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+      (* Simplify *)
       >> gvs[is_reachable_vd_step_back]
       >> gvs[best_origin_slow_restrict_input, get_num_errors_after_step_slow_restrict_input]
+      (* Get LHS and RHS into the same form *)
       >> gvs[vd_step_back_def_slow]
-            
-      >>
-      >> conj_tac
-      >- (gvs[vd_step_back_def]
-          >> gvs[viterbi_trellis_row_el]
-          >> gvs[best_origin_slow_restrict_input]
-          >> gvs[viterbi_trellis_node_slow_def]
-          >> gvs[get_num_errors_after_step_slow_restrict_input]
-          >> gvs[vd_step_back_def]
-          >> gvs[viterbi_trellis_row_el]
-          >>
-         )
+      >> gvs[viterbi_trellis_node_slow_def]
+      (* Focus in on the parts we need to prove are the same *)
+      >> AP_TERM_TAC
+      >> AP_TERM_TAC
+      >> AP_TERM_TAC
+      (* If the if statement is true, it is trivial. Derive a contraditction
+         in the case where the if statement is false. *)
+      >> Cases_on_if_goal >> gvs[]
+      >> ‘F’ suffices_by gvs[]
+      (* The if statement cannot be false because it is equivalent to stating that the point is not reachable, and it is reachable *)
+      >> gvs[get_num_errors_after_step_slow_is_reachable]
      )
+  >> unabbrev_all_tac
+  (* Simplify left hand side to make it more similar to right hand side *)
+  >> gvs[get_num_errors_from_state_def]
+  (* Simplify right hand side to make it more similar to left hand side:
+     DROP (t * m.output_length) bs. *)
+  >> gvs[relevant_input_def]
+  >> gvs[TAKE_DROP_SWAP]
+  >> DEP_PURE_ONCE_REWRITE_TAC[TAKE_LENGTH_TOO_LONG]
+  (* Simplify dependency *)
+  >> conj_tac
+  >- gvs[ADD1]
+  (* Focus in on the important part we need to proce the equivalence of *)
+  >> PURE_REWRITE_TAC[Once hamming_distance_symmetric]
+  >> AP_THM_TAC
+  >> AP_TERM_TAC
+  (*  *)
 QED
 
 (* -------------------------------------------------------------------------- *)
