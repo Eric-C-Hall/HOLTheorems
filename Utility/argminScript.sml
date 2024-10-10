@@ -57,6 +57,28 @@ Definition inargmin_def:
                        else inargmin2 f x (inargmin f xs)
 End
 
+Theorem inargmin_singleton[simp]:
+  ∀f x.
+  inargmin f [x] = x
+Proof
+  simp[inargmin_def] 
+QED
+
+Theorem inargmin_cons_cons[simp]:
+  ∀f x x' xs.
+  inargmin f (x::x'::xs) = inargmin2 f x (inargmin f (x'::xs))
+Proof
+  gvs[inargmin_def]
+QED
+
+Theorem inargmin2_le[simp]:
+  ∀f x y z.
+  f (inargmin2 f x y) ≤ f z ⇔ f x ≤ f z ∨ f y ≤ f z
+Proof
+  rw[inargmin2_def, EQ_IMP_THM]
+  >> metis_tac[inlt_inle, inle_TRANS]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* First defining property of inargmin: the result is an element of the list  *)
 (* that we took the argmin over                                               *)
@@ -83,27 +105,12 @@ QED
 (* than any other member of the list we took the argmin over                  *)
 (* -------------------------------------------------------------------------- *)
 Theorem inargmin_inle[simp]:
-∀f l ls.
+  ∀f l ls.
   MEM l ls ⇒
   f (inargmin f ls) ≤ f l
 Proof
-  rpt strip_tac
-  >> Induct_on ‘ls’ >> gns[]
-  >> rpt gen_tac
-  >> rpt disch_tac
-  >> gvs[]
-  >- (gns[inargmin_def]
-      >> Cases_on ‘ls’ >> gns[]
-      >> gns[inargmin2_def]
-      >> qmatch_asmsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gns[])
-  >> gns[inargmin_def]
-  >> qmatch_asmsub_abbrev_tac ‘if b then _ else _’
-  >> Cases_on ‘b’ >> gns[]
-  >> gns[inargmin2_def]
-  >> qmatch_asmsub_abbrev_tac ‘if b then _ else _’
-  >> Cases_on ‘b’ >> gns[]
-  >> Cases_on ‘f l’ >> Cases_on ‘f h’ >> Cases_on ‘f (inargmin f ls)’ >> gns[]
+  Induct_on ‘ls’ >> rw[inargmin_def]
+  >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -136,6 +143,8 @@ Proof
   >> Cases_on ‘xs = []’ >> gns[]
   >> gns[inargmin2_assoc]
 QED
+
+
 
 (* -------------------------------------------------------------------------- *)
 (* If two functions are the same on every element of the list, then the       *)

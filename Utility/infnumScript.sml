@@ -40,27 +40,34 @@ End
 Overload "<" = “inlt”
 
 Theorem inlt_REFL[simp]:
+  ∀n : infnum.
   inlt n n ⇔ F
 Proof
   Cases_on ‘n’>> simp[]
 QED
 
 Theorem inlt_TRANS:
+    ∀n m p : infnum.
   inlt m n ∧ inlt n p ⇒ inlt m p
 Proof
-  Cases_on ‘m’ >> Cases_on ‘n’ >> Cases_on ‘p’ >> simp[]
+  rpt strip_tac
+  >> Cases_on ‘m’ >> Cases_on ‘n’ >> Cases_on ‘p’ >> gvs[]
 QED
 
 Theorem inlt_trichotomy:
+  ∀p q.
   inlt p q ∨ p = q ∨ inlt q p
 Proof
-  Cases_on ‘p’ >> Cases_on ‘q’ >> simp[]
+  rpt strip_tac
+  >> Cases_on ‘p’ >> Cases_on ‘q’ >> simp[]
 QED
 
 Theorem NZERO_LTZERO[simp]:
+  ∀n.
   n ≠ N0 ⇔ inlt N0 n
 Proof
-  Cases_on ‘n’ >> simp[]
+  rpt strip_tac
+  >> Cases_on ‘n’ >> simp[]
 QED
 
 Overload "<=" = “λin1 in2. ¬(inlt in2 in1)”
@@ -79,16 +86,30 @@ Proof
 QED
 
 Theorem inlt_inlt_F:
-  ∀a b.
+  ∀a b : infnum.
   a < b ∧ b < a ⇒ F
 Proof
   rpt strip_tac
   >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[]
 QED
 
+Theorem inle_REFL[simp]:
+  ∀a : infnum.
+  a ≤ a
+Proof
+  Cases_on ‘a’ >> gvs[]
+QED
+
 Theorem inle_TRANS:
-  ∀a b c.
+  ∀a b c : infnum.
   a ≤ b ∧ b ≤ c ⇒ a ≤ c
+Proof
+  Cases_on ‘a’ >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[]
+QED
+
+Theorem inlte_TRANS:
+  ∀a b c.
+  a < b ∧ b ≤ c ⇒ a < c
 Proof
   Cases_on ‘a’ >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[]
 QED
