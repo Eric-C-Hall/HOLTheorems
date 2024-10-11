@@ -9,7 +9,7 @@ open dep_rewrite;
 val _ = new_theory "hamming_distance";
 
 val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "bxor", tok = "⊕"}
-                                                                  
+                                                                   
 Definition hamming_weight_def:
   hamming_weight [] = 0 ∧
   hamming_weight (b::bs) = (if b then 1 else 0) + hamming_weight bs
@@ -21,8 +21,8 @@ End
 
 Theorem bitwise_cons:
   ∀f b bs c cs.
-  LENGTH bs = LENGTH cs ⇒
-  bitwise f (b::bs) (c::cs) = (f b c)::(bitwise f bs cs)
+    LENGTH bs = LENGTH cs ⇒
+    bitwise f (b::bs) (c::cs) = (f b c)::(bitwise f bs cs)
 Proof
   rpt strip_tac
   >> gvs[bitwise_def]
@@ -30,8 +30,8 @@ QED
 
 Theorem bxor_cons:
   ∀b bs c cs.
-  LENGTH bs = LENGTH cs ⇒
-  bxor (b::bs) (c::cs) = (b ⇎ c) :: bxor bs cs
+    LENGTH bs = LENGTH cs ⇒
+    bxor (b::bs) (c::cs) = (b ⇎ c) :: bxor bs cs
 Proof
   rpt strip_tac
   >> gvs[bxor_def]
@@ -40,8 +40,8 @@ QED
 
 Theorem bitwise_commutative:
   ∀f bs cs.
-  (∀b c. f b c = f c b) ⇒
-  bitwise f bs cs = bitwise f cs bs
+    (∀b c. f b c = f c b) ⇒
+    bitwise f bs cs = bitwise f cs bs
 Proof
   rpt strip_tac
   >> gvs[bitwise_def]
@@ -102,8 +102,8 @@ QED*)
 
 Theorem hamming_distance_cons:
   ∀b bs c cs.
-  LENGTH bs = LENGTH cs ⇒
-  hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
+    LENGTH bs = LENGTH cs ⇒
+    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
 Proof
   rpt strip_tac
   >> gvs[hamming_distance_def]
@@ -114,8 +114,8 @@ QED
 
 Theorem hamming_distance_append_left:
   ∀bs cs ds.
-  LENGTH bs + LENGTH cs = LENGTH ds ⇒
-  hamming_distance (bs ⧺ cs) ds = hamming_distance bs (TAKE (LENGTH bs) ds) + hamming_distance cs (DROP (LENGTH bs) ds)
+    LENGTH bs + LENGTH cs = LENGTH ds ⇒
+    hamming_distance (bs ⧺ cs) ds = hamming_distance bs (TAKE (LENGTH bs) ds) + hamming_distance cs (DROP (LENGTH bs) ds)
 Proof
   Induct_on ‘ds’
   >- (Cases_on ‘bs’ >> Cases_on ‘cs’ >> gvs[])
@@ -128,8 +128,8 @@ QED
 
 Theorem hamming_distance_append_right:
   ∀bs cs ds.
-  LENGTH bs = LENGTH cs + LENGTH ds ⇒
-  hamming_distance bs (cs ⧺ ds) = hamming_distance (TAKE (LENGTH cs) bs) cs + hamming_distance (DROP (LENGTH cs) bs) ds
+    LENGTH bs = LENGTH cs + LENGTH ds ⇒
+    hamming_distance bs (cs ⧺ ds) = hamming_distance (TAKE (LENGTH cs) bs) cs + hamming_distance (DROP (LENGTH cs) bs) ds
 Proof
   metis_tac[hamming_distance_append_left, hamming_distance_symmetric]
 QED

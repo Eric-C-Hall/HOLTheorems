@@ -41,14 +41,14 @@ Overload "<" = “inlt”
 
 Theorem inlt_REFL[simp]:
   ∀n : infnum.
-  inlt n n ⇔ F
+    inlt n n ⇔ F
 Proof
   Cases_on ‘n’>> simp[]
 QED
 
 Theorem inlt_TRANS:
-    ∀n m p : infnum.
-  inlt m n ∧ inlt n p ⇒ inlt m p
+  ∀n m p : infnum.
+    inlt m n ∧ inlt n p ⇒ inlt m p
 Proof
   rpt strip_tac
   >> Cases_on ‘m’ >> Cases_on ‘n’ >> Cases_on ‘p’ >> gvs[]
@@ -56,7 +56,7 @@ QED
 
 Theorem inlt_trichotomy:
   ∀p q.
-  inlt p q ∨ p = q ∨ inlt q p
+    inlt p q ∨ p = q ∨ inlt q p
 Proof
   rpt strip_tac
   >> Cases_on ‘p’ >> Cases_on ‘q’ >> simp[]
@@ -64,7 +64,7 @@ QED
 
 Theorem NZERO_LTZERO[simp]:
   ∀n.
-  n ≠ N0 ⇔ inlt N0 n
+    n ≠ N0 ⇔ inlt N0 n
 Proof
   rpt strip_tac
   >> Cases_on ‘n’ >> simp[]
@@ -79,7 +79,7 @@ End
 
 Theorem inlt_inle:
   ∀a b : infnum.
-  a < b ⇒ a ≤ b
+    a < b ⇒ a ≤ b
 Proof
   rpt strip_tac
   >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[]
@@ -87,7 +87,7 @@ QED
 
 Theorem inlt_inlt_F:
   ∀a b : infnum.
-  a < b ∧ b < a ⇒ F
+    a < b ∧ b < a ⇒ F
 Proof
   rpt strip_tac
   >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[]
@@ -95,30 +95,30 @@ QED
 
 Theorem inle_REFL[simp]:
   ∀a : infnum.
-  a ≤ a
+    a ≤ a
 Proof
   Cases_on ‘a’ >> gvs[]
 QED
 
 Theorem inle_TRANS:
   ∀a b c : infnum.
-  a ≤ b ∧ b ≤ c ⇒ a ≤ c
+    a ≤ b ∧ b ≤ c ⇒ a ≤ c
 Proof
   Cases_on ‘a’ >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[]
 QED
 
 Theorem inlte_TRANS:
   ∀a b c.
-  a < b ∧ b ≤ c ⇒ a < c
+    a < b ∧ b ≤ c ⇒ a < c
 Proof
   Cases_on ‘a’ >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[]
 QED
 
 Theorem infnum_to_num_inplus:
   ∀i j.
-  i ≠ INFINITY ∧
-  j ≠ INFINITY ⇒
-  infnum_to_num (i + j) = infnum_to_num i + infnum_to_num j
+    i ≠ INFINITY ∧
+    j ≠ INFINITY ⇒
+    infnum_to_num (i + j) = infnum_to_num i + infnum_to_num j
 Proof
   rpt strip_tac
   >> Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
@@ -126,7 +126,7 @@ QED
 
 Theorem inplus_N_infinity[simp]:
   ∀i n.
-  (i + N n = INFINITY) ⇔ (i = INFINITY)
+    (i + N n = INFINITY) ⇔ (i = INFINITY)
 Proof
   rpt strip_tac
   >> Cases_on ‘i’ >> gvs[]
@@ -134,15 +134,15 @@ QED
 
 Theorem insub_id[simp]:
   ∀i.
-  i ≠ INFINITY ⇒
-  i - i = N0
+    i ≠ INFINITY ⇒
+    i - i = N0
 Proof
   Cases_on ‘i’ >> gvs[]
 QED
 
 Theorem insub_N0[simp]:
   ∀i.
-  i - N0 = i
+    i - N0 = i
 Proof
   Cases_on ‘i’
   >> gvs[]
@@ -150,15 +150,15 @@ QED
 
 Theorem inplus_insub[simp]:
   ∀i j.
-  j ≠ INFINITY ⇒
-  (i + j) - j  = i
+    j ≠ INFINITY ⇒
+    (i + j) - j  = i
 Proof
   Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
 QED
 
 Theorem insub_N_infinity[simp]:
   ∀i n.
-  (i - N n = INFINITY) ⇔ (i = INFINITY)
+    (i - N n = INFINITY) ⇔ (i = INFINITY)
 Proof
   Cases_on ‘i’ >> gvs[]
 QED
