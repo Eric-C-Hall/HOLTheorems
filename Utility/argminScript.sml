@@ -51,6 +51,9 @@ End
 (* However, the non-constructive properties are useful and proven in the      *)
 (* functions inargmin_mem and inargmin_inle                                   *)
 (* -------------------------------------------------------------------------- *)
+(* Would it be better for this to return an option type?                      *)
+(* -------------------------------------------------------------------------- *)
+
 Definition inargmin_def:
   inargmin f (x::xs) = if (xs = [])
                        then x
