@@ -37,7 +37,7 @@ open state_machineTheory;
 Datatype:
   viterbi_node_datatype = <|
     num_errors : infnum;
-    prev_state : α option;
+    prev_transition : transition option;
   |> 
 End
 
@@ -108,10 +108,10 @@ Definition viterbi_trellis_node_def:
   let
     local_best_origin = best_origin m bs previous_row t s;
     local_num_errors = get_num_errors_after_step m bs t previous_row local_best_origin;
-    local_prev_state = (if local_num_errors = INFINITY then NONE else SOME local_best_origin.origin);
+    local_prev_transition = (if local_num_errors = INFINITY then NONE else SOME local_best_origin);
   in
     <| num_errors := local_num_errors;
-       prev_state := local_prev_state; |>
+       prev_transition := local_prev_transition; |>
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -130,7 +130,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_row_def:
   viterbi_trellis_row (m : state_machine) bs 0
-  = <| num_errors := N0; prev_state := NONE |> :: REPLICATE (m.num_states - 1) <| num_errors := INFINITY; prev_state := NONE |>
+  = <| num_errors := N0; prev_transition := NONE |> :: REPLICATE (m.num_states - 1) <| num_errors := INFINITY; prev_transition := NONE |>
   ∧
   viterbi_trellis_row m bs (SUC t)
   = let
@@ -185,10 +185,10 @@ Definition viterbi_trellis_slow:
   let
     local_best_origin = best_origin_slow m bs t s;
     local_num_errors = get_num_errors_after_step_slow m bs t local_best_origin;
-    local_prev_state = (if (t = 0 ∨ local_num_errors = INFINITY) then NONE else SOME local_best_origin.origin);
+    local_prev_transition = (if (t = 0 ∨ local_num_errors = INFINITY) then NONE else SOME local_best_origin);
   in
     <| num_errors := local_num_errors;
-       prev_state := local_prev_state; |>    
+       prev_transition := local_prev_transition; |>    
 Termination
   (* Use a standard measure-based method for proving termination. (see the
      HOL System Description on proving termination). We have a circular
@@ -254,7 +254,7 @@ Definition vd_step_back_def:
     trellis_row = viterbi_trellis_row m bs t;
     trellis_node = EL s trellis_row
   in
-    THE trellis_node.prev_state
+    (THE trellis_node.prev_transition).origin
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -348,12 +348,12 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Prove that each previous state in the trellis is valid.                    *)
 (* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_row_prev_state_valid[simp]:
+Theorem viterbi_trellis_row_prev_transition_valid[simp]:
   ∀m bs t s.
     wfmachine m ∧
     s < m.num_states ∧
-    (EL s (viterbi_trellis_row m bs t)).prev_state ≠ NONE ⇒
-    THE (EL s (viterbi_trellis_row m bs t)).prev_state < m.num_states
+    (EL s (viterbi_trellis_row m bs t)).prev_transition ≠ NONE ⇒
+    (THE (EL s (viterbi_trellis_row m bs t)).prev_transition).origin < m.num_states
 Proof
   rpt strip_tac
   >> qmatch_goalsub_abbrev_tac ‘THE n’
@@ -448,7 +448,7 @@ Theorem viterbi_trellis_node_slow_zero[simp]:
     wfmachine m ∧
     s < m.num_states ⇒
     viterbi_trellis_node_slow m bs s 0 =
-    <| prev_state := NONE;
+    <| prev_transition := NONE;
        num_errors := (if s = 0 then N0 else INFINITY); |>
 Proof
   rpt strip_tac
@@ -789,11 +789,11 @@ QED
 (* Does not hold at time-step 0 because the state 0 at time-step 0 has no     *)
 (* predecessor but has 0 errors. This is why we use SUC t instead of t.       *)
 (* -------------------------------------------------------------------------- *)
-Theorem viterbi_trellis_node_slow_prev_state_num_errors:
+Theorem viterbi_trellis_node_slow_prev_transition_num_errors:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    ((viterbi_trellis_node_slow m bs s (SUC t)).prev_state = NONE ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).num_errors = INFINITY)
+    ((viterbi_trellis_node_slow m bs s (SUC t)).prev_transition = NONE ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).num_errors = INFINITY)
 Proof
   rpt strip_tac
   >> gvs[viterbi_trellis_node_slow_def]
@@ -804,14 +804,14 @@ QED
 (* reachable but does not have a previous state. This is why we use SUC t     *)
 (* instead of t.                                                              *)
 (* -------------------------------------------------------------------------- *)
-Theorem is_reachable_viterbi_trellis_node_slow_prev_state:
+Theorem is_reachable_viterbi_trellis_node_slow_prev_transition:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    (is_reachable m s (SUC t) ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).prev_state ≠ NONE)
+    (is_reachable m s (SUC t) ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).prev_transition ≠ NONE)
 Proof
   rpt strip_tac
-  >> metis_tac[is_reachable_viterbi_trellis_node_slow_num_errors, viterbi_trellis_node_slow_prev_state_num_errors]
+  >> metis_tac[is_reachable_viterbi_trellis_node_slow_num_errors, viterbi_trellis_node_slow_prev_transition_num_errors]
 QED
 
 Theorem vd_step_back_is_valid[simp]:
@@ -827,8 +827,8 @@ Proof
   >> Cases_on ‘t’ >> gvs[]
   >> PURE_REWRITE_TAC[GSYM viterbi_trellis_node_no_prev_data_def]
   >> gvs[GSYM viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data]
-  >> Cases_on ‘(viterbi_trellis_node_slow m bs s (SUC n)).prev_state’
-  >- metis_tac[is_reachable_viterbi_trellis_node_slow_prev_state]
+  >> Cases_on ‘(viterbi_trellis_node_slow m bs s (SUC n)).prev_transition’
+  >- metis_tac[is_reachable_viterbi_trellis_node_slow_prev_transition]
   >> gvs[]
   >> gvs[viterbi_trellis_node_slow_def]
 QED
@@ -1082,7 +1082,7 @@ Theorem vd_step_back_def_slow:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    vd_step_back m bs s t = THE (viterbi_trellis_node_slow m bs s t).prev_state
+    vd_step_back m bs s t = (THE (viterbi_trellis_node_slow m bs s t).prev_transition).origin
 Proof
   rpt strip_tac
   >> gvs[vd_step_back_def]
@@ -1214,22 +1214,22 @@ Theorem viterbi_trellis_row_test:
   in
     (* First row first state *)
     (node 0 0).num_errors = N 0 ∧
-    (node 0 0).prev_state = NONE ∧
+    (node 0 0).prev_transition = NONE ∧
     (* First row other state *)
     (node 2 0).num_errors = INFINITY ∧
-    (node 2 0).prev_state = NONE ∧
+    (node 2 0).prev_transition = NONE ∧
     (* Row in the middle *)
     (node 0 4).num_errors = N 3 ∧
     (node 1 4).num_errors = N 3 ∧
     (node 2 4).num_errors = N 2 ∧
     (node 3 4).num_errors = N 4 ∧
-    (node 0 4).prev_state = SOME 2 ∧
-    ((node 1 4).prev_state = SOME 0 ∨ (node 1 4).prev_state = SOME 2) ∧
-    (node 2 4).prev_state = SOME 1 ∧
-    ((node 3 4).prev_state = SOME 1 ∨ (node 3 4).prev_state = SOME 3) ∧
+    (node 0 4).prev_transition = SOME <| origin := 2; input := F |> ∧
+    ((node 1 4).prev_transition = SOME <| origin := 0; input := T |> ∨ (node 1 4).prev_transition = SOME <| origin := 2; input := T |>) ∧
+    (node 2 4).prev_transition = SOME <| origin := 1; input := F |> ∧
+    ((node 3 4).prev_transition = SOME <| origin := 1; input := F |> ∨ (node 3 4).prev_transition = SOME <| origin := 3; input := T |>) ∧
     (* Node which isn't reachable, but isn't in the first row *)
     (node 2 1).num_errors = INFINITY ∧
-    (node 2 1).prev_state = NONE
+    (node 2 1).prev_transition = NONE
 Proof
   EVAL_TAC
 QED
@@ -1393,7 +1393,7 @@ Theorem viterbi_trellis_node_slow_time_step_zero_test:
   ∀s.
     s < 4 ⇒
     viterbi_trellis_node_slow example_state_machine test_path s 0 =
-    <| num_errors := if s = 0 then N0 else INFINITY; prev_state := NONE|>
+    <| num_errors := if s = 0 then N0 else INFINITY; prev_transition := NONE|>
 Proof
   rpt strip_tac
   >> sg ‘(s = 0 ∨ s = 1 ∨ s = 2 ∨ s = 3)’ >> gvs[]
