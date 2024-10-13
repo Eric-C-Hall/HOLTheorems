@@ -1627,5 +1627,29 @@ Proof
   EVAL_TAC
 QED
 
+Theorem vd_encode_state_from_state_empty[simp]:
+  ∀m s.
+    vd_encode_state_from_state m [] s = s
+Proof
+  rpt strip_tac
+  >> gvs[vd_encode_state_from_state_def]
+QED
+
+Theorem vd_encode_state_empty[simp]:
+  ∀m.
+    vd_encode_state m [] = 0
+Proof
+  rpt strip_tac
+  >> gvs[vd_encode_state_def]
+QED
+
+Theorem is_reachable_zero[simp]:
+  ∀m s.
+    is_reachable m s 0 ⇔ s = 0
+Proof
+  rpt strip_tac
+  >> gvs[is_reachable_def]
+QED
+
 val _ = export_theory();
 
