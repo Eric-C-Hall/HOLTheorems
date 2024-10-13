@@ -267,3 +267,291 @@ Proof
   >> Cases_on ‘b’
   >> gvs[]
 QED*)
+
+
+
+(* ========================================================================== *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* ========================================================================== *)
+
+(* -------------------------------------------------------------------------- *)
+(* Performs one step back through the trellis.                                *)
+(*                                                                            *)
+(* m: the state machine which generates the trellis                           *)
+(* bs: the bitstring being decoded                                            *)
+(* s: the state to step back from                                             *)
+(* t: the time-step to step back from                                         *)
+(*                                                                            *)
+(* Only valid for t > 0, since we can't step back at t = 0.                   *)
+(* -------------------------------------------------------------------------- *)
+(* Note: this requires generating the entire trellis up to this point, which  *)
+(* is slow. Repeatedly calling this function should therefore in theory be    *)
+(* less efficient than generating the trellis once and then stepping back     *)(* through the thing.                                                         *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_step_back_def:
+  vd_step_back m bs s t =
+  let
+    trellis_row = viterbi_trellis_row m bs t;
+    trellis_node = EL s trellis_row
+  in
+    (THE trellis_node.prev_transition).origin
+End
+
+
+(* -------------------------------------------------------------------------- *)
+(* vd_find_optimal_path, but converted to code form                           *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_find_optimal_code_def:
+  vd_find_optimal_code m bs s t = path_to_code m (vd_find_optimal_path m bs s t)
+End
+
+
+Theorem vd_find_optimal_path_nonempty[simp]:
+  ∀m bs s t.
+    vd_find_optimal_path m bs s t ≠ []
+Proof
+  rpt strip_tac
+  >> Cases_on ‘t’ >> gvs[vd_find_optimal_path_def]
+QED
+
+
+
+Theorem vd_find_optimal_path_time_zero[simp]:
+  ∀m bs s t. vd_find_optimal_path m bs s 0 = [s]
+Proof
+  rpt strip_tac
+  >> EVAL_TAC
+QED
+
+Theorem vd_find_optimal_path_length[simp]:
+  ∀m bs s t.
+    LENGTH (vd_find_optimal_path m bs s t) = t + 1
+Proof
+  gen_tac
+  (* Induct over t *)
+  >> Induct_on ‘t’
+  >- (rpt strip_tac >> EVAL_TAC)
+  (* Expand out definitions *)
+  >> gvs[vd_find_optimal_path_def, vd_step_back_def]
+QED
+
+Theorem vd_find_optimal_path_last[simp]:
+  ∀m bs s t.
+    LAST (vd_find_optimal_path m bs s t) = s
+Proof
+  Induct_on ‘t’ >> rpt strip_tac >> gvs[]
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+QED
+
+Theorem vd_find_optimal_path_suc:
+  ∀m bs s t.
+    vd_find_optimal_path m bs s (SUC t) = SNOC s (vd_find_optimal_path m bs (vd_step_back m bs s (SUC t)) t)
+Proof
+  rpt strip_tac
+  >> PURE_REWRITE_TAC[vd_find_optimal_path_def]
+  >> PURE_REWRITE_TAC[GSYM (cj 2 REVERSE_SNOC_DEF)]
+  >> AP_TERM_TAC
+  >> gvs[vd_find_optimal_reversed_path_def]
+QED
+
+Theorem vd_find_optimal_reversed_path_length[simp]:
+  ∀m bs s t.
+    LENGTH (vd_find_optimal_reversed_path m bs s t) = t + 1
+Proof
+  gvs[vd_find_optimal_reversed_path_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This is already contained in the definition of                             *)
+(* vd_find_optimal_reversed_path, but it is good to automatically use it      *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_reversed_path_time_zero[simp]:
+  ∀m bs s.
+    vd_find_optimal_reversed_path m bs s 0 = [s]
+Proof
+  rpt strip_tac >> EVAL_TAC
+QED
+
+
+(*(* -------------------------------------------------------------------------- *)
+(* Theorem statement not designed by hand: identified after seeing what       *)
+(* happens when we expand out vd_find_optimal_code in order to remove the     *)
+(* SUC, intended for use in applying the inductive step.                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_code_suc:
+  ∀m bs s t.
+    vd_find_optimal_code m bs s (SUC t) = vd_find_optimal_code m bs (vd_step_back m bs s (SUC t)) t ⧺ [states_to_transition_input m (vd_step_back m bs s (SUC t))s] 
+Proof
+  gvs[vd_find_optimal_code_def]
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+  >> gvs[GSYM vd_find_optimal_reversed_path_def]
+  >> gvs[GSYM vd_find_optimal_path_def]
+  >> gvs[path_to_code_append]
+  >> gvs[GSYM vd_find_optimal_code_def]
+QED*)
+
+
+(* -------------------------------------------------------------------------- *)
+(* Alternate definition that could be used for vd_find_optimal_code           *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_code_suc':
+  ∀m bs s t.
+    vd_find_optimal_code m bs s (SUC t) =
+    let
+      x = vd_step_back m bs s (SUC t)
+    in
+      vd_find_optimal_code m bs x t ⧺ [states_to_transition_input m x s]
+Proof
+  gvs[vd_find_optimal_code_def]
+  >> gvs[vd_find_optimal_path_def]
+  >> gvs[vd_find_optimal_reversed_path_def]
+  >> gvs[GSYM vd_find_optimal_reversed_path_def]
+  >> gvs[GSYM vd_find_optimal_path_def]
+  >> gvs[path_to_code_append]
+  >> gvs[GSYM vd_find_optimal_code_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Alternate method to prove a theorem without having to re-write out the     *)
+(* entire statement of the theorem.                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_code_suc'' =
+        “vd_find_optimal_code m bs s (SUC t)”
+          |> SCONV  [vd_find_optimal_code_def, vd_find_optimal_path_def,
+                     vd_find_optimal_reversed_path_def]
+          |> SRULE [GSYM vd_find_optimal_reversed_path_def,
+                    GSYM vd_find_optimal_path_def,
+                    path_to_code_append,
+                    GSYM vd_find_optimal_code_def]
+          |> GEN_ALL
+
+
+Theorem vd_step_back_is_valid[simp]:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ∧
+    0 < t ∧
+    is_reachable m s t ⇒
+    vd_step_back m bs s t < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_back_def]
+  >> Cases_on ‘t’ >> gvs[]
+  >> PURE_REWRITE_TAC[GSYM viterbi_trellis_node_no_prev_data_def]
+  >> gvs[GSYM viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data]
+  >> Cases_on ‘(viterbi_trellis_node_slow m bs s (SUC n)).prev_transition’
+  >- metis_tac[is_reachable_viterbi_trellis_node_slow_prev_transition]
+  >> gvs[]
+  >> gvs[viterbi_trellis_node_slow_def]
+QED
+
+
+Theorem vd_step_back_restrict_input:
+  ∀m bs s t n.
+    t * m.output_length ≤ n ⇒
+    vd_step_back m (TAKE n bs) s t = vd_step_back m bs s t
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_back_def]
+  >> gvs[viterbi_trellis_row_restrict_input]
+QED
+
+
+Theorem vd_step_back_restrict_input_apply:
+  ∀m bs s t.
+    vd_step_back m bs s t = vd_step_back m (TAKE (t * m.output_length) bs) s t
+Proof
+  gvs[vd_step_back_restrict_input]
+QED
+
+
+Theorem vd_find_optimal_code_restrict_input_apply:
+  ∀m bs s t.
+    vd_find_optimal_code m bs s t = vd_find_optimal_code m (TAKE (t * m.output_length) bs) s t
+Proof
+  gvs[vd_find_optimal_code_restrict_input]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* Alternate definition of the step_back function which uses the slow trellis *)
+(* code                                                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_step_back_def_slow:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    vd_step_back m bs s t = (THE (viterbi_trellis_node_slow m bs s t).prev_transition).origin
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_back_def]
+  >> Cases_on ‘t’ >> gvs[]
+  >- (gvs[viterbi_trellis_node_slow_def]
+      >> EVAL_TAC >> Cases_on ‘s’ >> gvs[])
+  >> gvs[viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data]
+QED
+
+Theorem is_reachable_vd_step_back:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ∧
+    is_reachable m s (SUC t) ⇒
+    is_reachable m (vd_step_back m bs s (SUC t)) t
+Proof
+  rpt strip_tac
+  >> gvs[vd_step_back_def_slow]
+  >> gvs[viterbi_trellis_node_slow_def]
+  >> gvs[get_num_errors_after_step_slow_is_reachable]
+  >> gvs[is_reachable_best_origin_slow]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* test_path: [F; T; T; F; T; T; T; T; F; F; T; F]                            *)
+(*                                                                            *)
+(*   0 -> 0/00 -> 0                                                           *)
+(*     -> 1/11 -> 1                                                           *)
+(*   1 -> 0/11 -> 2                                                           *)
+(*     -> 1/00 -> 3                                                           *)
+(*   2 -> 0/10 -> 0                                                           *)
+(*     -> 1/01 -> 1                                                           *)
+(*   3 -> 0/01 -> 2                                                           *)
+(*     -> 1/10 -> 3                                                           *)
+(*                                                                            *)
+(* 0  1  2  3  3  3  4                -  0  0  2  2  02 0                     *)
+(* -  1  2  2  3  3  4                -  0  0  0  02 2  0                     *)
+(* -  -  2  2  2  5  4                -  -  1  1  1  13 13                    *)
+(* -  -  2  3  4  3  3                -  -  1  3  13 1  3                     *)
+(*    FT TF TT TT FF TF                  FT TF TT TT FF TF                    *)
+(*                                                                            *)
+(* Starting at state 0, t=6: [0, 0, 0, 2, 1, 0, 0]                            *)
+(*                               .. 2, 1, 0, 0, 0]                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* Starting at state 1, t=4: [1, 0, 2, 1, 0]                                  *)
+(*                            .. 2, 1, 0, 0]                                  *)
+(*                                                                            *)
+(* Starting at state 2, t=4: [2, 1, 0, 0, 0]                                  *)
+(*                                                                            *)
+(* Starting at state 3, t=6; [3, 3, 1, 0, 2, 1, 0]                            *)
+(*                                  .. 2, 1, 0, 0]                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_find_optimal_reversed_path_test:
+  let
+    result1 = (vd_find_optimal_reversed_path example_state_machine test_path 0 6);
+    result2 = (vd_find_optimal_reversed_path example_state_machine test_path 1 4);
+    result3 = (vd_find_optimal_reversed_path example_state_machine test_path 2 4);
+    result4 = (vd_find_optimal_reversed_path example_state_machine test_path 3 6);
+  in
+    (result1 = [0;0;0;2;1;0;0] ∨ result1 = [0;0;2;1;0;0;0]) ∧
+    (result2 = [1;0;2;1;0] ∨ result2 = [1;2;1;0;0]) ∧
+    (result3 = [2;1;0;0;0]) ∧
+    (result4 = [3;3;1;0;2;1;0] ∨ result4 = [3;3;1;2;1;0;0])
+Proof
+  EVAL_TAC
+QED
+
