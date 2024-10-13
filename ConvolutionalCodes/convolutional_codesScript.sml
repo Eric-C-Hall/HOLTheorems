@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -84,7 +85,7 @@ Theorem get_num_errors_after_step_get_num_errors:
     s < m.num_states ∧
     is_reachable m s t ∧
     LENGTH bs = t * m.output_length ⇒
-    get_num_errors m bs (vd_find_optimal_code m bs s t) = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
+    get_num_errors m bs (vd_decode_to_state m bs s t) = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   >- (gvs[get_num_errors_def, get_num_errors_from_state_def, vd_encode_from_state_def]
@@ -92,7 +93,8 @@ Proof
       >> Cases_on_if_goal >> gvs[]
      )
   (* Reduce SUC in LHS to allow usage of inductive hypothesis *)
-  >> gvs[vd_find_optimal_code_suc]
+  >> gvs[vd_decode_to_state_def_slow]
+  >> gvs[SNOC_APPEND]
   >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
   >> gvs[]
   >> conj_tac >- gvs[ADD1]
@@ -114,26 +116,20 @@ Proof
   >> conj_tac
   >- (unabbrev_all_tac
       (* Apply the inductive hypothesis *)
-      >> last_x_assum (qspecl_then [‘m’, ‘TAKE (t * m.output_length) bs’, ‘vd_step_back m bs s (SUC t)’] assume_tac)
+      >> qmatch_goalsub_abbrev_tac ‘vd_decode_to_state m bs s' t’
+      >> last_x_assum (qspecl_then [‘m’, ‘TAKE (t * m.output_length) bs’, ‘s'’] assume_tac)
+      >> imp_prove
+      >- (conj_tac
+          >- (unabbrev_all_tac
+              >> gvs[best_origin_is_valid])
+          >> unabbrev_all_tac
+          >> conj_tac
+          >- gvs[is_reachable_best_origin_slow]
+          >> gvs[LENGTH_TAKE])
       >> gvs[]
-      >> gvs[vd_find_optimal_code_restrict_input]
-      >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
-      (* Simplify *)
-      >> gvs[is_reachable_vd_step_back]
-      >> gvs[best_origin_slow_restrict_input, get_num_errors_after_step_slow_restrict_input]
-      (* Get LHS and RHS into the same form *)
-      >> gvs[vd_step_back_def_slow]
+      >> gvs[get_num_errors_after_step_slow_restrict_input, best_origin_slow_restrict_input]
+      >> gvs[vd_decode_to_state_restrict_input]
       >> gvs[viterbi_trellis_node_slow_def]
-      (* Focus in on the parts we need to prove are the same *)
-      >> AP_TERM_TAC
-      >> AP_TERM_TAC
-      >> AP_TERM_TAC
-      (* If the if statement is true, it is trivial. Derive a contraditction
-         in the case where the if statement is false. *)
-      >> Cases_on_if_goal >> gvs[]
-      >> ‘F’ suffices_by gvs[]
-      (* The if statement cannot be false because it is equivalent to stating that the point is not reachable, and it is reachable *)
-      >> gvs[get_num_errors_after_step_slow_is_reachable]
      )
   >> unabbrev_all_tac
   (* Simplify left hand side to make it more similar to right hand side *)
@@ -150,7 +146,8 @@ Proof
   >> PURE_REWRITE_TAC[Once hamming_distance_symmetric]
   >> AP_THM_TAC
   >> AP_TERM_TAC
-     (*  *)
+  (*  *)
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)

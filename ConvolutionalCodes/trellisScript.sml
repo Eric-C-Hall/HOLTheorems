@@ -882,6 +882,21 @@ Proof
   >> metis_tac[is_reachable_get_num_errors_after_step_slow]
 QED
 
+Theorem vd_decode_to_state_def_slow:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    (vd_decode_to_state m bs s 0 = [] ∧
+     vd_decode_to_state m bs s (SUC t) =
+     let
+       prev_transition = best_origin_slow m bs (SUC t) s
+     in
+       SNOC prev_transition.input (vd_decode_to_state m bs prev_transition.origin t))
+Proof
+  rpt strip_tac >> gvs[vd_decode_to_state_def]
+  >> gvs[best_origin_slow_best_origin]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Efficiency tests                                                           *)
 (* -------------------------------------------------------------------------- *)
