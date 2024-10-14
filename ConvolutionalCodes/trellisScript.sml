@@ -897,6 +897,19 @@ Proof
   >> gvs[best_origin_slow_best_origin]
 QED
 
+Theorem vd_encode_state_from_state_vd_decode_to_state[simp]:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ∧
+    is_reachable m s t ⇒
+    vd_encode_state_from_state m (vd_decode_to_state m bs s t) 0 = s
+Proof
+  Induct_on ‘t’ >> gvs[vd_encode_state_from_state_def]
+  >> rpt strip_tac
+  >> gvs[vd_decode_to_state_def_slow]
+  >> gvs[vd_encode_state_from_state_snoc]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Efficiency tests                                                           *)
 (* -------------------------------------------------------------------------- *)
