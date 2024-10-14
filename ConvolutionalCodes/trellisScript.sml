@@ -332,7 +332,7 @@ Proof
   >> simp[best_origin_slow_def]
 QED
 
-Theorem vd_step_best_origin_slow:
+Theorem vd_step_best_origin_slow[simp]:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
@@ -719,7 +719,7 @@ Proof
   >> simp[get_num_errors_after_step_slow_def]
 QED
 
-Theorem is_reachable_best_origin_slow:
+Theorem is_reachable_best_origin_slow[simp]:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states  ⇒
