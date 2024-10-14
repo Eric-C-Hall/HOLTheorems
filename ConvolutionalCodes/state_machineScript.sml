@@ -1651,5 +1651,13 @@ Proof
   >> gvs[is_reachable_def]
 QED
 
+Theorem vd_encode_from_state_singleton:
+  ∀m b s.
+    vd_encode_from_state m [b] s = (vd_step_record m b s).output
+Proof
+  rpt strip_tac
+  >> gvs[vd_encode_from_state_def]
+QED
+
 val _ = export_theory();
 
