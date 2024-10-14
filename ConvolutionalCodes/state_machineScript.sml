@@ -1521,6 +1521,39 @@ Proof
   >> gvs[path_is_valid_path_is_connected]
 QED
 
+
+Theorem vd_encode_state_from_state_empty[simp]:
+  ∀m s.
+    vd_encode_state_from_state m [] s = s
+Proof
+  rpt strip_tac
+  >> gvs[vd_encode_state_from_state_def]
+QED
+
+Theorem vd_encode_state_empty[simp]:
+  ∀m.
+    vd_encode_state m [] = 0
+Proof
+  rpt strip_tac
+  >> gvs[vd_encode_state_def]
+QED
+
+Theorem is_reachable_zero[simp]:
+  ∀m s.
+    is_reachable m s 0 ⇔ s = 0
+Proof
+  rpt strip_tac
+  >> gvs[is_reachable_def]
+QED
+
+Theorem vd_encode_from_state_singleton:
+  ∀m b s.
+    vd_encode_from_state m [b] s = (vd_step_record m b s).output
+Proof
+  rpt strip_tac
+  >> gvs[vd_encode_from_state_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* (It makes sense for tests to be at the end because then they won't slow    *)
@@ -1625,38 +1658,6 @@ Theorem transition_inverse_test:
     MEM (<| origin := 3; input := F |>) test_inverse
 Proof
   EVAL_TAC
-QED
-
-Theorem vd_encode_state_from_state_empty[simp]:
-  ∀m s.
-    vd_encode_state_from_state m [] s = s
-Proof
-  rpt strip_tac
-  >> gvs[vd_encode_state_from_state_def]
-QED
-
-Theorem vd_encode_state_empty[simp]:
-  ∀m.
-    vd_encode_state m [] = 0
-Proof
-  rpt strip_tac
-  >> gvs[vd_encode_state_def]
-QED
-
-Theorem is_reachable_zero[simp]:
-  ∀m s.
-    is_reachable m s 0 ⇔ s = 0
-Proof
-  rpt strip_tac
-  >> gvs[is_reachable_def]
-QED
-
-Theorem vd_encode_from_state_singleton:
-  ∀m b s.
-    vd_encode_from_state m [b] s = (vd_step_record m b s).output
-Proof
-  rpt strip_tac
-  >> gvs[vd_encode_from_state_def]
 QED
 
 val _ = export_theory();
