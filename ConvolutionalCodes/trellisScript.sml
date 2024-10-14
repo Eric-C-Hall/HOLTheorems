@@ -910,6 +910,16 @@ Proof
   >> gvs[vd_encode_state_from_state_snoc]
 QED
 
+Theorem vd_encode_state_vd_decode_to_state[simp]:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ∧
+    is_reachable m s t ⇒
+    vd_encode_state m (vd_decode_to_state m bs s t) = s
+Proof
+  gvs[vd_encode_state_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Efficiency tests                                                           *)
 (* -------------------------------------------------------------------------- *)
