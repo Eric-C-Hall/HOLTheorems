@@ -95,14 +95,6 @@ Definition vd_step_record_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Takes a step using the state machine and returns the output.               *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_step_output_def:
-  vd_step_output (m : state_machine) b s =
-  (vd_step_record m b s).output
-End
-
-(* -------------------------------------------------------------------------- *)
 (* Takes a step using the state machine to arrive at a new state.             *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_step_def:
@@ -314,12 +306,12 @@ QED
 Theorem vd_encode_from_state_cons:
   ∀m b bs s.
     vd_encode_from_state m (b :: bs) s =
-    (vd_step_output m b s) ⧺ (vd_encode_from_state m bs (vd_step  m b s))
+    (vd_step_record m b s).output ⧺ (vd_encode_from_state m bs (vd_step  m b s))
 Proof
   rpt strip_tac
   >> gvs[vd_encode_from_state_def]
   >> gvs[vd_encode_state_from_state_def]
-  >> gvs[vd_step_def, vd_step_record_def, vd_step_output_def]
+  >> gvs[vd_step_def, vd_step_record_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -328,7 +320,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_cons:
   ∀m b bs. vd_encode m (b :: bs) =
-           (vd_step_output m b 0) ⧺ (vd_encode_from_state m bs (vd_step m b 0))
+           (vd_step_record m b 0).output ⧺ (vd_encode_from_state m bs (vd_step m b 0))
 Proof
   rpt strip_tac
   >> gvs[vd_encode_def]
@@ -569,7 +561,7 @@ Proof
   >> gvs[CONS]
 QED
 
-Theorem vd_step_record_length[simp]:
+Theorem vd_step_record_output_length[simp]:
   ∀m b s.
     wfmachine m ∧
     s < m.num_states ⇒
@@ -579,15 +571,6 @@ Proof
   >> drule wfmachine_transition_fn_output_length
   >> rpt strip_tac
   >> gvs[vd_step_record_def]
-QED
-
-Theorem vd_step_output_length[simp]:
-  ∀m b s.
-    wfmachine m ∧
-    s < m.num_states ⇒
-    LENGTH (vd_step_output m b s) = m.output_length
-Proof
-  gvs[vd_step_record_length, vd_step_output_def]
 QED
 
 Theorem vd_encode_from_state_length[simp]:
@@ -601,7 +584,6 @@ Proof
   >- (rpt strip_tac >> EVAL_TAC)
   >> rpt strip_tac
   >> gvs[vd_encode_from_state_cons]
-  >> gvs[vd_step_output_length]
   >> qmatch_goalsub_abbrev_tac ‘vd_encode_from_state _ _ s2’
   >> last_x_assum $ qspec_then ‘s2’ assume_tac
   >> gvs[]
@@ -624,7 +606,6 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_from_state_length]
   >> gvs[]
 QED
-
 
 Theorem vd_step_is_valid[simp]:
   ∀m b s.
@@ -674,12 +655,12 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_from_state_is_valid]
 QED
 
-Theorem vd_step_output_output_length_0[simp]:
+Theorem vd_step_record_output_length_0[simp]:
   ∀m b s.
     wfmachine m ∧
     s < m.num_states ∧
     m.output_length = 0 ⇒
-    vd_step_output m b s = []
+    (vd_step_record m b s).output = []
 Proof
   rpt strip_tac
   >> drule wfmachine_transition_fn_output_length
