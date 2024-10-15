@@ -1546,7 +1546,7 @@ Proof
   >> gvs[is_reachable_def]
 QED
 
-Theorem vd_encode_from_state_singleton:
+Theorem vd_encode_from_state_singleton[simp]:
   ∀m b s.
     vd_encode_from_state m [b] s = (vd_step_record m b s).output
 Proof

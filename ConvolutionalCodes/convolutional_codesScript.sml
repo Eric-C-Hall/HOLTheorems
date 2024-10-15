@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -30,7 +29,7 @@ open trellisTheory;
 
 val _ = monadsyntax.enable_monadsyntax()
 val _ = monadsyntax.enable_monad "option"
-                   
+                                      
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
 (*                                                                            *)
@@ -146,8 +145,8 @@ Proof
   >> PURE_REWRITE_TAC[Once hamming_distance_symmetric]
   >> AP_THM_TAC
   >> AP_TERM_TAC
-  (*  *)
-  >> 
+     (*  *)
+  >> gvs[vd_step_record_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
