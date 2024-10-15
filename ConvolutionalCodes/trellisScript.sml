@@ -162,7 +162,7 @@ End
 (* theorems between this function and get_num_errors_after_step?              *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_after_step_no_prev_data_def:
-  get_num_errors_after_step_no_prev_data m bs 0 r = (if (vd_step_tran m r = 0) then N0 else INFINITY) ∧
+  get_num_errors_after_step_no_prev_data m bs 0 r = (if ((m.transition_fn r).destination = 0) then N0 else INFINITY) ∧
   get_num_errors_after_step_no_prev_data m bs (SUC t) r = get_num_errors_after_step m bs (SUC t) (viterbi_trellis_row m bs t) r
 End
 
@@ -177,7 +177,7 @@ End
 (* recursively dependent on each other.                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_slow:
-  get_num_errors_after_step_slow m bs 0 r = (if (vd_step_tran m r = 0) then N0 else INFINITY) ∧
+  get_num_errors_after_step_slow m bs 0 r = (if ((m.transition_fn r).destination = 0) then N0 else INFINITY) ∧
   get_num_errors_after_step_slow m bs (SUC t) r = 
   (viterbi_trellis_node_slow m bs r.origin t).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t))) ∧
   (best_origin_slow m bs t s = inargmin (get_num_errors_after_step_slow m bs t) (transition_inverse m s)) ∧
@@ -322,11 +322,11 @@ Proof
   >> gvs[viterbi_trellis_node_def]
 QED
 
-Theorem vd_step_tran_best_origin_slow[simp]:
+Theorem transition_fn_best_origin_slow_destination[simp]:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    vd_step_tran m (best_origin_slow m bs t s) = s
+    (m.transition_fn (best_origin_slow m bs t s)).destination = s
 Proof
   rpt strip_tac
   >> simp[best_origin_slow_def]
@@ -339,7 +339,7 @@ Theorem vd_step_best_origin_slow[simp]:
     vd_step m (best_origin_slow m bs t s).input (best_origin_slow m bs t s).origin = s
 Proof
   rpt strip_tac
-  >> metis_tac[vd_step_tran_best_origin_slow, vd_step_tran_def]
+  >> gvs[vd_step_def, vd_step_record_def]
 QED
 
 Theorem get_num_errors_after_step_slow_best_origin_slow_zero[simp]:
@@ -354,7 +354,7 @@ QED
 Theorem get_num_errors_after_step_slow_best_origin_slow:
   ∀m bs t s r.
     r.origin < m.num_states ∧
-    vd_step_tran m r = s ⇒
+    (m.transition_fn r).destination = s ⇒
     get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) ≤ get_num_errors_after_step_slow m bs t r
 Proof
   rpt gen_tac
@@ -364,8 +364,9 @@ Proof
   >> qspecl_then [‘f’, ‘r’, ‘transition_inverse m s’] assume_tac inargmin_inle
   >> imp_prove
   >- (gvs[]
-      >> irule mem_transition_inverse_vd_step_tran
-      >> gvs[])
+      >> irule mem_transition_inverse_transition_fn_destination
+      >> gvs[]
+     )
 QED
 
 Theorem best_origin_slow_transition_inverse:
@@ -440,7 +441,7 @@ Proof
   >> simp[get_num_errors_after_step_slow_def]
   (* Let r denote the best origin leading to s *)
   >> qmatch_goalsub_abbrev_tac ‘viterbi_trellis_node_slow m bs r.origin t’
-  >> simp[is_reachable_suc_vd_step_tran]
+  >> simp[is_reachable_suc_transition_fn_destination]
   (* The second goal turns out to be easier, so we do it first *)
   >> REVERSE EQ_TAC
   >- (rpt strip_tac
@@ -448,7 +449,7 @@ Proof
       >> gvs[]
       >> REVERSE conj_tac
       >- (unabbrev_all_tac
-          >> gvs[vd_step_tran_best_origin_slow])
+          >> gvs[transition_fn_best_origin_slow_destination])
       >> last_x_assum (fn th => (irule (iffRL th)))
       >> gvs[]
       >> conj_tac
@@ -709,9 +710,9 @@ Proof
       >> DEP_PURE_REWRITE_TAC [GSYM is_reachable_viterbi_trellis_node_slow_num_errors]
       >> gvs[]
       >> rpt strip_tac
-      >> gvs[is_reachable_suc_vd_step_tran]
+      >> gvs[is_reachable_suc_transition_fn_destination]
       >> qexists ‘best_origin_slow m bs (SUC t) s’
-      >> gvs[vd_step_tran_best_origin_slow])
+      >> gvs[transition_fn_best_origin_slow_destination])
   >> rpt strip_tac
   >> qspecl_then [‘m’, ‘bs’, ‘t’, ‘s’] assume_tac viterbi_trellis_node_slow_best_origin_slow_num_errors
   >> gvs[]
@@ -727,9 +728,9 @@ Theorem is_reachable_best_origin_slow[simp]:
 Proof
   rpt strip_tac
   >> EQ_TAC >> rpt strip_tac >> gvs[]
-  >- (gvs[is_reachable_suc_vd_step_tran]
+  >- (gvs[is_reachable_suc_transition_fn_destination]
       >> qexists ‘best_origin_slow m bs (SUC t) s’
-      >> gvs[vd_step_tran_best_origin_slow]
+      >> gvs[transition_fn_best_origin_slow_destination]
      )
   >> pop_assum mp_tac
   >> DEP_PURE_REWRITE_TAC [is_reachable_viterbi_trellis_node_slow_num_errors]

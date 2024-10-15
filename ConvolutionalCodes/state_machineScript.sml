@@ -103,14 +103,6 @@ Definition vd_step_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Takes a step using the state machine, taking a transition as input.        *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_step_tran_def:
-  vd_step_tran m r =
-  vd_step m r.input r.origin
-End
-
-(* -------------------------------------------------------------------------- *)
 (* Ensure that the num state machine is well-formed                           *)
 (*                                                                            *)
 (* Note: gvs[wfmachine_def] is currently often very inefficient, I assume     *)
@@ -498,18 +490,18 @@ QED
 Theorem transition_inverse_mem:
   ∀m s r.
     MEM r (transition_inverse m s) ⇔
-      vd_step_tran m r = s ∧ MEM r (all_transitions m)
+      (m.transition_fn r).destination = s ∧ MEM r (all_transitions m)
 Proof
   rpt strip_tac
   >> gvs[transition_inverse_def]
   >> gvs[MEM_FILTER]
-  >> gvs[vd_step_tran_def, vd_step_def, vd_step_record_def]
+  >> gvs[vd_step_def, vd_step_record_def]
 QED
 
 Theorem transition_inverse_mem_forward[simp]:
   ∀m s r.
     MEM r (transition_inverse m s) ⇒
-    vd_step_tran m r = s
+    (m.transition_fn r).destination = s
 Proof
   metis_tac[transition_inverse_mem]
 QED
@@ -619,14 +611,15 @@ Proof
   >> gvs[vd_step_def, vd_step_record_def]
 QED
 
-Theorem vd_step_tran_is_valid:
+Theorem transition_fn_destination_is_valid[simp]:
   ∀m r.
     wfmachine m ∧
     r.origin < m.num_states ⇒
-    vd_step_tran m r < m.num_states
+    (m.transition_fn r).destination < m.num_states
 Proof
   rpt strip_tac
-  >> gvs[vd_step_tran_def]
+  >> qspecl_then [‘m’, ‘r.input’, ‘r.origin’] assume_tac vd_step_is_valid
+  >> gvs[vd_step_def, vd_step_record_def, Excl "vd_step_is_valid"]
 QED
 
 Theorem vd_encode_state_from_state_is_valid[simp]:
@@ -723,10 +716,10 @@ Proof
   >> gvs[all_transitions_valid]
 QED
 
-Theorem mem_transition_inverse_vd_step_tran:
+Theorem mem_transition_inverse_transition_fn_destination:
   ∀m r.
     r.origin < m.num_states ⇒
-    MEM r (transition_inverse m (vd_step_tran m r))
+    MEM r (transition_inverse m (m.transition_fn r).destination)
 Proof
   rpt strip_tac
   >> irule (iffRL transition_inverse_mem)
@@ -748,8 +741,8 @@ Theorem mem_transition_inverse_vd_step:
     MEM <|origin := s; input := b|> (transition_inverse m (vd_step m b s))
 Proof
   rpt strip_tac
-  >> qspecl_then [‘m’, ‘<| origin := s; input := b |>’] assume_tac mem_transition_inverse_vd_step_tran
-  >> gvs[vd_step_tran_def]
+  >> qspecl_then [‘m’, ‘<| origin := s; input := b |>’] assume_tac mem_transition_inverse_transition_fn_destination
+  >> gvs[vd_step_def, vd_step_record_def]
 QED
 
 Theorem code_to_path_from_state_hd:
@@ -1103,14 +1096,13 @@ Proof
   >> gvs[vd_encode_state_snoc]
 QED
 
-Theorem is_reachable_vd_step_tran:
+Theorem is_reachable_transition_fn_destination:
   ∀m r t.
-    is_reachable m r.origin t ⇒ is_reachable m (vd_step_tran m r) (SUC t)
+    is_reachable m r.origin t ⇒ is_reachable m (m.transition_fn r).destination (SUC t)
 Proof
   rpt strip_tac
-  >> gvs[vd_step_tran_def]
-  >> irule is_reachable_vd_step
-  >> gvs[]
+  >> qspecl_then [‘m’, ‘r.origin’, ‘t’, ‘r.input’] assume_tac is_reachable_vd_step
+  >> gvs[vd_step_def, vd_step_record_def]
 QED
 
 Theorem is_reachable_suc:
@@ -1137,20 +1129,20 @@ QED
 
 val is_reachable_suc_vd_step = is_reachable_suc;
 
-Theorem is_reachable_suc_vd_step_tran:
+Theorem is_reachable_suc_transition_fn_destination:
   ∀m s t.
-    is_reachable m s (SUC t) ⇔ ∃r. is_reachable m r.origin t ∧ vd_step_tran m r = s
+    is_reachable m s (SUC t) ⇔ ∃r. is_reachable m r.origin t ∧ (m.transition_fn  r).destination = s
 Proof
   rpt strip_tac
-  >> gvs[vd_step_tran_def]
+  >> gvs[]
   >> gvs[is_reachable_suc]
   >> EQ_TAC
   >- (rpt strip_tac
       >> qexists ‘<| origin := s'; input := b|>’
-      >> gvs[])
+      >> gvs[vd_step_def,vd_step_record_def])
   >> rpt strip_tac
   >> qexistsl [‘r.origin’, ‘r.input’]
-  >> gvs[]
+  >> gvs[vd_step_def, vd_step_record_def]
 QED
 
 Theorem vd_can_step_vd_step[simp]:
@@ -1502,7 +1494,6 @@ Proof
   >> gvs[path_is_valid_path_is_connected]
 QED
 
-
 Theorem vd_encode_state_from_state_empty[simp]:
   ∀m s.
     vd_encode_state_from_state m [] s = s
@@ -1642,4 +1633,3 @@ Proof
 QED
 
 val _ = export_theory();
-
