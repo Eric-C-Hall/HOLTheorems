@@ -336,10 +336,10 @@ Theorem vd_step_best_origin_slow[simp]:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    vd_step m (best_origin_slow m bs t s).input (best_origin_slow m bs t s).origin = s
+    (m.transition_fn (best_origin_slow m bs t s)).destination = s
 Proof
   rpt strip_tac
-  >> gvs[vd_step_def, vd_step_record_def]
+  >> gvs[]
 QED
 
 Theorem get_num_errors_after_step_slow_best_origin_slow_zero[simp]:
@@ -1000,7 +1000,7 @@ Proof
   >> AP_THM_TAC
   >> AP_TERM_TAC
   (*  *)
-  >> gvs[vd_step_record_def]
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
