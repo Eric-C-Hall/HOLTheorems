@@ -422,6 +422,20 @@ Proof
   >> gvs[get_num_errors_after_step_slow_def]
 QED
 
+Theorem is_reachable_is_valid[simp]:
+  ∀m s t.
+    wfmachine m ∧
+    is_reachable m s t
+    ⇒ s < m.num_states
+Proof
+  Induct_on ‘t’
+  >- (rpt strip_tac
+      >> gvs[is_reachable_def]
+      >> gvs[vd_encode_state_def, vd_encode_state_from_state_def])
+  >> rpt strip_tac
+  >> gvs[is_reachable_def]
+QED
+
 Theorem is_reachable_viterbi_trellis_node_slow_num_errors:
   ∀m bs s t.
     wfmachine m ∧
@@ -461,7 +475,8 @@ Proof
   >> gs[]
   >> imp_prove
   >- (unabbrev_all_tac
-      >> metis_tac[is_reachable_is_valid])
+      >> metis_tac[is_reachable_is_valid]
+     )
   >> gs[]
   (* r' and r both lead to s, *)
   >> gs[viterbi_trellis_node_slow_num_errors]
