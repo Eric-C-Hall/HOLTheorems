@@ -29,7 +29,7 @@ open trellisTheory;
 
 val _ = monadsyntax.enable_monadsyntax()
 val _ = monadsyntax.enable_monad "option"
-                                      
+                   
 (* -------------------------------------------------------------------------- *)
 (* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
 (*                                                                            *)
@@ -67,6 +67,13 @@ val _ = monadsyntax.enable_monad "option"
 (* Model.                                                                     *)
 (* -------------------------------------------------------------------------- *)
 
+Theorem vd_encode_state_vd_decode_to_state:
+  ∀m bs s t.
+    vd_decode_to_state m rs (vd_encode_state ) t
+    
+Proof
+QED
+                   
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -113,7 +120,7 @@ Theorem viterbi_correctness_general:
     LENGTH bs = t ∧
     LENGTH rs = m.output_length * t ∧
     vd_encode_state m bs = s ⇒
-    get_num_errors m rs (vd_find_optimal_code m rs s t) ≤ get_num_errors m rs bs
+    get_num_errors m rs (vd_decode_to_state m rs s t) ≤ get_num_errors m rs bs
 Proof
   (* Complete base case and simplify *)
   gen_tac
@@ -123,65 +130,7 @@ Proof
   >> donotexpand_tac
   >> gvs[]
   (* Expand out relevant definitions. *)
-  (* These are some of the relevant definitions
-     - vd_find_optimal_path_def
-     - vd_find_optimal_reversed_path_def
-     - vd_step_back_def
-     - viterbi_trellis_row_def
-     - viterbi_trellis_node_def
-     - get_better_origin_def
-     - get_num_errors_after_step_def *)
-  >> gvs[vd_find_optimal_code_def]
-  >> gvs[vd_find_optimal_path_def]
-  >> gvs[vd_step_back_def]
-  >> gvs[viterbi_trellis_row_def]
-  >> gvs[viterbi_trellis_node_def]
-  >> gvs[GSYM vd_find_optimal_path_def]
-  (* For any choice of bs, the encoding of m bs will be some path which
-     eventually reaches s. Thus, we can decompose it into ... s'' s.
-     The choice of s' was such that it minimizes the number of errors to
-     get to the previous state plus the number of errors in the transition
-     between s' and s. This is equal to the hamming distance from the
-     relevant parts of rs to ... s'' plus the hamming distance from the
-     relevant parts of rs to s'' s.*)
-  >> qspecl_then [‘m’, ‘bs’] assume_tac path_to_code_code_to_path
-  >> gvs[]
-  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
-  >> qspecl_then [‘code_to_path m bs’] assume_tac SNOC_LAST_FRONT
-  >> Cases_on ‘code_to_path m bs = []’
-  >- gvs[]
-  >> gvs[]
-  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
-  >> gvs[code_to_path_last]
-  >> doexpand_tac
-  >> first_assum (fn th => PURE_REWRITE_TAC[th])
-  >> donotexpand_tac
-  (* Split the appended paths apart, so that we can deal with the inductive
-     path and the current transition separately. *)
-  >> DEP_PURE_REWRITE_TAC[path_to_code_append]
-  >> gvs[]
-  >> conj_tac
-  >- (Cases_on ‘bs’ >> gvs[code_to_path_def, code_to_path_from_state_def])
-  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
-  >> gvs[]
-  >> conj_tac
-  >- gvs[ADD1]
-  (* Split the RHS appended paths apart *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
-  >> gvs[]
-  >> gvs[LENGTH_FRONT]
-  >> gvs[PRE_SUB1]
-  >> gvs[ADD1]
-  >> gvs[code_to_path_length]
-  (* Give the components names. *)
-  >> qmatch_goalsub_abbrev_tac ‘DROP n’
-  >> qmatch_goalsub_abbrev_tac ‘lInd + lStep ≤ rInd + rStep’
-  (* lInd + lStep is necessarily better than rInd + rStep, but it is not
-     necessarily the case that lInd is better than rInd, nor that lStep
-     is better than rStep, because s' is chosen to minimize the total sum
-     rather than either individual component.
-   *)
-  >>  
+  >> gvs[vd_decode_to_state_def]
   
 QED
 
