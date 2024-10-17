@@ -66,7 +66,7 @@ val _ = monadsyntax.enable_monad "option"
 (* likely sequence of states that could have taken through that Hidden Markov *)
 (* Model.                                                                     *)
 (* -------------------------------------------------------------------------- *)
-
+                   
 Theorem vd_encode_state_vd_decode_to_state:
   ∀m bs s t.
     vd_decode_to_state m rs (vd_encode_state ) t

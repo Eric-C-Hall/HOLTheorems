@@ -270,15 +270,8 @@ Definition vd_decode_def:
     vd_decode_to_state m bs best_state max_timestep
 End
 
-Definition get_num_errors_from_state_def:
-  get_num_errors_from_state m rs bs s = hamming_distance rs (vd_encode_from_state m bs s)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* The number of errors present if we encoded the input bs with the state     *)(* machine m and compared it to the expected output rs.                       *)
-(* -------------------------------------------------------------------------- *)
 Definition get_num_errors_def:
-  get_num_errors m rs bs = get_num_errors_from_state m rs bs 0
+  get_num_errors m rs bs s = hamming_distance rs (vd_encode m bs s)
 End
 
 Theorem best_origin_is_valid[simp]:
@@ -423,24 +416,28 @@ Proof
 QED
 
 Theorem is_reachable_is_valid[simp]:
-  ∀m s t.
+  ∀m i s t.
     wfmachine m ∧
-    is_reachable m s t
+    i < m.num_states ∧
+    is_reachable m i s t
     ⇒ s < m.num_states
 Proof
   Induct_on ‘t’
   >- (rpt strip_tac
       >> gvs[is_reachable_def]
-      >> gvs[vd_encode_state_def, vd_encode_state_from_state_def])
+      >> gvs[vd_encode_state_def, vd_encode_state_def])
   >> rpt strip_tac
   >> gvs[is_reachable_def]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: use i instead of 0                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem is_reachable_viterbi_trellis_node_slow_num_errors:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    (is_reachable m s t ⇔ (viterbi_trellis_node_slow m bs s t).num_errors ≠ INFINITY)
+    (is_reachable m 0 s t ⇔ (viterbi_trellis_node_slow m bs s t).num_errors ≠ INFINITY)
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   (* Prove the base case *)
@@ -475,7 +472,10 @@ Proof
   >> gs[]
   >> imp_prove
   >- (unabbrev_all_tac
-      >> metis_tac[is_reachable_is_valid]
+      >> irule is_reachable_is_valid
+      >> gvs[]
+      >> qexistsl [‘0’, ‘t’]
+      >> gvs[]
      )
   >> gs[]
   (* r' and r both lead to s, *)
@@ -487,41 +487,31 @@ Proof
   >> gvs[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: use i instead of 0                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem is_reachable_get_num_errors_after_step_slow:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    (is_reachable m s t ⇔ get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) ≠ INFINITY)
+    (is_reachable m 0 s t ⇔ get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) ≠ INFINITY)
 Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac is_reachable_viterbi_trellis_node_slow_num_errors
   >> gvs[viterbi_trellis_node_slow_def]        
 QED
 
-Theorem get_num_errors_from_state_append:
+Theorem get_num_errors_append:
   ∀m rs bs bs' s.
     wfmachine m ∧
     s < m.num_states ∧
     LENGTH rs = (LENGTH bs + LENGTH bs') * m.output_length ⇒
-    get_num_errors_from_state m rs (bs ⧺ bs') s = get_num_errors_from_state m (TAKE (LENGTH bs * m.output_length) rs) bs s + get_num_errors_from_state m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state_from_state m bs s) 
-Proof
-  rpt strip_tac
-  >> gvs[get_num_errors_from_state_def]
-  >> gvs[vd_encode_from_state_append]
-  >> gvs[hamming_distance_append_right]
-QED
-
-Theorem get_num_errors_append:
-  ∀m rs bs bs'.
-    wfmachine m ∧
-    LENGTH rs = (LENGTH bs + LENGTH bs') * m.output_length ⇒
-    get_num_errors m rs (bs ⧺ bs') = get_num_errors m (TAKE (LENGTH bs * m.output_length) rs) bs + get_num_errors_from_state m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state m bs)
+    get_num_errors m rs (bs ⧺ bs') s = get_num_errors m (TAKE (LENGTH bs * m.output_length) rs) bs s + get_num_errors m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state m bs s) 
 Proof
   rpt strip_tac
   >> gvs[get_num_errors_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_from_state_append]
-  >> gvs[]
-  >> gvs[vd_encode_state_def]
+  >> gvs[vd_encode_append]
+  >> gvs[hamming_distance_append_right]
 QED
 
 Theorem vd_decode_to_state_time_zero[simp]:
@@ -660,11 +650,14 @@ QED
 (* reachable but does not have a previous state. This is why we use SUC t     *)
 (* instead of t.                                                              *)
 (* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* TODO: use i instead of 0                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem is_reachable_viterbi_trellis_node_slow_prev_transition:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    (is_reachable m s (SUC t) ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).prev_transition ≠ NONE)
+    (is_reachable m 0 s (SUC t) ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).prev_transition ≠ NONE)
 Proof
   rpt strip_tac
   >> metis_tac[is_reachable_viterbi_trellis_node_slow_num_errors, viterbi_trellis_node_slow_prev_transition_num_errors]
@@ -698,12 +691,15 @@ Proof
   >> metis_tac[best_origin_slow_get_num_errors_after_step_slow_infinity]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: use i instead of 0                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
     ((viterbi_trellis_node_slow m bs s t).num_errors = INFINITY ⇔
-       ¬is_reachable m s t)
+       ¬is_reachable m 0 s t)
 Proof
   metis_tac[is_reachable_viterbi_trellis_node_slow_num_errors]
 QED
@@ -735,11 +731,14 @@ Proof
   >> simp[get_num_errors_after_step_slow_def]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: use i instead of 0                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem is_reachable_best_origin_slow[simp]:
-  ∀m bs s t.
+  ∀m i bs s t.
     wfmachine m ∧
     s < m.num_states  ⇒
-    (is_reachable m (best_origin_slow m bs (SUC t) s).origin t ⇔ is_reachable m s (SUC t))
+    (is_reachable m 0 (best_origin_slow m bs (SUC t) s).origin t ⇔ is_reachable m 0 s (SUC t))
 Proof
   rpt strip_tac
   >> EQ_TAC >> rpt strip_tac >> gvs[]
@@ -888,11 +887,14 @@ QED
 (* other theorem cannot be used in that way even after applying GSYM, because *)
 (* the left hand side is negated.                                             *)
 (* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* TODO: use i instead of 0                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_after_step_slow_is_reachable:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) = INFINITY ⇔ ¬is_reachable m s t)
+    (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) = INFINITY ⇔ ¬is_reachable m 0 s t)
 Proof
   rpt strip_tac
   >> metis_tac[is_reachable_get_num_errors_after_step_slow]
@@ -913,27 +915,20 @@ Proof
   >> gvs[best_origin_slow_best_origin]
 QED
 
-Theorem vd_encode_state_from_state_vd_decode_to_state[simp]:
-  ∀m bs s t.
-    wfmachine m ∧
-    s < m.num_states ∧
-    is_reachable m s t ⇒
-    vd_encode_state_from_state m (vd_decode_to_state m bs s t) 0 = s
-Proof
-  Induct_on ‘t’ >> gvs[vd_encode_state_from_state_def]
-  >> rpt strip_tac
-  >> gvs[vd_decode_to_state_def_slow]
-  >> gvs[vd_encode_state_from_state_snoc]
-QED
-
+(* -------------------------------------------------------------------------- *)
+(* TODO: use i instead of 0                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem vd_encode_state_vd_decode_to_state[simp]:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ∧
-    is_reachable m s t ⇒
-    vd_encode_state m (vd_decode_to_state m bs s t) = s
+    is_reachable m 0 s t ⇒
+    vd_encode_state m (vd_decode_to_state m bs s t) 0 = s
 Proof
-  gvs[vd_encode_state_def]
+  Induct_on ‘t’ >> gvs[vd_encode_state_def]
+  >> rpt strip_tac
+  >> gvs[vd_decode_to_state_def_slow]
+  >> gvs[vd_encode_state_snoc]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -947,16 +942,19 @@ QED
 (* s: the state we are aiming to end up in                                    *)
 (* t: the time-step we are aiming to end up in                                *)
 (* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* TODO: use i instead of 0                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_after_step_get_num_errors:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ∧
-    is_reachable m s t ∧
+    is_reachable m 0 s t ∧
     LENGTH bs = t * m.output_length ⇒
-    get_num_errors m bs (vd_decode_to_state m bs s t) = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
+    get_num_errors m bs (vd_decode_to_state m bs s t) 0 = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
-  >- (gvs[get_num_errors_def, get_num_errors_from_state_def, vd_encode_from_state_def]
+  >- (gvs[get_num_errors_def, get_num_errors_def, vd_encode_def]
       >> gvs[get_num_errors_after_step_slow_def]
       >> Cases_on_if_goal >> gvs[]
      )
@@ -968,7 +966,7 @@ Proof
   >> conj_tac >- gvs[ADD1]
   (* The inductive hypothesis will be applicable to indL, and the inductive step
      will be applicable to stepL. *)
-  >> qmatch_goalsub_abbrev_tac ‘indL + stepL = _’
+  >> qmatch_goalsub_abbrev_tac ‘stepL + indL = _’
   (* Reduce SUC in RHS to allow usage of inductive hypothesis *)
   >> gvs[get_num_errors_after_step_slow_def]
   >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
@@ -1001,7 +999,7 @@ Proof
      )
   >> unabbrev_all_tac
   (* Simplify left hand side to make it more similar to right hand side *)
-  >> gvs[get_num_errors_from_state_def]
+  >> gvs[get_num_errors_def]
   (* Simplify right hand side to make it more similar to left hand side:
      DROP (t * m.output_length) bs. *)
   >> gvs[relevant_input_def]

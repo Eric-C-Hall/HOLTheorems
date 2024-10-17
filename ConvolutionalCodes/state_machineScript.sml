@@ -125,47 +125,27 @@ Theorem wfmachine_transition_fn_output_length[simp] = cj 5 (iffLR wfmachine_def)
 Theorem wfmachine_output_length_greater_than_zero[simp] = cj 6 (iffLR wfmachine_def);
 
 (* -------------------------------------------------------------------------- *)
-(* Helper function that does the actual work to encode a binary string using  *)
-(* convolutional coding, according to a chosen state machine.                 *)
-(*                                                                            *)
-(* This function additionally has a parameter to keep track of the current    *)
-(* state that the state machine is in.                                        *)
+(* Encodes a binary string using convolutional coding, according to a chosen  *)
+(* state machine, starting from a given state                                 *)
 (* -------------------------------------------------------------------------- *)
-Definition vd_encode_from_state_def:
-  vd_encode_from_state _ [] _ = [] ∧
-  vd_encode_from_state (m : state_machine) (b::bs : bool list) (s : num) =
+Definition vd_encode_def:
+  vd_encode _ [] _ = [] ∧
+  vd_encode (m : state_machine) (b::bs : bool list) (s : num) =
   let
     d = m.transition_fn <| origin := s; input := b; |>
   in
-    d.output ⧺ vd_encode_from_state m bs d.destination
+    d.output ⧺ vd_encode m bs d.destination
 End
-
-(* -------------------------------------------------------------------------- *)
-(* Encodes a binary string using convolutional coding, according to a chosen  *)
-(* state machine                                                              *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_encode_def:
-  vd_encode (m : state_machine) bs = vd_encode_from_state m bs 0
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Helper function to calculate the final state you'll end up in if you apply *)
-(* the given state machine to the given bitstring. Also has a variable to     *)
-(* keep track of the current state we're in.                                  *)
-(* -------------------------------------------------------------------------- *)
-Definition vd_encode_state_from_state_def:
-  vd_encode_state_from_state (m : state_machine) [] s = s ∧
-  vd_encode_state_from_state m (b::bs) s =
-  vd_encode_state_from_state m bs (m.transition_fn <| origin := s; input := b; |>).destination
-End 
 
 (* -------------------------------------------------------------------------- *)
 (* Calculates the final state you'll end up in if you apply the given state   *)
-(* machine to the given bitstring.                                            *)
+(* machine to the given bitstring, given an initial state                     *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_encode_state_def:
-  vd_encode_state (m : state_machine) bs = vd_encode_state_from_state m bs 0
-End
+  vd_encode_state (m : state_machine) [] s = s ∧
+  vd_encode_state m (b::bs) s =
+  vd_encode_state m bs (m.transition_fn <| origin := s; input := b; |>).destination
+End 
 
 Definition all_transitions_helper_def:
   all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
@@ -202,14 +182,14 @@ End
 
 (* -------------------------------------------------------------------------- *)
 (* Returns true if it is possible to reach the state s at time t when         *)
-(* starting at 0.                                                             *)
+(* starting at the initial state i                                            *)
 (* -------------------------------------------------------------------------- *)
 Definition is_reachable_def:
-  is_reachable m s t = ∃bs. (LENGTH bs = t ∧ vd_encode_state m bs = s)
+  is_reachable m i s t = ∃bs. (LENGTH bs = t ∧ vd_encode_state m bs i = s)
 End
 
 Theorem vd_encode_empty[simp]:
-  ∀m. vd_encode m [] = []
+  ∀m s. vd_encode m [] s = []
 Proof
   rpt strip_tac
   >> EVAL_TAC
@@ -218,91 +198,42 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_encode_cons                             *)
 (* -------------------------------------------------------------------------- *)
-Theorem vd_encode_from_state_cons:
-  ∀m b bs s.
-    vd_encode_from_state m (b :: bs) s =
-    (m.transition_fn <| origin := s; input := b; |>).output ⧺ (vd_encode_from_state m bs (m.transition_fn <| origin := s; input := b; |>).destination)
-Proof
-  rpt strip_tac
-  >> gvs[vd_encode_from_state_def]
-  >> gvs[vd_encode_state_from_state_def]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Can break convolutional encoding up into doing a step, with the rest of    *)
-(* the encoding appended on, starting from the appropriate state              *)
-(* -------------------------------------------------------------------------- *)
 Theorem vd_encode_cons:
-  ∀m b bs. vd_encode m (b :: bs) =
-           (m.transition_fn <| origin := 0; input := b; |>).output ⧺ (vd_encode_from_state m bs (m.transition_fn <| origin := 0; input := b; |>).destination)
+  ∀m b bs s.
+    vd_encode m (b :: bs) s =
+    (m.transition_fn <| origin := s; input := b; |>).output ⧺ (vd_encode m bs (m.transition_fn <| origin := s; input := b; |>).destination)
 Proof
   rpt strip_tac
   >> gvs[vd_encode_def]
   >> gvs[vd_encode_state_def]
-  >> PURE_ONCE_REWRITE_TAC[vd_encode_from_state_cons]
-  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_encode_append                           *)
 (* -------------------------------------------------------------------------- *)
-Theorem vd_encode_from_state_append:
+Theorem vd_encode_append:
   ∀m bs cs s.
-    vd_encode_from_state m (bs ⧺ cs) s =
-    vd_encode_from_state m bs s ⧺ vd_encode_from_state m cs (vd_encode_state_from_state m bs s)          
+    vd_encode m (bs ⧺ cs) s =
+    vd_encode m bs s ⧺ vd_encode m cs (vd_encode_state m bs s)          
 Proof
   gen_tac
   >> Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
   >> rpt strip_tac
   >> gvs[APPEND]
-  >> gvs[vd_encode_from_state_cons]
-  >> gvs[vd_encode_state_from_state_def]
+  >> gvs[vd_encode_cons]
+  >> gvs[vd_encode_state_def]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* Can break convolutional encoding up into two halves: doing a bunch of      *)
-(* steps from the initial state, then doing a bunch of steps from the state   *)
-(* that is reached at this point.                                             *)
-(* -------------------------------------------------------------------------- *)
-Theorem vd_encode_append:
-  ∀m bs cs.
-    vd_encode m (bs ⧺ cs) =
-    (vd_encode m bs) ⧺ (vd_encode_from_state m cs (vd_encode_state m bs))
-Proof
-  rpt strip_tac
-  >> gvs[vd_encode_def, vd_encode_state_def]
-  >> gvs[vd_encode_from_state_append]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Can break convolutional encoding up into doing a bunch of steps from the   *)
-(* initial state, then doing a final step from the final state.               *)
-(* -------------------------------------------------------------------------- *)
-Theorem vd_encode_snoc:
-  ∀m b bs. vd_encode m (SNOC b bs) =
-           (vd_encode m bs) ⧺ (vd_encode_from_state m [b] (vd_encode_state m bs))
-Proof
-  gvs[SNOC]
-  >> gvs[vd_encode_append]
-QED
-
-Theorem vd_encode_state_from_state_snoc:
+Theorem vd_encode_state_snoc:
   ∀m b bs s.
-    vd_encode_state_from_state m (SNOC b bs) s = (m.transition_fn <| origin := (vd_encode_state_from_state m bs s); input := b; |>).destination
+    vd_encode_state m (SNOC b bs) s = (m.transition_fn <| origin := (vd_encode_state m bs s); input := b; |>).destination
 Proof
   Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
   >> rpt strip_tac
   >> gvs[]
-  >> gvs[vd_encode_state_from_state_def]
-QED
-
-Theorem vd_encode_state_snoc:
-  ∀m b bs.
-    vd_encode_state m (SNOC b bs) = (m.transition_fn <| origin := (vd_encode_state m bs); input := b; |>).destination
-Proof
-  gvs[vd_encode_state_def, vd_encode_state_from_state_snoc]
+  >> gvs[vd_encode_state_def]
 QED
 
 Theorem all_transitions_helper_mem_is_valid[simp]:
@@ -472,29 +403,18 @@ Proof
   >> gvs[CONS]
 QED
 
-Theorem vd_encode_from_state_length[simp]:
+Theorem vd_encode_length[simp]:
   ∀m bs s.
     wfmachine m ∧
     s < m.num_states ⇒
-    LENGTH (vd_encode_from_state m bs s) = m.output_length * LENGTH bs
+    LENGTH (vd_encode m bs s) = m.output_length * LENGTH bs
 Proof
   gen_tac
   >> Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
   >> rpt strip_tac
-  >> gvs[vd_encode_from_state_cons]
+  >> gvs[vd_encode_cons]
   >> gvs[ADD1]
-QED
-
-Theorem vd_encode_length[simp]:
-  ∀m bs.
-    wfmachine m ⇒
-    LENGTH (vd_encode m bs) = m.output_length * LENGTH bs
-Proof
-  rpt strip_tac
-  >> gvs[vd_encode_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC [vd_encode_from_state_length]
-  >> gvs[]
 QED
 
 Theorem transition_fn_destination_is_valid[simp]:
@@ -507,29 +427,19 @@ Proof
   >> gvs[]
 QED
 
-Theorem vd_encode_state_from_state_is_valid[simp]:
+Theorem vd_encode_state_is_valid[simp]:
   ∀m bs s.
     wfmachine m ∧ 
     s < m.num_states ⇒
-    vd_encode_state_from_state m bs s < m.num_states
+    vd_encode_state m bs s < m.num_states
 Proof
   gen_tac
   >> Induct_on ‘bs’
   >- (rpt strip_tac
-      >> gvs[vd_encode_state_from_state_def]
+      >> gvs[vd_encode_state_def]
      )
   >> rpt strip_tac
-  >> gvs[vd_encode_state_from_state_def]
-QED
-
-Theorem vd_encode_state_is_valid[simp]:
-  ∀m bs.
-    wfmachine m ⇒
-    vd_encode_state m bs < m.num_states
-Proof
-  rpt strip_tac
   >> gvs[vd_encode_state_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC[vd_encode_state_from_state_is_valid]
 QED
 
 Theorem transition_fn_output_length_0[simp]:
@@ -544,29 +454,17 @@ Proof
   >> metis_tac[wfmachine_transition_fn_output_length]
 QED
 
-Theorem vd_encode_from_state_output_length_0[simp]:
+Theorem vd_encode_output_length_0[simp]:
   ∀m bs s.
     wfmachine m ∧
     s < m.num_states ∧
     m.output_length = 0 ⇒
-    vd_encode_from_state m bs s = []
+    vd_encode m bs s = []
 Proof
   gen_tac
   >> Induct_on ‘bs’ >> rpt strip_tac
-  >- gvs[vd_encode_from_state_def]
-  >> gvs[vd_encode_from_state_cons]
-QED
-
-Theorem vd_encode_output_length_0[simp]:
-  ∀m bs s.
-    wfmachine m ∧
-    m.output_length = 0 ⇒
-    vd_encode m bs = []
-Proof
-  gvs[vd_encode_def]
-  >> rpt strip_tac
-  >> irule vd_encode_from_state_output_length_0
-  >> gvs[]
+  >- gvs[vd_encode_def]
+  >> gvs[vd_encode_cons]
 QED
 
 Theorem all_transitions_helper_valid:
@@ -617,9 +515,8 @@ Proof
   >> gvs[transition_component_equality_local]
 QED
 
-Theorem is_reachable_zero_zero[simp]:
-  ∀m.
-    is_reachable m 0 0
+Theorem is_reachable_init_zero[simp]:
+  ∀m i. is_reachable m i i 0
 Proof
   rpt strip_tac
   >> EVAL_TAC
@@ -627,10 +524,10 @@ Proof
   >> EVAL_TAC
 QED
 
-Theorem not_is_reachable_nonzero_zero[simp]:
-  ∀m s.
-    s ≠ 0 ⇒
-    ¬is_reachable m s 0
+Theorem not_is_reachable_noninit_zero[simp]:
+  ∀m i s.
+    s ≠ i ⇒
+    ¬is_reachable m i s 0
 Proof
   rpt gen_tac
   >> disch_tac
@@ -642,8 +539,8 @@ Proof
 QED
 
 Theorem is_reachable_transition_fn:
-  ∀m s t b.
-    is_reachable m s t ⇒ is_reachable m (m.transition_fn <| origin := s; input := b |>).destination (SUC t)
+  ∀m i s t b.
+    is_reachable m i s t ⇒ is_reachable m i (m.transition_fn <| origin := s; input := b |>).destination (SUC t)
 Proof
   rpt strip_tac
   >> gvs[is_reachable_def]
@@ -653,30 +550,31 @@ Proof
 QED
 
 Theorem is_reachable_transition_fn_destination:
-  ∀m r t.
-    is_reachable m r.origin t ⇒ is_reachable m (m.transition_fn r).destination (SUC t)
+  ∀m i r t.
+    is_reachable m i r.origin t ⇒ is_reachable m i (m.transition_fn r).destination (SUC t)
 Proof
   rpt strip_tac
-  >> qspecl_then [‘m’, ‘r.origin’, ‘t’, ‘r.input’] assume_tac is_reachable_transition_fn
+  >> qspecl_then [‘m’, ‘i’, ‘r.origin’, ‘t’, ‘r.input’] assume_tac is_reachable_transition_fn
   >> gvs[]
 QED
 
 Theorem is_reachable_suc:
-  ∀m s t.
-    is_reachable m s (SUC t) ⇔ ∃s' b. is_reachable m s' t ∧ (m.transition_fn <| origin := s'; input := b |>).destination = s
+  ∀m i s t.
+    is_reachable m i s (SUC t) ⇔ ∃s' b. is_reachable m i s' t ∧ (m.transition_fn <| origin := s'; input := b |>).destination = s
 Proof
   rpt strip_tac
   >> EQ_TAC
   >- (disch_tac
       >> gvs[is_reachable_def]
-      >> qexistsl [‘vd_encode_state m (FRONT bs)’, ‘LAST bs’]
+      >> qexistsl [‘vd_encode_state m (FRONT bs) i’, ‘LAST bs’]
       >> conj_tac
       >- (qexists ‘FRONT bs’
           >> gvs[]
           >> Cases_on ‘bs’ using SNOC_CASES >> gvs[])
       >> Cases_on ‘bs’ using SNOC_CASES
       >- gvs[]
-      >> gvs[vd_encode_state_snoc])
+      >> gvs[vd_encode_state_snoc]
+     )
   >> rpt strip_tac
   >> gvs[]
   >> irule is_reachable_transition_fn
@@ -684,8 +582,8 @@ Proof
 QED
 
 Theorem is_reachable_suc_transition_fn_destination:
-  ∀m s t.
-    is_reachable m s (SUC t) ⇔ ∃r. is_reachable m r.origin t ∧ (m.transition_fn  r).destination = s
+  ∀m i s t.
+    is_reachable m i s (SUC t) ⇔ ∃r. is_reachable m i r.origin t ∧ (m.transition_fn  r).destination = s
 Proof
   rpt strip_tac
   >> gvs[]
@@ -699,36 +597,28 @@ Proof
   >> gvs[]
 QED
 
-Theorem vd_encode_state_from_state_empty[simp]:
-  ∀m s.
-    vd_encode_state_from_state m [] s = s
-Proof
-  rpt strip_tac
-  >> gvs[vd_encode_state_from_state_def]
-QED
-
 Theorem vd_encode_state_empty[simp]:
-  ∀m.
-    vd_encode_state m [] = 0
+  ∀m s.
+    vd_encode_state m [] s = s
 Proof
   rpt strip_tac
   >> gvs[vd_encode_state_def]
 QED
 
-Theorem is_reachable_zero[simp]:
-  ∀m s.
-    is_reachable m s 0 ⇔ s = 0
+Theorem is_reachable_init[simp]:
+  ∀m i s.
+    is_reachable m i s 0 ⇔ s = i
 Proof
   rpt strip_tac
   >> gvs[is_reachable_def]
 QED
 
-Theorem vd_encode_from_state_singleton[simp]:
+Theorem vd_encode_singleton[simp]:
   ∀m b s.
-    vd_encode_from_state m [b] s = (m.transition_fn <| origin := s; input := b |>).output
+    vd_encode m [b] s = (m.transition_fn <| origin := s; input := b |>).output
 Proof
   rpt strip_tac
-  >> gvs[vd_encode_from_state_def]
+  >> gvs[vd_encode_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -829,7 +719,7 @@ End
 (* I would expect if I manually did the computation myself                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_test1:
-  vd_encode example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
+  vd_encode example_state_machine [F; T; T; T; F] 0 = [F; F; T; T; F; F; T; F; F; T]  
 Proof
   EVAL_TAC
 QED
