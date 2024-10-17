@@ -177,11 +177,13 @@ End
 (* recursively dependent on each other.                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_slow:
-  get_num_errors_after_step_slow m bs 0 r = (if ((m.transition_fn r).destination = 0) then N0 else INFINITY) ∧
+  get_num_errors_after_step_slow m bs 0 r =
+  (if ((m.transition_fn r).destination = 0) then N0 else INFINITY) ∧
   get_num_errors_after_step_slow m bs (SUC t) r = 
-  (viterbi_trellis_node_slow m bs r.origin t).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t))) ∧
+  (viterbi_trellis_node_slow m bs r.origin t).num_errors +
+  N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t))) ∧
   (best_origin_slow m bs t s = inargmin (get_num_errors_after_step_slow m bs t) (transition_inverse m s)) ∧
-  viterbi_trellis_node_slow m bs s t = 
+  viterbi_trellis_node_slow m bs s t =
   let
     local_best_origin = best_origin_slow m bs t s;
     local_num_errors = get_num_errors_after_step_slow m bs t local_best_origin;
@@ -931,6 +933,7 @@ Proof
   >> gvs[vd_encode_state_snoc]
 QED
 
+
 (* -------------------------------------------------------------------------- *)
 (* Describe the relationship between the function for calculating the number  *)
 (* of errors computationally during a single step of the Viterbi algorithm,   *)
@@ -951,12 +954,13 @@ Theorem get_num_errors_after_step_get_num_errors:
     s < m.num_states ∧
     is_reachable m 0 s t ∧
     LENGTH bs = t * m.output_length ⇒
-    get_num_errors m bs (vd_decode_to_state m bs s t) 0 = infnum_to_num (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
+    get_num_errors m bs (vd_decode_to_state m bs s t) 0 =
+    infnum_to_num
+    (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
   >- (gvs[get_num_errors_def, get_num_errors_def, vd_encode_def]
       >> gvs[get_num_errors_after_step_slow_def]
-      >> Cases_on_if_goal >> gvs[]
      )
   (* Reduce SUC in LHS to allow usage of inductive hypothesis *)
   >> gvs[vd_decode_to_state_def_slow]
@@ -966,7 +970,7 @@ Proof
   >> conj_tac >- gvs[ADD1]
   (* The inductive hypothesis will be applicable to indL, and the inductive step
      will be applicable to stepL. *)
-  >> qmatch_goalsub_abbrev_tac ‘stepL + indL = _’
+  >> qmatch_abbrev_tac ‘(stepL : num) + indL = _’
   (* Reduce SUC in RHS to allow usage of inductive hypothesis *)
   >> gvs[get_num_errors_after_step_slow_def]
   >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
