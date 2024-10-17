@@ -113,14 +113,17 @@ QED
 (* when arriving at any point.                                                *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* Todo: start from the init state rather than 0                              *)
+(* -------------------------------------------------------------------------- *)
 Theorem viterbi_correctness_general:
   ∀m bs rs s t.
     wfmachine m ∧
     s < m.num_states ∧
     LENGTH bs = t ∧
     LENGTH rs = m.output_length * t ∧
-    vd_encode_state m bs = s ⇒
-    get_num_errors m rs (vd_decode_to_state m rs s t) ≤ get_num_errors m rs bs
+    vd_encode_state m bs 0 = s ⇒
+    get_num_errors m rs (vd_decode_to_state m rs s t) 0 ≤ get_num_errors m rs bs 0
 Proof
   (* Complete base case and simplify *)
   gen_tac
@@ -131,7 +134,6 @@ Proof
   >> gvs[]
   (* Expand out relevant definitions. *)
   >> gvs[vd_decode_to_state_def]
-  
 QED
 
 Theorem viterbi_correctness:
