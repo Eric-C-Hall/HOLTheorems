@@ -67,12 +67,12 @@ val _ = monadsyntax.enable_monad "option"
 (* Model.                                                                     *)
 (* -------------------------------------------------------------------------- *)
                    
-Theorem vd_encode_state_vd_decode_to_state:
-  ∀m bs s t.
-    vd_decode_to_state m rs (vd_encode_state ) t
-    
+(*Theorem vd_encode_state_vd_decode_to_state:
+                     ∀m bs s t.
+                       vd_decode_to_state m rs (vd_encode_state ) t
+                                          
 Proof
-QED
+QED*)
                    
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -132,8 +132,14 @@ Proof
   >> rpt strip_tac
   >> donotexpand_tac
   >> gvs[]
-  (* Expand out relevant definitions. *)
+  (* Reduce "SUC t" to "t" in order to apply the inductive hypothesis *)
   >> gvs[vd_decode_to_state_def]
+  >> gvs[SNOC_APPEND]
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
+  (* prove dependencies *)
+  >> gvs[]
+  >> conj_tac >- gvs[ADD1]
+                    (* *)
 QED
 
 Theorem viterbi_correctness:
