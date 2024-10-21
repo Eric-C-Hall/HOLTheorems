@@ -356,7 +356,7 @@ Proof
   >> strip_tac
   >> gs[best_origin_slow_def]
   >> qmatch_goalsub_abbrev_tac ‘get_num_errors_after_step_slow _ _ _ (inargmin f _) ≤ _’
-  >> qspecl_then [‘f’, ‘r’, ‘transition_inverse m s’] assume_tac inargmin_inle
+  >> qspecl_then [‘f’, ‘transition_inverse m s’, ‘r’] assume_tac inargmin_inle
   >> imp_prove
   >- (gvs[]
       >> irule mem_transition_inverse_transition_fn_destination
@@ -948,7 +948,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: use i instead of 0                                                   *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_after_step_get_num_errors:
+Theorem get_num_errors_after_step_slow_get_num_errors:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ∧
@@ -1018,6 +1018,15 @@ Proof
   >> AP_TERM_TAC
   (*  *)
   >> gvs[]
+QED
+
+Theorem vd_decode_to_state_def_nolet:
+  ∀m bs s t.
+    vd_decode_to_state m bs s (SUC t) = 
+    vd_decode_to_state m bs (best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s).origin t ⧺ [(best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s).input]                       
+Proof
+  rpt strip_tac
+  >> gvs[vd_decode_to_state_def]
 QED
 
 (* -------------------------------------------------------------------------- *)

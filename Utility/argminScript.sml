@@ -108,9 +108,9 @@ QED
 (* than any other member of the list we took the argmin over                  *)
 (* -------------------------------------------------------------------------- *)
 Theorem inargmin_inle[simp]:
-  ∀f l ls.
-  MEM l ls ⇒
-  f (inargmin f ls) ≤ f l
+  ∀f ls l.
+    MEM l ls ⇒
+    f (inargmin f ls) ≤ f l
 Proof
   Induct_on ‘ls’ >> rw[inargmin_def]
   >> simp[]

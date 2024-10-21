@@ -20,6 +20,7 @@ open useful_tacticsLib;
 
 (* My own utility theories *)
 open infnumTheory;
+open argminTheory;
 open hamming_distanceTheory;
 open useful_theoremsTheory;
 
@@ -67,13 +68,8 @@ val _ = monadsyntax.enable_monad "option"
 (* Model.                                                                     *)
 (* -------------------------------------------------------------------------- *)
                    
-(*Theorem vd_encode_state_vd_decode_to_state:
-                     ∀m bs s t.
-                       vd_decode_to_state m rs (vd_encode_state ) t
-                                          
-Proof
-QED*)
-                   
+
+
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
 (*                                                                            *)
@@ -113,7 +109,6 @@ QED*)
 (* when arriving at any point.                                                *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-(* -------------------------------------------------------------------------- *)
 (* Todo: start from the init state rather than 0                              *)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_correctness_general:
@@ -125,8 +120,7 @@ Theorem viterbi_correctness_general:
     vd_encode_state m bs 0 = s ⇒
     get_num_errors m rs (vd_decode_to_state m rs s t) 0 ≤ get_num_errors m rs bs 0
 Proof
-  (* Complete base case and simplify *)
-  gen_tac
+(*gen_tac
   >> Induct_on ‘t’
   >- gvs[]
   >> rpt strip_tac
@@ -139,10 +133,58 @@ Proof
   (* prove dependencies *)
   >> gvs[]
   >> conj_tac >- gvs[ADD1]
-                    (* *)
+  (* Note that the best origin here is defined in such a way that it is the
+     choice which minimizes the entire expression. If we can change this
+     expression to be in the form *)*)
+
+  (*(* ATTEMPTED THIS ALTERNATE PROOF METHOD, BUT IT DID NOT END UP WORKING OUT *)
+  (* Complete base case and simplify *)
+  gen_tac
+  >> Induct_on ‘t’
+  >- gvs[]
+  >> rpt strip_tac
+  (* This is easier to solve when we simplify it to the form of
+     get_num_errors_after_step_slow applied to best_origin_slow,
+     since best_origin_slow is defined such that it minimizes get_num_errors_after_step_slow. *)
+  >> gvs[get_num_errors_after_step_slow_get_num_errors]
+  >> simp[best_origin_slow_def]
+  >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (inargmin _ ls))’
+  >> qspecl_then [‘f’, ‘ls’] assume_tac inargmin_inle
+  >> gvs[]
+  (* We want to transform the right hand side into a form involving f, so that
+     we can use the main property of inargmin to prove that the left hand side
+     is less than or equal to the right hand side.
+.
+     The most sensible way to do this would be to use the theorem which related
+     get_num_errors_after_step_slow to get_num_errors. However, this requires
+     that bs be in the form best_origin_slow _ _ _ _. But bs may not be in this
+     form. Nevertheless, bs is still a "worse" option than whatever the best
+     origin is which leads to the same state and timestep that bs leads to,
+     so it should be possible to show that the number of errors via bs is at
+     least as big as the best origin leading to that state and timestamp, which
+     is then at least as big as the left hand side
+   *)
+  >> qmatch_goalsub_abbrev_tac ‘LHS ≤ RHS’
+  >> ‘get_num_errors m rs (vd_decode_to_state m rs (vd_encode_state m bs 0) (LENGTH bs)) 0 = ARB ⇒ T’ by gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘MHS = ARB ⇒ T’
+  >> qsuff_tac ‘LHS ≤ MHS ∧ MHS ≤ RHS’ >> gvs[]
+  (* We have now split it up into proving two inequalities as per the above
+     comment *)
+  >> conj_tac
+  (* First we prove the inequality that the inargmin minimizes over any
+     application of the function that was inargmin'd over *)
+  >- (gvs[Abbr ‘LHS’, Abbr ‘RHS’, Abbr ‘MHS’]
+      >> gvs[get_num_errors_after_step_slow_get_num_errors]
+      >> gvs[best_origin_slow_def])
+  (* Now we prove that decoding minimizes the number of errors to arrive at
+     a particular state*)
+  >> gvs[Abbr ‘LHS’, Abbr ‘RHS’, Abbr ‘MHS’]
+  >> gvs[GSYM get_num_errors_after_step_slow_get_num_errors]
+  >> unabbrev_all_tac
+                     *) 
 QED
 
-Theorem viterbi_correctness:
+(*Theorem viterbi_correctness:
   ∀m : state_machine.
     ∀bs rs : bool list.
       wfmachine m ∧
@@ -182,7 +224,5 @@ Proof
       >> gvs[wfmachine_output_length_greater_than_zero]
      )
   >> gvs[vd_encode_state_def, vd_encode_state_from_state_def]
-
-QED
-
+QED*)
 val _ = export_theory();

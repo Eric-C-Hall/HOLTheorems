@@ -621,6 +621,17 @@ Proof
   >> gvs[vd_encode_def]
 QED
 
+Theorem is_reachable_vd_encode_state[simp]:
+  ∀m i bs t.
+    LENGTH bs = t ⇒
+    is_reachable m i (vd_encode_state m bs i) t
+Proof
+  rpt strip_tac
+  >> gvs[is_reachable_def]
+  >> qexists ‘bs’
+  >> gvs[]
+QED                   
+
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* (It makes sense for tests to be at the end because then they won't slow    *)
