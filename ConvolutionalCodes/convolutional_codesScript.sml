@@ -67,8 +67,6 @@ val _ = monadsyntax.enable_monad "option"
 (* likely sequence of states that could have taken through that Hidden Markov *)
 (* Model.                                                                     *)
 (* -------------------------------------------------------------------------- *)
-                   
-
 
 (* -------------------------------------------------------------------------- *)
 (* Main theorem that I want to prove                                          *)
@@ -102,7 +100,7 @@ val _ = monadsyntax.enable_monad "option"
 (*   inductive hypothesis, the path to the previous node is optimal, and then *)
 (*   the fact that I'm choosing from the best choice on the next step will    *)
 (*   essentially make the current node optimal. I skimmed over quite a bit,   *)
-(*  there, but that's the idea                                                *)
+(*   there, but that's the idea                                               *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 (* Proof of the more general statement of optimality of the viterbi algorithm *)
@@ -120,24 +118,98 @@ Theorem viterbi_correctness_general:
     vd_encode_state m bs 0 = s ⇒
     get_num_errors m rs (vd_decode_to_state m rs s t) 0 ≤ get_num_errors m rs bs 0
 Proof
-(*gen_tac
+  (* We would like to prove that
+
+Follow the plan outlined above:
+     - use induction
+     - at each step, the previous element is defined to be the best origin.
+     - the bitstring on the left hand side can be split into two parts: the
+       string leading up to and arriving at the final best origin, and then
+       the remaining string consisting of stepping from the best origin to
+       the end. By the definition of best-origin, this total sum is minimized
+       amongst all possible choices of final origin, assuming we take the
+       optimal path up to the best origin, and then take the
+     - See get_num_errors_after_step_slow_get_num_errors: this is a useful
+       property that we have already proven, which relates the number of
+       errors of a decoded string to the number of errors calculated using
+       the trellis functions.
+     - However, this is not enough to prove the inequality, because it may be
+       that the right-hand-side does not take the optimal path up until the
+       previous
+     - Note that we have already proven that the number of errors through the
+       decoded path is equal to the number of errors calculating after taking
+       the slow step 
+
+is the optimal string that arrives
+       at states s and t (although we have not yet proved it is optimal).
+       In a previous theorem, we have proved that the left hand side expression
+
+total number of errors on the left hand side is equal to the
+       sum of an inductive part and a step part. The 
+
+       
+       optimal number of errors up until the best origin,
+       followed by a certain number of errors. such that this sum is optimized
+       amongst all choices of origin
+     - The right hand side can similarly be split into a path up until some
+       final origin, followed by another step.
+     - The left hand side can be rewritten as 
+       
+     since the We will use induction, since the previous
+     best_origin is defined to be optimal with respect *)
+
+  (* Complete base case and simplify *)
+  gen_tac
   >> Induct_on ‘t’
   >- gvs[]
   >> rpt strip_tac
-  >> donotexpand_tac
+  (* This is easier to solve when we simplify it to the form of
+     get_num_errors_after_step_slow applied to best_origin_slow,
+     since best_origin_slow is defined such that it minimizes get_num_errors_after_step_slow. *)
+  >> gvs[get_num_errors_after_step_slow_get_num_errors]
+  >> simp[best_origin_slow_def]
+  >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (inargmin _ ls))’
+  >> qspecl_then [‘f’, ‘ls’] assume_tac inargmin_inle
   >> gvs[]
-  (* Reduce "SUC t" to "t" in order to apply the inductive hypothesis *)
-  >> gvs[vd_decode_to_state_def]
-  >> gvs[SNOC_APPEND]
-  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
-  (* prove dependencies *)
-  >> gvs[]
-  >> conj_tac >- gvs[ADD1]
-  (* Note that the best origin here is defined in such a way that it is the
-     choice which minimizes the entire expression. If we can change this
-     expression to be in the form *)*)
+        
 
-  (*(* ATTEMPTED THIS ALTERNATE PROOF METHOD, BUT IT DID NOT END UP WORKING OUT *)
+(*gen_tac
+   >> Induct_on ‘t’
+   >- gvs[]
+   >> rpt strip_tac
+   >> donotexpand_tac
+   >> gvs[]
+   (* Reduce "SUC t" to "t" in order to apply the inductive hypothesis *)
+   >> gvs[vd_decode_to_state_def]
+   >> gvs[SNOC_APPEND]
+   >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
+   (* prove dependencies *)
+   >> gvs[]
+   >> conj_tac >- gvs[ADD1]
+   (* Give things nice names.
+     - optStep: the optimal step to optimize the overall sum (the step itself
+                is not necessarily the minimum cost step, but it will end up
+                optimizing the overall sum) 
+     - optInd: the optimal path which leads up to the state . By the inductive hypotesis, this*)
+>> qmatch_goalsub_abbrev_tac ‘optStep + optInd ≤ _’
+   (* Modify the  *)*)
+  
+
+
+                             
+(* Note that the best origin here is defined in such a way that it is the
+     choice which minimizes the entire expression. If we can change this
+     expression to be in the form *)
+
+(* This bs has some penultimate element. The RHS is equivalent to the number
+   of errors up to the penultimate element, plus the number of errors from the
+   penultimate element.
+
+
+
+ *)
+                             
+(*(* ATTEMPTED THIS ALTERNATE PROOF METHOD, BUT IT DID NOT END UP WORKING OUT *)
   (* Complete base case and simplify *)
   gen_tac
   >> Induct_on ‘t’
@@ -163,7 +235,7 @@ Proof
      so it should be possible to show that the number of errors via bs is at
      least as big as the best origin leading to that state and timestamp, which
      is then at least as big as the left hand side
-   *)
+ *)
   >> qmatch_goalsub_abbrev_tac ‘LHS ≤ RHS’
   >> ‘get_num_errors m rs (vd_decode_to_state m rs (vd_encode_state m bs 0) (LENGTH bs)) 0 = ARB ⇒ T’ by gvs[]
   >> qmatch_asmsub_abbrev_tac ‘MHS = ARB ⇒ T’
@@ -181,7 +253,7 @@ Proof
   >> gvs[Abbr ‘LHS’, Abbr ‘RHS’, Abbr ‘MHS’]
   >> gvs[GSYM get_num_errors_after_step_slow_get_num_errors]
   >> unabbrev_all_tac
-                     *) 
+ *) 
 QED
 
 (*Theorem viterbi_correctness:
