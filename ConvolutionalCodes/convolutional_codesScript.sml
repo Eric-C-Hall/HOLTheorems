@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -118,60 +119,143 @@ Theorem viterbi_correctness_general:
     vd_encode_state m bs 0 = s ⇒
     get_num_errors m rs (vd_decode_to_state m rs s t) 0 ≤ get_num_errors m rs bs 0
 Proof
-  (* We would like to prove that
-
-Follow the plan outlined above:
+  (* The plan:
      - use induction
-     - at each step, the previous element is defined to be the best origin.
      - the bitstring on the left hand side can be split into two parts: the
        string leading up to and arriving at the final best origin, and then
        the remaining string consisting of stepping from the best origin to
        the end. By the definition of best-origin, this total sum is minimized
        amongst all possible choices of final origin, assuming we take the
-       optimal path up to the best origin, and then take the
+       optimal path up to the origin, and then take the final step.
+     - the bitstring on the right hand side can also be split into two parts:
+       the string leading up to and arriving at the final origin, and the
+       remaining string consisting of stepping from the best origin to the
+       end.
+     - By the inductive hypothesis, the string leading up to and arriving at
+       the final origin on the right hand side will provide a worse result than
+       taking the optimal path to the final origin on the right hand side. Thus,
+       our right hand side becomes having an optimal path up until the final
+       origin, then taking a final step.
+     - 
      - See get_num_errors_after_step_slow_get_num_errors: this is a useful
        property that we have already proven, which relates the number of
        errors of a decoded string to the number of errors calculated using
        the trellis functions.
-     - However, this is not enough to prove the inequality, because it may be
-       that the right-hand-side does not take the optimal path up until the
-       previous
-     - Note that we have already proven that the number of errors through the
-       decoded path is equal to the number of errors calculating after taking
-       the slow step 
-
-is the optimal string that arrives
-       at states s and t (although we have not yet proved it is optimal).
-       In a previous theorem, we have proved that the left hand side expression
-
-total number of errors on the left hand side is equal to the
-       sum of an inductive part and a step part. The 
-
-       
-       optimal number of errors up until the best origin,
-       followed by a certain number of errors. such that this sum is optimized
-       amongst all choices of origin
-     - The right hand side can similarly be split into a path up until some
-       final origin, followed by another step.
-     - The left hand side can be rewritten as 
-       
-     since the We will use induction, since the previous
-     best_origin is defined to be optimal with respect *)
-
+   *)
   (* Complete base case and simplify *)
   gen_tac
   >> Induct_on ‘t’
-  >- gvs[]
+  >- gs[]
   >> rpt strip_tac
   (* This is easier to solve when we simplify it to the form of
      get_num_errors_after_step_slow applied to best_origin_slow,
      since best_origin_slow is defined such that it minimizes get_num_errors_after_step_slow. *)
-  >> gvs[get_num_errors_after_step_slow_get_num_errors]
+  >> rw[get_num_errors_after_step_slow_get_num_errors]
   >> simp[best_origin_slow_def]
   >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (inargmin _ ls))’
   >> qspecl_then [‘f’, ‘ls’] assume_tac inargmin_inle
+  >> gs[]
+  (* Now we need to get the right hand side into the form of f applied to
+   something. Since bs may not take the optimal path, we will need to
+   split it up into two halves. We'll show that taking the optimal
+   path up until the last step will provide a better result than
+   taking an arbitrary path up until the last step, at which point the
+   result will in theory be equivalent to f applied to the last transition.
+.
+   Our first step is to break this up into the two parts.
+   *)
+  >> qmatch_goalsub_abbrev_tac ‘LHS ≤ _’
+  >> Cases_on ‘bs’ using SNOC_CASES >> gs[]
+  >> gs[SNOC_APPEND]
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
+  >> gs[]
+  >> conj_tac >- gs[ADD1]
+  >> qmatch_goalsub_abbrev_tac ‘_ ≤ step + ind’
+  >> qmatch_asmsub_abbrev_tac ‘DROP indLength’
+  (*>> qmatch_asmsub_abbrev_tac ‘get_num_errors m indString’
+    >> qmatch_asmsub_abbrev_tac ‘get_num_errors m stepString [x]’*)
+  (* Show that taking the optimal path up until the last step provides a better
+     result than taking an arbitrary path up until the last step. This uses
+     the inductive hypothesis. *)
+  >> sg ‘step + get_num_errors m (TAKE indLength rs) (vd_decode_to_state m (TAKE indLength rs) (vd_encode_state m l 0) (LENGTH l)) 0 ≤ step + ind’
+  >- (gvs[]
+      >> gvs[Abbr ‘ind’]
+      >> last_x_assum $ qspecl_then [‘l’, ‘TAKE indLength rs’] assume_tac
+      >> gvs[]
+      >> unabbrev_all_tac
+      >> gvs[])
+  >> qmatch_asmsub_abbrev_tac ‘step + optInd ≤ step + ind’
+  >>  ‘LHS ≤ step + optInd’ suffices_by gvs[]
+  (* If we were to show that the right hand side was equal to f applied to
+     the last transition, that would be sufficient. *)
+  >> qsuff_tac ‘step + optInd = infnum_to_num (f (<| origin := vd_encode_state m l 0; input := x; |>))’
+  >- (gvs[]
+      >> disch_tac >> pop_assum kall_tac
+      >> gvs[Abbr ‘LHS’]
+      >> cheat (* I will need to modify this to better handle infinity, but
+                  other than that, it looks pretty simple, so I'll leave it
+                  for now *)
+     )
+  (* We no longer need ind, as we have replaced it with optInd *)
+  >> qpat_x_assum ‘_ ≤ _ + ind’ kall_tac
+  >> qpat_x_assum ‘Abbrev (ind = _)’ kall_tac
+  (* Now we need to actually show that the step plus the inductive part is
+     equal to f applied to the transition. We want to get the left hand side
+     into a form involving f, which should arise naturally when aiming for
+     a form involving get_num_errors_after_step_slow.
+.
+     First, expand out the part we are focusing on, and collapse the part we
+     are not focusing on.
+   *)
+  >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+  >> gvs[Abbr ‘LHS’, Abbr ‘step’, Abbr ‘optInd’]
+  >> simp[Abbr ‘indLength’]
+  (* We now want to reverse the effects of get_num_errors_append. When the
+     inductive part and the step are combined, we'll get closer to having
+     get_num_errors_after_step_slow, which combines these parts.
+.
+     Note: maybe instead of taking this approach, it would've been better
+     to take the approach of simplifying get_num_errors_after_step_slow
+     into two parts. Too late now.
+.
+     In order to
+     draw parallels between the current state of the goal and this theorem,
+     collapse irrelevant parts into a new abbreviation called bs'. *)
+  >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
+  >> qmatch_goalsub_abbrev_tac ‘get_num_errors m _ bs' _’
+  (* assume the relevant values for the variables in the theorem. *)
+  >> qspecl_then [‘m’, ‘rs’, ‘bs'’, ‘[x]’, ‘0’] assume_tac (GSYM get_num_errors_append)
+  >> gvs[ADD1]
+  (* The differences between the assumed theorem and the corresponding part of
+     the goal are: LENGTH bs' vs LENGTH l and vd_encode_state m bs' 0 vs
+     vd_encode_state m l 0. Prove each of these equalities, starting with
+     LENGTH bs' = LENGTH l *)
+  >> sg ‘LENGTH bs' = LENGTH l’
+  >- (unabbrev_all_tac
+      >> gvs[])
   >> gvs[]
+  >> sg ‘vd_encode_state m bs' 0 = vd_encode_state m l 0’
+  >- (unabbrev_all_tac
+      >> gvs[])
+  (* After applying gvs, we have successfully recombined the append. *)
+  >> gvs[]
+  (* Clean up assumptions that are no longer necessary *)
+  >> qpat_x_assum ‘get_num_errors _ _ _ _ + get_num_errors _ _ _ _ = get_num_errors _ _ (APPEND _ _) _’ kall_tac
+  >> qpat_x_assum ‘vd_encode_state m bs' 0 = vd_encode_state m l 0’ kall_tac
+  (* Simplify the RHS in the direction of the LHS *)
+  >> gvs[Abbr ‘RHS’]
+  >> gvs[Abbr ‘f’]
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM get_num_errors_after_step_slow_get_num_errors]
+  
+  (* Expand so we can see what we need to work on *)
+
+
         
+  >> gvs[Abbr ‘bs'’]
+  (* *)
+  >> qmatch_goalsub_abbrev_tac ‘get_num_errors _ _ ((vd_decode_to_state _ _ _ _) ⧺ _)’
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_after_step_slow_get_num_errors]
+  >> 
 
 (*gen_tac
    >> Induct_on ‘t’
@@ -192,11 +276,11 @@ total number of errors on the left hand side is equal to the
                 optimizing the overall sum) 
      - optInd: the optimal path which leads up to the state . By the inductive hypotesis, this*)
 >> qmatch_goalsub_abbrev_tac ‘optStep + optInd ≤ _’
-   (* Modify the  *)*)
-  
+ (* Modify the  *)*)
 
 
-                             
+
+
 (* Note that the best origin here is defined in such a way that it is the
      choice which minimizes the entire expression. If we can change this
      expression to be in the form *)
@@ -208,7 +292,7 @@ total number of errors on the left hand side is equal to the
 
 
  *)
-                             
+
 (*(* ATTEMPTED THIS ALTERNATE PROOF METHOD, BUT IT DID NOT END UP WORKING OUT *)
   (* Complete base case and simplify *)
   gen_tac
