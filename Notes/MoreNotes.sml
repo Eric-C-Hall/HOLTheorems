@@ -31,3 +31,5 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* Make sure to keep code clean. If there's a clear, straightforward change you can make to improve the clenliness of the code, it's probably a good idea to do it *)
 
 (* PATH: instructs ubuntu in which directories to find executables. Set in .profile or .bashrc *)
+
+(* It appears as though you can queue up commands in the HOL interactive thing *)

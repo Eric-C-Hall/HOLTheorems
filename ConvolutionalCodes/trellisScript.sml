@@ -490,6 +490,12 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Automatically apply reachability to prove that                             *)
+(* (viterbi_trellis_node_slow _ _ _ _).num_errors ≠ INFINITY                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem is_reachable_viterbi_trellis_node_slow_num_errors_imp[simp] = iffLR is_reachable_viterbi_trellis_node_slow_num_errors |> SRULE [AND_IMP_INTRO, GSYM RIGHT_FORALL_IMP_THM];
+
+(* -------------------------------------------------------------------------- *)
 (* TODO: use i instead of 0                                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem is_reachable_get_num_errors_after_step_slow:
@@ -1031,9 +1037,15 @@ Theorem get_num_errors_after_step_slow_get_num_errors:
     get_num_errors m bs (vd_decode_to_state m bs r.origin t) 0 + ARB     
 Proof
   rpt strip_tac
+  (* Split up into the current step and the previous part *)
   >> gvs[GSYM ADD1]
   >> gvs[get_num_errors_after_step_slow_def]
+  (* We can split infnum to num conversion on the LHS in order to better match
+     the RHS *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
   >> gvs[]
+  >> conj_tac
+  >- gvs[]
 QED
 
 Theorem vd_decode_to_state_def_nolet:
