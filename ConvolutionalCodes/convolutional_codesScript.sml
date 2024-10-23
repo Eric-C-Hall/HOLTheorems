@@ -214,7 +214,8 @@ Proof
           >> unabbrev_all_tac
           >> gvs[get_num_errors_after_step_slow_def]
          )
-         cheat
+      >> unabbrev_all_tac
+      >> gvs[get_num_errors_after_step_slow_def]
      )
   (* We no longer need ind, as we have replaced it with optInd *)
   >> qpat_x_assum ‘_ ≤ _ + ind’ kall_tac
