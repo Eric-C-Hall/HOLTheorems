@@ -55,6 +55,9 @@ End
 (*                                                                            *)
 (* Output: the corresponding portion of the input bitstring.                  *)
 (* -------------------------------------------------------------------------- *)
+(* TODO: this definition probably isn't worth making, because it adds         *)
+(* unnecessary symbols which confuse the proofs                               *)
+(* -------------------------------------------------------------------------- *)
 Definition relevant_input_def:
   relevant_input m bs t = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs)
 End

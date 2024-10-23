@@ -210,6 +210,14 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
   >> gvs[Abbr ‘LHS’, Abbr ‘step’, Abbr ‘optInd’]
   >> simp[Abbr ‘indLength’]
+  (* -----
+     Originally I aimed to essentially factorize the left hand side in order
+     to make it become more similar to the right hand side. But now I realise
+     that since simplification is generally simpler than factorization, it
+     probably makes more sense to simplify the right hand side to make it
+     more similar to the left hand side, so I commented out my original code
+     here and instead aimed to use simplification rather than factorization.
+     -----
   (* We now want to reverse the effects of get_num_errors_append. When the
      inductive part and the step are combined, we'll get closer to having
      get_num_errors_after_step_slow, which combines these parts.
@@ -242,102 +250,20 @@ Proof
   (* Clean up assumptions that are no longer necessary *)
   >> qpat_x_assum ‘get_num_errors _ _ _ _ + get_num_errors _ _ _ _ = get_num_errors _ _ (APPEND _ _) _’ kall_tac
   >> qpat_x_assum ‘vd_encode_state m bs' 0 = vd_encode_state m l 0’ kall_tac
+   *)
+  >> all_tac (* avoid adjacent comments by performing a no-op *)
   (* Simplify the RHS in the direction of the LHS *)
   >> gvs[Abbr ‘RHS’]
   >> gvs[Abbr ‘f’]
-  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM get_num_errors_get_num_errors_after_step_slow]
-  
-  (* Expand so we can see what we need to work on *)
-
-
-        
-  >> gvs[Abbr ‘bs'’]
-  (* *)
-  >> qmatch_goalsub_abbrev_tac ‘get_num_errors _ _ ((vd_decode_to_state _ _ _ _) ⧺ _)’
-  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_get_num_errors_after_step_slow]
-  >> 
-
-(*gen_tac
-   >> Induct_on ‘t’
-   >- gvs[]
-   >> rpt strip_tac
-   >> donotexpand_tac
-   >> gvs[]
-   (* Reduce "SUC t" to "t" in order to apply the inductive hypothesis *)
-   >> gvs[vd_decode_to_state_def]
-   >> gvs[SNOC_APPEND]
-   >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
-   (* prove dependencies *)
-   >> gvs[]
-   >> conj_tac >- gvs[ADD1]
-   (* Give things nice names.
-     - optStep: the optimal step to optimize the overall sum (the step itself
-                is not necessarily the minimum cost step, but it will end up
-                optimizing the overall sum) 
-     - optInd: the optimal path which leads up to the state . By the inductive hypotesis, this*)
->> qmatch_goalsub_abbrev_tac ‘optStep + optInd ≤ _’
- (* Modify the  *)*)
-
-
-
-
-(* Note that the best origin here is defined in such a way that it is the
-     choice which minimizes the entire expression. If we can change this
-     expression to be in the form *)
-
-(* This bs has some penultimate element. The RHS is equivalent to the number
-   of errors up to the penultimate element, plus the number of errors from the
-   penultimate element.
-
-
-
- *)
-
-(*(* ATTEMPTED THIS ALTERNATE PROOF METHOD, BUT IT DID NOT END UP WORKING OUT *)
-  (* Complete base case and simplify *)
-  gen_tac
-  >> Induct_on ‘t’
-  >- gvs[]
-  >> rpt strip_tac
-  (* This is easier to solve when we simplify it to the form of
-     get_num_errors_after_step_slow applied to best_origin_slow,
-     since best_origin_slow is defined such that it minimizes get_num_errors_after_step_slow. *)
-  >> gvs[get_num_errors_get_num_errors_after_step_slow]
-  >> simp[best_origin_slow_def]
-  >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (inargmin _ ls))’
-  >> qspecl_then [‘f’, ‘ls’] assume_tac inargmin_inle
-  >> gvs[]
-  (* We want to transform the right hand side into a form involving f, so that
-     we can use the main property of inargmin to prove that the left hand side
-     is less than or equal to the right hand side.
-.
-     The most sensible way to do this would be to use the theorem which related
-     get_num_errors_after_step_slow to get_num_errors. However, this requires
-     that bs be in the form best_origin_slow _ _ _ _. But bs may not be in this
-     form. Nevertheless, bs is still a "worse" option than whatever the best
-     origin is which leads to the same state and timestep that bs leads to,
-     so it should be possible to show that the number of errors via bs is at
-     least as big as the best origin leading to that state and timestamp, which
-     is then at least as big as the left hand side
- *)
-  >> qmatch_goalsub_abbrev_tac ‘LHS ≤ RHS’
-  >> ‘get_num_errors m rs (vd_decode_to_state m rs (vd_encode_state m bs 0) (LENGTH bs)) 0 = ARB ⇒ T’ by gvs[]
-  >> qmatch_asmsub_abbrev_tac ‘MHS = ARB ⇒ T’
-  >> qsuff_tac ‘LHS ≤ MHS ∧ MHS ≤ RHS’ >> gvs[]
-  (* We have now split it up into proving two inequalities as per the above
-     comment *)
-  >> conj_tac
-  (* First we prove the inequality that the inargmin minimizes over any
-     application of the function that was inargmin'd over *)
-  >- (gvs[Abbr ‘LHS’, Abbr ‘RHS’, Abbr ‘MHS’]
-      >> gvs[get_num_errors_get_num_errors_after_step_slow]
-      >> gvs[best_origin_slow_def])
-  (* Now we prove that decoding minimizes the number of errors to arrive at
-     a particular state*)
-  >> gvs[Abbr ‘LHS’, Abbr ‘RHS’, Abbr ‘MHS’]
-  >> gvs[GSYM get_num_errors_get_num_errors_after_step_slow]
-  >> unabbrev_all_tac
- *) 
+  (* Simplify get_num_errors_after_step_slow into two parts, written
+     in terms of get_num_errors *)
+  >> gvs[get_num_errors_after_step_slow_get_num_errors, ADD1]
+  >> gvs[vd_decode_to_state_restrict_input]
+  (* Simplify relevant_input in the direction of DROP _ _ *)
+  >> gvs[relevant_input_def]
+  >> gvs[TAKE_LENGTH_TOO_LONG]
+  >> gvs[get_num_errors_def]
+  >> gvs[hamming_distance_symmetric]
 QED
 
 (*Theorem viterbi_correctness:
