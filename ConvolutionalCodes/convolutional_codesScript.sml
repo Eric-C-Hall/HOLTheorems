@@ -184,16 +184,37 @@ Proof
       >> unabbrev_all_tac
       >> gvs[])
   >> qmatch_asmsub_abbrev_tac ‘step + optInd ≤ step + ind’
-  >>  ‘LHS ≤ step + optInd’ suffices_by gvs[]
+  >> ‘LHS ≤ step + optInd’ suffices_by gvs[]
   (* If we were to show that the right hand side was equal to f applied to
      the last transition, that would be sufficient. *)
   >> qsuff_tac ‘step + optInd = infnum_to_num (f (<| origin := vd_encode_state m l 0; input := x; |>))’
   >- (gvs[]
       >> disch_tac >> pop_assum kall_tac
       >> gvs[Abbr ‘LHS’]
-      >> cheat (* I will need to modify this to better handle infinity, but
-                  other than that, it looks pretty simple, so I'll leave it
-                  for now *)
+      >> unabbrev_all_tac
+      >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (inargmin _ qs)) ≤ infnum_to_num (f q)’
+      >> qmatch_goalsub_abbrev_tac ‘infnum_to_num min ≤ infnum_to_num specific’
+      >> sg ‘f (inargmin (λa. f a) qs) ≤ f q’
+      >- (gvs[ETA_THM]
+          >> unabbrev_all_tac
+          >> irule inargmin_inle
+          >> gvs[transition_inverse_mem] (* TODO: should transition_inverse_mem and all_transitions_mem be simp rules? *)
+          >> gvs[all_transitions_mem]
+          >> gvs[GSYM SNOC_APPEND]
+          >> gvs[vd_encode_state_snoc]
+         )
+      >> qsuff_tac ‘min ≠ INFINITY ∧ specific ≠ INFINITY’
+      >- gvs[]
+      >> gvs[Abbr ‘min’, Abbr ‘specific’]
+      >> qsuff_tac ‘f q ≠ INFINITY’
+      >- (gvs[]
+          >> qmatch_goalsub_abbrev_tac ‘LHS ≠ INFINITY ⇒ RHS ≠ INFINITY’
+          >> Cases_on ‘LHS’ >> Cases_on ‘RHS’ >> gvs[]
+          >> qpat_x_assum ‘f (inargmin _ _) ≤ f _’ kall_tac
+          >> unabbrev_all_tac
+          >> gvs[get_num_errors_after_step_slow_def]
+         )
+         cheat
      )
   (* We no longer need ind, as we have replaced it with optInd *)
   >> qpat_x_assum ‘_ ≤ _ + ind’ kall_tac
@@ -206,10 +227,10 @@ Proof
      First, expand out the part we are focusing on, and collapse the part we
      are not focusing on.
    *)
-  >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
-  >> gvs[Abbr ‘LHS’, Abbr ‘step’, Abbr ‘optInd’]
-  >> simp[Abbr ‘indLength’]
-  (* -----
+    >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+    >> gvs[Abbr ‘LHS’, Abbr ‘step’, Abbr ‘optInd’]
+    >> simp[Abbr ‘indLength’]
+    (* -----
      Originally I aimed to essentially factorize the left hand side in order
      to make it become more similar to the right hand side. But now I realise
      that since simplification is generally simpler than factorization, it
@@ -249,12 +270,12 @@ Proof
   (* Clean up assumptions that are no longer necessary *)
   >> qpat_x_assum ‘get_num_errors _ _ _ _ + get_num_errors _ _ _ _ = get_num_errors _ _ (APPEND _ _) _’ kall_tac
   >> qpat_x_assum ‘vd_encode_state m bs' 0 = vd_encode_state m l 0’ kall_tac
-   *)
-  >> all_tac (* avoid adjacent comments by performing a no-op *)
-  (* Simplify the RHS in the direction of the LHS *)
-  >> gvs[Abbr ‘RHS’]
-  >> gvs[Abbr ‘f’]
-  (* Simplify get_num_errors_after_step_slow into two parts, written
+     *)
+    >> all_tac (* avoid adjacent comments by performing a no-op *)
+    (* Simplify the RHS in the direction of the LHS *)
+    >> gvs[Abbr ‘RHS’]
+    >> gvs[Abbr ‘f’]
+    (* Simplify get_num_errors_after_step_slow into two parts, written
      in terms of get_num_errors *)
   >> gvs[get_num_errors_after_step_slow_get_num_errors, ADD1]
   >> gvs[vd_decode_to_state_restrict_input]
