@@ -137,7 +137,7 @@ Proof
        our right hand side becomes having an optimal path up until the final
        origin, then taking a final step.
      - 
-     - See get_num_errors_after_step_slow_get_num_errors: this is a useful
+     - See get_num_errors_get_num_errors_after_step_slow: this is a useful
        property that we have already proven, which relates the number of
        errors of a decoded string to the number of errors calculated using
        the trellis functions.
@@ -150,7 +150,7 @@ Proof
   (* This is easier to solve when we simplify it to the form of
      get_num_errors_after_step_slow applied to best_origin_slow,
      since best_origin_slow is defined such that it minimizes get_num_errors_after_step_slow. *)
-  >> rw[get_num_errors_after_step_slow_get_num_errors]
+  >> rw[get_num_errors_get_num_errors_after_step_slow]
   >> simp[best_origin_slow_def]
   >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (inargmin _ ls))’
   >> qspecl_then [‘f’, ‘ls’] assume_tac inargmin_inle
@@ -245,7 +245,7 @@ Proof
   (* Simplify the RHS in the direction of the LHS *)
   >> gvs[Abbr ‘RHS’]
   >> gvs[Abbr ‘f’]
-  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM get_num_errors_after_step_slow_get_num_errors]
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM get_num_errors_get_num_errors_after_step_slow]
   
   (* Expand so we can see what we need to work on *)
 
@@ -254,7 +254,7 @@ Proof
   >> gvs[Abbr ‘bs'’]
   (* *)
   >> qmatch_goalsub_abbrev_tac ‘get_num_errors _ _ ((vd_decode_to_state _ _ _ _) ⧺ _)’
-  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_after_step_slow_get_num_errors]
+  >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_get_num_errors_after_step_slow]
   >> 
 
 (*gen_tac
@@ -302,7 +302,7 @@ Proof
   (* This is easier to solve when we simplify it to the form of
      get_num_errors_after_step_slow applied to best_origin_slow,
      since best_origin_slow is defined such that it minimizes get_num_errors_after_step_slow. *)
-  >> gvs[get_num_errors_after_step_slow_get_num_errors]
+  >> gvs[get_num_errors_get_num_errors_after_step_slow]
   >> simp[best_origin_slow_def]
   >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (inargmin _ ls))’
   >> qspecl_then [‘f’, ‘ls’] assume_tac inargmin_inle
@@ -330,12 +330,12 @@ Proof
   (* First we prove the inequality that the inargmin minimizes over any
      application of the function that was inargmin'd over *)
   >- (gvs[Abbr ‘LHS’, Abbr ‘RHS’, Abbr ‘MHS’]
-      >> gvs[get_num_errors_after_step_slow_get_num_errors]
+      >> gvs[get_num_errors_get_num_errors_after_step_slow]
       >> gvs[best_origin_slow_def])
   (* Now we prove that decoding minimizes the number of errors to arrive at
      a particular state*)
   >> gvs[Abbr ‘LHS’, Abbr ‘RHS’, Abbr ‘MHS’]
-  >> gvs[GSYM get_num_errors_after_step_slow_get_num_errors]
+  >> gvs[GSYM get_num_errors_get_num_errors_after_step_slow]
   >> unabbrev_all_tac
  *) 
 QED

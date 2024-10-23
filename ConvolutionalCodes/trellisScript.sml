@@ -948,7 +948,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: use i instead of 0                                                   *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_after_step_slow_get_num_errors:
+Theorem get_num_errors_get_num_errors_after_step_slow:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ∧
@@ -1017,6 +1017,22 @@ Proof
   >> AP_THM_TAC
   >> AP_TERM_TAC
   (*  *)
+  >> gvs[]
+QED
+
+Theorem get_num_errors_after_step_slow_get_num_errors:
+  ∀m bs t r.
+    wfmachine m ∧
+    r.origin < m.num_states ∧
+    is_reachable m 0 r.origin t ∧
+    LENGTH bs = (t + 1) * m.output_length ⇒
+    infnum_to_num
+    (get_num_errors_after_step_slow m bs (t + 1) r) =
+    get_num_errors m bs (vd_decode_to_state m bs r.origin t) 0 + ARB     
+Proof
+  rpt strip_tac
+  >> gvs[GSYM ADD1]
+  >> gvs[get_num_errors_after_step_slow_def]
   >> gvs[]
 QED
 
@@ -1181,7 +1197,7 @@ Proof
   EVAL_TAC
 QED*)
 
-Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data_test:
+Theorem get_num_errors_get_num_errors_after_step_slow_after_step_no_prev_data_test:
   ∀t r.
     t < 3 ∧
     r.origin < 4 ⇒
@@ -1245,7 +1261,7 @@ QED*)
 (* Test that the slow and fast versions of the function that calculates       *)
 (* errors in the trellis are equivalent for some simple examples.             *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_after_step_slow_get_num_errors_after_step_test:
+Theorem get_num_errors_get_num_errors_after_step_slow_after_step_test:
   ∀t r.
     t < 4 ∧
     r.origin < 4 ⇒
