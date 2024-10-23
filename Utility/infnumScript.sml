@@ -163,4 +163,14 @@ Proof
   Cases_on ‘i’ >> gvs[]
 QED
 
+Theorem infnum_to_num_inplus:
+  ∀i j.
+    i ≠ INFINITY ∧
+    j ≠ INFINITY ⇒
+    infnum_to_num (i + j) = infnum_to_num i + infnum_to_num j
+Proof
+  rpt strip_tac
+  >> Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
+QED
+
 val _ = export_theory();
