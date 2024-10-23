@@ -1034,7 +1034,7 @@ Theorem get_num_errors_after_step_slow_get_num_errors:
     LENGTH bs = (t + 1) * m.output_length ⇒
     infnum_to_num
     (get_num_errors_after_step_slow m bs (t + 1) r) =
-    get_num_errors m bs (vd_decode_to_state m bs r.origin t) 0 + ARB     
+    get_num_errors m (TAKE (t * m.output_length) bs) (vd_decode_to_state m bs r.origin t) 0 + hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)) 
 Proof
   rpt strip_tac
   (* Split up into the current step and the previous part *)
@@ -1042,10 +1042,17 @@ Proof
   >> gvs[get_num_errors_after_step_slow_def]
   (* We can split infnum to num conversion on the LHS in order to better match
      the RHS *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inplus]
-  >> gvs[]
-  >> conj_tac
-  >- gvs[]
+  >> gvs[infnum_to_num_inplus]
+  (* Remove identical parts*)
+  >> qmatch_goalsub_abbrev_tac ‘n + n'= n' + n''’
+  >> ‘n = n''’ suffices_by gvs[]
+  >> gvs[Abbr ‘n’, Abbr ‘n''’]
+  (* The remainder can be proven by appealing to
+     get_num_errors_get_num_errors_after_step_slow, so long as we make sure to
+     restrict the input to the appropriate length*)
+  >> qspecl_then [‘m’, ‘TAKE (t * m.output_length) bs’, ‘r.origin’, ‘t’] assume_tac get_num_errors_get_num_errors_after_step_slow
+  >> gvs[vd_decode_to_state_restrict_input, get_num_errors_after_step_slow_restrict_input, best_origin_slow_restrict_input]
+  >> gvs[viterbi_trellis_node_slow_def]
 QED
 
 Theorem vd_decode_to_state_def_nolet:
