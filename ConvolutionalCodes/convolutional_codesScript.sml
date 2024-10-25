@@ -228,55 +228,14 @@ Proof
      First, expand out the part we are focusing on, and collapse the part we
      are not focusing on.
    *)
-    >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
-    >> gvs[Abbr ‘LHS’, Abbr ‘step’, Abbr ‘optInd’]
-    >> simp[Abbr ‘indLength’]
-    (* -----
-     Originally I aimed to essentially factorize the left hand side in order
-     to make it become more similar to the right hand side. But now I realise
-     that since simplification is generally simpler than factorization, it
-     probably makes more sense to simplify the right hand side to make it
-     more similar to the left hand side, so I commented out my original code
-     here and instead aimed to use simplification rather than factorization.
-     -----
-  (* We now want to reverse the effects of get_num_errors_append. When the
-     inductive part and the step are combined, we'll get closer to having
-     get_num_errors_after_step_slow, which combines these parts.
-.
-     Note: maybe instead of taking this approach, it would've been better
-     to take the approach of simplifying get_num_errors_after_step_slow
-     into two parts. Too late now.
-.
-     In order to
-     draw parallels between the current state of the goal and this theorem,
-     collapse irrelevant parts into a new abbreviation called bs'. *)
-  >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
-  >> qmatch_goalsub_abbrev_tac ‘get_num_errors m _ bs' _’
-  (* assume the relevant values for the variables in the theorem. *)
-  >> qspecl_then [‘m’, ‘rs’, ‘bs'’, ‘[x]’, ‘0’] assume_tac (GSYM get_num_errors_append)
-  >> gvs[ADD1]
-  (* The differences between the assumed theorem and the corresponding part of
-     the goal are: LENGTH bs' vs LENGTH l and vd_encode_state m bs' 0 vs
-     vd_encode_state m l 0. Prove each of these equalities, starting with
-     LENGTH bs' = LENGTH l *)
-  >> sg ‘LENGTH bs' = LENGTH l’
-  >- (unabbrev_all_tac
-      >> gvs[])
-  >> gvs[]
-  >> sg ‘vd_encode_state m bs' 0 = vd_encode_state m l 0’
-  >- (unabbrev_all_tac
-      >> gvs[])
-  (* After applying gvs, we have successfully recombined the append. *)
-  >> gvs[]
-  (* Clean up assumptions that are no longer necessary *)
-  >> qpat_x_assum ‘get_num_errors _ _ _ _ + get_num_errors _ _ _ _ = get_num_errors _ _ (APPEND _ _) _’ kall_tac
-  >> qpat_x_assum ‘vd_encode_state m bs' 0 = vd_encode_state m l 0’ kall_tac
-     *)
-    >> all_tac (* avoid adjacent comments by performing a no-op *)
-    (* Simplify the RHS in the direction of the LHS *)
-    >> gvs[Abbr ‘RHS’]
-    >> gvs[Abbr ‘f’]
-    (* Simplify get_num_errors_after_step_slow into two parts, written
+  >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+  >> gvs[Abbr ‘LHS’, Abbr ‘step’, Abbr ‘optInd’]
+  >> simp[Abbr ‘indLength’]
+  >> all_tac (* avoid adjacent comments by performing a no-op *)
+  (* Simplify the RHS in the direction of the LHS *)
+  >> gvs[Abbr ‘RHS’]
+  >> gvs[Abbr ‘f’]
+  (* Simplify get_num_errors_after_step_slow into two parts, written
      in terms of get_num_errors *)
   >> gvs[get_num_errors_after_step_slow_get_num_errors, ADD1]
   >> gvs[vd_decode_to_state_restrict_input]
@@ -286,14 +245,6 @@ Proof
   >> gvs[get_num_errors_def]
   >> gvs[hamming_distance_symmetric]
 QED
-
-∀m bs rs s t.
-  wfmachine m ∧
-  s < m.num_states ∧
-  LENGTH bs = t ∧
-  LENGTH rs = m.output_length * t ∧
-  vd_encode_state m bs 0 = s ⇒
-  get_num_errors m rs (vd_decode_to_state m rs s t) 0 ≤ get_num_errors m rs bs 0
 
 Theorem viterbi_correctness:
   ∀m bs rs.
