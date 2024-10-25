@@ -287,13 +287,25 @@ Proof
   >> gvs[hamming_distance_symmetric]
 QED
 
-(*Theorem viterbi_correctness:
-  ∀m : state_machine.
-    ∀bs rs : bool list.
-      wfmachine m ∧
-      LENGTH rs = m.output_length * LENGTH bs ⇒
-      get_num_errors m rs (vd_decode m rs) ≤ get_num_errors m rs bs
+∀m bs rs s t.
+  wfmachine m ∧
+  s < m.num_states ∧
+  LENGTH bs = t ∧
+  LENGTH rs = m.output_length * t ∧
+  vd_encode_state m bs 0 = s ⇒
+  get_num_errors m rs (vd_decode_to_state m rs s t) 0 ≤ get_num_errors m rs bs 0
+
+Theorem viterbi_correctness:
+  ∀m bs rs.
+    wfmachine m ∧
+    LENGTH rs = m.output_length * LENGTH bs ⇒
+    get_num_errors m rs (vd_decode m rs) 0 ≤ get_num_errors m rs bs 0
 Proof
+  rpt strip_tac
+  >> gvs[vd_decode_def]
+  >> 
+
+  
   rpt strip_tac
   >> gvs[vd_decode_def]
   >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_path m rs s t’
