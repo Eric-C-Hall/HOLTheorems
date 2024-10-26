@@ -180,4 +180,14 @@ Proof
   >> Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
 QED
 
+Theorem inle_not_infinity:
+  ∀i j.
+    i ≤ j ∧
+    j ≠ INFINITY ⇒
+    i ≠ INFINITY
+Proof
+  rpt strip_tac
+  >> Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
+QED
+
 val _ = export_theory();

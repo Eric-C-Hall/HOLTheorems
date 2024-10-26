@@ -639,6 +639,22 @@ Proof
   >> gvs[]
 QED                   
 
+Theorem exists_is_reachable:
+  ∀m t.
+    wfmachine m ⇒
+    ∃s. s < m.num_states ∧ is_reachable m 0 s t
+Proof
+  rpt strip_tac
+  >> Induct_on ‘t’
+  >- (qexists ‘0’ >> gvs[])
+  >> gvs[]
+  >> qexists ‘(m.transition_fn <|origin := s; input := F |>).destination’
+  >> gvs[]
+  >> gvs[is_reachable_suc]
+  >> qexistsl [‘s’, ‘F’]
+  >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* (It makes sense for tests to be at the end because then they won't slow    *)

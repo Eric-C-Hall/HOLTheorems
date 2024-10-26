@@ -69,4 +69,12 @@ Proof
   >> Cases_on ‘n’ >> gvs[COUNT_LIST_def]
 QED
 
+Theorem MEM_ZERO_MAP_SUC[simp]:
+  ∀ls.
+    MEM 0 (MAP SUC ls) ⇔ F
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ls’ >> gvs[]
+QED
+
 val _ = export_theory();
