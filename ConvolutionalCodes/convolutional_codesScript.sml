@@ -317,7 +317,17 @@ Proof
   >> gvs[]
 QED
 
-Theorem is_reachable_inargmin_viterbi_trellis_row[simp]:
+Theorem inle_not_infinity:
+  ∀i j.
+    i ≤ j ∧
+    j ≠ INFINITY ⇒
+    i ≠ INFINITY
+Proof
+  rpt strip_tac
+  >> Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
+QED
+
+Theorem best_state_is_reachable[simp]:
   ∀m rs t.
     wfmachine m ⇒
     is_reachable m 0 (inargmin (λs. (EL s (viterbi_trellis_row m rs t)).num_errors) (COUNT_LIST m.num_states)) t
@@ -333,24 +343,12 @@ Proof
       >> unabbrev_all_tac
       >> gvs[MEM_COUNT_LIST]
      )
-  >> gvs[Abbr ‘f’]
+  >> unabbrev_all_tac
+  >> gvs[]
   >> gvs[viterbi_trellis_row_el]
-
-
-        rpt strip_tac
-  >> Induct_on ‘t’
-  >- gvs[]
-  >> gvs[is_reachable_suc_transition_fn_destination]
-
-        DEP_PURE_ONCE_REWRITE_TAC[is_reachable_get_num_errors_after_step_slow]
-  >> gvs[Excl "get_num_errors_after_step_slow_best_origin_slow_zero"]
-                            >> rw[]
-                            >> 
-
-                            gvs[]
-     )
-
-  
+  >> qmatch_goalsub_abbrev_tac ‘least_num_errors ≠ INFINITY’
+  >> gvs[]
+  >> metis_tac[inle_not_infinity]
 QED
 
 Theorem viterbi_correctness:
@@ -374,12 +372,32 @@ Proof
       >> DEP_PURE_REWRITE_TAC[get_num_errors_get_num_errors_after_step_slow]
       >> gvs[]
       >> conj_tac
-      >- (gvs[Abbr ‘ls’]
-          >> DEP_PURE_ONCE_REWRITE_TAC[is_reachable_viterbi_trellis_node_slow_num_errors]
+      >- (unabbrev_all_tac
           >> gvs[]
-          >> CCONTR_TAC
+         )
+      >> sg ‘f (inargmin f ls) ≤ f (vd_encode_state m bs 0)’
+      >- (irule inargmin_inle
+          >> unabbrev_all_tac
+          >> gvs[MEM_COUNT_LIST]
+         )
+      >> DEP_PURE_ONCE_REWRITE_TAC[infnum_to_num_inle]
+      >> gvs[]
+      >> conj_tac
+      >- (gvs[get_num_errors_after_step_slow_is_reachable]
+          >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_after_step_slow_is_reachable]
           >> gvs[]
-                gvs[viterbi_trellis_row_el]
+          >> sg ‘inargmin f ls < m.num_states’
+          >- (unabbrev_all_tac
+              >> gvs[]
+             )
+          >> gvs[]
+          >> unabbrev_all_tac
+          >> gvs[]
+         )
+      >> unabbrev_all_tac
+      >> gvs[]
+      >> gvs[viterbi_trellis_row_el]
+      >> gvs[viterbi_trellis_node_slow_def]
      )
   >> irule viterbi_correctness_general
   >> gvs[]
