@@ -293,13 +293,14 @@ Proof
   >> gvs[]
 QED
 
-Theorem viterbi_trellis_row_el:
+Theorem viterbi_trellis_row_el_legacy:
   ∀m bs s t. 
     s < m.num_states ⇒
     EL s (viterbi_trellis_row m bs (SUC t)) = viterbi_trellis_node m bs s (SUC t) (viterbi_trellis_row m bs t)
 Proof
   gvs[viterbi_trellis_row_def]
 QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Prove that each previous state in the trellis is valid.                    *)
@@ -589,7 +590,7 @@ Proof
   >- (gvs[viterbi_trellis_row_def]
       >> Cases_on ‘r.origin’ >> gvs[])
   >> gvs[viterbi_trellis_node_slow_def]
-  >> gvs[viterbi_trellis_row_el]
+  >> gvs[viterbi_trellis_row_el_legacy]
   >> gvs[viterbi_trellis_node_def]
   >> gvs[get_num_errors_after_step_no_prev_data_def]
   >> AP_TERM_TAC
@@ -636,10 +637,21 @@ Proof
   >> gvs[viterbi_trellis_node_slow_def, viterbi_trellis_node_no_prev_data_def]
   >> Cases_on ‘t’ >> gvs[]
   >- (gvs[viterbi_trellis_row_def] >> Cases_on ‘s’ >> gvs[])
-  >> gvs[viterbi_trellis_row_el]
+  >> gvs[viterbi_trellis_row_el_legacy]
   >> gvs[viterbi_trellis_node_def]
   >> gvs[get_num_errors_after_step_slow_get_num_errors_after_step]
   >> gvs[best_origin_slow_best_origin]
+QED
+
+Theorem viterbi_trellis_node_slow_viterbi_trellis_node:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    viterbi_trellis_node_slow m bs s (SUC t) = viterbi_trellis_node m bs s (SUC t) (viterbi_trellis_row m bs t)
+Proof
+  rpt strip_tac
+  >> gvs[viterbi_trellis_node_slow_viterbi_trellis_node_no_prev_data]
+  >> gvs[viterbi_trellis_row_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1065,6 +1077,48 @@ Theorem vd_decode_to_state_def_nolet:
 Proof
   rpt strip_tac
   >> gvs[vd_decode_to_state_def]
+QED
+
+(* This could go in state_machineScript, but it currently doesn't depend on
+   inargminScript, and I didn't want to add that dependency. *)
+Theorem inargmin_count_list_num_states[simp]:
+  ∀m f.
+    wfmachine m ⇒
+    inargmin f (COUNT_LIST m.num_states) < m.num_states
+Proof
+  rpt strip_tac
+  >> gvs[GSYM MEM_COUNT_LIST]
+QED
+
+Theorem viterbi_trellis_row_hd_zero[simp]:
+  ∀m rs.
+    HD (viterbi_trellis_row m rs 0) = <| num_errors := N0; prev_transition := NONE |>
+Proof
+  rpt strip_tac
+  >> gvs[viterbi_trellis_row_def]
+QED
+
+Theorem viterbi_trellis_row_el_0[simp]:
+  ∀m bs s.
+    s < m.num_states ⇒ 
+    EL s (viterbi_trellis_row m bs 0) = <| num_errors := if (s = 0) then N0 else INFINITY; prev_transition := NONE |>
+Proof
+  rpt strip_tac
+  >> gvs[viterbi_trellis_row_def]
+  >> Cases_on ‘s’ >> gvs[]
+  >> gvs[EL_REPLICATE]
+QED
+
+Theorem viterbi_trellis_row_el:
+  ∀m bs s t.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    EL s (viterbi_trellis_row m bs t) = viterbi_trellis_node_slow m bs s t
+Proof
+  rpt strip_tac
+  >> Cases_on ‘t’ >> gvs[]
+  >> gvs[viterbi_trellis_row_el_legacy]
+  >> gvs[viterbi_trellis_node_slow_viterbi_trellis_node]
 QED
 
 (* -------------------------------------------------------------------------- *)

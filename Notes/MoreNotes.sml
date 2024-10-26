@@ -33,3 +33,5 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* PATH: instructs ubuntu in which directories to find executables. Set in .profile or .bashrc *)
 
 (* It appears as though you can queue up commands in the HOL interactive thing *)
+
+(* Use qabbrev_tac even if the abbreviation you want to make isn't yet contained as a pattern in the goal or assumptions, e.g. if you just want to define a new name for convenience *)

@@ -188,6 +188,13 @@ Definition is_reachable_def:
   is_reachable m i s t = ∃bs. (LENGTH bs = t ∧ vd_encode_state m bs i = s)
 End
 
+Theorem wfmachine_nonzero[simp]:
+  ∀m.
+    wfmachine m ⇒ m.num_states ≠ 0
+Proof
+  gvs[NOT_ZERO]
+QED
+
 Theorem vd_encode_empty[simp]:
   ∀m s. vd_encode m [] s = []
 Proof

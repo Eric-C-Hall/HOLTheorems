@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -7,6 +8,7 @@ val _ = new_theory "convolutional_codes";
 (* Standard library theories *)
 open arithmeticTheory;
 open listTheory;
+open markerTheory;
 open rich_listTheory;
 
 (* Standard library tactics, etc *)
@@ -246,6 +248,111 @@ Proof
   >> gvs[hamming_distance_symmetric]
 QED
 
+Theorem best_state_fn_zero:
+  ∀m rs.
+    (λs. (EL s (viterbi_trellis_row m rs 0)).num_errors) = (λs. if (s = 0) then N0 else (if s < m.num_states then INFINITY else (EL s (viterbi_trellis_row m rs 0)).num_errors))
+Proof
+  rpt strip_tac
+  >> gvs[FUN_EQ_THM]
+  >> rpt strip_tac
+  >> rw[]
+  >> gvs[viterbi_trellis_row_def]
+  >> Cases_on ‘s’ >> gvs[]
+QED
+
+Theorem MEM_ZERO_MAP_SUC[simp]:
+  ∀ls.
+    MEM 0 (MAP SUC ls) ⇔ F
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ls’ >> gvs[]
+QED
+
+(* Prove that best_state in vd_decode_def is 0 at time 0. *)
+Theorem best_state_zero_zero[simp]:
+  ∀m rs.
+    wfmachine m ⇒
+    inargmin (λs. (EL s (viterbi_trellis_row m rs 0)).num_errors)
+             (COUNT_LIST m.num_states) = 0
+Proof
+  rpt strip_tac
+  >> Cases_on ‘COUNT_LIST m.num_states’ >> gvs[]
+  >> Cases_on ‘m.num_states’ >> gvs[]
+  >> gvs[COUNT_LIST_def]
+  >> gvs[inargmin_def]       
+  >> Cases_on ‘n = 0’ >> gvs[]
+  >> PURE_REWRITE_TAC[inargmin2_def]
+  >> gvs[]
+  >> rw[]
+  >> ‘F’ suffices_by gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘(EL best_state _).num_errors ≤ N0’
+  >> qmatch_asmsub_abbrev_tac ‘inargmin f _’
+  (* Rewrite _.num_errors ≤ N0 as f best_state ≤ N0 *)
+  >> ‘f best_state ≤ N0’ by gvs[] >> qpat_x_assum ‘_.num_errors ≤ N0’ kall_tac
+  (* *)
+  >> ‘MEM best_state (MAP SUC (COUNT_LIST n))’ by (unabbrev_all_tac >> gvs[])
+  >> qpat_x_assum ‘Abbrev (best_state = _)’ kall_tac
+  >> gvs[best_state_fn_zero]
+  >> unabbrev_all_tac
+  >> gvs[]
+  >> Cases_on ‘best_state = 0’ >> gvs[]
+  >> Cases_on ‘best_state < SUC n’ >> gvs[]
+  >> gvs[MEM_MAP] (* TODO: Should this be in simp set? *)
+  >> gvs[MEM_COUNT_LIST] (* TODO: Should this be in simp set? *)
+QED
+
+Theorem exists_is_reachable:
+  ∀m t.
+    wfmachine m ⇒
+    ∃s. s < m.num_states ∧ is_reachable m 0 s t
+Proof
+  rpt strip_tac
+  >> Induct_on ‘t’
+  >- (qexists ‘0’ >> gvs[])
+  >> gvs[]
+  >> qexists ‘(m.transition_fn <|origin := s; input := F |>).destination’
+  >> gvs[]
+  >> gvs[is_reachable_suc]
+  >> qexistsl [‘s’, ‘F’]
+  >> gvs[]
+QED
+
+Theorem is_reachable_inargmin_viterbi_trellis_row[simp]:
+  ∀m rs t.
+    wfmachine m ⇒
+    is_reachable m 0 (inargmin (λs. (EL s (viterbi_trellis_row m rs t)).num_errors) (COUNT_LIST m.num_states)) t
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘m’, ‘t’] assume_tac exists_is_reachable
+  >> gvs[]
+  >> qspecl_then [‘m’, ‘rs’] assume_tac is_reachable_viterbi_trellis_node_slow_num_errors
+  >> pop_assum (fn th => gvs[th])
+  >> qmatch_goalsub_abbrev_tac ‘inargmin f ls’
+  >> sg ‘f (inargmin f ls) ≤ f s’
+  >- (irule inargmin_inle
+      >> unabbrev_all_tac
+      >> gvs[MEM_COUNT_LIST]
+     )
+  >> gvs[Abbr ‘f’]
+  >> gvs[viterbi_trellis_row_el]
+
+
+        rpt strip_tac
+  >> Induct_on ‘t’
+  >- gvs[]
+  >> gvs[is_reachable_suc_transition_fn_destination]
+
+        DEP_PURE_ONCE_REWRITE_TAC[is_reachable_get_num_errors_after_step_slow]
+  >> gvs[Excl "get_num_errors_after_step_slow_best_origin_slow_zero"]
+                            >> rw[]
+                            >> 
+
+                            gvs[]
+     )
+
+  
+QED
+
 Theorem viterbi_correctness:
   ∀m bs rs.
     wfmachine m ∧
@@ -254,41 +361,28 @@ Theorem viterbi_correctness:
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
-  >> 
-
-  
-  rpt strip_tac
-  >> gvs[vd_decode_def]
-  >> qmatch_goalsub_abbrev_tac ‘vd_find_optimal_path m rs s t’
-  (* TODO: bs may not lead to the state s, so we cannot immediately apply the
-     generalized viterbi correctness theorem here. We must first prove that
-     our specific choice of s will give a better result than any other choice
-     of s, so that we can deal with cases in which bs leads to another state.
-     Then we can finish our proof by showing that for an arbitrary valid state,
-     if we consider all paths bs leading to that state, the path which was
-     designed to be optimal is, in fact, optimal.*)
+  >> qmatch_goalsub_abbrev_tac ‘get_num_errors m rs (vd_decode_to_state m rs best_state _)’
+  >> gvs[MULT_DIV] (* TODO: Should MULT_DIV be in the simp set already? *)
+  >> qmatch_goalsub_abbrev_tac ‘best_state_best_path_errs ≤ actual_state_actual_path_errs’
+  >> qabbrev_tac ‘actual_state_best_path_errs = get_num_errors m rs (vd_decode_to_state m rs (vd_encode_state m bs 0) (LENGTH bs)) 0’
+  >> qsuff_tac ‘best_state_best_path_errs ≤ actual_state_best_path_errs ∧
+                actual_state_best_path_errs ≤ actual_state_actual_path_errs’
+  >- gvs[]
+  >> conj_tac >> gvs[Abbr ‘best_state_best_path_errs’, Abbr ‘actual_state_best_path_errs’, Abbr ‘actual_state_actual_path_errs’]
+  >- (unabbrev_all_tac
+      >> qmatch_goalsub_abbrev_tac ‘inargmin f ls’
+      >> DEP_PURE_REWRITE_TAC[get_num_errors_get_num_errors_after_step_slow]
+      >> gvs[]
+      >> conj_tac
+      >- (gvs[Abbr ‘ls’]
+          >> DEP_PURE_ONCE_REWRITE_TAC[is_reachable_viterbi_trellis_node_slow_num_errors]
+          >> gvs[]
+          >> CCONTR_TAC
+          >> gvs[]
+                gvs[viterbi_trellis_row_el]
+     )
   >> irule viterbi_correctness_general
   >> gvs[]
-  >> conj_tac
-  >- (unabbrev_all_tac
-      >> qmatch_goalsub_abbrev_tac ‘FOLDR (get_better_final_state rs') 0 ts’
-      >> qspecl_then [‘rs'’, ‘0’, ‘ts’] assume_tac get_better_final_state_foldr_mem
-      >> qmatch_goalsub_abbrev_tac ‘s < m.num_states’
-      >> Cases_on ‘s’ >> gvs[]
-      >> gvs[Abbr ‘ts’]
-      >> gvs[MEM_COUNT_LIST])
-  >> conj_tac
-  >- (unabbrev_all_tac
-      >> DEP_PURE_ONCE_REWRITE_TAC[MULT_DIV]
-      >> gvs[]
-      >> gvs[wfmachine_output_length_greater_than_zero]
-     )
-  >> conj_tac
-  >- (unabbrev_all_tac
-      >> DEP_PURE_ONCE_REWRITE_TAC[MULT_DIV]
-      >> gvs[]
-      >> gvs[wfmachine_output_length_greater_than_zero]
-     )
-  >> gvs[vd_encode_state_def, vd_encode_state_from_state_def]
-QED*)
+QED
+
 val _ = export_theory();

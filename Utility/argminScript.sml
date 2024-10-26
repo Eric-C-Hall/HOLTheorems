@@ -147,8 +147,6 @@ Proof
   >> gns[inargmin2_assoc]
 QED
 
-
-
 (* -------------------------------------------------------------------------- *)
 (* If two functions are the same on every element of the list, then the       *)
 (* result of applying argmin on those functions over the list will be the     *)
@@ -176,6 +174,30 @@ Proof
   >> disj2_tac
   >> qspecl_then [‘g’, ‘h'::t’] assume_tac inargmin_mem
   >> gvs[Excl "inargmin_mem"]
+QED
+
+Theorem inargmin_mem_inle:
+  ∀f l ls.
+    MEM l ls ⇒ f (inargmin f ls) ≤ f l
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ls’ >> gvs[]
+QED
+
+Theorem inargmin_inle_mem:
+  ∀f ls i.
+    ls ≠ [] ⇒
+    (f (inargmin f ls) ≤ i ⇔ ∃l. MEM l ls ∧ f l ≤ i)
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >> qexists ‘inargmin f ls’
+      >> gvs[])
+  >> rpt strip_tac
+  >> drule_all inlet_TRANS
+  >> rpt strip_tac
+  >> gvs[]
 QED
 
 val _ = export_theory();

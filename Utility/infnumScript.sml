@@ -114,6 +114,13 @@ Proof
   Cases_on ‘a’ >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[]
 QED
 
+Theorem inlet_TRANS:
+  ∀a b c.
+    a ≤ b ∧ b < c ⇒ a < c
+Proof
+  Cases_on ‘a’ >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[]
+QED
+
 Theorem infnum_to_num_inplus:
   ∀i j.
     i ≠ INFINITY ∧

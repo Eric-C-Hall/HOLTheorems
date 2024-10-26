@@ -61,4 +61,12 @@ Proof
   gvs[EL_REPLICATE]
 QED
 
+Theorem COUNT_LIST_EMPTY[simp]:
+  ∀n.
+    COUNT_LIST n = [] ⇔ n = 0
+Proof
+  rpt strip_tac
+  >> Cases_on ‘n’ >> gvs[COUNT_LIST_def]
+QED
+
 val _ = export_theory();
