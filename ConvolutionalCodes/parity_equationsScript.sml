@@ -2,8 +2,17 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "parity_equations";
 
+(* Standard theories *)
+open arithmeticTheory
 open bitstringTheory;
+open listTheory;
+open numposrepTheory; (* LENGTH_n2l *)
+open logrootTheory; (* LOG2_LE_MONO *)
 
+(* Standard libraries *)
+open dep_rewrite;
+
+(* My theories *)
 open state_machineTheory;
 
 (* -------------------------------------------------------------------------- *)
@@ -69,11 +78,11 @@ Definition parity_equations_to_state_machine_def:
     num_states := 2 ** (MAX_LIST (MAP LENGTH ps));
     transition_fn := λr.
                        let
-                         r_vec = n2v (r.origin)
+                         r_vec = zero_extend (MAX_LIST (MAP LENGTH ps)) (n2v (r.origin))
                        in
                          <|
-                           destination :=
-                           output := apply_parity_equations ps 
+                           destination := v2n (TL (SNOC r.input r_vec));
+                           output := apply_parity_equations ps r_vec
                          |>
     ;
     output_length := LENGTH ps;
@@ -81,13 +90,90 @@ Definition parity_equations_to_state_machine_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Note: There are two LOG2's. One is an overloading for logroot$LOG applied  *)
+(* to the value 2, and the other is bit$LOG. I only want to use logroot$LOG,  *)
+(* because that one can be evaluated using EVAL_TAC when applied to a         *)
+(* constant, whereas the other cannot.                                        *)
+(* -------------------------------------------------------------------------- *)
+
+Theorem v2n_lt_imp:
+  ∀v l.
+    LENGTH v ≤ l ⇒ v2n v < 2 ** l
+Proof
+  rpt strip_tac
+  >> ‘2 ** LENGTH v ≤ 2 ** l’ by gvs[]
+  >> ‘v2n v < 2 ** LENGTH v’ by gvs[v2n_lt]
+  >> metis_tac[LESS_LESS_EQ_TRANS]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* In my opinion, this is a better candidate to be length_zero_extend,        *)
+(* largely because it is an unconditional rewrite rule, whereas               *)
+(* length_zero_extend is conditional                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem length_zero_extend_2:
+  ∀bs l.
+    LENGTH (zero_extend l bs) = MAX (LENGTH bs) l
+Proof
+  rpt strip_tac
+  >> Induct_on ‘l’ >> gvs[zero_extend_def, PAD_LEFT]
+  >> gvs[ADD1]
+  >> gvs[MAX_DEF]
+QED
+
+Theorem boolify_length:
+  ∀a v.
+    LENGTH (boolify a v) = LENGTH a + LENGTH v
+Proof
+  Induct_on ‘v’ >> gvs[boolify_def]
+QED
+
+(* Seems relevant: LOG2_PROPERTY *)
+
+Theorem n2v_length:
+  ∀n l.
+    0 < l ∧
+    n < 2 ** l ⇒
+    LENGTH (n2v n) ≤ l
+Proof
+  rpt strip_tac
+  >> gvs[n2v_def]
+  >> gvs[boolify_length]
+  >> gvs[LENGTH_n2l]
+  >> rw[]
+QED
+
+
+Theorem asdf:
+  parity_equations_to_state_machine [] = ARB
+Proof
+  PURE_REWRITE_TAC[parity_equations_to_state_machine_def]
+  >> simp[]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_wfmachine:
   ∀ps.
+    ps ≠ [] ⇒
     wfmachine (parity_equations_to_state_machine ps)
 Proof
+  rpt strip_tac
+  >> PURE_REWRITE_TAC[wfmachine_def]
+  >> conj_tac
+  >- gvs[parity_equations_to_state_machine_def]
+  >> conj_tac
+  >- (rpt strip_tac
+      >> gvs[parity_equations_to_state_machine_def]
+      >> rename1 ‘r.origin < 2 ** l’
+      >> irule v2n_lt_imp
+      >> gvs[LENGTH_TL]
+      >> gvs[length_zero_extend_2]
+      >> gvs[]
+            
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -125,7 +211,7 @@ Definition parity_equations_to_gen_state_machine_def:
       output_length := num_parity_equations : num;
     |>
 End
-*)
+ *)
 
 
 (* -------------------------------------------------------------------------- *)

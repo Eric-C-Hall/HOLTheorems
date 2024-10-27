@@ -1,3 +1,5 @@
+(* May be a good idea to use theorem provers to poke holes in existing practice.
+ In a way, disproving existing ideas is the "productive" and "novel" half of using theorem provers. Replicating pre-existing results is less novel *)
 
 (* REAL_ARITH_TAC *)
 
