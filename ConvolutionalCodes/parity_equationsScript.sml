@@ -6,8 +6,9 @@ val _ = new_theory "parity_equations";
 open arithmeticTheory
 open bitstringTheory;
 open listTheory;
-open numposrepTheory; (* LENGTH_n2l *)
 open logrootTheory; (* LOG2_LE_MONO *)
+open numposrepTheory; (* LENGTH_n2l *)
+open rich_listTheory;
 
 (* Standard libraries *)
 open dep_rewrite;
@@ -179,6 +180,64 @@ Proof
   >> gvs[SUC_LOG_LE]
 QED
 
+Theorem PAD_LEFT_SUC:
+  ∀c n ls.
+    PAD_LEFT c (SUC n) ls = (if LENGTH ls < SUC n then [c] else []) ⧺ PAD_LEFT c n ls
+Proof
+  rpt strip_tac
+  >> gvs[PAD_LEFT]
+  >> gvs[GSYM REPLICATE_GENLIST]
+  >> gvs[SUB]
+  >> rw[]
+QED
+
+Theorem zero_extend_suc:
+  ∀n bs.
+    zero_extend (SUC n) bs = (if LENGTH bs < SUC n then [F] else []) ⧺ (zero_extend n bs)
+Proof
+  rpt strip_tac
+  >> gvs[zero_extend_def]
+  >> gvs[PAD_LEFT_SUC]
+QED
+
+Theorem if_add_0_right:
+  ∀b l n.
+    (if b then l + n else l) = (l + if b then n else 0)
+Proof
+  rpt strip_tac
+  >> rw[]
+QED
+
+Theorem if_add:
+  ∀b l n m.
+    (if b then l + n else l + m) = (l + if b then n else m)
+Proof
+  rpt strip_tac
+  >> rw[]
+QED
+
+Theorem zero_extend_n2v_v2n:
+  ∀v.
+    v ≠ [] ⇒
+    zero_extend (LENGTH v) (n2v (v2n v)) = v
+Proof
+  Induct_on ‘v’ >> rpt strip_tac
+  >- gvs[]
+  >> Cases_on ‘v’ >> gvs[]
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >> simp[Once zero_extend_suc]
+  >> rw[]
+  >- (Cases_on ‘h’ >> gvs[]
+         
+      >> simp[Once v2n]
+      >> gvs[if_add_0_right]
+      >> rw[]
+      >> simp[zero_extend_def
+
+              
+              >> Cases_on ‘h’ >> gvs[bitify_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
@@ -203,7 +262,14 @@ Proof
       >> gvs[]
      )
   >> conj_tac
-     
+  >- (rpt strip_tac
+      >> gvs[parity_equations_to_state_machine_def]
+      >> qexistsl [‘v2n (F::(FRONT (n2v s)))’, ‘LAST (n2v s)’]
+      >> conj_tac
+      >- (
+       )
+      >> gvs[n2v_v2n]
+            
             
 QED
 
