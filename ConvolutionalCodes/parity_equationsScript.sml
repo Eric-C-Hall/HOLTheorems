@@ -2,19 +2,14 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "parity_equations";
 
-(* -------------------------------------------------------------------------- *)
-(* This theory is currently unused. It houses code to do with the parity      *)
-(* equations interpretation of convolutional codes.                           *)
-(* -------------------------------------------------------------------------- *)
+open state_machineTheory;
 
-(*
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* A parity equation is represented as a bit-string of which bits in the      *)
-(* window are included in the linear expression.                              *)
+(* A parity equation is represented as a bool list. The nth bit is true if    *)(* the nth bit in the sliding window is used in the linear equation.          *)
 (*                                                                            *)
 (* A parity equation can be equivalently represented as the same equation     *)
 (* with an arbitary number of zeros after it, so any parity equation can be   *)
@@ -22,91 +17,18 @@ val _ = new_theory "parity_equations";
 (* where we are provided with multiple equations of different lengths, pad    *)
 (* the shorter parity equations with F's at the end.                          *)
 (* -------------------------------------------------------------------------- *)
-Datatype:
-  (* Placeholder while waiting for better parity equation definition *)
-  parity_equation = <| temp_p : bool list; |>;
-
-  (* Why doesn't the following work: *)
-  (* parity_equation = bool list; *)
-  (* parity_equation = (min$bool list$list); *)
-  (* parity_equation = “:bool list”; *)
-  (* parity_equation = “(:bool list)”; *)
-  (* parity_equation = (“:min$bool list$list”); *)
-End
-
-(* type_of “a : bool list” *)
-
-Definition test_parity_equation_def:
-  test_parity_equation = <| temp_p := [T; T; T]|>
-End
-
-Definition test_parity_equation2_def:
-  test_parity_equation2 = <| temp_p := [F; T; T]|>
-End
-
-Definition test_parity_equations_def:
-  test_parity_equations = [test_parity_equation; test_parity_equation2]
-End
 
 (* -------------------------------------------------------------------------- *)
-(* Returns the length of a parity equation                                    *)
-(* -------------------------------------------------------------------------- *)
-Definition parity_equation_length_def:
-  parity_equation_length p = LENGTH p.temp_p
-End
-
-Theorem test_parity_equation_length:
-  parity_equation_length test_parity_equation = 3 ∧
-  parity_equation_length test_parity_equation2 = 3
-Proof
-  EVAL_TAC
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Returns the maximum length of a set of parity equations                    *)
-(* -------------------------------------------------------------------------- *)
-Definition parity_equations_max_length_def:
-  parity_equations_max_length [] = 0 ∧
-  parity_equations_max_length (p::ps) = MAX (parity_equation_length p) (parity_equations_max_length ps)
-End
-
-Theorem test_parity_equations_max_length:
-  parity_equations_max_length test_parity_equations = 3
-Proof
-  EVAL_TAC
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Treats a bitstring as a parity equation, and applies it to a bitstring     *)
-(* with a sufficiently large window length                                    *)
+(* Treats a bitstring as a parity equation, and applies it to a sufficiently  *)
+(* long bitstring                                                            *)
 (*                                                                            *)
 (* p::ps represents the bitstring that is being treated as a parity equation. *)
 (* bs represents the bitstring that the parity equation is applied to.        *)
 (* -------------------------------------------------------------------------- *)
-Definition apply_bitstring_as_parity_equation_def:
-  apply_bitstring_as_parity_equation [] bs = F ∧
-  apply_bitstring_as_parity_equation (p::ps) (b::bs) = ((p ∧ b) ⇎ (apply_bitstring_as_parity_equation ps bs))
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Applies a single parity equation to a bitstring with a sufficiently large  *)
-(* window length                                                              *)
-(* -------------------------------------------------------------------------- *)
 Definition apply_parity_equation_def:
-  apply_parity_equation p bs = apply_bitstring_as_parity_equation p.temp_p bs
+  apply_parity_equation [] bs = F ∧
+  apply_parity_equation (p::ps) (b::bs) = ((p ∧ b) ⇎ (apply_parity_equation ps bs))
 End
-
-Theorem test_apply_parity_equation:
-  apply_parity_equation <| temp_p := [T; F; T] |> [F; F; T] = T ∧
-  apply_parity_equation <| temp_p := [F; F; F] |> [T; T; T] = F ∧
-  apply_parity_equation <| temp_p := [T; T; T] |> [T; T; T] = T ∧
-  apply_parity_equation <| temp_p := [T; T; T] |> [T; F; T] = F ∧
-  apply_parity_equation <| temp_p := [T; T; T; F; F] |> [T; F; T; F; T] = F ∧
-  apply_parity_equation <| temp_p := [T; F; T; F; T] |> [F; F; F; T; T] = T ∧
-  apply_parity_equation <| temp_p := [T; T; T] |> [T; F; T; F; T] = F
-Proof
-  EVAL_TAC
-QED
 
 (* -------------------------------------------------------------------------- *)
 (* Applies a bunch of parity equations to a bitstring with a sufficiently     *)
@@ -115,6 +37,17 @@ QED
 Definition apply_parity_equations_def:
   apply_parity_equations [] bs = [] ∧
   apply_parity_equations (p::ps) bs = (apply_parity_equation p bs)::(apply_parity_equations ps bs)
+End
+
+Definition convolve_parity_equations_def:
+  convolve_parity_equations ps bs =
+  if (LENGTH bs < MAX LENGTH ps) then [] else
+    let
+      step_values = apply_parity_equations ps bs;
+      remaining_bitstring = DROP 1 bs;
+      remaining_values = convolve_parity_equations ps remaining_bitstring;
+    in
+      step_values ⧺ remaining_values
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -150,9 +83,6 @@ Proof
   EVAL_TAC
 QED
 
-
-
-
 (* -------------------------------------------------------------------------- *)
 (* Function for converting from a list of parity equations to a corresponding *)
 (* state machine                                                              *)
@@ -175,6 +105,36 @@ Definition parity_equations_to_gen_state_machine_def:
       output_length := num_parity_equations : num;
     |>
 End
-*)
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* Unit tests                                                                 *)
+(* -------------------------------------------------------------------------- *)
+
+Definition test_parity_equation_def:
+  test_parity_equation = [T; T; T]
+End
+
+Definition test_parity_equation2_def:
+  test_parity_equation2 = [F; T; T]
+End
+
+Definition test_parity_equations_def:
+  test_parity_equations = [test_parity_equation; test_parity_equation2]
+End
+
+
+Theorem test_apply_parity_equation:
+  apply_parity_equation [T; F; T] [F; F; T] = T ∧
+  apply_parity_equation [F; F; F] [T; T; T] = F ∧
+  apply_parity_equation [T; T; T] [T; T; T] = T ∧
+  apply_parity_equation [T; T; T] [T; F; T] = F ∧
+  apply_parity_equation [T; T; T; F; F] [T; F; T; F; T] = F ∧
+  apply_parity_equation [T; F; T; F; T] [F; F; F; T; T] = T ∧
+  apply_parity_equation [T; T; T] [T; F; T; F; T] = F
+Proof
+  EVAL_TAC
+QED
 
 val _ = export_theory();
