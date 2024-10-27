@@ -662,6 +662,8 @@ QED
 (*  will be run once during holmake to ensure correctness of the final        *)
 (*  combined binary)                                                          *)
 (* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* This num state machine corresponds to the convolutional code which has a   *)
 (* window size of 3, and creates two parity bits, the first of which is       *)
 (* formed by adding together all inputs, and the second of which is formed    *)
