@@ -1,3 +1,4 @@
+
 open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "trellis";
@@ -275,8 +276,9 @@ Definition vd_decode_def:
     vd_decode_to_state m bs best_state max_timestep
 End
 
-Definition get_num_errors_def:
-  get_num_errors m rs bs s = hamming_distance rs (vd_encode m bs s)
+(* TODO: obsolete - remove *)
+Definition get_num_errors_obsolete_def:
+  get_num_errors_obsolete m rs bs s = hamming_distance rs (vd_encode m bs s)
 End
 
 Theorem best_origin_is_valid[simp]:
@@ -513,15 +515,20 @@ Proof
   >> gvs[viterbi_trellis_node_slow_def]        
 QED
 
+(* TODO: rename get_num_errors to reflect the fact that now we are using hamming
+   distance of encode directly instead?
+
+   This theorem in particular can probably be removed and simply replaced with
+   doing vd_encode_append followed by hamming_distance_append_right
+ *)
 Theorem get_num_errors_append:
   ∀m rs bs bs' s.
     wfmachine m ∧
     s < m.num_states ∧
     LENGTH rs = (LENGTH bs + LENGTH bs') * m.output_length ⇒
-    get_num_errors m rs (bs ⧺ bs') s = get_num_errors m (TAKE (LENGTH bs * m.output_length) rs) bs s + get_num_errors m (DROP (LENGTH bs * m.output_length) rs) bs' (vd_encode_state m bs s) 
+    hamming_distance rs (vd_encode m (bs ⧺ bs') s) = hamming_distance (TAKE (LENGTH bs * m.output_length) rs) (vd_encode m bs s) + hamming_distance (DROP (LENGTH bs * m.output_length) rs) (vd_encode m bs' (vd_encode_state m bs s))
 Proof
   rpt strip_tac
-  >> gvs[get_num_errors_def]
   >> gvs[vd_encode_append]
   >> gvs[hamming_distance_append_right]
 QED
@@ -954,6 +961,11 @@ Proof
   >> gvs[vd_encode_state_snoc]
 QED
 
+Theorem vd_decode_to_state_zero[simp]:
+  ∀m bs s. vd_decode_to_state m bs s 0 = []
+Proof
+  gvs[vd_decode_to_state_def]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Describe the relationship between the function for calculating the number  *)
@@ -969,20 +981,19 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: use i instead of 0                                                   *)
 (* -------------------------------------------------------------------------- *)
+(* TODO: possibly rename to reflect the fact we are using hamming_distance and
+       vd_encode directly now instead of wrapping them in get_num_errors *)
 Theorem get_num_errors_get_num_errors_after_step_slow:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ∧
     is_reachable m 0 s t ∧
     LENGTH bs = t * m.output_length ⇒
-    get_num_errors m bs (vd_decode_to_state m bs s t) 0 =
+    hamming_distance bs (vd_encode m (vd_decode_to_state m bs s t) 0) =
     infnum_to_num
     (get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s))
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> gvs[]
-  >- (gvs[get_num_errors_def, get_num_errors_def, vd_encode_def]
-      >> gvs[get_num_errors_after_step_slow_def]
-     )
   (* Reduce SUC in LHS to allow usage of inductive hypothesis *)
   >> gvs[vd_decode_to_state_def_slow]
   >> gvs[SNOC_APPEND]
@@ -1023,8 +1034,6 @@ Proof
       >> gvs[viterbi_trellis_node_slow_def]
      )
   >> unabbrev_all_tac
-  (* Simplify left hand side to make it more similar to right hand side *)
-  >> gvs[get_num_errors_def]
   (* Simplify right hand side to make it more similar to left hand side:
      DROP (t * m.output_length) bs. *)
   >> gvs[relevant_input_def]
@@ -1049,7 +1058,7 @@ Theorem get_num_errors_after_step_slow_get_num_errors:
     LENGTH bs = (t + 1) * m.output_length ⇒
     infnum_to_num
     (get_num_errors_after_step_slow m bs (t + 1) r) =
-    get_num_errors m (TAKE (t * m.output_length) bs) (vd_decode_to_state m bs r.origin t) 0 + hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)) 
+    hamming_distance (TAKE (t * m.output_length) bs) (vd_encode m (vd_decode_to_state m bs r.origin t) 0) + hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)) 
 Proof
   rpt strip_tac
   (* Split up into the current step and the previous part *)
@@ -1342,7 +1351,7 @@ Proof
   EVAL_TAC
 QED*)
 
-Theorem get_num_errors_get_num_errors_after_step_slow_after_step_no_prev_data_test:
+Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data_test:
   ∀t r.
     t < 3 ∧
     r.origin < 4 ⇒
@@ -1406,7 +1415,7 @@ QED*)
 (* Test that the slow and fast versions of the function that calculates       *)
 (* errors in the trellis are equivalent for some simple examples.             *)
 (* -------------------------------------------------------------------------- *)
-Theorem get_num_errors_get_num_errors_after_step_slow_after_step_test:
+Theorem get_num_errors_after_step_slow_get_num_errors_after_step_test:
   ∀t r.
     t < 4 ∧
     r.origin < 4 ⇒

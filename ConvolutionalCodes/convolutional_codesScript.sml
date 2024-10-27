@@ -118,7 +118,7 @@ Theorem viterbi_correctness_general:
     LENGTH bs = t ∧
     LENGTH rs = m.output_length * t ∧
     vd_encode_state m bs 0 = s ⇒
-    get_num_errors m rs (vd_decode_to_state m rs s t) 0 ≤ get_num_errors m rs bs 0
+    hamming_distance rs (vd_encode m (vd_decode_to_state m rs s t) 0) ≤ hamming_distance rs (vd_encode m bs 0)
 Proof
   (* The plan:
      - use induction
@@ -178,7 +178,7 @@ Proof
   (* Show that taking the optimal path up until the last step provides a better
      result than taking an arbitrary path up until the last step. This uses
      the inductive hypothesis. *)
-  >> sg ‘step + get_num_errors m (TAKE indLength rs) (vd_decode_to_state m (TAKE indLength rs) (vd_encode_state m l 0) (LENGTH l)) 0 ≤ step + ind’
+  >> sg ‘step + hamming_distance (TAKE indLength rs) (vd_encode m (vd_decode_to_state m (TAKE indLength rs) (vd_encode_state m l 0) (LENGTH l)) 0) ≤ step + ind’
   >- (gvs[]
       >> gvs[Abbr ‘ind’]
       >> last_x_assum $ qspecl_then [‘l’, ‘TAKE indLength rs’] assume_tac
@@ -233,7 +233,6 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
   >> gvs[Abbr ‘LHS’, Abbr ‘step’, Abbr ‘optInd’]
   >> simp[Abbr ‘indLength’]
-  >> all_tac (* avoid adjacent comments by performing a no-op *)
   (* Simplify the RHS in the direction of the LHS *)
   >> gvs[Abbr ‘RHS’]
   >> gvs[Abbr ‘f’]
@@ -244,7 +243,6 @@ Proof
   (* Simplify relevant_input in the direction of DROP _ _ *)
   >> gvs[relevant_input_def]
   >> gvs[TAKE_LENGTH_TOO_LONG]
-  >> gvs[get_num_errors_def]
   >> gvs[hamming_distance_symmetric]
 QED
 
@@ -252,14 +250,14 @@ Theorem viterbi_correctness:
   ∀m bs rs.
     wfmachine m ∧
     LENGTH rs = m.output_length * LENGTH bs ⇒
-    get_num_errors m rs (vd_decode m rs) 0 ≤ get_num_errors m rs bs 0
+    hamming_distance rs (vd_encode m (vd_decode m rs) 0) ≤ hamming_distance rs (vd_encode m bs 0)
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
-  >> qmatch_goalsub_abbrev_tac ‘get_num_errors m rs (vd_decode_to_state m rs best_state _)’
+  >> qmatch_goalsub_abbrev_tac ‘(vd_decode_to_state m rs best_state _)’
   >> gvs[MULT_DIV] (* TODO: Should MULT_DIV be in the simp set already? *)
   >> qmatch_goalsub_abbrev_tac ‘best_state_best_path_errs ≤ actual_state_actual_path_errs’
-  >> qabbrev_tac ‘actual_state_best_path_errs = get_num_errors m rs (vd_decode_to_state m rs (vd_encode_state m bs 0) (LENGTH bs)) 0’
+  >> qabbrev_tac ‘actual_state_best_path_errs = hamming_distance rs (vd_encode m (vd_decode_to_state m rs (vd_encode_state m bs 0) (LENGTH bs)) 0)’
   >> qsuff_tac ‘best_state_best_path_errs ≤ actual_state_best_path_errs ∧
                 actual_state_best_path_errs ≤ actual_state_actual_path_errs’
   >- gvs[]
