@@ -130,7 +130,42 @@ QED
 
 (* Seems relevant: LOG2_PROPERTY *)
 
-Theorem n2v_length:
+Theorem LOG_POW_LT:
+  ∀n m b.
+    n ≠ 0 ∧
+    n < b ** m ⇒
+    LOG b n < m
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘n’,‘m’,‘b’] assume_tac (GEN_ALL LT_EXP_LOG)
+  >> gvs[]
+QED
+
+(* Potentially useful:
+
+ LT_EXP_LOG
+ LOG2_UNIQUE
+ LOG_DIV
+ LOG_EVAL
+ LOG_LE_MONO
+ LOG_POWER
+ LOG_TEST
+ LOG_THM
+ LOG_UNIQUE
+ TWO_EXP_LOG2_LE*)
+
+Theorem SUC_LOG_LE:
+  ∀n l b.
+    n ≠ 0 ∧
+    n < b ** l ⇒
+    SUC (LOG b n) ≤ l
+Proof
+  rpt strip_tac
+  >> gvs[GSYM LESS_EQ]
+  >> gvs[LOG_POW_LT]
+QED
+
+Theorem n2v_length_le:
   ∀n l.
     0 < l ∧
     n < 2 ** l ⇒
@@ -141,16 +176,8 @@ Proof
   >> gvs[boolify_length]
   >> gvs[LENGTH_n2l]
   >> rw[]
+  >> gvs[SUC_LOG_LE]
 QED
-
-
-Theorem asdf:
-  parity_equations_to_state_machine [] = ARB
-Proof
-  PURE_REWRITE_TAC[parity_equations_to_state_machine_def]
-  >> simp[]
-QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine generated from the parity equations is        *)
@@ -158,7 +185,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_wfmachine:
   ∀ps.
-    ps ≠ [] ⇒
+    0 < MAX_LIST (MAP LENGTH ps) ⇒
     wfmachine (parity_equations_to_state_machine ps)
 Proof
   rpt strip_tac
@@ -168,11 +195,15 @@ Proof
   >> conj_tac
   >- (rpt strip_tac
       >> gvs[parity_equations_to_state_machine_def]
-      >> rename1 ‘r.origin < 2 ** l’
+      >> qmatch_asmsub_abbrev_tac ‘r.origin < 2 ** l’
       >> irule v2n_lt_imp
       >> gvs[LENGTH_TL]
       >> gvs[length_zero_extend_2]
+      >> irule n2v_length_le
       >> gvs[]
+     )
+  >> conj_tac
+     
             
 QED
 
