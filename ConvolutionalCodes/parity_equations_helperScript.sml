@@ -302,5 +302,67 @@ QED
               *)
 
 
+(* -------------------------------------------------------------------------- *)
+(* These four theorems are probably a little messy: ADD_DIV_LEFT_EQ,          *)
+(* ADD_DIV_RIGHT_EQ, SUC_SUC_DIV_2, DIV_2_0. I say this because they are      *)
+(* strictly less general than ADD_DIV_ADD_DIV. However, I found it difficult  *)
+(* to use a more general theorem like ADD_DIV_ADD_DIV directly, so maybe they *)
+(* are useful anyway.                                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem ADD_DIV_LEFT_EQ:
+  ∀n m.
+    0 < m ⇒
+    (m + n) DIV m = n DIV m + 1
+Proof
+  rpt strip_tac
+  >> ‘m = 1 * m’ by gvs[]
+  >> pop_assum (fn th => PURE_REWRITE_TAC[Once th])
+  >> gvs[ADD_DIV_ADD_DIV]
+QED
+
+Theorem boolify_acc:
+  ∀a v.
+    boolify a v = boolify [] v ⧺ a
+Proof
+  Induct_on ‘v’ >> rpt strip_tac >> gvs[]
+  >- EVAL_TAC
+  >> PURE_REWRITE_TAC[boolify_def]
+  >> last_assum $ qspec_then ‘(h ≠ 0)::a’ assume_tac
+  >> last_x_assum $ qspec_then ‘[h ≠ 0]’ assume_tac
+  >> gvs[]
+QED
+
+Theorem ADD_DIV_RIGHT_EQ:
+  ∀n m.
+    0 < m ⇒
+    (n + m) DIV m = n DIV m + 1
+Proof
+  rpt strip_tac
+  >> gvs[ADD_COMM, ADD_DIV_LEFT_EQ]
+QED
+
+Theorem SUC_SUC_DIV_2:
+  ∀n.
+    SUC (SUC n) DIV 2 = (n DIV 2) + 1
+Proof
+  rpt strip_tac
+  >> gvs[ADD1]
+  >> gvs[ADD_DIV_RIGHT_EQ]
+QED
+
+Theorem DIV_2_0:
+  ∀n.
+    n DIV 2 = 0 ⇔ n = 0 ∨ n = 1
+Proof
+  rpt strip_tac
+  >> REVERSE EQ_TAC >> gvs[]
+  >- (rw[] >> EVAL_TAC)
+  >> rpt strip_tac
+  >> Cases_on ‘n’ >> gvs[]
+  >> Cases_on ‘n'’ >> gvs[]
+  >> gvs[SUC_SUC_DIV_2]
+QED
+
+
 val _ = export_theory();
 
