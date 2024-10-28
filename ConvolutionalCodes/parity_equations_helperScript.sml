@@ -1,0 +1,291 @@
+open HolKernel Parse boolLib bossLib;
+
+val _ = new_theory "parity_equations_helper";
+
+
+(* -------------------------------------------------------------------------- *)
+(* Note: There are two LOG2's. One is an overloading for logroot$LOG applied  *)
+(* to the value 2, and the other is bit$LOG. I only want to use logroot$LOG,  *)
+(* because that one can be evaluated using EVAL_TAC when applied to a         *)
+(* constant, whereas the other cannot.                                        *)
+(* -------------------------------------------------------------------------- *)
+
+Theorem v2n_lt_imp:
+  ∀v l.
+    LENGTH v ≤ l ⇒ v2n v < 2 ** l
+Proof
+  rpt strip_tac
+  >> ‘2 ** LENGTH v ≤ 2 ** l’ by gvs[]
+  >> ‘v2n v < 2 ** LENGTH v’ by gvs[v2n_lt]
+  >> metis_tac[LESS_LESS_EQ_TRANS]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* In my opinion, this is a better candidate to be length_zero_extend,        *)
+(* largely because it is an unconditional rewrite rule, whereas               *)
+(* length_zero_extend is conditional                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem length_zero_extend_2:
+  ∀bs l.
+    LENGTH (zero_extend l bs) = MAX (LENGTH bs) l
+Proof
+  rpt strip_tac
+  >> Induct_on ‘l’ >> gvs[zero_extend_def, PAD_LEFT]
+  >> gvs[ADD1]
+  >> gvs[MAX_DEF]
+QED
+
+Theorem boolify_length:
+  ∀a v.
+    LENGTH (boolify a v) = LENGTH a + LENGTH v
+Proof
+  Induct_on ‘v’ >> gvs[boolify_def]
+QED
+
+(* Seems relevant: LOG2_PROPERTY *)
+
+Theorem LOG_POW_LT:
+  ∀n m b.
+    n ≠ 0 ∧
+    n < b ** m ⇒
+    LOG b n < m
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘n’,‘m’,‘b’] assume_tac (GEN_ALL LT_EXP_LOG)
+  >> gvs[]
+QED
+
+(* Potentially useful:
+
+ LT_EXP_LOG
+ LOG2_UNIQUE
+ LOG_DIV
+ LOG_EVAL
+ LOG_LE_MONO
+ LOG_POWER
+ LOG_TEST
+ LOG_THM
+ LOG_UNIQUE
+ TWO_EXP_LOG2_LE*)
+
+Theorem SUC_LOG_LE:
+  ∀n l b.
+    n ≠ 0 ∧
+    n < b ** l ⇒
+    SUC (LOG b n) ≤ l
+Proof
+  rpt strip_tac
+  >> gvs[GSYM LESS_EQ]
+  >> gvs[LOG_POW_LT]
+QED
+
+Theorem n2v_length_le:
+  ∀n l.
+    0 < l ∧
+    n < 2 ** l ⇒
+    LENGTH (n2v n) ≤ l
+Proof
+  rpt strip_tac
+  >> gvs[n2v_def]
+  >> gvs[boolify_length]
+  >> gvs[LENGTH_n2l]
+  >> rw[]
+  >> gvs[SUC_LOG_LE]
+QED
+
+Theorem PAD_LEFT_SUC:
+  ∀c n ls.
+    PAD_LEFT c (SUC n) ls = (if LENGTH ls < SUC n then [c] else []) ⧺ PAD_LEFT c n ls
+Proof
+  rpt strip_tac
+  >> gvs[PAD_LEFT]
+  >> gvs[GSYM REPLICATE_GENLIST]
+  >> gvs[SUB]
+  >> rw[]
+QED
+
+Theorem zero_extend_suc:
+  ∀n bs.
+    zero_extend (SUC n) bs = (if LENGTH bs < SUC n then [F] else []) ⧺ (zero_extend n bs)
+Proof
+  rpt strip_tac
+  >> gvs[zero_extend_def]
+  >> gvs[PAD_LEFT_SUC]
+QED
+
+Theorem if_add_0_right:
+  ∀b l n.
+    (if b then l + n else l) = (l + if b then n else 0)
+Proof
+  rpt strip_tac
+  >> rw[]
+QED
+
+Theorem if_add:
+  ∀b l n m.
+    (if b then l + n else l + m) = (l + if b then n else m)
+Proof
+  rpt strip_tac
+  >> rw[]
+QED
+
+Theorem v2n_zero_extend:
+  ∀ l bs.
+    v2n (zero_extend l bs) = v2n bs 
+Proof
+  rpt strip_tac
+  >> Induct_on ‘l’
+  >- gvs[zero_extend_def, PAD_LEFT]
+  >> gvs[zero_extend_suc]
+  >> gvs[v2n_APPEND]
+  >> rw[v2n]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Want to prove: natural numbers between 2 ** (l - 1) (inclusive) and        *)
+(* 2 ** l (exclusive) correspond precisely to vectors of length l that start  *)
+(* with 1, except in the special case where 0 is considered to have length 1  *)
+(* despite not starting with 1.                                               *)
+(*                                                                            *)
+(* That is:                                                                   *)
+(* - correct_length v ==> correct_size (v2n v)                                *)
+(* - correct_length v <== correct_size (v2n v)                                *)
+(* - correct_length (n2v n) ==> correct_size n                                *)
+(* - correct_length (n2v n) <== correct_size n                                *)
+(*                                                                            *)
+(* I'm not 100% certain of the specifics, but I believe that an upper bound   *)
+(* one direction can be shown equivalent to a lower bound in the other        *)
+(* direction or something.                                                    *)
+(*                                                                            *)
+(* Alternatively want to prove (and then the above would follow): natural     *)
+(* numbers less than 2 ** l correspond precisely to vectors of length at      *)
+(* most l.                                                                    *)
+(*                                                                            *)
+(* That is:                                                                   *)
+(* - upper_bound_length v ==> upper_bound_size (v2n v)                        *)
+(* - upper_bound_length v <== upper_bound_size (v2n v)                        *)
+(* - upper_bound_length (n2v n) ==> upper_bound_size n                        *)
+(* - upper_bound_length (n2v n) <== upper_bound_size n                        *)
+(*                                                                            *)
+(* We already have:                                                           *)
+(* - upper_bound_length v ==> upper_bound_size (v2n v)                        *)
+(*     (from v2n_lt_imp/v2n_lt)                                               *)
+(* - upper_bound_length (n2v n) <== upper_bound_size n                        *)
+(*     (from n2v_length_le)                                                   *)
+(*                                                                            *)
+(* Thus, we want to prove one of the remaining implications, from which the   *)
+(* other will likely follow.                                                  *)
+(* -------------------------------------------------------------------------- *)
+
+Theorem v2n_zero:
+  ∀v.
+    v2n v = 0 ⇔ (∃n. v = REPLICATE n F)
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >> Induct_on ‘v’ >> gvs[] >> rpt strip_tac
+      >> Cases_on ‘h’ >> gvs[]
+      >- gvs[v2n]
+      >> gvs[v2n]
+      >> qexists ‘SUC n’ >> gvs[]
+     )
+  >> disch_tac
+  >> Induct_on ‘v’ >> gvs[v2n]
+  >> rpt strip_tac
+  >> rw[]
+  >- (Cases_on ‘n’ >> gvs[REPLICATE])
+  >> Cases_on ‘n’ >> gvs[REPLICATE]
+  >> pop_assum irule
+  >> qexists ‘n'’ >> gvs[]
+QED
+
+(* For some reason, l2n takes input in little-endian form whereas v2n takes
+   input in big-endian form. bitify reverses the order of its input in the
+   process of performing the conversion. *)
+
+(* 
+Theorem v2n_lt_imp2:
+  ∀v l.
+    v ≠ [F] ∧
+    v2n v < 2 ** l ⇒
+    LENGTH v ≤ l
+Proof
+  Induct_on ‘l’ >> rpt strip_tac >> gvs[]
+  >- (Cases_on ‘v’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[v2n]
+      >> Cases_on ‘h’ >> gvs[]
+      >> Cases_on ‘h'’ >> gvs[]
+
+
+
+  
+                             Induct_on ‘v’ >> rpt strip_tac >> gvs[]
+      >> gvs[v2n]
+      >> sg ‘v2n v < 2 ** l’
+      >- (qmatch_asmsub_abbrev_tac ‘m < 2 ** l’
+          >> qsuff_tac ‘v2n v ≤ m’
+          >- (rpt strip_tac
+              >> gvs[])
+          >> unabbrev_all_tac
+          >> Cases_on ‘h’ >> gvs[]
+         )
+      >> gvs[]
+      >> last_assum $ qspec_then ‘l’ assume_tac
+      >> last_x_assum assume_tac
+      >> qmatch_asmsub_abbrev_tac ‘donotexpand’
+      >> gvs[]
+            
+
+            
+      >> rw[]
+      >> gvs[]
+
+            
+      >> Cases_on ‘l’  >> gvs[]
+      >- (gvs[v2n]
+          >> Cases_on ‘h’ >> gvs[]
+          >> gvs[v2n_zero]
+          >> last_x_assum $ qspec_then ‘0’ assume_tac
+          >> gvs[]
+          >> Cases_on ‘n’ >> gvs[]
+QED*)
+
+Theorem v2n_lt_iff:
+  v ≠ [F] ⇒
+  (v2n v < 2 ** l ⇔ LENGTH v ≤ l)
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> gvs[v2n_lt_imp, v2n_lt_imp2]
+QED
+
+(*
+Theorem zero_extend_n2v_v2n:
+  ∀v.
+    v ≠ [] ⇒
+    zero_extend (LENGTH v) (n2v (v2n v)) = v
+Proof
+  Induct_on ‘v’ >> rpt strip_tac
+  >- gvs[]
+  >> Cases_on ‘v’ >> gvs[]
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >> simp[Once zero_extend_suc]
+  >> 
+
+  
+  >> rw[]
+  >- (Cases_on ‘h’ >> gvs[]
+                         
+      >> simp[Once v2n]
+      >> gvs[if_add_0_right]
+      >> rw[]
+      >> simp[zero_extend_def
+
+              
+              >> Cases_on ‘h’ >> gvs[bitify_def]
+QED
+              *)
+
+
+val _ = export_theory();
+
