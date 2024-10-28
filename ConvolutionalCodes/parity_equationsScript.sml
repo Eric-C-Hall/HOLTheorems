@@ -4,11 +4,13 @@ val _ = new_theory "parity_equations";
 
 (* Standard theories *)
 open arithmeticTheory
-open bitstringTheory;
 open listTheory;
+open rich_listTheory;
+
+(* Less commonly used standard theories *)
 open logrootTheory; (* LOG2_LE_MONO *)
 open numposrepTheory; (* LENGTH_n2l *)
-open rich_listTheory;
+open bitstringTheory;
 
 (* Standard libraries *)
 open dep_rewrite;
@@ -73,7 +75,6 @@ Termination
   >> Cases_on ‘bs’ >> gvs[]
 End
 
-
 (* -------------------------------------------------------------------------- *)
 (* n2v chooses n2v 0 to be [F], however, this makes many proofs messy, because*)
 (* this is the only number it creates with a leading F; it is treating 0 in a *)
@@ -88,12 +89,6 @@ Definition n2v_2_def:
   n2v_2 0 = [] ∧
   n2v_2 (SUC n) = SNOC ((SUC n) MOD 2 = 1) (n2v_2 ((SUC n) DIV 2))
 End
-
-
-Definition num_to_state_def:
-End
-
-Definition state_to_num_def
 
 Definition parity_equations_to_state_machine_def:
   parity_equations_to_state_machine ps =
