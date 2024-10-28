@@ -19,6 +19,9 @@ open dep_rewrite;
 open state_machineTheory;
 open parity_equations_helperTheory;
 
+(* My libraries *)
+open donotexpandLib;
+
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
 (* -------------------------------------------------------------------------- *)
@@ -91,6 +94,11 @@ End
 (*                                                                            *)
 (* We use big-endian because to a mathematician that is more natural,         *)
 (* although this may mean some definitions are less natural.                  *)
+(*                                                                            *)
+(* Disadvantage of this definition: errant SUC. However, this is still better *)
+(* than using if n = 0 then [] else ... <recursive call> ..., because the     *)
+(* if-then-else definition has the issue that when used as a rewrite rule, it *)
+(* will enter an infinite loop of rewrites.                                   *)
 (* -------------------------------------------------------------------------- *)
 Definition n2v_2_def:
   n2v_2 0 = [] ∧
@@ -114,21 +122,111 @@ Definition parity_equations_to_state_machine_def:
   |>
 End
 
+(* Note: this can have issues where when used as a rewrite rule, it will enter
+   an infinite loop of rewrites, which is why it isn't used as the original
+   definition. However, it's still useful if the input isn't of the form
+   (SUC n) or of the form 0, and we still want to expand the function anyway. *)
+Theorem n2v_2_expand:
+  ∀n.
+    n2v_2 n = if n = 0 then [] else SNOC (n MOD 2 = 1) (n2v_2 (n DIV 2))
+Proof
+  Cases_on ‘n’
+  >> gvs[n2v_2_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* These four theorems are probably a little messy: ADD_DIV_LEFT_EQ,          *)
+(* ADD_DIV_RIGHT_EQ, SUC_SUC_DIV_2, DIV_2_0. I say this because they are      *)
+(* strictly less general than ADD_DIV_ADD_DIV. However, I found it difficult  *)
+(* to use a more general theorem like ADD_DIV_ADD_DIV directly, so maybe they *)
+(* are useful anyway.                                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem ADD_DIV_LEFT_EQ:
+  ∀n m.
+    0 < m ⇒
+    (m + n) DIV m = n DIV m + 1
+Proof
+  rpt strip_tac
+  >> ‘m = 1 * m’ by gvs[]
+  >> pop_assum (fn th => PURE_REWRITE_TAC[Once th])
+  >> gvs[ADD_DIV_ADD_DIV]
+QED
+
+Theorem ADD_DIV_RIGHT_EQ:
+  ∀n m.
+    0 < m ⇒
+    (n + m) DIV m = n DIV m + 1
+Proof
+  rpt strip_tac
+  >> gvs[ADD_COMM, ADD_DIV_LEFT_EQ]
+QED
+
+Theorem SUC_SUC_DIV_2:
+  ∀n.
+    SUC (SUC n) DIV 2 = (n DIV 2) + 1
+Proof
+  rpt strip_tac
+  >> gvs[ADD1]
+  >> gvs[ADD_DIV_RIGHT_EQ]
+QED
+
+Theorem DIV_2_0:
+  ∀n.
+    n DIV 2 = 0 ⇔ n = 0 ∨ n = 1
+Proof
+  rpt strip_tac
+  >> REVERSE EQ_TAC >> gvs[]
+  >- (rw[] >> EVAL_TAC)
+  >> rpt strip_tac
+  >> Cases_on ‘n’ >> gvs[]
+  >> Cases_on ‘n'’ >> gvs[]
+  >> gvs[SUC_SUC_DIV_2]
+QED
+
+Theorem boolify_acc:
+  ∀a v.
+    boolify a v = boolify [] v ⧺ a
+Proof
+  Induct_on ‘v’ >> rpt strip_tac >> gvs[]
+  >- EVAL_TAC
+  >> PURE_REWRITE_TAC[boolify_def]
+  >> last_assum $ qspec_then ‘(h ≠ 0)::a’ assume_tac
+  >> last_x_assum $ qspec_then ‘[h ≠ 0]’ assume_tac
+  >> gvs[]
+QED
+
 Theorem n2v_2_n2v:
   ∀n.
     n2v_2 n = (if n = 0 then [] else n2v n)
 Proof
   rpt strip_tac
   >> rw[n2v_2_def]
-  >> Cases_on ‘n’ >> gvs[]
-  >> completeInduct_on ‘n'’
-  >> simp[n2v_2_def]
-  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
-
-               qspec_then ‘SUC n' DIV 2’ assume_tac
+  >> completeInduct_on ‘n’
+  >> rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[n2v_2_expand]
+  >> rw[]
+  >> last_x_assum $ qspec_then ‘n DIV 2’ assume_tac
   >> gvs[]
-        
-        
+  >> Cases_on ‘n DIV 2 = 0’ >> gvs[]
+  >- (gvs[DIV_2_0]
+      >> EVAL_TAC
+     )
+  >> gvs[n2v_def]
+  >> irule EQ_SYM
+  >> PURE_REWRITE_TAC[Once n2l_def]
+  >> gvs[]
+  >> rw[]
+  >- (Cases_on ‘n’ >> gvs[]
+      >> Cases_on ‘n'’ >> gvs[])
+  >> gvs[boolify_def]
+  >> qspec_then ‘[n MOD 2 ≠ 0]’ assume_tac boolify_acc
+  >> gvs[]
+  >> Cases_on ‘n MOD 2’ >> gvs[]
+  >> Cases_on ‘n'’ >> gvs[]
+  >> gvs[ADD1]
+  >> ‘n MOD 2 < 2’ by gvs[]
+  >> ‘n'' + 2 < 2’ by gvs[]
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
