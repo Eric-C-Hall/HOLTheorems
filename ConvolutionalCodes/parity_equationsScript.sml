@@ -168,13 +168,24 @@ Proof
   >> gvs[]
 QED
 
+Theorem n2v_2_length_le:
+  ∀n l.
+    n < 2 ** l ⇒ LENGTH (n2v_2 n) ≤ l
+Proof
+  rpt strip_tac
+  >> gvs[n2v_2_n2v]
+  >> Cases_on ‘n = 0’ >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[n2v_length_le]
+  >> gvs[]
+  >> Cases_on ‘l’ >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_wfmachine:
   ∀ps.
-    0 < MAX_LIST (MAP LENGTH ps) ⇒
     wfmachine (parity_equations_to_state_machine ps)
 Proof
   rpt strip_tac
@@ -188,7 +199,7 @@ Proof
       >> irule v2n_lt_imp
       >> gvs[LENGTH_TL]
       >> gvs[length_zero_extend_2]
-      >> irule n2v_length_le
+      >> irule n2v_2_length_le
       >> gvs[]
      )
   >> conj_tac
