@@ -17,6 +17,7 @@ open dep_rewrite;
 
 (* My theories *)
 open state_machineTheory;
+open useful_theoremsTheory;
 
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
@@ -81,6 +82,12 @@ End
 (* very special way. My version (called n2v_2) chooses n2v 0 to be [], which  *)
 (* is more consistent with how all the other numbers have their leading       *)
 (* zeroes/F's removed, and leads to many nicer proofs.                        *)
+(*                                                                            *)
+(* One advantage is that it allows the state machine converted from parity    *)
+(* equations to be a valid state machine even if all input parity equations   *)
+(* have length 0 (or at least I think it does. It certainly removes some      *)
+(* barriers.) Another advantage is that it ensures that the equation          *)
+(* LENGTH (n2v_2 n) ≤ 2 **                                                    *)
 (*                                                                            *)
 (* We use big-endian because to a mathematician that is more natural,         *)
 (* although this may mean some definitions are less natural.                  *)
