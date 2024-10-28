@@ -2,6 +2,21 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "parity_equations_helper";
 
+(* Standard theories *)
+open arithmeticTheory
+open listTheory;
+open rich_listTheory;
+
+(* Less commonly used standard theories *)
+open logrootTheory; (* LOG2_LE_MONO *)
+open numposrepTheory; (* LENGTH_n2l *)
+open bitstringTheory;
+
+(* Standard libraries *)
+open dep_rewrite;
+
+(* My theories *)
+open state_machineTheory;
 
 (* -------------------------------------------------------------------------- *)
 (* Note: There are two LOG2's. One is an overloading for logroot$LOG applied  *)
@@ -251,13 +266,13 @@ Proof
           >> Cases_on ‘n’ >> gvs[]
 QED*)
 
-Theorem v2n_lt_iff:
+(*Theorem v2n_lt_iff:
   v ≠ [F] ⇒
   (v2n v < 2 ** l ⇔ LENGTH v ≤ l)
 Proof
   rpt strip_tac
   >> EQ_TAC >> gvs[v2n_lt_imp, v2n_lt_imp2]
-QED
+QED*)
 
 (*
 Theorem zero_extend_n2v_v2n:
