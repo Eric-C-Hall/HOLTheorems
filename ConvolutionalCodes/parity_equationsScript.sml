@@ -73,13 +73,35 @@ Termination
   >> Cases_on ‘bs’ >> gvs[]
 End
 
+
+(* -------------------------------------------------------------------------- *)
+(* n2v chooses n2v 0 to be [F], however, this makes many proofs messy, because*)
+(* this is the only number it creates with a leading F; it is treating 0 in a *)
+(* very special way. My version (called n2v_2) chooses n2v 0 to be [], which  *)
+(* is more consistent with how all the other numbers have their leading       *)
+(* zeroes/F's removed, and leads to many nicer proofs.                        *)
+(*                                                                            *)
+(* We use big-endian because to a mathematician that is more natural,         *)
+(* although this may mean some definitions are less natural.                  *)
+(* -------------------------------------------------------------------------- *)
+Definition n2v_2_def:
+  n2v_2 0 = [] ∧
+  n2v_2 (SUC n) = SNOC ((SUC n) MOD 2 = 1) (n2v_2 ((SUC n) DIV 2))
+End
+
+
+Definition num_to_state_def:
+End
+
+Definition state_to_num_def
+
 Definition parity_equations_to_state_machine_def:
   parity_equations_to_state_machine ps =
   <|
     num_states := 2 ** (MAX_LIST (MAP LENGTH ps));
     transition_fn := λr.
                        let
-                         r_vec = zero_extend (MAX_LIST (MAP LENGTH ps)) (n2v (r.origin))
+                         r_vec = zero_extend (MAX_LIST (MAP LENGTH ps)) (n2v_2 (r.origin))
                        in
                          <|
                            destination := v2n (TL (SNOC r.input r_vec));
@@ -89,6 +111,34 @@ Definition parity_equations_to_state_machine_def:
     output_length := LENGTH ps;
   |>
 End
+
+Theorem n2v_2_n2v:
+  ∀n.
+    n2v_2 n = (if n = 0 then [] else n2v n)
+Proof
+  rpt strip_tac
+  >> rw[n2v_2_def]
+  >> Cases_on ‘n’ >> gvs[]
+  >> completeInduct_on ‘n'’
+  >> simp[n2v_2_def]
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+
+               qspec_then ‘SUC n' DIV 2’ assume_tac
+  >> gvs[]
+        
+        
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* We want to be sure that n2v_2 is evaluable                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem n2v_2_test:
+  n2v_2 22 = [T; F; T; T; F]
+Proof
+  EVAL_TAC
+QED
+
+
 
 (* -------------------------------------------------------------------------- *)
 (* Note: There are two LOG2's. One is an overloading for logroot$LOG applied  *)
@@ -287,18 +337,59 @@ Proof
   >> qexists ‘n'’ >> gvs[]
 QED
 
+(* For some reason, l2n takes input in little-endian form whereas v2n takes
+   input in big-endian form. bitify reverses the order of its input in the
+   process of performing the conversion. *)
+
 Theorem v2n_lt_imp2:
   ∀v l.
-    v ≠ [F] ⇒
-    v2n v < 2 ** l ⇒ LENGTH v ≤ l
+    v ≠ [F] ∧
+    v2n v < 2 ** l ⇒
+    LENGTH v ≤ l
 Proof
-  Induct_on ‘v’ >> rpt strip_tac >> gvs[]
-  >> Cases_on ‘l’  >> gvs[]
-  >- (gvs[v2n] >> Cases_on ‘h’ >> gvs[] >> sg ‘v = []’ >> gvs[v2n]
+  Induct_on ‘l’ >> rpt strip_tac >> gvs[]
+  >- (Cases_on ‘v’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[v2n]
+      >> Cases_on ‘h’ >> gvs[]
+      >> Cases_on ‘h'’ >> gvs[]
+
+
+
+  
+                             Induct_on ‘v’ >> rpt strip_tac >> gvs[]
+      >> gvs[v2n]
+      >> sg ‘v2n v < 2 ** l’
+      >- (qmatch_asmsub_abbrev_tac ‘m < 2 ** l’
+          >> qsuff_tac ‘v2n v ≤ m’
+          >- (rpt strip_tac
+              >> gvs[])
+          >> unabbrev_all_tac
+          >> Cases_on ‘h’ >> gvs[]
+         )
+      >> gvs[]
+      >> last_assum $ qspec_then ‘l’ assume_tac
+      >> last_x_assum assume_tac
+      >> qmatch_asmsub_abbrev_tac ‘donotexpand’
+      >> gvs[]
+            
+
+            
+      >> rw[]
+      >> gvs[]
+
+            
+      >> Cases_on ‘l’  >> gvs[]
+      >- (gvs[v2n]
+          >> Cases_on ‘h’ >> gvs[]
+          >> gvs[v2n_zero]
+          >> last_x_assum $ qspec_then ‘0’ assume_tac
+          >> gvs[]
+          >> Cases_on ‘n’ >> gvs[]
 QED
 
 Theorem v2n_lt_iff:
-  v2n v < 2 ** l ⇔ LENGTH v ≤ l
+  v ≠ [F] ⇒
+  (v2n v < 2 ** l ⇔ LENGTH v ≤ l)
 Proof
   rpt strip_tac
   >> EQ_TAC >> gvs[v2n_lt_imp, v2n_lt_imp2]
