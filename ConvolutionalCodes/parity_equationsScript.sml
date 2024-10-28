@@ -216,6 +216,94 @@ Proof
   >> rw[]
 QED
 
+Theorem v2n_zero_extend:
+  ∀ l bs.
+    v2n (zero_extend l bs) = v2n bs 
+Proof
+  rpt strip_tac
+  >> Induct_on ‘l’
+  >- gvs[zero_extend_def, PAD_LEFT]
+  >> gvs[zero_extend_suc]
+  >> gvs[v2n_APPEND]
+  >> rw[v2n]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Want to prove: natural numbers between 2 ** (l - 1) (inclusive) and        *)
+(* 2 ** l (exclusive) correspond precisely to vectors of length l that start  *)
+(* with 1, except in the special case where 0 is considered to have length 1  *)
+(* despite not starting with 1.                                               *)
+(*                                                                            *)
+(* That is:                                                                   *)
+(* - correct_length v ==> correct_size (v2n v)                                *)
+(* - correct_length v <== correct_size (v2n v)                                *)
+(* - correct_length (n2v n) ==> correct_size n                                *)
+(* - correct_length (n2v n) <== correct_size n                                *)
+(*                                                                            *)
+(* I'm not 100% certain of the specifics, but I believe that an upper bound   *)
+(* one direction can be shown equivalent to a lower bound in the other        *)
+(* direction or something.                                                    *)
+(*                                                                            *)
+(* Alternatively want to prove (and then the above would follow): natural     *)
+(* numbers less than 2 ** l correspond precisely to vectors of length at      *)
+(* most l.                                                                    *)
+(*                                                                            *)
+(* That is:                                                                   *)
+(* - upper_bound_length v ==> upper_bound_size (v2n v)                        *)
+(* - upper_bound_length v <== upper_bound_size (v2n v)                        *)
+(* - upper_bound_length (n2v n) ==> upper_bound_size n                        *)
+(* - upper_bound_length (n2v n) <== upper_bound_size n                        *)
+(*                                                                            *)
+(* We already have:                                                           *)
+(* - upper_bound_length v ==> upper_bound_size (v2n v)                        *)
+(*     (from v2n_lt_imp/v2n_lt)                                               *)
+(* - upper_bound_length (n2v n) <== upper_bound_size n                        *)
+(*     (from n2v_length_le)                                                   *)
+(*                                                                            *)
+(* Thus, we want to prove one of the remaining implications, from which the   *)
+(* other will likely follow.                                                  *)
+(* -------------------------------------------------------------------------- *)
+
+Theorem v2n_zero:
+  ∀v.
+    v2n v = 0 ⇔ (∃n. v = REPLICATE n F)
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >> Induct_on ‘v’ >> gvs[] >> rpt strip_tac
+      >> Cases_on ‘h’ >> gvs[]
+      >- gvs[v2n]
+      >> gvs[v2n]
+      >> qexists ‘SUC n’ >> gvs[]
+     )
+  >> disch_tac
+  >> Induct_on ‘v’ >> gvs[v2n]
+  >> rpt strip_tac
+  >> rw[]
+  >- (Cases_on ‘n’ >> gvs[REPLICATE])
+  >> Cases_on ‘n’ >> gvs[REPLICATE]
+  >> pop_assum irule
+  >> qexists ‘n'’ >> gvs[]
+QED
+
+Theorem v2n_lt_imp2:
+  ∀v l.
+    v ≠ [F] ⇒
+    v2n v < 2 ** l ⇒ LENGTH v ≤ l
+Proof
+  Induct_on ‘v’ >> rpt strip_tac >> gvs[]
+  >> Cases_on ‘l’  >> gvs[]
+  >- (gvs[v2n] >> Cases_on ‘h’ >> gvs[] >> sg ‘v = []’ >> gvs[v2n]
+QED
+
+Theorem v2n_lt_iff:
+  v2n v < 2 ** l ⇔ LENGTH v ≤ l
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> gvs[v2n_lt_imp, v2n_lt_imp2]
+QED
+
 Theorem zero_extend_n2v_v2n:
   ∀v.
     v ≠ [] ⇒
@@ -226,9 +314,12 @@ Proof
   >> Cases_on ‘v’ >> gvs[]
   >- (Cases_on ‘h’ >> EVAL_TAC)
   >> simp[Once zero_extend_suc]
+  >> 
+
+  
   >> rw[]
   >- (Cases_on ‘h’ >> gvs[]
-         
+                         
       >> simp[Once v2n]
       >> gvs[if_add_0_right]
       >> rw[]
