@@ -538,4 +538,30 @@ Proof
   EVAL_TAC
 QED
 
+Theorem parity_equations_to_state_machine_equivalent_test:
+  ∀bs.
+    LENGTH bs < 8 ⇒
+    convolve_parity_equations test_parity_equations bs = vd_encode (parity_equations_to_state_machine test_parity_equations) bs 0
+Proof
+  rpt strip_tac
+  >> Cases_on ‘bs’
+  >- EVAL_TAC
+  >> Cases_on ‘t’
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >> Cases_on ‘t'’
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >> Cases_on ‘t’
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >> Cases_on ‘t'’
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >> Cases_on ‘t’
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >> Cases_on ‘t'’
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >> Cases_on ‘t’
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >> Cases_on ‘t'’
+  >- (Cases_on ‘h’ >> EVAL_TAC)
+QED
+
 val _ = export_theory();
