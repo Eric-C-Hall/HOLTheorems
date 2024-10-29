@@ -63,6 +63,14 @@ Definition apply_parity_equations_def:
   apply_parity_equations (p::ps) bs = (apply_parity_equation p bs)::(apply_parity_equations ps bs)
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Convolves a list of parity equations over an input bitstring.              *)
+(*                                                                            *)
+(* Pads the input bitstring to the right with zeroes so that the parity       *)
+(* equations can be applied with the left of the window starting at each      *)
+(* element. This simplifies the implementation, and it is always possible to  *)
+(* drop the last elements that were generated later.                          *)
+(* -------------------------------------------------------------------------- *)
 Definition convolve_parity_equations_def:
   convolve_parity_equations ps [] = [] ∧
   convolve_parity_equations ps (b::bs) =
