@@ -63,11 +63,17 @@ Definition apply_parity_equations_def:
 End
 
 Definition convolve_parity_equations_def:
-  convolve_parity_equations ps bs =
   (* Note: if the window length is 0, then LENGTH bs < window_length will
        never be true and thus we will never terminate. Therefore, we also
-       terminate if bs = []. *)
-  if (LENGTH bs < MAX_LIST (MAP LENGTH ps) ∨ bs = []) then [] else
+       terminate if bs = [].
+.
+       Also, requiring our input to be of the form (b::bs) in order for
+       the recursive definition to be applicable is helpful in preventing
+       infinite loops when this definition is used as a rewrite rule.
+   *)
+  convolve_parity_equations ps [] = [] ∧
+  convolve_parity_equations ps (b::bs) =
+  if (LENGTH bs < MAX_LIST (MAP LENGTH ps)) then [] else
     let
       step_values = apply_parity_equations ps bs;
       remaining_bitstring = DROP 1 bs;
@@ -449,8 +455,11 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_equivalent:
   ∀ps bs.
-    convolve ps bs = vd_encode (parity_equations_to_state_machine ps) bs 0
+    convolve_parity_equations ps bs = vd_encode (parity_equations_to_state_machine ps) bs 0
 Proof
+  rpt strip_tac
+  >> gvs[convolve_parity_equations_def]
+  >> gvs[parity_equations_to_state_machine_def]
 QED
 
 (* TODO: this uses general state machines, which I no longer use in order to
