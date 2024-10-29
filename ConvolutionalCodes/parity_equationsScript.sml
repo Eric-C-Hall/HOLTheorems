@@ -323,12 +323,26 @@ Proof
   >> gvs[zero_extend_def]
 QED
 
-Theorem zero_extend_empty[simp]:
+Theorem zero_extend_equals_empty[simp]:
   ∀n bs.
     zero_extend n bs = [] ⇔ n = 0 ∧ bs = []
 Proof
   rpt strip_tac
   >> Cases_on ‘n’ >> gvs[]
+  >> gvs[zero_extend_suc]
+  >> rw[]
+  >> Cases_on ‘bs’ >> gvs[]
+  >> Induct_on ‘n'’ >> gvs[zero_extend_suc]
+QED
+
+(* our vector must start with true because leading zeros have no impact on
+  v2n but do increase the length of v *)
+Theorem le_v2n:
+  ∀v.
+    2 ** (LENGTH v) ≤ v2n (T::v)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘v’ >> gvs[v2n]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -409,7 +423,16 @@ Proof
       >> gvs[v2n_snoc]
       >> sg ‘HD (SNOC T ls) = HD (SNOC F ls)’ >> gvs[]
       >- gvs[HD_SNOC]
-      >> cheat (* Will come back tot his later *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[CANCEL_SUB]
+      >> gvs[]
+      >> qmatch_goalsub_abbrev_tac ‘P1 ∧ P2’
+      >> qsuff_tac ‘P2’ >> gvs[Abbr ‘P1’, Abbr ‘P2’]
+      >- (rpt strip_tac
+          >> gvs[GSYM ADD1, LE])
+      >> rw[]
+      >> Cases_on ‘ls’ >> gvs[]
+      >> gvs[EXP]
+      >> gvs[le_v2n]
      )
   >> conj_tac
   >- (rpt strip_tac
