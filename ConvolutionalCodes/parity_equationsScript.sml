@@ -308,13 +308,36 @@ Proof
   >> Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
 QED
 
+Theorem PAD_LEFT_0[simp]:
+  ∀c bs. PAD_LEFT c 0 bs = bs
+Proof
+  rpt strip_tac
+  >> gvs[PAD_LEFT]
+QED
+
+Theorem zero_extend_0[simp]:
+  ∀bs.
+    zero_extend 0 bs = bs
+Proof
+  rpt strip_tac
+  >> gvs[zero_extend_def]
+QED
+
+Theorem zero_extend_empty[simp]:
+  ∀n bs.
+    zero_extend n bs = [] ⇔ n = 0 ∧ bs = []
+Proof
+  rpt strip_tac
+  >> Cases_on ‘n’ >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_wfmachine:
   ∀ps.
-    ps ≠ [] ⇒
+    0 < MAX_LIST (MAP LENGTH ps) ⇒
     wfmachine (parity_equations_to_state_machine ps)
 Proof
   rpt strip_tac
@@ -381,7 +404,7 @@ Proof
       >> pop_assum mp_tac >> gvs[]
       >> qmatch_goalsub_abbrev_tac ‘SNOC T ls’
       >> Cases_on ‘ls = []’
-      >- (gvs[] >> cheat) (* Fails for ls = [], will need to re-evaluate my definitions *)
+      >- gvs[]
       >> gvs[v2n_tl]
       >> gvs[v2n_snoc]
       >> sg ‘HD (SNOC T ls) = HD (SNOC F ls)’ >> gvs[]
@@ -395,7 +418,6 @@ Proof
   >- (gvs[parity_equations_to_state_machine_def]
       >> Cases_on ‘ps’ >> gvs[]
      )
-   
 QED
 
 (* -------------------------------------------------------------------------- *)
