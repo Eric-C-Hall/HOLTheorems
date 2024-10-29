@@ -41,21 +41,22 @@ open useful_tacticsLib;
 
 (* -------------------------------------------------------------------------- *)
 (* Treats a bitstring as a parity equation, and applies it to a sufficiently  *)
-(* long bitstring. Unspecified behaviour if the second bitstring isn't        *)
-(* sufficiently large.                                                        *)
+(* long bitstring. If the second bitstring isn't sufficiently large, pads it  *)
+(* to the right with zeros.                                                   *)
 (*                                                                            *)
 (* p::ps represents the bitstring that is being treated as a parity equation. *)
 (* bs represents the bitstring that the parity equation is applied to.        *)
 (* -------------------------------------------------------------------------- *)
 Definition apply_parity_equation_def:
   apply_parity_equation [] bs = F ∧
+  apply_parity_equation (p::ps) [] = F ∧
   apply_parity_equation (p::ps) (b::bs) = ((p ∧ b) ⇎ (apply_parity_equation ps bs))
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Applies a bunch of parity equations to a bitstring with a sufficiently     *)
-(* large window length. Unspecified behaviour if the second bitstring isn't   *)
-(* sufficiently large.                                                        *)
+(* large window length. If the second bitstring isn't sufficiently large,     *)
+(* pads it to the right with zeros.                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition apply_parity_equations_def:
   apply_parity_equations [] bs = [] ∧
@@ -63,27 +64,13 @@ Definition apply_parity_equations_def:
 End
 
 Definition convolve_parity_equations_def:
-  (* Note: if the window length is 0, then LENGTH bs < window_length will
-       never be true and thus we will never terminate. Therefore, we also
-       terminate if bs = [].
-.
-       Also, requiring our input to be of the form (b::bs) in order for
-       the recursive definition to be applicable is helpful in preventing
-       infinite loops when this definition is used as a rewrite rule.
-   *)
   convolve_parity_equations ps [] = [] ∧
   convolve_parity_equations ps (b::bs) =
-  if (LENGTH (b::bs) < MAX_LIST (MAP LENGTH ps)) then [] else
-    let
-      step_values = apply_parity_equations ps (b::bs);
-      remaining_values = convolve_parity_equations ps bs;
-    in
-      step_values ⧺ remaining_values
-Termination
-  WF_REL_TAC ‘measure (LENGTH ∘ SND)’
-  >> gvs[]
-  >> rpt strip_tac
-  >> Cases_on ‘bs’ >> gvs[]
+  let
+    step_values = apply_parity_equations ps (b::bs);
+    remaining_values = convolve_parity_equations ps bs;
+  in
+    step_values ⧺ remaining_values
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -524,7 +511,7 @@ Proof
 QED
 
 Theorem test_convolutional_parity_encode:
-  convolve_parity_equations test_parity_equations [F; F; F; T; T; F; T; F; T; T; T] = [F; F; T; T; F; F; F; T; F; T; T; T; F; T; F; F; T; F]
+  convolve_parity_equations test_parity_equations [F; F; F; T; T; F; T; F; T; T; T] = [F; F; T; T; F; F; F; T; F; T; T; T; F; T; F; F; T; F; F; T; T; F]
 Proof
   EVAL_TAC
 QED
