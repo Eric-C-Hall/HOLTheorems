@@ -11,6 +11,7 @@ open rich_listTheory;
 open logrootTheory; (* LOG2_LE_MONO *)
 open numposrepTheory; (* LENGTH_n2l *)
 open bitstringTheory;
+open bitTheory;
 
 (* Standard libraries *)
 open dep_rewrite;
@@ -180,6 +181,116 @@ Proof
   >> Cases_on ‘l’ >> gvs[]
 QED
 
+Theorem v2n_tl:
+  ∀bs.
+    bs ≠ [] ⇒
+    v2n (TL bs) = (v2n bs) - (if (HD bs) then 2 ** (LENGTH bs - 1) else 0)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘bs’ >> gvs[]
+  >> gvs[v2n]
+  >> rw[]
+QED
+
+Theorem v2n_empty[simp]:
+  v2n [] = 0
+Proof
+  gvs[v2n]
+QED
+
+Theorem v2n_append:
+  ∀bs bs'.
+    v2n (bs ⧺ bs') = 2 ** (LENGTH bs') * (v2n bs) + v2n bs'
+Proof
+  rpt strip_tac
+  >> Induct_on ‘bs’
+  >- gvs[]
+  >> rpt strip_tac
+  >> gvs[v2n]
+  >> rw[]
+  >> gvs[EXP_ADD]
+QED
+
+Theorem v2n_snoc:
+  ∀b bs.
+    v2n (SNOC b bs) = 2 * (v2n bs) + if b then 1 else 0
+Proof
+  gvs[SNOC_APPEND]
+  >> gvs[v2n_append]
+  >> rpt strip_tac
+  >> rw[v2n]   
+QED
+
+Theorem v2n_n2v_2:
+  ∀n.
+    v2n (n2v_2 n) = n
+Proof
+  rpt strip_tac
+  >> gvs[n2v_2_n2v]
+  >> Cases_on ‘n = 0’ >> gvs[]
+QED
+
+Theorem v2n_front:
+  ∀v.
+    v ≠ [] ⇒
+    v2n (FRONT v) = (v2n v) DIV 2
+Proof
+  rpt strip_tac
+  >> sg ‘v2n v = v2n ((FRONT v) ⧺ [LAST v])’
+  >- (gvs[APPEND_FRONT_LAST])
+  >> gvs[]
+  >> gvs[v2n_append]
+  >> Cases_on ‘LAST v’ >> gvs[v2n]
+QED
+
+Theorem last_n2v_2[simp]:
+  ∀n.
+    n ≠ 0 ⇒
+    (if LAST (n2v_2 n) then 1n else 0n) = n MOD 2
+Proof
+  rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[n2v_2_expand]
+  >> Cases_on ‘n’ >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘_ = m’
+  >> Cases_on ‘m’ >> gvs[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> gvs[ADD1]
+  >> qspecl_then [‘n' + 1’, ‘2’] assume_tac MOD_LESS
+  >> gvs[]
+QED
+
+Theorem n2v2_2_zero[simp]:
+  n2v_2 0 = []
+Proof
+  gvs[n2v_2_def]
+QED
+
+Theorem zero_extend_empty[simp]:
+  ∀n.
+    zero_extend n [] = REPLICATE n F
+Proof
+  rpt strip_tac
+  >> Induct_on ‘n’
+  >- EVAL_TAC
+  >> gvs[zero_extend_suc, REPLICATE]
+QED
+
+Theorem v2n_suc_F[simp]:
+  ∀v.
+    v2n (F::v) = v2n v
+Proof
+  rpt strip_tac
+  >> gvs[v2n]
+QED
+
+Theorem v2n_replicate_f[simp]:
+  ∀n.
+    v2n (REPLICATE n F) = 0
+Proof
+  rpt strip_tac
+  >> Induct_on ‘n’ >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
@@ -205,13 +316,49 @@ Proof
   >> conj_tac
   >- (rpt strip_tac
       >> gvs[parity_equations_to_state_machine_def]
-      >> qexistsl [‘v2n (F::(FRONT (n2v s)))’, ‘LAST (n2v s)’]
+      >> Cases_on ‘s = 0’
+      >- (gvs[]
+          >> qexistsl [‘0’, ‘F’]
+          >> gvs[]
+         )
+      >> qexistsl [‘v2n (FRONT (F::(n2v_2 s)))’, ‘LAST (n2v_2 s)’]
       >> conj_tac
-      >- (
-       )
-      >> gvs[n2v_v2n]
-            
-            
+      >- (irule v2n_lt_imp
+          >> gvs[LENGTH_FRONT, LENGTH_CONS]
+          >> irule n2v_2_length_le
+          >> gvs[]
+         )
+      >> gvs[v2n_tl]
+      >> qmatch_goalsub_abbrev_tac ‘_ - n’
+      >> gvs[v2n_snoc]
+      >> gvs[v2n_zero_extend]
+      >> gvs[v2n_n2v_2]
+      >> gvs[v2n_front]
+      >> gvs[v2n_n2v_2]
+      >> gvs[DIV_MULT_THM2]
+      >> DEP_PURE_ONCE_REWRITE_TAC[SUB_ADD]
+      >> gvs[MOD_LESS_EQ]
+      >> sg ‘n = 0’ >> gvs[]
+      >> unabbrev_all_tac
+      >> rw[]
+      >> pop_assum mp_tac >> gvs[]
+      >> qmatch_asmsub_abbrev_tac ‘s < 2 ** l’
+      >> qsuff_tac ‘LENGTH (n2v_2 (s DIV 2)) < l’
+      >- (disch_tac
+          >> Cases_on ‘l’ >> gvs[]
+          >> gvs[zero_extend_suc])
+      >> drule n2v_2_length_le
+      >> sg ‘s DIV 2 < 2 ** (l - 1)’
+      >- (gvs[DIV_LT_X]
+          >> gvs[ADD1]
+          >> Cases_on ‘l’ >> gvs[ADD1]
+         )
+      >> drule n2v_2_length_le
+      >> gvs[LESS_EQ, ADD1]
+      >> rpt strip_tac
+      >> Cases_on ‘l = 0’ >> gvs[])
+      
+             
 QED
 
 (* -------------------------------------------------------------------------- *)

@@ -170,7 +170,7 @@ QED
 (*                                                                            *)
 (* I'm not 100% certain of the specifics, but I believe that an upper bound   *)
 (* one direction can be shown equivalent to a lower bound in the other        *)
-(* direction or something.                                                    *)
+(* direction or something. <- hmm... this assertion seems dubious             *)
 (*                                                                            *)
 (* Alternatively want to prove (and then the above would follow): natural     *)
 (* numbers less than 2 ** l correspond precisely to vectors of length at      *)
