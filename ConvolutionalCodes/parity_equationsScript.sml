@@ -73,11 +73,10 @@ Definition convolve_parity_equations_def:
    *)
   convolve_parity_equations ps [] = [] ∧
   convolve_parity_equations ps (b::bs) =
-  if (LENGTH bs < MAX_LIST (MAP LENGTH ps)) then [] else
+  if (LENGTH (b::bs) < MAX_LIST (MAP LENGTH ps)) then [] else
     let
-      step_values = apply_parity_equations ps bs;
-      remaining_bitstring = DROP 1 bs;
-      remaining_values = convolve_parity_equations ps remaining_bitstring;
+      step_values = apply_parity_equations ps (b::bs);
+      remaining_values = convolve_parity_equations ps bs;
     in
       step_values ⧺ remaining_values
 Termination
