@@ -22,6 +22,7 @@ open parity_equations_helperTheory;
 
 (* My libraries *)
 open donotexpandLib;
+open useful_tacticsLib;
 
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
@@ -291,12 +292,29 @@ Proof
   >> Induct_on ‘n’ >> gvs[]
 QED
 
+Theorem HD_SNOC:
+  ∀l ls.
+    HD (SNOC l ls) = if ls = [] then l else HD ls
+Proof
+  rpt strip_tac
+  >> Cases_on ‘ls’ >> gvs[]
+QED
+
+Theorem apply_parity_equations_length[simp]:
+  ∀ps bs.
+    LENGTH (apply_parity_equations ps bs) = LENGTH ps
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_wfmachine:
   ∀ps.
+    ps ≠ [] ⇒
     wfmachine (parity_equations_to_state_machine ps)
 Proof
   rpt strip_tac
@@ -357,8 +375,27 @@ Proof
       >> gvs[LESS_EQ, ADD1]
       >> rpt strip_tac
       >> Cases_on ‘l = 0’ >> gvs[])
-      
-             
+  >> conj_tac
+  >- (rpt strip_tac
+      >> gvs[parity_equations_to_state_machine_def]
+      >> pop_assum mp_tac >> gvs[]
+      >> qmatch_goalsub_abbrev_tac ‘SNOC T ls’
+      >> Cases_on ‘ls = []’
+      >- (gvs[] >> cheat) (* Fails for ls = [], will need to re-evaluate my definitions *)
+      >> gvs[v2n_tl]
+      >> gvs[v2n_snoc]
+      >> sg ‘HD (SNOC T ls) = HD (SNOC F ls)’ >> gvs[]
+      >- gvs[HD_SNOC]
+      >> cheat (* Will come back tot his later *)
+     )
+  >> conj_tac
+  >- (rpt strip_tac
+      >> gvs[parity_equations_to_state_machine_def]
+     )
+  >- (gvs[parity_equations_to_state_machine_def]
+      >> Cases_on ‘ps’ >> gvs[]
+     )
+   
 QED
 
 (* -------------------------------------------------------------------------- *)
