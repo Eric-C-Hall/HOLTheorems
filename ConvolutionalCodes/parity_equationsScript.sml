@@ -458,6 +458,12 @@ Theorem parity_equations_to_state_machine_equivalent:
     convolve_parity_equations ps bs = vd_encode (parity_equations_to_state_machine ps) bs 0
 Proof
   rpt strip_tac
+  >> Induct_on ‘bs’
+  >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
+  >> rpt strip_tac
+  >> gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
+  >> rw[]
+  
   >> gvs[convolve_parity_equations_def]
   >> gvs[parity_equations_to_state_machine_def]
 QED
