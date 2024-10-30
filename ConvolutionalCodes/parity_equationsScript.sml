@@ -82,6 +82,31 @@ Definition convolve_parity_equations_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Convolves a list of parity equations over an input bitstring, padding      *)
+(* zeros to both the left and right to ensure that the window is valid when   *)
+(* applied both in such a way that the rightmost element of the first window  *)
+(* is the first element of the string and the leftmost element of the last    *)
+(* window is the last element of the string.                                  *)
+(*                                                                            *)
+(* This ensures that it is equivalent to zero-tailed convolutional encoding,  *)
+(* where the input string has zeros appended to it to ensure that the state   *)
+(* machine both starts and ends at the zero state.                            *)
+(*                                                                            *)
+(* Note that the vanilla convolution code already adds zeros to the right, so *)
+(* we only need to additionally add zeros to the left.                        *)
+(*                                                                            *)
+(* In order to avoid having an excessive number of definitions which can get  *)
+(* in the way of applying automated simp rules and require additional         *)
+(* theorems to be written about them, this definition is added as a simp rule *)
+(* so that it will automatically expand out in terms of the basic             *)
+(* convolve_parity_equations function. In most circumstances, it ought to be  *)
+(* expanded out.                                                              *)
+(* -------------------------------------------------------------------------- *)
+Definition convolve_parity_equations_padded_def[simp]:
+  convolve_parity_equations_padded ps bs = convolve_parity_equations ps (zero_extend (MAX_LIST (MAP LENGTH ps) - 1) bs)
+End
+
+(* -------------------------------------------------------------------------- *)
 (* n2v chooses n2v 0 to be [F], however, this makes many proofs messy, because*)
 (* this is the only number it creates with a leading F; it is treating 0 in a *)
 (* very special way. My version (called n2v_2) chooses n2v 0 to be [], which  *)
