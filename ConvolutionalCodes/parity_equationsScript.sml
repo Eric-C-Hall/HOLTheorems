@@ -345,13 +345,13 @@ Proof
      )
 QED
 
-Theorem apply_parity_equations_empty_l[simp]:
+Theorem apply_parity_equation_empty_l[simp]:
   ∀bs. apply_parity_equation [] bs = F
 Proof
   gvs[apply_parity_equation_def]
 QED
 
-Theorem apply_parity_equations_empty_r[simp]:
+Theorem apply_parity_equation_empty_r[simp]:
   ∀ps. apply_parity_equation ps [] = F
 Proof
   rpt strip_tac
@@ -376,6 +376,13 @@ Proof
   >> gvs[apply_parity_equations_def]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Note that in the presence of the assumption wfmachine m, m.output_length   *)
+(* is equivalent to F, although I keep that theorem separate to this one in   *)
+(* order to make the statement of this theorem more clear, and leave open the *)
+(* possibility of later redefining well-formedness to allow for machines with *)
+(* an output length of 0                                                      *)
+(* -------------------------------------------------------------------------- *)
 Theorem transition_fn_output_empty[simp]:
   ∀m s b.
     wfmachine m ∧
@@ -389,6 +396,13 @@ Proof
   >> gvs[Excl "LENGTH_NIL"]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Note that in the presence of the assumption wfmachine m, m.output_length   *)
+(* is equivalent to F, although I keep that theorem separate to this one in   *)
+(* order to make the statement of this theorem more clear, and leave open the *)
+(* possibility of later redefining well-formedness to allow for machines with *)
+(* an output length of 0                                                      *)
+(* -------------------------------------------------------------------------- *)
 Theorem vd_encode_empty_forall[simp]:
   ∀m bs s.
     wfmachine m ∧
@@ -401,6 +415,24 @@ Proof
   >> rpt strip_tac
   >> Cases_on ‘bs’ >> gvs[]
   >> gvs[vd_encode_def]
+QED
+
+Theorem output_length_nonzero[simp]:
+  ∀m.
+    wfmachine m ⇒
+    (m.output_length = 0 ⇔ F)
+Proof
+  rpt strip_tac
+  >> qspec_then ‘m’ assume_tac wfmachine_output_length_greater_than_zero
+  >> gvs[Excl "wfmachine_output_length_greater_than_zero"]
+QED
+
+Theorem vd_encode_parity_equations_to_state_machine_empty[simp]:
+  ∀bs s.
+    vd_encode (parity_equations_to_state_machine []) bs s = []
+Proof
+  gvs[parity_equations_to_state_machine_def]
+  >> Induct_on ‘bs’ >> gvs[vd_encode_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -426,11 +458,7 @@ Proof
   >> Cases_on ‘ps = []’
   >- (rpt strip_tac
       >> gvs[]
-      >> gvs[vd_encode_def]
-      >> gvs[parity_equations_to_state_machine_def]
-      >> )
-
-     
+     )
   >> rpt strip_tac
   >> gvs[]
   >> qmatch_goalsub_abbrev_tac ‘TAKE nl csl = DROP nr csr’
