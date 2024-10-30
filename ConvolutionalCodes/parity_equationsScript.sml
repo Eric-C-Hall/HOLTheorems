@@ -493,30 +493,40 @@ Proof
       >> gvs[]
       >> gvs[parity_equations_to_state_machine_def]
      )
+  >> gvs[NOT_LT]
   (* We have finished handling special cases, now we don't have to worry about
      them whenever they arise during the course of the main proof. *)
   >> unabbrev_all_tac
+  >> gvs[]
   >> Induct_on ‘bs’
   >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
   >> rpt strip_tac
   >> gvs[]
-  (* Give names to the important parts of the goal*)
-  >> qmatch_goalsub_abbrev_tac ‘TAKE nl csl = DROP nr csr’
   (* Move the SUC's and CONS's out in order to make the conclusion a closer
-       match with the inductive hypothesis.
-       .
-       Start with csl and nl, then do csr and nr *)
-  >> gvs[Abbr ‘csl’]
+       match with the inductive hypothesis. [OUTDATED COMMENT] *)
   >> gvs[convolve_parity_equations_def]
-  >> qmatch_goalsub_abbrev_tac ‘TAKE nl csl = DROP nr csr’
-  >> gvs[Abbr ‘nl’]
   >> gvs[MULT_SUC]
   >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
   >> conj_tac
-  >- unabbrev_all_tac
-  >> PURE_REWRITE_TAC[Once MULT_COMM]
-  >> simp[]
+  >- (unabbrev_all_tac
+      >> gvs[ADD1]
+      >> PURE_REWRITE_TAC[Once MULT_COMM]
+      >> simp[]
+     )
   >> gvs[TAKE_SUM]
+  >> gvs[TAKE_APPEND]
+  >> gvs[TAKE_LENGTH_ID_rwt]
+  >> gvs[DROP_APPEND]
+  >> gvs[TAKE_APPEND]
+  >> gvs[DROP_LENGTH_NIL_rwt]
+  (* This is essentially the base case, where the size of the bitstring is
+       only just big enough to fit one window of parity equations. *)
+  >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = SUC (LENGTH bs)’
+  >- (gvs[]
+      >> gvs[vd_encode_def, parity_equations_to_state_machine_def]
+      >>  (* Come back to this later *)
+     )
+  >> 
 QED
 
 (* TODO: this uses general state machines, which I no longer use in order to
