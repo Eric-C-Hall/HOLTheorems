@@ -7,6 +7,8 @@ open listTheory;
 open rich_listTheory;
 open pred_setTheory;
 
+open logrootTheory;
+
 open dep_rewrite;
 
 (* -------------------------------------------------------------------------- *)
