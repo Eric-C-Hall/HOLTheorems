@@ -247,6 +247,16 @@ Proof
   >> gvs[vd_encode_state_def]
 QED
 
+Theorem vd_encode_snoc:
+  ∀m b bs s.
+    vd_encode m (SNOC b bs) s =
+    vd_encode m bs s ⧺ (m.transition_fn <| origin := vd_encode_state m bs s; input := b; |>).output
+Proof
+  rpt strip_tac
+  >> gvs[SNOC_APPEND]
+  >> gvs[vd_encode_append]
+QED
+
 Theorem vd_encode_state_snoc:
   ∀m b bs s.
     vd_encode_state m (SNOC b bs) s = (m.transition_fn <| origin := (vd_encode_state m bs s); input := b; |>).destination
