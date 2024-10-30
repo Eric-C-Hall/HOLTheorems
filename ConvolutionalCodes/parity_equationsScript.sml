@@ -350,17 +350,17 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_equivalent:
   ∀ps bs.
-    convolve_parity_equations ps bs = vd_encode (parity_equations_to_state_machine ps) bs 0
+    let
+      max_degree = MAX_LIST (MAP LENGTH ps);
+      num_to_drop = (LENGTH ps) * (max_degree - 1);
+    in
+      TAKE ((LENGTH ps) * (LENGTH bs) - num_to_drop) (convolve_parity_equations ps bs) = DROP num_to_drop (vd_encode (parity_equations_to_state_machine ps) bs 0)
 Proof
-  rpt strip_tac
+  gvs[]
+  >> rpt strip_tac
   >> Induct_on ‘bs’
   >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
-  >> rpt strip_tac
-  >> gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
-  >> rw[]
-  
-  >> gvs[convolve_parity_equations_def]
-  >> gvs[parity_equations_to_state_machine_def]
+  >> 
 QED
 
 (* TODO: this uses general state machines, which I no longer use in order to
