@@ -207,44 +207,10 @@ Proof
   >> Cases_on ‘l’ >> gvs[]
 QED
 
-Theorem v2n_tl:
-  ∀bs.
-    bs ≠ [] ⇒
-    v2n (TL bs) = (v2n bs) - (if (HD bs) then 2 ** (LENGTH bs - 1) else 0)
+Theorem n2v2_2_zero[simp]:
+  n2v_2 0 = []
 Proof
-  rpt strip_tac
-  >> Cases_on ‘bs’ >> gvs[]
-  >> gvs[v2n]
-  >> rw[]
-QED
-
-Theorem v2n_empty[simp]:
-  v2n [] = 0
-Proof
-  gvs[v2n]
-QED
-
-Theorem v2n_append:
-  ∀bs bs'.
-    v2n (bs ⧺ bs') = 2 ** (LENGTH bs') * (v2n bs) + v2n bs'
-Proof
-  rpt strip_tac
-  >> Induct_on ‘bs’
-  >- gvs[]
-  >> rpt strip_tac
-  >> gvs[v2n]
-  >> rw[]
-  >> gvs[EXP_ADD]
-QED
-
-Theorem v2n_snoc:
-  ∀b bs.
-    v2n (SNOC b bs) = 2 * (v2n bs) + if b then 1 else 0
-Proof
-  gvs[SNOC_APPEND]
-  >> gvs[v2n_append]
-  >> rpt strip_tac
-  >> rw[v2n]   
+  gvs[n2v_2_def]
 QED
 
 Theorem v2n_n2v_2:
@@ -254,19 +220,6 @@ Proof
   rpt strip_tac
   >> gvs[n2v_2_n2v]
   >> Cases_on ‘n = 0’ >> gvs[]
-QED
-
-Theorem v2n_front:
-  ∀v.
-    v ≠ [] ⇒
-    v2n (FRONT v) = (v2n v) DIV 2
-Proof
-  rpt strip_tac
-  >> sg ‘v2n v = v2n ((FRONT v) ⧺ [LAST v])’
-  >- (gvs[APPEND_FRONT_LAST])
-  >> gvs[]
-  >> gvs[v2n_append]
-  >> Cases_on ‘LAST v’ >> gvs[v2n]
 QED
 
 Theorem last_n2v_2[simp]:
@@ -285,89 +238,12 @@ Proof
   >> gvs[]
 QED
 
-Theorem n2v2_2_zero[simp]:
-  n2v_2 0 = []
-Proof
-  gvs[n2v_2_def]
-QED
-
-Theorem zero_extend_empty[simp]:
-  ∀n.
-    zero_extend n [] = REPLICATE n F
-Proof
-  rpt strip_tac
-  >> Induct_on ‘n’
-  >- EVAL_TAC
-  >> gvs[zero_extend_suc, REPLICATE]
-QED
-
-Theorem v2n_suc_F[simp]:
-  ∀v.
-    v2n (F::v) = v2n v
-Proof
-  rpt strip_tac
-  >> gvs[v2n]
-QED
-
-Theorem v2n_replicate_f[simp]:
-  ∀n.
-    v2n (REPLICATE n F) = 0
-Proof
-  rpt strip_tac
-  >> Induct_on ‘n’ >> gvs[]
-QED
-
-Theorem HD_SNOC:
-  ∀l ls.
-    HD (SNOC l ls) = if ls = [] then l else HD ls
-Proof
-  rpt strip_tac
-  >> Cases_on ‘ls’ >> gvs[]
-QED
-
 Theorem apply_parity_equations_length[simp]:
   ∀ps bs.
     LENGTH (apply_parity_equations ps bs) = LENGTH ps
 Proof
   rpt strip_tac
   >> Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
-QED
-
-Theorem PAD_LEFT_0[simp]:
-  ∀c bs. PAD_LEFT c 0 bs = bs
-Proof
-  rpt strip_tac
-  >> gvs[PAD_LEFT]
-QED
-
-Theorem zero_extend_0[simp]:
-  ∀bs.
-    zero_extend 0 bs = bs
-Proof
-  rpt strip_tac
-  >> gvs[zero_extend_def]
-QED
-
-Theorem zero_extend_equals_empty[simp]:
-  ∀n bs.
-    zero_extend n bs = [] ⇔ n = 0 ∧ bs = []
-Proof
-  rpt strip_tac
-  >> Cases_on ‘n’ >> gvs[]
-  >> gvs[zero_extend_suc]
-  >> rw[]
-  >> Cases_on ‘bs’ >> gvs[]
-  >> Induct_on ‘n'’ >> gvs[zero_extend_suc]
-QED
-
-(* our vector must start with true because leading zeros have no impact on
-  v2n but do increase the length of v *)
-Theorem le_v2n:
-  ∀v.
-    2 ** (LENGTH v) ≤ v2n (T::v)
-Proof
-  rpt strip_tac
-  >> Cases_on ‘v’ >> gvs[v2n]
 QED
 
 (* -------------------------------------------------------------------------- *)
