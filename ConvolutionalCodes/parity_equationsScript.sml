@@ -503,7 +503,7 @@ Proof
   >> rpt strip_tac
   >> gvs[]
   (* Move the SUC's and CONS's out in order to make the conclusion a closer
-       match with the inductive hypothesis. [OUTDATED COMMENT] *)
+       match with the inductive hypothesis. *)
   >> gvs[convolve_parity_equations_def]
   >> gvs[MULT_SUC]
   >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
@@ -519,13 +519,23 @@ Proof
   >> gvs[DROP_APPEND]
   >> gvs[TAKE_APPEND]
   >> gvs[DROP_LENGTH_NIL_rwt]
+  >> qmatch_goalsub_abbrev_tac ‘stepL ⧺ indL = _’
+  (* The left hand side has been successfully transformed into a form
+        which allows us to use the inductive hypothesis. Now work on the RHS *)
+  >> gvs[vd_encode_cons]
+  >> gvs[DROP_APPEND]
+
+  
   (* This is essentially the base case, where the size of the bitstring is
        only just big enough to fit one window of parity equations. *)
   >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = SUC (LENGTH bs)’
   >- (gvs[]
       >> gvs[vd_encode_def, parity_equations_to_state_machine_def]
-      >>  (* Come back to this later *)
+      >> cheat (* Come back to this later *)
      )
+  (* This uses the inductive hypothesis to complete the inductive step *)
+  >> drule_all (iffRL LT_LE)
+  >> rpt strip_tac >> gvs[]
   >> 
 QED
 
