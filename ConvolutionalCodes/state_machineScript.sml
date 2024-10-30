@@ -138,6 +138,16 @@ Definition vd_encode_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* A version of vd_encode which uses the zero-tail termination method for     *)
+(* convolutional codes. Assumes that the number of states is equal to         *)
+(* 2 ** (window length), as is standard in a convolutional code state         *)
+(* machine, but may not be the case for all state machines.                   *)
+(* -------------------------------------------------------------------------- *)
+Definition vd_encode_zero_tailed_def[simp]:
+  vd_encode_zero_tailed m bs s = vd_encode m (bs ⧺ REPLICATE (LOG 2 m.num_states - 1) F) s
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Calculates the final state you'll end up in if you apply the given state   *)
 (* machine to the given bitstring, given an initial state                     *)
 (* -------------------------------------------------------------------------- *)
