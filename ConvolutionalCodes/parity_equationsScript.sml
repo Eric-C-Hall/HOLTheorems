@@ -1,3 +1,4 @@
+
 open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "parity_equations";
@@ -344,6 +345,37 @@ Proof
      )
 QED
 
+Theorem apply_parity_equations_empty_l[simp]:
+  ∀bs. apply_parity_equation [] bs = F
+Proof
+  gvs[apply_parity_equation_def]
+QED
+
+Theorem apply_parity_equations_empty_r[simp]:
+  ∀ps. apply_parity_equation ps [] = F
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ps’ >> gvs[apply_parity_equation_def]
+QED
+
+Theorem apply_parity_equations_empty_l[simp]:
+  ∀bs.
+    apply_parity_equations [] bs = []
+Proof
+  gvs[apply_parity_equations_def]
+QED
+
+Theorem apply_parity_equations_empty_r[simp]:
+  ∀ps.
+    apply_parity_equations ps [] = REPLICATE (LENGTH ps) F
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ps’
+  >- gvs[]
+  >> rpt strip_tac
+  >> gvs[apply_parity_equations_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine representation of a convolutional code is     *)
 (* equivalent to the parity equations representation                          *)
@@ -360,7 +392,34 @@ Proof
   >> rpt strip_tac
   >> Induct_on ‘bs’
   >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
-  >> 
+  (* Handle the special case of ps = [] now so that we don't have to deal with
+       it later *)
+  >> Cases_on ‘ps = []’
+  >- (rpt strip_tac
+      >> gvs[]
+      >> gvs[vd_encode_def]
+      >> gvs[parity_equations_to_state_machine_def]
+      >> )
+
+            
+  >> rpt strip_tac
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘TAKE nl csl = DROP nr csr’
+  (* Move the SUC's and CONS's out in order to make the conclusion a closer
+       match with the inductive hypothesis.
+       .
+       Start with csl and nl, then do csr and nr *)
+  >> gvs[Abbr ‘csl’]
+  >> gvs[convolve_parity_equations_def]
+  >> qmatch_goalsub_abbrev_tac ‘TAKE nl csl = DROP nr csr’
+  >> gvs[Abbr ‘nl’]
+  >> gvs[MULT_SUC]
+  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
+  >> conj_tac
+  >- unabbrev_all_tac
+  >> PURE_REWRITE_TAC[Once MULT_COMM]
+  >> simp[]
+  >> gvs[TAKE_SUM]
 QED
 
 (* TODO: this uses general state machines, which I no longer use in order to
