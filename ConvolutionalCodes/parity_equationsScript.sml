@@ -251,7 +251,7 @@ QED
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
 (* -------------------------------------------------------------------------- *)
-Theorem parity_equations_to_state_machine_wfmachine:
+Theorem parity_equations_to_state_machine_wfmachine[simp]:
   ∀ps.
     0 < MAX_LIST (MAP LENGTH ps) ⇒
     wfmachine (parity_equations_to_state_machine ps)
@@ -376,6 +376,33 @@ Proof
   >> gvs[apply_parity_equations_def]
 QED
 
+Theorem transition_fn_output_empty[simp]:
+  ∀m s b.
+    wfmachine m ∧
+    s < m.num_states ⇒
+    ((m.transition_fn <| origin := s; input := h |>).output = [] ⇔ m.output_length = 0)
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> gvs[]
+  >> PURE_REWRITE_TAC[GSYM LENGTH_EQ_0]
+  >> rpt strip_tac
+  >> gvs[Excl "LENGTH_NIL"]
+QED
+
+Theorem vd_encode_empty_forall[simp]:
+  ∀m bs s.
+    wfmachine m ∧
+    s < m.num_states ∧
+    bs ≠ [] ⇒
+    (vd_encode m bs s = [] ⇔ (m.output_length = 0))
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘bs’ >> gvs[]
+  >> gvs[vd_encode_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine representation of a convolutional code is     *)
 (* equivalent to the parity equations representation                          *)
@@ -392,6 +419,8 @@ Proof
   >> rpt strip_tac
   >> Induct_on ‘bs’
   >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
+  >> rpt strip_tac
+  >> gvs[]
   (* Handle the special case of ps = [] now so that we don't have to deal with
        it later *)
   >> Cases_on ‘ps = []’
@@ -401,7 +430,7 @@ Proof
       >> gvs[parity_equations_to_state_machine_def]
       >> )
 
-            
+     
   >> rpt strip_tac
   >> gvs[]
   >> qmatch_goalsub_abbrev_tac ‘TAKE nl csl = DROP nr csr’
