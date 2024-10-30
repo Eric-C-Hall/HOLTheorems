@@ -376,6 +376,20 @@ Proof
   >> gvs[apply_parity_equations_def]
 QED
 
+Theorem convolve_parity_equations_empty_r[simp]:
+  ∀ps.
+    convolve_parity_equations ps [] = []
+Proof
+  gvs[convolve_parity_equations_def]
+QED
+
+Theorem convolve_parity_equations_empty_l[simp]:
+  ∀bs.
+    convolve_parity_equations [] bs = []
+Proof
+  Induct_on ‘bs’ >> gvs[convolve_parity_equations_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Note that in the presence of the assumption wfmachine m, m.output_length   *)
 (* is equivalent to F, although I keep that theorem separate to this one in   *)
@@ -435,6 +449,14 @@ Proof
   >> Induct_on ‘bs’ >> gvs[vd_encode_def]
 QED
 
+Theorem convolve_parity_equations_length:
+  ∀bs ps.
+    LENGTH (convolve_parity_equations ps bs) = LENGTH ps * LENGTH bs
+Proof
+  Induct_on ‘bs’ >> rpt strip_tac >> gvs[convolve_parity_equations_def]
+  >> gvs[ADD1]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine representation of a convolutional code is     *)
 (* equivalent to the parity equations representation                          *)
@@ -449,18 +471,36 @@ Theorem parity_equations_to_state_machine_equivalent:
 Proof
   gvs[]
   >> rpt strip_tac
-  >> Induct_on ‘bs’
-  >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
-  >> rpt strip_tac
-  >> gvs[]
   (* Handle the special case of ps = [] now so that we don't have to deal with
        it later *)
   >> Cases_on ‘ps = []’
   >- (rpt strip_tac
       >> gvs[]
      )
+  (* Give names to the important parts of the goal*)
+  >> qmatch_goalsub_abbrev_tac ‘TAKE nl csl = DROP nr csr’
+  (* Handle the special case where the maximum parity equation degree is greater
+        than the length of bs. In this special case, the LHS and RHS both reduce
+        to [], because there's not enough room to apply the parity equations. *)
+  >> Cases_on ‘LENGTH bs < MAX_LIST (MAP LENGTH ps)’
+  >- (sg ‘nl = 0’ >> gvs[]
+      >- (unabbrev_all_tac
+          >> gvs[ADD1]
+          >> PURE_REWRITE_TAC[Once MULT_COMM]
+          >> gvs[]
+         )
+      >> unabbrev_all_tac
+      >> gvs[]
+      >> gvs[parity_equations_to_state_machine_def]
+     )
+  (* We have finished handling special cases, now we don't have to worry about
+     them whenever they arise during the course of the main proof. *)
+  >> unabbrev_all_tac
+  >> Induct_on ‘bs’
+  >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
   >> rpt strip_tac
   >> gvs[]
+  (* Give names to the important parts of the goal*)
   >> qmatch_goalsub_abbrev_tac ‘TAKE nl csl = DROP nr csr’
   (* Move the SUC's and CONS's out in order to make the conclusion a closer
        match with the inductive hypothesis.
