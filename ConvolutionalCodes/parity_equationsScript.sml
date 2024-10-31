@@ -251,6 +251,8 @@ QED
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
 (* -------------------------------------------------------------------------- *)
+(* Note: this can be changed to an iff, I think                               *)
+(* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_wfmachine[simp]:
   ∀ps.
     0 < MAX_LIST (MAP LENGTH ps) ⇒
@@ -494,6 +496,19 @@ Proof
       >> gvs[parity_equations_to_state_machine_def]
      )
   >> gvs[NOT_LT]
+  (* Handle the special case where the maximum parity equation degree is zero *)
+  >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = 0’
+  >- (gvs[]
+      >> unabbrev_all_tac
+     )
+  (* Show that the state machine we are working on is well-formed, so that we
+     don't have to re-prove that later. *)
+  >> qmatch_asmsub_abbrev_tac ‘vd_encode m bs 0’
+  >> sg ‘wfmachine m’
+  >- (gvs[Abbr ‘m’]
+      >> irule parity_equations_to_state_machine_wfmachine
+      >> 
+     )
   (* We have finished handling special cases, now we don't have to worry about
      them whenever they arise during the course of the main proof. *)
   >> unabbrev_all_tac
@@ -522,21 +537,33 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘stepL ⧺ indL = _’
   (* The left hand side has been successfully transformed into a form
         which allows us to use the inductive hypothesis. Now work on the RHS *)
-  >> gvs[vd_encode_cons]
+  >> qspec_then ‘h::bs’ assume_tac (GSYM APPEND_FRONT_LAST)
+  >> gvs[Excl "APPEND_FRONT_LAST"]
+  >> pop_assum (fn th => PURE_REWRITE_TAC [Once th])
+  >> gvs[vd_encode_append]
   >> gvs[DROP_APPEND]
-
-  
-  (* This is essentially the base case, where the size of the bitstring is
+  >> qmatch_goalsub_abbrev_tac ‘DROP l es ⧺ DROP _ _’
+  >> sg ‘l = LENGTH es’
+  >- (unabbrev_all_tac
+      >> qmatch_goalsub_abbrev_tac ‘vd_encode m _ _’
+      >> sg ‘wfmachine m’
+      >- (unabbrev_all_tac
+          >> gvs[]
+         )
+      >> gvs[vd_encode_length]
+      >> DROP_LENGTH_NIL_rwt
+         
+      (* This is essentially the base case, where the size of the bitstring is
        only just big enough to fit one window of parity equations. *)
-  >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = SUC (LENGTH bs)’
-  >- (gvs[]
-      >> gvs[vd_encode_def, parity_equations_to_state_machine_def]
-      >> cheat (* Come back to this later *)
-     )
-  (* This uses the inductive hypothesis to complete the inductive step *)
-  >> drule_all (iffRL LT_LE)
-  >> rpt strip_tac >> gvs[]
-  >> 
+      >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = SUC (LENGTH bs)’
+      >- (gvs[]
+          >> gvs[vd_encode_def, parity_equations_to_state_machine_def]
+          >> cheat (* Come back to this later *)
+         )
+      (* This uses the inductive hypothesis to complete the inductive step *)
+      >> drule_all (iffRL LT_LE)
+      >> rpt strip_tac >> gvs[]
+      >> 
 QED
 
 (* TODO: this uses general state machines, which I no longer use in order to
