@@ -29,6 +29,7 @@ open useful_tacticsLib;
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
 (* -------------------------------------------------------------------------- *)
 
+(* TODO: elaborate: what do you mean by "is used in the parity equtaion *)
 (* -------------------------------------------------------------------------- *)
 (* A parity equation is represented as a bool list. The nth bit is true if    *)
 (* the nth bit in the sliding window is used in the linear equation.          *)
@@ -514,7 +515,8 @@ Proof
   >> unabbrev_all_tac
   >> gvs[]
   >> Induct_on ‘bs’
-  >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def, vd_encode_def]
+  >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def,
+         vd_encode_def]
   >> rpt strip_tac
   >> gvs[]
   (* Move the SUC's and CONS's out in order to make the conclusion a closer
@@ -565,6 +567,12 @@ Proof
       >> rpt strip_tac >> gvs[]
       >> 
 QED
+
+Theorem TODOpaddedequal:
+
+Proof
+QED
+
 
 (* TODO: this uses general state machines, which I no longer use in order to
    reduce maintenance requiements.
