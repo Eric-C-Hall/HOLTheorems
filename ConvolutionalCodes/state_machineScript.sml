@@ -255,6 +255,7 @@ Proof
   rpt strip_tac
   >> gvs[SNOC_APPEND]
   >> gvs[vd_encode_append]
+  >> gvs[vd_encode_def]
 QED
 
 Theorem vd_encode_state_snoc:
