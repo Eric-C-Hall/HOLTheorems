@@ -140,11 +140,12 @@ Definition parity_equations_to_state_machine_def:
     num_states := 2 ** (MAX_LIST (MAP LENGTH ps));
     transition_fn := λr.
                        let
-                         r_vec = zero_extend (MAX_LIST (MAP LENGTH ps)) (n2v_2 (r.origin))
+                         r_vec = zero_extend (MAX_LIST (MAP LENGTH ps)) (n2v_2 (r.origin));
+                         new_vec = TL (SNOC r.input r_vec);
                        in
                          <|
-                           destination := v2n (TL (SNOC r.input r_vec));
-                           output := apply_parity_equations ps r_vec
+                           destination := v2n new_vec;
+                           output := apply_parity_equations ps new_vec
                          |>
     ;
     output_length := LENGTH ps;
@@ -817,8 +818,7 @@ QED
 
 Theorem parity_equations_to_state_machine_vd_encode_test:
   vd_encode (parity_equations_to_state_machine test_parity_equations)
-  test_parity_equations_input 0 = ARB
-(* [T; T; T; T; T; F; F; F; T; T; F; F; T; F; T; F; F; T; F; T; T; T. F; T]*)
+  test_parity_equations_input 0 = [T; T; T; T; T; F; F; F; T; T; F; F; T; F; T; F; F; T; F; T; T; T; F; T]
 Proof
   EVAL_TAC
 QED
