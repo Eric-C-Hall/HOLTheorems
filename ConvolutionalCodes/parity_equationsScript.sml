@@ -553,7 +553,7 @@ Proof
   >> gvs[ADD1, LEFT_ADD_DISTRIB]
 QED
 
-Theorem DROP_apply_parity_equations_append[simp]:
+Theorem drop_apply_parity_equations_append[simp]:
   ∀ps bs cs.
     DROP (LENGTH ps) ((apply_parity_equations ps bs) ⧺ cs) =
     cs
@@ -590,10 +590,43 @@ Proof
   >> gvs[convolve_parity_equations_def]
 QED
 
-(* head of encode is apply_parity_equations of all zeros followed by first element*)
+Theorem apply_parity_equation_replicate_f[simp]:
+  ∀ps n.
+    apply_parity_equation ps (REPLICATE n F) = F
+Proof
+  Induct_on ‘n’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘ps’ >> gvs[apply_parity_equation_def]
+QED
 
-Theorem lkgfjhew:
-  vd_encode (parity_equations_to_state_machine ps) bs 0 =
+Theorem apply_parity_equations_replicate_f[simp]:
+  ∀ps n.
+    apply_parity_equations ps (REPLICATE n F) = REPLICATE (LENGTH ps) F
+Proof
+  Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
+QED
+
+Theorem ith_output_window_vd_encode_vd_encode_state:
+  ∀i ps bs
+Proof
+QED
+
+Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
+  ∀i ps bs.
+    ith_output_window
+    i ps (vd_encode (parity_equations_to_state_machine ps) bs 0) =
+    apply_parity_equations
+    ps (DROP i (REPLICATE (MAX_LIST (MAP LENGTH ps)) F ⧺ bs))
+Proof
+  
+QED
+
+
+Theorem parity_equations_to_state_machine_last_vd_encode_apply_parity_equations:
+  LENGTH bs = MAX_LIST (MAP LENGTH ps) ⇒
+
+  
+  LAST (vd_encode (parity_equations_to_state_machine ps) bs 0) =
   apply_parity_equations ps ()
 Proof
 QED
