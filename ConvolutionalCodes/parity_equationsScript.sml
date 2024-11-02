@@ -152,6 +152,23 @@ Definition parity_equations_to_state_machine_def:
   |>
 End
 
+(* Automatically appply this obvious simplification *)
+Theorem parity_equations_to_state_machine_num_states[simp]:
+  ∀ps.
+    (parity_equations_to_state_machine ps).num_states =
+    2 ** (MAX_LIST (MAP LENGTH ps))
+Proof
+  gvs[parity_equations_to_state_machine_def]
+QED
+
+(* Automatically appply this obvious simplification *)
+Theorem parity_equations_to_state_machine_output_length[simp]:
+  ∀ps.
+    (parity_equations_to_state_machine ps).output_length = LENGTH ps
+Proof
+  gvs[parity_equations_to_state_machine_def]
+QED
+
 (* Note: this can have issues where when used as a rewrite rule, it will enter
    an infinite loop of rewrites, which is why it isn't used as the original
    definition. However, it's still useful if the input isn't of the form
@@ -461,14 +478,6 @@ Proof
   >> gvs[ADD1]
 QED
 
-Theorem parity_equations_to_state_machine_output_length[simp]:
-  ∀ps.
-    (parity_equations_to_state_machine ps).output_length = LENGTH ps
-Proof
-  rpt strip_tac
-  >> gvs[parity_equations_to_state_machine_def]
-QED
-
 (*
     Proving the equivalence of the parity equations and state machine versions:
     
@@ -608,6 +617,57 @@ Proof
   Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
 QED
 
+Theorem parity_equations_to_state_machine_invalid_transition_fn[simp]:
+  ∀ps s b.
+    MAX_LIST (MAP LENGTH ps) = 0 ∧
+    s = 0 ⇒
+    (parity_equations_to_state_machine ps).transition_fn
+                                          <| origin := s; input := b |> =
+    <|
+      destination := 0;
+      output := REPLICATE (LENGTH ps) F;
+    |>
+Proof
+  rpt strip_tac
+  >> gvs[parity_equations_to_state_machine_def]
+QED
+
+Theorem parity_equations_to_state_machine_invalid_vd_encode[simp]:
+  ∀ps bs i.
+    MAX_LIST (MAP LENGTH ps) = 0 ∧
+    i = 0 ⇒
+    vd_encode (parity_equations_to_state_machine ps) bs i =
+    REPLICATE (LENGTH ps * LENGTH bs) F
+Proof
+  Induct_on ‘bs’ >> gvs[vd_encode_def, REPLICATE_APPEND, ADD1, LEFT_ADD_DISTRIB]
+QED
+
+(* We use i = LENGTH bs instead of subsituting LENGTH bs for i because by my
+   understanding, this allows gvs to attempt to calculate the LENGTH of bs
+   in order to attempt to apply this to equations not immediately in the
+   form of LENGTH bs *)
+Theorem drop_vd_encode[simp]:
+  ∀i bs ps s.
+    0 < MAX_LIST (MAP LENGTH ps) ∧
+    s < (parity_equations_to_state_machine ps).num_states ∧
+    i = LENGTH bs ⇒ 
+    DROP (i * LENGTH ps) (vd_encode (parity_equations_to_state_machine ps) bs s) = []
+Proof
+  rpt strip_tac
+  >> gvs[]
+QED
+
+Theorem drop_vd_encode_append[simp]:
+  ∀i bs cs ps s.
+    0 < MAX_LIST (MAP LENGTH ps) ∧
+    s < (parity_equations_to_state_machine ps).num_states ∧
+    i = LENGTH bs ⇒ 
+    DROP (i * LENGTH ps) (vd_encode (parity_equations_to_state_machine ps) bs s ⧺ cs) = cs
+Proof
+  rpt strip_tac
+  >> gvs[DROP_APPEND]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Goal: to show that each window of parity equations is equivalent to the    *)
 (* corresponding window of state machines.                                    *)
@@ -639,28 +699,28 @@ Theorem ith_output_window_vd_encode_vd_encode_state:
 Proof
   rpt strip_tac
   >> Cases_on ‘bs = []’ >> gvs[]
+  >> Cases_on ‘¬(0 < MAX_LIST (MAP LENGTH ps))’
+  >- (gvs[]
+      >> gvs[ith_output_window_def]
+      >> DEP_PURE_ONCE_REWRITE_TAC [parity_equations_to_state_machine_invalid_vd_encode]
+      >> gvs[parity_equations_to_state_machine_def]
+     )
+  >> sg ‘wfmachine (parity_equations_to_state_machine ps)’
+  >- irule parity_equations_to_state_machine_wfmachine
   >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
-  >> sg ‘bs = (TAKE i bs) ⧺ [EL i bs] ⧺ (DROP i bs)’
+  >> sg ‘bs = (TAKE i bs) ⧺ [EL i bs] ⧺ (DROP (i + 1) bs)’
   >- (sg ‘bs = TAKE i bs ⧺ DROP i bs’
       >- gvs[]
       >> pop_assum (fn th => PURE_REWRITE_TAC [Once th])
       >> gvs[]
-      >> qspecl_then [‘TAKE i bs’, ‘i - 1’] assume_tac TAKE_EL_SNOC
-      >> gvs[]
-      >> gvs[TAKE_TAKE]
-      >> gvs[EL_TAKE]
-      >> gvs[]
-      >> sg ‘TAKE i bs = SNOC (EL i bs) (TAKE (i - 1) bs)’
-      >- DEP_PURE_ONCE_REWRITE_TAC[GSYM ]
-
-                                  TAKE (i - 1) bs ⧺ [EL i bs]’
-      >- gvs[TAKE_EL_SNOC]
-      
-      >> sg ‘(h::t) = (FRONT (h::t)) ⧺ [LAST (h::t)]’
-      >- gvs[APPEND_FRONT_LAST]
-      >> pop_assum (fn th => PURE_REWRITE_TAC[Once th])
-      >> gvs[vd_encode_append]
-      >> unabbrev_all_tac
+      >> gvs[DROP_BY_DROP_SUC, ADD1])
+  >> pop_assum (fn th => PURE_REWRITE_TAC [Once th])
+  >> gvs[vd_encode_append]
+  >> gvs[ith_output_window_def]
+  >> gvs[DROP_APPEND]
+          >> sg ‘LENGTH RHS = ARB’
+          >- (unabbrev_all_tac
+              >> gvs[]
 QED
 
 Theorem vd_encode_state:
