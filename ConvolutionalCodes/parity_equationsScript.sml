@@ -20,9 +20,9 @@ open dep_rewrite;
 (* My theories *)
 open state_machineTheory;
 open parity_equations_helperTheory;
+open useful_theoremsTheory;
 
 (* My libraries *)
-open donotexpandLib;
 open useful_tacticsLib;
 
 (* -------------------------------------------------------------------------- *)
@@ -460,22 +460,195 @@ Proof
   >> gvs[ADD1]
 QED
 
+Theorem parity_equations_to_state_machine_output_length[simp]:
+  ∀ps.
+    (parity_equations_to_state_machine ps).output_length = LENGTH ps
+Proof
+  rpt strip_tac
+  >> gvs[parity_equations_to_state_machine_def]
+QED
+
+(*
+    Proving the equivalence of the parity equations and state machine versions:
+    
+.
+    If we let % denote junk values and - correspond to meaningful values, we
+    essentially want to prove:
+.  
+    - - - - - - - % % % %   corresponds to   % % % % - - - - - - -
+.
+    i.e. on the left hand side, we are taking the first few meaningful values,
+       and on the right hand side we are dropping the first few junk values.
+.
+    I originally tried inducting on bs, i.e. the input string, however, this
+    did not work because we would essentially have to choose to induct on bs
+    from either the left or the right, which would mean that the inductive step
+    would take either the left or right part of bs, but this would add a junk
+    value on one half and add a meaningful value on the other half, so the
+    inductive steps would not be equal in reality.
+.
+    I then considered inducting on the maximum parity equation degree, because
+    at a degree of 1, this has no junk values, and at each increment of the
+    degree, we add one junk value to each side. However, it wasn't clear how
+    this would allow us to use the inductive hypothesis to prove the indcutive
+    step, as there is no clear, simple, relation between the property holding
+    for a set of parity equations of a certain degree and the property holing
+    for a set of parity equations of lesser degree.
+.
+    I then considered proving the equivalence of the first
+    meaningful value of the LHS with the first meaningful value of the RHS, and
+    use this prove the the equivalence of the first two meaningful values of the
+    LHS with the first two meaningful values of the RHS, etc. That is, I should
+    prove:
+.
+    TAKE i (convolve_parity_equations ps bs) =
+      TAKE i (DROP num_to_drop) (vd_encode m bs 0)
+.
+    by induction on i, for i between 0 and the appropriate length.
+.
+    I then decided that it might make more sense to aim to prove the
+    equivalence of individual elements, and then use the repeated equivalence
+    of individual elements to prove the equivalence of the lists. This would
+    simplify the proof by splitting up into these two steps, the equivalence of
+    individual elements and the equivalence of the lists, rather than trying to
+    prove both at the same time
+.
+    I then decided maybe it would be a better idea to prove the equivalence of
+    blocks which combine all the outputs from the parity equations for a given
+    window, as this will essentially split our proof along a sensible boundary:
+    firstly, induct over windows, and then, induct over parity equations within
+    the window. Indeed, each of our functions is creating the output of the
+    entire window at once, so it makes more sense to induct over windows.
+*)
+
+(* It's often conceptually simpler to have this definition which calculates
+   the ith window of outputs in the output. *)
+Definition ith_output_window_def:
+  ith_output_window i ps bs = TAKE (LENGTH ps) (DROP (i * LENGTH ps) bs)
+End
+
+(* Note: this isn't automaticaly applied as a simp rule if we know
+   0 < LENGTH bs instead of bs ≠ []. Perhaps we could add this as an
+   alternative assumption leading to the conclusion, using an or statement? *)
+Theorem convolve_parity_equations_take[simp]:
+  ∀ps bs.
+    bs ≠ [] ⇒
+    TAKE (LENGTH ps) (convolve_parity_equations ps bs) =
+    apply_parity_equations ps bs
+Proof
+  rpt strip_tac
+  >> Cases_on ‘bs’ >> gvs[convolve_parity_equations_def]
+  >> gvs[TAKE_APPEND]
+QED
+
+Theorem ith_output_window_suc:
+  ∀n ps bs.
+    ith_output_window (SUC n) ps bs =
+    ith_output_window n ps (DROP (LENGTH ps) bs)
+Proof
+  rpt strip_tac
+  >> gvs[ith_output_window_def]
+  >> gvs[DROP_DROP_T]
+  >> gvs[ADD1, LEFT_ADD_DISTRIB]
+QED
+
+Theorem DROP_apply_parity_equations_append[simp]:
+  ∀ps bs cs.
+    DROP (LENGTH ps) ((apply_parity_equations ps bs) ⧺ cs) =
+    cs
+Proof
+  rpt strip_tac
+  >> gvs[DROP_APPEND]
+QED
+
+Theorem ith_output_window_apply_parity_equations_append[simp]:
+  ∀n ps bs cs.
+    ith_output_window n ps ((apply_parity_equations ps bs) ⧺ cs) =
+    if n = 0
+    then
+      apply_parity_equations ps bs
+    else
+      ith_output_window (n - 1) ps (cs)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘n’ >> gvs[]
+  >- gvs[ith_output_window_def, TAKE_APPEND]
+  >> gvs[ith_output_window_suc]
+QED
+
+Theorem ith_output_window_convolve_parity_equations[simp]:
+  ∀i ps bs.
+    i < LENGTH bs ⇒
+    ith_output_window i ps (convolve_parity_equations ps bs) =
+    apply_parity_equations ps (DROP i bs)
+Proof
+  Induct_on ‘bs’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘i’ >> gvs[]
+  >- (rpt strip_tac >> gvs[ith_output_window_def])
+  >> gvs[convolve_parity_equations_def]
+QED
+
+(* head of encode is apply_parity_equations of all zeros followed by first element*)
+
+Theorem lkgfjhew:
+  vd_encode (parity_equations_to_state_machine ps) bs 0 =
+  apply_parity_equations ps ()
+Proof
+QED
+
+Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
+  ∀i ps bs.
+    i < LENGTH bs ⇒
+    ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) ps (vd_encode (parity_equations_to_state_machine ps) bs 0) = apply_parity_equations ps (DROP i bs)
+Proof
+  Induct_on ‘bs’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘i’ >> gvs[]
+QED
+
+Theorem convolve_parity_equations_window:
+  ∀i ps bs.
+    i < LENGTH bs ⇒
+    ith_output_window i ps (convolve_parity_equations ps bs) =
+    ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) ps (vd_encode (parity_equations_to_state_machine ps) bs 0)
+Proof
+  rpt strip_tac
+  >> gvs[]
+QED
+
+Theorem parity_equations_to_state_machine_equivalent_individual:
+  ∀ps bs i.
+    (*0 < MAX_LIST (MAP LENGTH ps) ⇒*)
+    i < (LENGTH ps * LENGTH bs) - (LENGTH ps) * (MAX_LIST (MAP LENGTH ps) - 1) ⇒
+    EL i (convolve_parity_equations ps bs) =
+    EL (i + (LENGTH ps) * (MAX_LIST (MAP LENGTH ps) - 1))
+       (vd_encode (parity_equations_to_state_machine ps) bs 0)
+Proof
+  rpt strip_tac
+  >> gvs[convolve_parity_equations_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine representation of a convolutional code is     *)
 (* equivalent to the parity equations representation                          *)
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_equivalent:
   ∀ps bs.
+    0 < MAX_LIST (MAP LENGTH ps) ⇒
     let
       max_degree = MAX_LIST (MAP LENGTH ps);
       num_to_drop = (LENGTH ps) * (max_degree - 1);
     in
-      TAKE ((LENGTH ps) * (LENGTH bs) - num_to_drop) (convolve_parity_equations ps bs) = DROP num_to_drop (vd_encode (parity_equations_to_state_machine ps) bs 0)
+      TAKE ((LENGTH ps) * (LENGTH bs) - num_to_drop)
+           (convolve_parity_equations ps bs) =
+      DROP num_to_drop (vd_encode (parity_equations_to_state_machine ps) bs 0)
 Proof
   gvs[]
   >> rpt strip_tac
   (* Handle the special case of ps = [] now so that we don't have to deal with
-       it later *)
+       it later. Note: this was more meaningful before adding the assumption
+       0 < MAX_LIST (MAP LENGTH ps) *)
   >> Cases_on ‘ps = []’
   >- (rpt strip_tac
       >> gvs[]
@@ -497,75 +670,66 @@ Proof
       >> gvs[parity_equations_to_state_machine_def]
      )
   >> gvs[NOT_LT]
-  (* Handle the special case where the maximum parity equation degree is zero *)
-  >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = 0’
-  >- (gvs[]
-      >> unabbrev_all_tac
-     )
   (* Show that the state machine we are working on is well-formed, so that we
      don't have to re-prove that later. *)
   >> qmatch_asmsub_abbrev_tac ‘vd_encode m bs 0’
   >> sg ‘wfmachine m’
   >- (gvs[Abbr ‘m’]
-      >> irule parity_equations_to_state_machine_wfmachine
-      >> 
      )
   (* We have finished handling special cases, now we don't have to worry about
      them whenever they arise during the course of the main proof. *)
   >> unabbrev_all_tac
   >> gvs[]
-  >> Induct_on ‘bs’
+  
+  >> qsuff_tac
+     ‘∀i.
+        i ≤ LENGTH bs * LENGTH ps - LENGTH ps * (MAX_LIST (MAP LENGTH ps) - 1) ⇒
+        TAKE i (convolve_parity_equations ps bs) =
+        TAKE i (DROP (LENGTH ps * (MAX_LIST (MAP LENGTH ps) - 1))
+                     (vd_encode (parity_equations_to_state_machine ps) bs 0))
+     ’
+
+        
+  >> Induct_on ‘MAX_LIST (MAP LENGTH ps)’
+
+
+        
+  >> Induct_on ‘LENGTH bs’
   >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def,
          vd_encode_def]
   >> rpt strip_tac
-  >> gvs[]
   (* Move the SUC's and CONS's out in order to make the conclusion a closer
        match with the inductive hypothesis. *)
-  >> gvs[convolve_parity_equations_def]
+  >> simp[convolve_parity_equations_def]
   >> gvs[MULT_SUC]
-  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
-  >> conj_tac
-  >- (unabbrev_all_tac
-      >> gvs[ADD1]
-      >> PURE_REWRITE_TAC[Once MULT_COMM]
-      >> simp[]
-     )
-  >> gvs[TAKE_SUM]
-  >> gvs[TAKE_APPEND]
-  >> gvs[TAKE_LENGTH_ID_rwt]
-  >> gvs[DROP_APPEND]
-  >> gvs[TAKE_APPEND]
-  >> gvs[DROP_LENGTH_NIL_rwt]
+  (*>> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
+         >> conj_tac
+         >- (unabbrev_all_tac
+             >> gvs[ADD1]
+             >> PURE_REWRITE_TAC[Once MULT_COMM]
+             >> simp[]
+            )*)
+  >> gvs[TAKE_SUM, TAKE_APPEND, TAKE_LENGTH_ID_rwt, DROP_APPEND, TAKE_APPEND,
+         DROP_LENGTH_NIL_rwt]
   >> qmatch_goalsub_abbrev_tac ‘stepL ⧺ indL = _’
   (* The left hand side has been successfully transformed into a form
         which allows us to use the inductive hypothesis. Now work on the RHS *)
   >> qspec_then ‘h::bs’ assume_tac (GSYM APPEND_FRONT_LAST)
   >> gvs[Excl "APPEND_FRONT_LAST"]
   >> pop_assum (fn th => PURE_REWRITE_TAC [Once th])
-  >> gvs[vd_encode_append]
-  >> gvs[DROP_APPEND]
-  >> qmatch_goalsub_abbrev_tac ‘DROP l es ⧺ DROP _ _’
-  >> sg ‘l = LENGTH es’
-  >- (unabbrev_all_tac
-      >> qmatch_goalsub_abbrev_tac ‘vd_encode m _ _’
-      >> sg ‘wfmachine m’
-      >- (unabbrev_all_tac
-          >> gvs[]
-         )
-      >> gvs[vd_encode_length]
-      >> DROP_LENGTH_NIL_rwt
-         
-      (* This is essentially the base case, where the size of the bitstring is
+  >> gvs[vd_encode_append, DROP_APPEND]
+  >> 
+  (* This is essentially the base case, where the size of the bitstring is
        only just big enough to fit one window of parity equations. *)
-      >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = SUC (LENGTH bs)’
-      >- (gvs[]
-          >> gvs[vd_encode_def, parity_equations_to_state_machine_def]
-          >> cheat (* Come back to this later *)
-         )
-      (* This uses the inductive hypothesis to complete the inductive step *)
-      >> drule_all (iffRL LT_LE)
-      >> rpt strip_tac >> gvs[]
-      >> 
+  >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = SUC (LENGTH bs)’
+  >- (gvs[]
+      >> gvs[vd_encode_def, parity_equations_to_state_machine_def]
+      >> cheat (* Come back to this later *)
+     )
+  (* This uses the inductive hypothesis to complete the inductive step *)
+                                >> drule_all (iffRL LT_LE)
+                                >> rpt strip_tac >> gvs[]
+                                >> 
 QED
 
 Theorem TODOpaddedequal:
@@ -618,6 +782,10 @@ Definition test_parity_equations_def:
   test_parity_equations = [test_parity_equation; test_parity_equation2]
 End
 
+Definition test_parity_equations_input_def:
+  test_parity_equations_input = [T; F; F; F; T; T; T; T; F; T; F; T]
+End
+
 Theorem test_apply_parity_equation:
   apply_parity_equation [T; F; T] [F; F; T] = T ∧
   apply_parity_equation [F; F; F] [T; T; T] = F ∧
@@ -631,7 +799,9 @@ Proof
 QED
 
 Theorem test_convolutional_parity_encode:
-  convolve_parity_equations test_parity_equations [F; F; F; T; T; F; T; F; T; T; T] = [F; F; T; T; F; F; F; T; F; T; T; T; F; T; F; F; T; F; F; T; T; F]
+  convolve_parity_equations test_parity_equations
+  [F; F; F; T; T; F; T; F; T; T; T] =
+  [F; F; T; T; F; F; F; T; F; T; T; T; F; T; F; F; T; F; F; T; T; F]
 Proof
   EVAL_TAC
 QED
@@ -645,10 +815,17 @@ Proof
   EVAL_TAC
 QED
 
+Theorem parity_equations_to_state_machine_vd_encode_test:
+  vd_encode (parity_equations_to_state_machine test_parity_equations)
+  test_parity_equations_input 0 = ARB
+Proof
+QED
+
 Theorem parity_equations_to_state_machine_equivalent_test:
   ∀bs.
     LENGTH bs < 8 ⇒
-    convolve_parity_equations test_parity_equations bs = vd_encode (parity_equations_to_state_machine test_parity_equations) bs 0
+    convolve_parity_equations test_parity_equations bs =
+    vd_encode (parity_equations_to_state_machine test_parity_equations) bs 0
 Proof
   rpt strip_tac
   >> Cases_on ‘bs’

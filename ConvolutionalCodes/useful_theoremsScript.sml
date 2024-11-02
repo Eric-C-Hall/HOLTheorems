@@ -77,4 +77,30 @@ Proof
   >> Induct_on ‘ls’ >> gvs[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* This comes up frequently, so it's nice to automatically simplify it.       *)
+(* -------------------------------------------------------------------------- *)
+Theorem MULT_LR_CANCEL[simp]:
+  ∀a b c : num.
+    0 < a ⇒
+    (a * b = c * a ⇔ b = c)
+Proof
+  rpt strip_tac
+  >> PURE_REWRITE_TAC[Once MULT_COMM]
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This comes up frequently, so it's nice to automatically simplify it.       *)
+(* -------------------------------------------------------------------------- *)
+Theorem MULT_RL_CANCEL[simp]:
+  ∀a b c : num.
+    0 < a ⇒
+    (b * a = a * c ⇔ b = c)
+Proof
+  rpt strip_tac
+  >> PURE_REWRITE_TAC[Once MULT_COMM]
+  >> gvs[]
+QED
+
 val _ = export_theory();
