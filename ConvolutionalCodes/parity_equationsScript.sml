@@ -818,7 +818,9 @@ QED
 Theorem parity_equations_to_state_machine_vd_encode_test:
   vd_encode (parity_equations_to_state_machine test_parity_equations)
   test_parity_equations_input 0 = ARB
+(* [T; T; T; T; T; F; F; F; T; T; F; F; T; F; T; F; F; T; F; T; T; T. F; T]*)
 Proof
+  EVAL_TAC
 QED
 
 Theorem parity_equations_to_state_machine_equivalent_test:
