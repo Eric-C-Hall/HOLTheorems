@@ -524,6 +524,8 @@ QED
 
 (* It's often conceptually simpler to have this definition which calculates
    the ith window of outputs in the output. *)
+(* TODO: Generalise this to state machines in general *)
+(* TODO: Alternatively, remove this entirely and just use TAKE and DROP *)
 Definition ith_output_window_def:
   ith_output_window i ps bs = TAKE (LENGTH ps) (DROP (i * LENGTH ps) bs)
 End
@@ -606,8 +608,63 @@ Proof
   Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Goal: to show that each window of parity equations is equivalent to the    *)
+(* corresponding window of state machines.                                    *)
+(*                                                                            *)
+(* Step 1: Show that a particular window can be calculated by first using     *)(* vd_encode_state to arrive at the appropriate state, then applying the      *)
+(* transition to generate the corresponding output.                           *)
+(*                                                                            *)
+(* Step 2: Induct over vd_encode_state to show that at any point, the state   *)
+(* that has been encoded is equivalent to the last few bits in the bitstring. *)
+(* It is easier to use induction for this purpose over vd_encode_state than   *)
+(* over vd_encode for reasons that I hope are clear but would take a bit of   *)
+(* thinking on my part to explain concretely.                                 *)
+(*                                                                            *)
+(* Step 3: Combine these steps to show that a particular window is equal to   *)
+(* the output which corresponds to the relevant bits int he bitstring.        *)
+(* -------------------------------------------------------------------------- *)
+
 Theorem ith_output_window_vd_encode_vd_encode_state:
-  ∀i ps bs
+  ∀i ps bs.
+    i < LENGTH bs ⇒
+    ith_output_window i ps (vd_encode (parity_equations_to_state_machine ps)
+                                      bs 0) =
+    ((parity_equations_to_state_machine ps)
+     .transition_fn <| origin := vd_encode_state
+                                 (parity_equations_to_state_machine ps)
+                                 (TAKE i bs) 0;
+                       input := EL i bs;
+                    |>).output
+Proof
+  rpt strip_tac
+  >> Cases_on ‘bs = []’ >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+  >> sg ‘bs = (TAKE i bs) ⧺ [EL i bs] ⧺ (DROP i bs)’
+  >- (sg ‘bs = TAKE i bs ⧺ DROP i bs’
+      >- gvs[]
+      >> pop_assum (fn th => PURE_REWRITE_TAC [Once th])
+      >> gvs[]
+      >> qspecl_then [‘TAKE i bs’, ‘i - 1’] assume_tac TAKE_EL_SNOC
+      >> gvs[]
+      >> gvs[TAKE_TAKE]
+      >> gvs[EL_TAKE]
+      >> gvs[]
+      >> sg ‘TAKE i bs = SNOC (EL i bs) (TAKE (i - 1) bs)’
+      >- DEP_PURE_ONCE_REWRITE_TAC[GSYM ]
+
+                                  TAKE (i - 1) bs ⧺ [EL i bs]’
+      >- gvs[TAKE_EL_SNOC]
+      
+      >> sg ‘(h::t) = (FRONT (h::t)) ⧺ [LAST (h::t)]’
+      >- gvs[APPEND_FRONT_LAST]
+      >> pop_assum (fn th => PURE_REWRITE_TAC[Once th])
+      >> gvs[vd_encode_append]
+      >> unabbrev_all_tac
+QED
+
+Theorem vd_encode_state:
+
 Proof
 QED
 
@@ -621,27 +678,19 @@ Proof
   
 QED
 
-
-Theorem parity_equations_to_state_machine_last_vd_encode_apply_parity_equations:
-  LENGTH bs = MAX_LIST (MAP LENGTH ps) ⇒
-
-  
-  LAST (vd_encode (parity_equations_to_state_machine ps) bs 0) =
-  apply_parity_equations ps ()
-Proof
-QED
-
 Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
   ∀i ps bs.
     i < LENGTH bs ⇒
-    ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) ps (vd_encode (parity_equations_to_state_machine ps) bs 0) = apply_parity_equations ps (DROP i bs)
+    ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) ps
+                      (vd_encode (parity_equations_to_state_machine ps) bs 0)
+    = apply_parity_equations ps (DROP i bs)
 Proof
   Induct_on ‘bs’ >> gvs[]
   >> rpt strip_tac
   >> Cases_on ‘i’ >> gvs[]
 QED
 
-Theorem convolve_parity_equations_window:
+Theorem parity_equations_to_state_machine_equivalent_window:
   ∀i ps bs.
     i < LENGTH bs ⇒
     ith_output_window i ps (convolve_parity_equations ps bs) =
@@ -649,18 +698,7 @@ Theorem convolve_parity_equations_window:
 Proof
   rpt strip_tac
   >> gvs[]
-QED
-
-Theorem parity_equations_to_state_machine_equivalent_individual:
-  ∀ps bs i.
-    (*0 < MAX_LIST (MAP LENGTH ps) ⇒*)
-    i < (LENGTH ps * LENGTH bs) - (LENGTH ps) * (MAX_LIST (MAP LENGTH ps) - 1) ⇒
-    EL i (convolve_parity_equations ps bs) =
-    EL (i + (LENGTH ps) * (MAX_LIST (MAP LENGTH ps) - 1))
-       (vd_encode (parity_equations_to_state_machine ps) bs 0)
-Proof
-  rpt strip_tac
-  >> gvs[convolve_parity_equations_def]
+        (* See convolve_parity_equations_window *)
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -714,7 +752,7 @@ Proof
      them whenever they arise during the course of the main proof. *)
   >> unabbrev_all_tac
   >> gvs[]
-  
+        
   >> qsuff_tac
      ‘∀i.
         i ≤ LENGTH bs * LENGTH ps - LENGTH ps * (MAX_LIST (MAP LENGTH ps) - 1) ⇒
@@ -723,11 +761,11 @@ Proof
                      (vd_encode (parity_equations_to_state_machine ps) bs 0))
      ’
 
-        
+     
   >> Induct_on ‘MAX_LIST (MAP LENGTH ps)’
 
 
-        
+               
   >> Induct_on ‘LENGTH bs’
   >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def,
          vd_encode_def]
@@ -761,9 +799,9 @@ Proof
       >> cheat (* Come back to this later *)
      )
   (* This uses the inductive hypothesis to complete the inductive step *)
-                                >> drule_all (iffRL LT_LE)
-                                >> rpt strip_tac >> gvs[]
-                                >> 
+  >> drule_all (iffRL LT_LE)
+  >> rpt strip_tac >> gvs[]
+  >> 
 QED
 
 Theorem TODOpaddedequal:
