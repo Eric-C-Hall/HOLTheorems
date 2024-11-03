@@ -668,6 +668,14 @@ Proof
   >> gvs[DROP_APPEND]
 QED
 
+Theorem vd_encode_state_parity_equations_to_state_machine_invalid[simp]:
+  ∀ps bs s.
+    MAX_LIST (MAP LENGTH ps) = 0 ∧
+    s = 0 ⇒
+    vd_encode_state (parity_equations_to_state_machine ps) bs s = 0
+Proof
+  Induct_on ‘bs’ >> gvs[vd_encode_state_def]
+QED                                                                                         
 (* -------------------------------------------------------------------------- *)
 (* Goal: to show that each window of parity equations is equivalent to the    *)
 (* corresponding window of state machines.                                    *)
@@ -699,28 +707,43 @@ Theorem ith_output_window_vd_encode_vd_encode_state:
 Proof
   rpt strip_tac
   >> Cases_on ‘bs = []’ >> gvs[]
+  (* Treat special case separately *)
   >> Cases_on ‘¬(0 < MAX_LIST (MAP LENGTH ps))’
+  (* TODO: This seems unnecessarily long *)
   >- (gvs[]
       >> gvs[ith_output_window_def]
-      >> DEP_PURE_ONCE_REWRITE_TAC [parity_equations_to_state_machine_invalid_vd_encode]
-      >> gvs[parity_equations_to_state_machine_def]
+      >> gvs[TAKE_REPLICATE]
+      >> gvs[MIN_DEF]
+      >> rw[]
+      >> qmatch_goalsub_abbrev_tac ‘REPLICATE l1 _ = REPLICATE l2 _’
+      >> Cases_on ‘l1 = l2’ >> gvs[]
+      >> qsuff_tac ‘F’ >> gvs[]
+      >> sg ‘l1 < l2’ >> gvs[]
+      >> gvs[Abbr ‘l1’]
+      >> sg ‘l2 + i * l2 = (1 + i) * l2’
+      >- gvs[]
+      >> pop_assum (fn th => gvs[Once th])
      )
+  >> gvs[]
   >> sg ‘wfmachine (parity_equations_to_state_machine ps)’
-  >- irule parity_equations_to_state_machine_wfmachine
+  >- gvs[]
   >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
   >> sg ‘bs = (TAKE i bs) ⧺ [EL i bs] ⧺ (DROP (i + 1) bs)’
   >- (sg ‘bs = TAKE i bs ⧺ DROP i bs’
       >- gvs[]
       >> pop_assum (fn th => PURE_REWRITE_TAC [Once th])
       >> gvs[]
-      >> gvs[DROP_BY_DROP_SUC, ADD1])
+      >> gvs[DROP_BY_DROP_SUC, ADD1]
+     )
   >> pop_assum (fn th => PURE_REWRITE_TAC [Once th])
   >> gvs[vd_encode_append]
   >> gvs[ith_output_window_def]
   >> gvs[DROP_APPEND]
-          >> sg ‘LENGTH RHS = ARB’
-          >- (unabbrev_all_tac
-              >> gvs[]
+  >> gvs[TAKE_APPEND]
+  >> sg ‘LENGTH RHS = LENGTH ps’
+  >- (unabbrev_all_tac
+      >> gvs[])
+  >> gvs[]
 QED
 
 Theorem vd_encode_state:

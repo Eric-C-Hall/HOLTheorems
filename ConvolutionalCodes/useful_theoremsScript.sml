@@ -103,4 +103,25 @@ Proof
   >> gvs[]
 QED
 
+(* I'm surprised this doesn't exist already *)
+Theorem MIN_SUC:
+  ∀a b.
+    MIN (SUC a) (SUC b) = SUC (MIN a b)
+Proof
+  rpt strip_tac
+  >> gvs[MIN_DEF]
+QED
+
+(* I'm surprised this doesn't exist already *)
+Theorem TAKE_REPLICATE:
+  ∀l n v.
+    TAKE l (REPLICATE n v) = REPLICATE (MIN l n) v
+Proof
+  Induct_on ‘l’ >> gvs[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[MIN_SUC]
+  >> gvs[TAKE]
+QED
+
 val _ = export_theory();
