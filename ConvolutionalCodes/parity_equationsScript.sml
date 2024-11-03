@@ -630,7 +630,7 @@ Proof
   Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
 QED
 
-Theorem parity_equations_to_state_machine_invalid_transition_fn[simp]:
+Theorem parity_equations_to_state_machine_maxdeg_zero_transition_fn[simp]:
   ∀ps s b.
     MAX_LIST (MAP LENGTH ps) = 0 ∧
     s = 0 ⇒
@@ -645,7 +645,7 @@ Proof
   >> gvs[parity_equations_to_state_machine_def]
 QED
 
-Theorem parity_equations_to_state_machine_invalid_vd_encode[simp]:
+Theorem parity_equations_to_state_machine_maxdeg_0_vd_encode[simp]:
   ∀ps bs i.
     MAX_LIST (MAP LENGTH ps) = 0 ∧
     i = 0 ⇒
@@ -681,7 +681,7 @@ Proof
   >> gvs[DROP_APPEND]
 QED
 
-Theorem vd_encode_state_parity_equations_to_state_machine_invalid[simp]:
+Theorem vd_encode_state_parity_equations_to_state_machine_maxdeg_0[simp]:
   ∀ps bs s.
     MAX_LIST (MAP LENGTH ps) = 0 ∧
     s = 0 ⇒
