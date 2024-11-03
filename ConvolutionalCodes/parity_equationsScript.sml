@@ -236,7 +236,7 @@ Proof
   gvs[n2v_2_def]
 QED
 
-Theorem v2n_n2v_2:
+Theorem v2n_n2v_2[simp]:
   ∀n.
     v2n (n2v_2 n) = n
 Proof
@@ -669,7 +669,7 @@ QED
    form of LENGTH bs *)
 Theorem drop_vd_encode[simp]:
   ∀i bs ps s.
-    0 < MAX_LIST (MAP LENGTH ps) ∧
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     s < (parity_equations_to_state_machine ps).num_states ∧
     i = LENGTH bs ⇒ 
     DROP (i * LENGTH ps) (vd_encode (parity_equations_to_state_machine ps) bs s) = []
@@ -773,15 +773,103 @@ Proof
   >> gvs[]
 QED
 
-Theorem vd_encode_state_parity_equations_to_state_machine[simp]:
+Theorem LASTN_LENGTH_ID_LEQ[simp]:
+  ∀vs l.
+    LENGTH vs ≤ l ⇒
+    LASTN l vs = vs
+Proof
+  rpt strip_tac
+  >> gvs[LASTN_def]
+  >> gvs[TAKE_LENGTH_TOO_LONG]
+QED
+
+Theorem PAD_LEFT_LENGTH_LEQ[simp]:
+  ∀c n ls.
+    n ≤ LENGTH ls ⇒
+    PAD_LEFT c n ls = ls
+Proof
+  Induct_on ‘n’ >> gvs[PAD_LEFT_SUC]
+QED
+
+Theorem zero_extend_length_leq[simp]:
+  ∀l bs.
+    l ≤ LENGTH bs ⇒
+    zero_extend l bs = bs
+Proof
+  rpt strip_tac
+  >> gvs[zero_extend_def, PAD_LEFT_LENGTH_LEQ]
+QED
+
+Theorem lastn_zero_extend[simp]:
+  ∀n bs.
+    n ≤ LENGTH bs ⇒ zero_extend n (LASTN n bs) = LASTN n bs
+Proof
+  rpt strip_tac
+  >> gvs[zero_extend_length_leq, LENGTH_LASTN]
+QED
+
+Theorem zero_extend_lastn[simp]:
+  ∀n bs.
+    LENGTH bs ≤ n ⇒ LASTN n (zero_extend n bs) = zero_extend n bs
+Proof
+  rpt strip_tac
+  >> gvs[length_zero_extend_2]
+QED
+
+Theorem zero_extend_lastn_swap:
+  ∀n bs.
+    LASTN n (zero_extend n bs) = zero_extend n (LASTN n bs)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘n ≤ LENGTH bs’ >> gvs[]
+QED
+
+(* TODO: Idea: would be helpful to have a more interactive way to see which
+     theorems were actually used for the purposes of simplification, without
+     failure, when applying the simplifier. Would be nice to see a nice
+     graphical tree of simplifications that occurred. *)
+
+
+(* Maybe this should be automatically provable somehow using
+   wfmachine_transition_fn_destination_is_valid as well as
+   the definition of parity_equations_to_state_machine and
+   parity_equations_to_state_machine_wfmachine *)
+Theorem parity_equations_to_state_machine_destination_is_valid[simp]:
+  ∀ps i b.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
+    i < 2 ** (MAX_LIST (MAP LENGTH ps) - 1) ⇒
+    ((parity_equations_to_state_machine ps)
+     .transition_fn <| origin := i; input := b |>).destination <
+    2 ** (MAX_LIST (MAP LENGTH ps) - 1)
+Proof
+  gvs[]
+  >> rpt strip_tac
+  >> gvs[]
+  (* TODO: IDEA: would be nice to be able to irule
+     wfmachine_transition_fn_destination_is_valid here, but i *)
+  >> qspecl_then [‘parity_equations_to_state_machine ps’, ‘<| origin := i; input := b |>’] assume_tac wfmachine_transition_fn_destination_is_valid
+  >> gvs[Excl "wfmachine_transition_fn_destination_is_valid"]
+QED
+
+Theorem vd_encode_state_parity_equations_to_state_machine:
   ∀ps bs i.
-    vd_encode_state (parity_equations_to_state_machine ps) bs i = LASTN () (v2n (n2v_2 i ⧺ bs))
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
+    i < 2 ** (MAX_LIST (MAP LENGTH ps) - 1) ⇒
+    vd_encode_state (parity_equations_to_state_machine ps) bs i =
+    v2n (LASTN (MAX_LIST (MAP LENGTH ps) - 1) (zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v_2 i ⧺ bs)))
 Proof
   Induct_on ‘bs’ >> gvs[]
+  >- (rpt strip_tac
+      >> PURE_REWRITE_TAC[Once zero_extend_lastn_swap]
+      >> gvs[]
+      >> gvs[n2v_2_length_le, v2n_n2v_2] (* Maybe these length functions should be in the simp set *)
+     )
   >> rpt strip_tac
   >> gvs[vd_encode_state_def]
-  >> gvs[v2n]
-  >> gvs[parity_equations_to_state_machine_def]
+  >> gvs[]
+  >> simp[parity_equations_to_state_machine_def]
+  >> gvs[n2v_2_v2n]
+  
 QED
 
 Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
@@ -1004,7 +1092,7 @@ QED
    vd_encode_zero_tailed (parity_equations_to_state_machine ps) *)
 Theorem convolve_parity_equations_padded_test:
   convolve_parity_equations_padded test_parity_equations test_parity_equations_input = [T; T; T; T; T; F; F; F; T; T; F; F; T; F; T; F; F; T; F; T; T; T; F; T; T; T; T; F] ∧
-    convolve_parity_equations_padded test_parity_equations test_parity_equations_input = vd_encode_zero_tailed (parity_equations_to_state_machine test_parity_equations) test_parity_equations_input 0
+  convolve_parity_equations_padded test_parity_equations test_parity_equations_input = vd_encode_zero_tailed (parity_equations_to_state_machine test_parity_equations) test_parity_equations_input 0
 Proof
   EVAL_TAC
 QED

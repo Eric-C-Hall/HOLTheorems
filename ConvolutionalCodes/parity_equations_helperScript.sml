@@ -144,8 +144,8 @@ Proof
   >> rw[]
 QED
 
-Theorem v2n_zero_extend:
-  ∀ l bs.
+Theorem v2n_zero_extend[simp]:
+  ∀l bs.
     v2n (zero_extend l bs) = v2n bs 
 Proof
   rpt strip_tac

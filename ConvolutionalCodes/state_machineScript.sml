@@ -451,16 +451,6 @@ Proof
   >> gvs[ADD1]
 QED
 
-Theorem transition_fn_destination_is_valid[simp]:
-  ∀m r.
-    wfmachine m ∧
-    r.origin < m.num_states ⇒
-    (m.transition_fn r).destination < m.num_states
-Proof
-  rpt strip_tac
-  >> gvs[]
-QED
-
 Theorem vd_encode_state_is_valid[simp]:
   ∀m bs s.
     wfmachine m ∧ 
