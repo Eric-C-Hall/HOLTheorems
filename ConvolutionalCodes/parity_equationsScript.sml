@@ -630,6 +630,14 @@ Proof
   Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
 QED
 
+Theorem apply_parity_equations_maxdeg_zero[simp]:
+  ∀ps bs.
+    MAX_LIST (MAP LENGTH ps) = 0 ⇒
+    apply_parity_equations ps bs = REPLICATE (LENGTH ps) F
+Proof
+  Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
+QED
+
 Theorem parity_equations_to_state_machine_maxdeg_zero_transition_fn[simp]:
   ∀ps s b.
     MAX_LIST (MAP LENGTH ps) = 0 ∧
