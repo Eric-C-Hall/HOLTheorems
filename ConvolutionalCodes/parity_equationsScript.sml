@@ -137,15 +137,16 @@ End
 Definition parity_equations_to_state_machine_def:
   parity_equations_to_state_machine ps =
   <|
-    num_states := 2 ** (MAX_LIST (MAP LENGTH ps));
+    num_states := 2 ** (MAX_LIST (MAP LENGTH ps) - 1);
     transition_fn := λr.
                        let
-                         r_vec = zero_extend (MAX_LIST (MAP LENGTH ps)) (n2v_2 (r.origin));
-                         new_vec = TL (SNOC r.input r_vec);
+                         r_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v_2 (r.origin));
+                         window = SNOC r.input r_vec;
+                         new_vec = TL (window);
                        in
                          <|
                            destination := v2n new_vec;
-                           output := apply_parity_equations ps new_vec
+                           output := apply_parity_equations ps window
                          |>
     ;
     output_length := LENGTH ps;
