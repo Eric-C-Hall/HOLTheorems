@@ -159,7 +159,7 @@ End
 Theorem parity_equations_to_state_machine_num_states[simp]:
   ∀ps.
     (parity_equations_to_state_machine ps).num_states =
-    2 ** (MAX_LIST (MAP LENGTH ps))
+    2 ** (MAX_LIST (MAP LENGTH ps) - 1)
 Proof
   gvs[parity_equations_to_state_machine_def]
 QED
@@ -269,6 +269,16 @@ Proof
   >> Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
 QED
 
+Theorem n2v_2_empty[simp]:
+  ∀n.
+    n2v_2 n = [] ⇔ n = 0
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘n’ >> gvs[n2v_2_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
@@ -277,7 +287,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_wfmachine[simp]:
   ∀ps.
-    0 < MAX_LIST (MAP LENGTH ps) ⇒
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
     wfmachine (parity_equations_to_state_machine ps)
 Proof
   rpt strip_tac
