@@ -851,6 +851,110 @@ Proof
   >> gvs[Excl "wfmachine_transition_fn_destination_is_valid"]
 QED
 
+Theorem null_zero_extend[simp]:
+  ∀n bs.
+    NULL (zero_extend n bs) ⇔ n = 0 ∧ bs = []
+Proof
+  rpt strip_tac
+  >> Cases_on ‘n’ >> Cases_on ‘bs’ >> rw[zero_extend_suc]
+QED
+
+Theorem n2v_2_snoc:
+  ∀i j.
+    (i ≠ 0 ∨ j ≠ 0) ∧
+    j < 2 ⇒
+    n2v_2 (2 * i + j) = SNOC (j = 1) (n2v_2 i)
+Proof
+  rpt gen_tac
+  >> rpt disch_tac
+  >> Cases_on ‘2 * i + j’ >> gvs[]
+  >> gvs[n2v_2_def]
+  >> pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
+  >> conj_tac
+  >- (AP_TERM_TAC
+      >> gvs[DIV_MULT]
+      >> Cases_on ‘j’ >> gvs[]
+      >> Cases_on ‘n’ >> gvs[]
+     )
+  >> gvs[MOD_MULT]
+QED
+
+Theorem n2v_n2v_2:
+  ∀n.
+    n2v n = if n = 0 then [F] else n2v_2 n
+Proof
+  rpt strip_tac >> rw[]
+  >- EVAL_TAC
+  >> gvs[n2v_2_n2v]
+QED
+
+Theorem n2v_snoc:
+  ∀i j.
+    (i ≠ 0 ∨ j ≠ 0) ∧
+    ¬(i = 0 ∧ j = 1) ∧
+    j < 2 ⇒
+    n2v (2 * i + j) = SNOC (j = 1) (n2v i)
+Proof
+  rpt gen_tac >> rpt disch_tac
+  >> rw[n2v_n2v_2, n2v_2_snoc]
+QED
+
+Theorem zero_extend_replicate:
+  ∀n bs.
+    zero_extend n bs = REPLICATE (n - LENGTH bs) F ⧺ bs
+Proof
+  sg ‘∀m bs. zero_extend (m + LENGTH bs) bs = REPLICATE m F ⧺ bs’
+  >- (Induct_on ‘m’ >> gvs[]
+      >> rpt strip_tac
+      >> gvs[GSYM ADD_SUC]
+      >> gvs[zero_extend_suc])
+  >> rpt strip_tac
+  >> pop_assum $ qspecl_then [‘n - LENGTH bs’, ‘bs’] assume_tac
+  >> Cases_on ‘LENGTH bs ≤ n’ >> gvs[]
+QED
+
+Theorem zero_extend_snoc:
+  ∀n b bs.
+    0 < n ⇒
+    zero_extend n (SNOC b bs) = SNOC b (zero_extend (n - 1) bs)
+Proof
+  Induct_on ‘n’ >> gvs[] >> rpt strip_tac
+  >> gvs[zero_extend_suc]
+  >> rw[]
+  >> Cases_on ‘zero_extend n bs’ >> gvs[]
+  >> Cases_on ‘h’ >> gvs[]
+     
+     
+                        Induct_on ‘bs’ >> gvs[] >> rpt strip_tac
+  >- gvs[zero_extend_replicate]
+  >> Induct_on ‘n’ >> gvs[]
+  >> gvs[zero_extend_suc]
+  
+  >> Cases_on ‘n’ >> gvs[]
+  >> gvs[zero_extend_suc]
+  >> rw[]
+  >> Cases_on ‘n'’ >> gvs[]
+  >> gvs[zero_extend_suc]
+  >> rw[]
+       rpt strip_tac
+  >> Cases_on ‘n’ >> gvs[]
+QED
+
+Theorem zero_extend_n2v_2_v2n[simp]:
+  ∀l bs.
+    l = LENGTH bs ⇒
+    zero_extend l (n2v_2 (v2n bs)) = bs
+Proof
+  Induct_on ‘bs’ using SNOC_INDUCT >> gvs[] >> rpt strip_tac
+  >> Cases_on ‘LENGTH bs’ >> gvs[]
+  >- (Cases_on ‘x’ >> EVAL_TAC)
+  >> PURE_REWRITE_TAC[GSYM SNOC_APPEND, v2n_snoc]
+  >> DEP_PURE_ONCE_REWRITE_TAC[n2v_2_snoc]
+  >> gvs[]
+  >> PURE_REWRITE_TAC[v2n_snoc]
+  >> gvs[v2n_snoc, n2v_2_snoc]
+QED
+
 Theorem vd_encode_state_parity_equations_to_state_machine:
   ∀ps bs i.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
@@ -868,8 +972,10 @@ Proof
   >> gvs[vd_encode_state_def]
   >> gvs[]
   >> simp[parity_equations_to_state_machine_def]
-  >> gvs[n2v_2_v2n]
-  
+(* The innermost zero_extend (n2v_2 i) gives the vector with the correct
+     length that corresponds to i. It is either going to be the first
+     element of the vector corresonding to *)
+         
 QED
 
 Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
