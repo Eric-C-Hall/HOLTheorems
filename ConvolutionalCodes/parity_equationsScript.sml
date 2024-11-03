@@ -680,7 +680,7 @@ QED
 
 Theorem drop_vd_encode_append[simp]:
   ∀i bs cs ps s.
-    0 < MAX_LIST (MAP LENGTH ps) ∧
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     s < (parity_equations_to_state_machine ps).num_states ∧
     i = LENGTH bs ⇒ 
     DROP (i * LENGTH ps) (vd_encode (parity_equations_to_state_machine ps) bs s ⧺ cs) = cs
@@ -716,6 +716,7 @@ QED
 
 Theorem ith_output_window_vd_encode_vd_encode_state:
   ∀i ps bs.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     i < LENGTH bs ⇒
     ith_output_window i ps (vd_encode (parity_equations_to_state_machine ps)
                                       bs 0) =
@@ -728,6 +729,10 @@ Theorem ith_output_window_vd_encode_vd_encode_state:
 Proof
   rpt strip_tac
   >> Cases_on ‘bs = []’ >> gvs[]
+  (*
+  (* Here, we used to treat the special case of MAX_LIST (MAP LENGTH ps) = 0
+     separately, but now the special case includes MAX_LIST (MAP LENGTH ps) = 1,
+     so we can't prove it as trivially any more. *)
   (* Treat special case separately *)
   >> Cases_on ‘¬(0 < MAX_LIST (MAP LENGTH ps))’
   (* TODO: This seems unnecessarily long *)
@@ -746,6 +751,7 @@ Proof
       >> pop_assum (fn th => gvs[Once th])
      )
   >> gvs[]
+  *)
   >> sg ‘wfmachine (parity_equations_to_state_machine ps)’
   >- gvs[]
   >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
