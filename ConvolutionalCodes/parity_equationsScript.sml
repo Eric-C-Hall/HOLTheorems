@@ -746,9 +746,15 @@ Proof
   >> gvs[]
 QED
 
-Theorem vd_encode_state:
-
+Theorem vd_encode_state_parity_equations_to_state_machine[simp]:
+  ∀ps bs i.
+    vd_encode_state (parity_equations_to_state_machine ps) bs i = LASTN () (v2n (n2v_2 i ⧺ bs))
 Proof
+  Induct_on ‘bs’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[vd_encode_state_def]
+  >> gvs[v2n]
+  >> gvs[parity_equations_to_state_machine_def]
 QED
 
 Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
@@ -761,18 +767,6 @@ Proof
   
 QED
 
-Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
-  ∀i ps bs.
-    i < LENGTH bs ⇒
-    ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) ps
-                      (vd_encode (parity_equations_to_state_machine ps) bs 0)
-    = apply_parity_equations ps (DROP i bs)
-Proof
-  Induct_on ‘bs’ >> gvs[]
-  >> rpt strip_tac
-  >> Cases_on ‘i’ >> gvs[]
-QED
-
 Theorem parity_equations_to_state_machine_equivalent_window:
   ∀i ps bs.
     i < LENGTH bs ⇒
@@ -781,7 +775,8 @@ Theorem parity_equations_to_state_machine_equivalent_window:
 Proof
   rpt strip_tac
   >> gvs[]
-        (* See convolve_parity_equations_window *)
+  >> 
+  (* See convolve_parity_equations_window *)
 QED
 
 (* -------------------------------------------------------------------------- *)
