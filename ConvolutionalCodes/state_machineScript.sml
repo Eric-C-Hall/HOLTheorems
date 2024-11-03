@@ -149,7 +149,8 @@ End
 (* vd_encode, in order to avoid unnecessary duplication of theorems.          *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_encode_zero_tailed_def[simp]:
-  vd_encode_zero_tailed m bs s = vd_encode m (bs ⧺ REPLICATE (LOG 2 m.num_states - 1) F) s
+  vd_encode_zero_tailed m bs s =
+  vd_encode m (bs ⧺ REPLICATE (LOG 2 m.num_states) F) s
 End
 
 (* -------------------------------------------------------------------------- *)
