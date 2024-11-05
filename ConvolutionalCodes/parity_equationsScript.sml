@@ -913,18 +913,46 @@ Proof
   >> Cases_on ‘LENGTH bs ≤ n’ >> gvs[]
 QED
 
+Theorem if_eq_then[simp]:
+  ∀b n m.
+    ((if b then n else m) = n) ⇔ (b ∨ n = m)
+Proof
+  rpt strip_tac
+  >> rw[]
+  >> simp[EQ_SYM_EQ]
+QED
+
+Theorem if_eq_else[simp]:
+  ∀b n m.
+    ((if b then n else m) = m) ⇔ (¬b ∨ n = m)
+Proof
+  rpt strip_tac
+  >> rw[]
+  >> simp[EQ_SYM_EQ]
+QED
+
 Theorem zero_extend_snoc:
   ∀n b bs.
-    0 < n ⇒
     zero_extend n (SNOC b bs) = SNOC b (zero_extend (n - 1) bs)
 Proof
   Induct_on ‘n’ >> gvs[] >> rpt strip_tac
   >> gvs[zero_extend_suc]
-  >> Cases_on ‘n’ >> gvs[]
   >> rw[]
+  >> Cases_on ‘n’ >> gvs[]
   >> gvs[zero_extend_suc]
 QED
 
+Theorem zero_extend_append:
+  ∀n bs cs.
+    zero_extend n (bs ⧺ cs) = zero_extend (n - LENGTH cs) bs ⧺ cs
+Proof
+  Induct_on ‘n’ >> gvs[] >> rpt strip_tac
+  >> gvs[zero_extend_suc]
+  >> rw[]
+  >> gvs[SUB]
+  >> gvs[zero_extend_suc]
+QED
+        
 Theorem zero_extend_n2v_2_v2n[simp]:
   ∀l bs.
     l = LENGTH bs ⇒
@@ -934,10 +962,18 @@ Proof
   >> Cases_on ‘LENGTH bs’ >> gvs[]
   >- (Cases_on ‘x’ >> EVAL_TAC)
   >> PURE_REWRITE_TAC[GSYM SNOC_APPEND, v2n_snoc]
+  >> Cases_on ‘v2n bs = 0 ∧ (if x then 1 else 0) = 0’
+  >- (gvs[]
+      >> gvs[ADD1]
+      >> gvs[GSYM SNOC_APPEND, SNOC_REPLICATE]
+      >> PURE_REWRITE_TAC[GSYM $ cj 2 REPLICATE]
+      >> PURE_REWRITE_TAC[ADD1]
+      >> gvs[])
   >> DEP_PURE_ONCE_REWRITE_TAC[n2v_2_snoc]
   >> gvs[]
-  >> PURE_REWRITE_TAC[v2n_snoc]
-  >> gvs[v2n_snoc, n2v_2_snoc]
+  >> conj_tac
+  >- rw[]
+  >> gvs[zero_extend_append]
 QED
 
 Theorem vd_encode_state_parity_equations_to_state_machine:
