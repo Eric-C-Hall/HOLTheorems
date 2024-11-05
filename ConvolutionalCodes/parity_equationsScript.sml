@@ -920,24 +920,9 @@ Theorem zero_extend_snoc:
 Proof
   Induct_on ‘n’ >> gvs[] >> rpt strip_tac
   >> gvs[zero_extend_suc]
-  >> rw[]
-  >> Cases_on ‘zero_extend n bs’ >> gvs[]
-  >> Cases_on ‘h’ >> gvs[]
-     
-     
-                        Induct_on ‘bs’ >> gvs[] >> rpt strip_tac
-  >- gvs[zero_extend_replicate]
-  >> Induct_on ‘n’ >> gvs[]
-  >> gvs[zero_extend_suc]
-  
   >> Cases_on ‘n’ >> gvs[]
-  >> gvs[zero_extend_suc]
   >> rw[]
-  >> Cases_on ‘n'’ >> gvs[]
   >> gvs[zero_extend_suc]
-  >> rw[]
-       rpt strip_tac
-  >> Cases_on ‘n’ >> gvs[]
 QED
 
 Theorem zero_extend_n2v_2_v2n[simp]:
