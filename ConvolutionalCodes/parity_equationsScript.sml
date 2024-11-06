@@ -976,6 +976,84 @@ Proof
   >> gvs[zero_extend_append]
 QED
 
+Theorem lastn_zero_extend_length[simp]:
+  ∀n bs.
+    LENGTH (LASTN n (zero_extend n bs)) = n
+Proof
+  rpt strip_tac
+  >> Cases_on ‘n ≤ LENGTH bs’
+  >- gvs[LENGTH_LASTN]
+  >> gvs[]
+  >> gvs[length_zero_extend]
+QED
+
+Theorem LASTN_0[simp]:
+  ∀l. LASTN 0 l = []
+Proof
+  gvs[LASTN]
+QED
+
+Theorem LASTN_1_LAST:
+  ∀l.
+    l ≠ [] ⇒
+    LASTN 1n l = [LAST l]
+Proof
+  rpt strip_tac
+  >> Induct_on ‘l’
+  >- gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘1 ≤ LENGTH l’
+  >- (gvs[LASTN_CONS]
+      >> Cases_on ‘l’ >> gvs[])
+  >> Cases_on ‘l’ >> gvs[]
+QED
+
+Theorem TL_LASTN:
+  ∀n ls.
+    SUC n ≤ LENGTH ls ⇒
+    TL (LASTN (SUC n) ls) = LASTN n ls
+Proof
+  Induct_on ‘n’ >> gvs[]
+  >- (rpt strip_tac
+      >> Cases_on ‘ls’ using SNOC_CASES >> gvs[]
+      >> gvs[LASTN_1_LAST]
+     )
+  >> rpt strip_tac
+  >> Cases_on ‘ls’ using SNOC_CASES
+  >- gvs[]
+  >> PURE_REWRITE_TAC[LASTN]
+  >> PURE_REWRITE_TAC[TL_SNOC]
+  >> rw[]
+  >- (gvs[NULL_EQ]
+      >> Cases_on ‘l’ using SNOC_CASES
+      >- gvs[]
+      >> gvs[LASTN])
+  >> gvs[]
+QED
+
+Theorem snoc_zero_extend:
+  ∀n b bs.
+    SNOC b (zero_extend n bs) = zero_extend (n + 1) (SNOC b bs)
+Proof
+  rpt strip_tac
+  >> qabbrev_tac ‘m = n + 1’
+  >> sg ‘n = m - 1’ >- gvs[Abbr ‘m’]
+  >> PURE_REWRITE_TAC[zero_extend_snoc]
+  >> gvs[]
+QED
+
+Theorem tl_zero_extend:
+  ∀l bs.
+    TL (zero_extend l bs) = if (l ≤ LENGTH bs) then TL bs else zero_extend (l - 1) bs
+Proof
+  rpt strip_tac
+  >> rw[]
+  >> sg ‘LENGTH bs < l’ >> gvs[]
+  >> Cases_on ‘l’ >> gvs[]
+  >> Cases_on ‘bs’ >> gvs[]
+  >> gvs[zero_extend_suc]
+QED
+
 Theorem vd_encode_state_parity_equations_to_state_machine:
   ∀ps bs i.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
@@ -983,20 +1061,34 @@ Theorem vd_encode_state_parity_equations_to_state_machine:
     vd_encode_state (parity_equations_to_state_machine ps) bs i =
     v2n (LASTN (MAX_LIST (MAP LENGTH ps) - 1) (zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v_2 i ⧺ bs)))
 Proof
-  Induct_on ‘bs’ >> gvs[]
+  Induct_on ‘bs’ using SNOC_INDUCT >> gvs[]
   >- (rpt strip_tac
       >> PURE_REWRITE_TAC[Once zero_extend_lastn_swap]
       >> gvs[]
       >> gvs[n2v_2_length_le, v2n_n2v_2] (* Maybe these length functions should be in the simp set *)
      )
   >> rpt strip_tac
-  >> gvs[vd_encode_state_def]
-  >> gvs[]
-  >> simp[parity_equations_to_state_machine_def]
-(* The innermost zero_extend (n2v_2 i) gives the vector with the correct
-     length that corresponds to i. It is either going to be the first
-     element of the vector corresonding to *)
-         
+  >> gvs[vd_encode_state_snoc, parity_equations_to_state_machine_def]
+  (*  *)
+  >> qmatch_goalsub_abbrev_tac ‘v2n (TL (SNOC _ (LASTN l (zero_extend _ (cs)))))’
+  >> Cases_on ‘l ≤ LENGTH cs’
+  >- (gvs[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[zero_extend_length_leq]
+      >> conj_tac
+      >- (gvs[Abbr ‘l’]
+          >> gvs[Abbr ‘cs’]
+         )
+      >> gvs[]
+      >> gvs[GSYM $ cj 2 LASTN]
+      >> gvs[TL_LASTN]
+      >> gvs[Abbr ‘cs’]
+      >> gvs[GSYM APPEND_SNOC]
+     )
+  >> sg ‘LENGTH cs < l’ >> gvs[]
+  >> gvs[Abbr ‘cs’]
+  >> gvs[snoc_zero_extend]
+  >> gvs[tl_zero_extend]
+  >> gvs[SNOC_APPEND]
 QED
 
 Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
@@ -1155,7 +1247,7 @@ Definition parity_equations_to_gen_state_machine_def:
       output_length := num_parity_equations : num;
     |>
 End
- *)
+          *)
 
 
 (* -------------------------------------------------------------------------- *)
