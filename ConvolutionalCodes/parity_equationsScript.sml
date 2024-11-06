@@ -16,6 +16,7 @@ open bitTheory;
 
 (* Standard libraries *)
 open dep_rewrite;
+open ConseqConv;
 
 (* My theories *)
 open state_machineTheory;
@@ -711,7 +712,7 @@ QED
 (* thinking on my part to explain concretely.                                 *)
 (*                                                                            *)
 (* Step 3: Combine these steps to show that a particular window is equal to   *)
-(* the output which corresponds to the relevant bits int he bitstring.        *)
+(* the output which corresponds to the relevant bits in the bitstring.        *)
 (* -------------------------------------------------------------------------- *)
 
 Theorem ith_output_window_vd_encode_vd_encode_state:
@@ -1091,14 +1092,115 @@ Proof
   >> gvs[SNOC_APPEND]
 QED
 
+(* Possibly a better theorem than LENGTH_TAKE, because it isn't dependent on
+   any preconditions, and hence can always be used, even when the precondition
+   required by LENGTH_TAKE is false. *)
+Theorem LENGTH_TAKE_2:
+  ∀n l.
+    LENGTH (TAKE n l) = MIN n (LENGTH l)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘n ≤ LENGTH l’ >> gvs[LENGTH_TAKE]
+  >- rw[MIN_DEF]
+  >> rw[MIN_DEF]
+  >> gvs[TAKE_LENGTH_TOO_LONG]
+QED
+
+Theorem LENGTH_TAKE_LE_2[simp]:
+  ∀n l.
+    LENGTH (TAKE n l) ≤ n
+Proof
+  gvs[LENGTH_TAKE_2]
+QED
+
+Theorem LASTN_TAKE:
+  ∀bs n m.
+    m ≤ LENGTH bs ⇒
+    LASTN n (TAKE m bs) = DROP (m - n) (TAKE m bs)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘m ≤ n’ >> gvs[]
+  >- (sg ‘m - n = 0’ >- gvs[]
+      >> simp[]
+     )
+  >> sg ‘n < m’ >> gvs[]
+  >> Cases_on ‘m ≤ LENGTH bs’ >> gvs[LASTN_DROP]
+QED
+
+Theorem apply_parity_equation_take_maxdeg[simp]:
+  ∀ps bs l.
+    LENGTH ps ≤ l ⇒
+    apply_parity_equation ps (TAKE l bs) =
+    apply_parity_equation ps bs
+Proof
+  Induct_on ‘ps’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘bs’ >> gvs[]
+  >> Cases_on ‘l’ >> gvs[]
+  >> Cases_on ‘n’ >> gvs[]
+  >- gvs[apply_parity_equation_def]
+  >> gvs[apply_parity_equation_def]
+QED
+
+Theorem apply_parity_equations_take_maxdeg[simp]:
+  ∀ps bs l.
+    MAX_LIST (MAP LENGTH ps) ≤ l ⇒
+    apply_parity_equations ps (TAKE l bs) =
+    apply_parity_equations ps bs
+Proof
+  Induct_on ‘ps’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[apply_parity_equations_def]
+QED
+
 Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
   ∀i ps bs.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
+    i < LENGTH bs ⇒
     ith_output_window
     i ps (vd_encode (parity_equations_to_state_machine ps) bs 0) =
     apply_parity_equations
-    ps (DROP i (REPLICATE (MAX_LIST (MAP LENGTH ps)) F ⧺ bs))
+    ps (DROP i (REPLICATE (MAX_LIST (MAP LENGTH ps) - 1) F ⧺ bs))
 Proof
-  
+  rpt strip_tac
+  >> gvs[ith_output_window_vd_encode_vd_encode_state]
+  >> gvs[vd_encode_state_parity_equations_to_state_machine]
+  >> gvs[parity_equations_to_state_machine_def]
+  >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]                     
+  >> Cases_on ‘MAX_LIST (MAP LENGTH ps) - 1 ≤ i’
+  >- (gvs[]
+      >> gvs[LASTN_TAKE]
+      >> gvs[DROP_APPEND]
+      >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = i + 1’
+      >- (gvs[]
+          >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
+          >> DEP_PURE_ONCE_REWRITE_TAC[GSYM TAKE_EL_SNOC]
+          >> gvs[]
+         )
+      >> sg ‘MAX_LIST (MAP LENGTH ps) < i + 1’ >> gvs[]
+     (*>> gvs[GSYM DROP_APPEND]
+      >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
+      >> DEP_PURE_ONCE_REWRITE_TAC[GSYM TAKE_EL_SNOC]*)
+      >> sg ‘MAX_LIST (MAP LENGTH ps) - (i + 1) = 0’
+      >- gvs[]
+      >> simp[]
+      >> gvs[]
+      >> qmatch_goalsub_abbrev_tac ‘LHS = _’
+      >> sg ‘bs = TAKE i bs ⧺ [EL i bs] ⧺ DROP (SUC i) bs’ >- gvs[TAKE_DROP_SUC]
+      >> pop_assum $ (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> gvs[DROP_APPEND]
+      >> unabbrev_all_tac
+      >> gvs[DROP_TAKE]
+      >> sg ‘1 - MAX_LIST (MAP LENGTH ps) = 0’
+      >- gvs[]
+      >> simp[]
+      >> gvs[]
+      >> gvs[TAKE_DROP]
+      >> qmatch_goalsub_abbrev_tac ‘LHS = apply_parity_equations _ cs’
+      >> SPECL [“ps : bool list list”, “bs : bool list”, “l : num”] (GSYM apply_parity_equations_take_maxdeg)
+               
+     )
+      >> 
 QED
 
 Theorem parity_equations_to_state_machine_equivalent_window:
@@ -1247,7 +1349,7 @@ Definition parity_equations_to_gen_state_machine_def:
       output_length := num_parity_equations : num;
     |>
 End
-          *)
+ *)
 
 
 (* -------------------------------------------------------------------------- *)
