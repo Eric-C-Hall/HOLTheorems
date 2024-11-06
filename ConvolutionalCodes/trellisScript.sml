@@ -999,7 +999,6 @@ Proof
   >> gvs[SNOC_APPEND]
   >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
   >> gvs[]
-  >> conj_tac >- gvs[ADD1]
   (* The inductive hypothesis will be applicable to indL, and the inductive step
      will be applicable to stepL. *)
   >> qmatch_abbrev_tac ‘(stepL : num) + indL = _’
