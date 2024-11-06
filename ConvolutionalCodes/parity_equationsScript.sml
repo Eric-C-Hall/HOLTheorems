@@ -1153,7 +1153,7 @@ Proof
   >> gvs[apply_parity_equations_def]
 QED
 
-Theorem ith_output_window_vd_encode_parity_equations_to_state_machine:
+Theorem ith_output_window_vd_encode_parity_equations_to_state_machine[simp]:
   ∀i ps bs.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     i < LENGTH bs ⇒
@@ -1223,14 +1223,17 @@ QED
 
 Theorem parity_equations_to_state_machine_equivalent_window:
   ∀i ps bs.
-    i < LENGTH bs ⇒
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
+    i + MAX_LIST (MAP LENGTH ps) - 1 < LENGTH bs ⇒
     ith_output_window i ps (convolve_parity_equations ps bs) =
     ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) ps (vd_encode (parity_equations_to_state_machine ps) bs 0)
 Proof
   rpt strip_tac
   >> gvs[]
-  >> 
-  (* See convolve_parity_equations_window *)
+  >> gvs[DROP_APPEND]
+  >> sg ‘MAX_LIST (MAP LENGTH ps) - 1 - (i + MAX_LIST (MAP LENGTH ps) - 1) = 0’
+  >- gvs[]
+  >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
