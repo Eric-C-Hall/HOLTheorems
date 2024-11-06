@@ -174,7 +174,6 @@ Proof
   >> gs[SNOC_APPEND]
   >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_append]
   >> gs[]
-  >> conj_tac >- gs[ADD1]
   >> qmatch_goalsub_abbrev_tac ‘_ ≤ step + ind’
   >> qmatch_asmsub_abbrev_tac ‘DROP indLength’
   (*>> qmatch_asmsub_abbrev_tac ‘get_num_errors m indString’
