@@ -1196,11 +1196,29 @@ Proof
       >> simp[]
       >> gvs[]
       >> gvs[TAKE_DROP]
+      >> sg ‘i + 1 - MAX_LIST (MAP LENGTH ps) - (i + 1) = 0’ >- gvs[]
+      >> simp[]
+      >> gvs[]
       >> qmatch_goalsub_abbrev_tac ‘LHS = apply_parity_equations _ cs’
-      >> SPECL [“ps : bool list list”, “bs : bool list”, “l : num”] (GSYM apply_parity_equations_take_maxdeg)
-               
+      >> assume_tac (SPECL [“ps : bool list list”, “cs : bool list”, “MAX_LIST (MAP LENGTH (ps : bool list list))”] (GSYM apply_parity_equations_take_maxdeg))
+      >> gvs[Excl "apply_parity_equations_take_maxdeg", Abbr ‘cs’]
+      >> gvs[Excl "apply_parity_equations_take_maxdeg", TAKE_APPEND]
+      >> gvs[TAKE_TAKE_MIN]
+      >> rw[MIN_DEF]
      )
-      >> 
+  >> sg ‘i + 1 < MAX_LIST (MAP LENGTH ps)’ >> gvs[]
+  >> gvs[DROP_APPEND]
+  >> sg ‘(i + 1) - MAX_LIST (MAP LENGTH ps) = 0’ >- gvs[]
+  >> simp[]
+  >> gvs[zero_extend_replicate]
+  >> qmatch_goalsub_abbrev_tac ‘LHS = apply_parity_equations _ cs’
+  >> assume_tac (SPECL [“ps : bool list list”, “cs : bool list”, “MAX_LIST (MAP LENGTH (ps : bool list list))”] (GSYM apply_parity_equations_take_maxdeg))
+  >> gvs[Excl "apply_parity_equations_take_maxdeg", Abbr ‘cs’]
+  >> gvs[Excl "apply_parity_equations_take_maxdeg", TAKE_APPEND]
+  >> unabbrev_all_tac
+  >> gvs[TAKE_EL_SNOC]
+  >> gvs[TAKE_REPLICATE]
+  >> rw[MIN_DEF]
 QED
 
 Theorem parity_equations_to_state_machine_equivalent_window:
@@ -1444,5 +1462,5 @@ Proof
   >> Cases_on ‘t'’
   >- (Cases_on ‘h’ >> EVAL_TAC)
 QED
-
+ 
 val _ = export_theory();
