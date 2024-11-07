@@ -1242,7 +1242,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_equivalent:
   ∀ps bs.
-    0 < MAX_LIST (MAP LENGTH ps) ⇒
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
     let
       max_degree = MAX_LIST (MAP LENGTH ps);
       num_to_drop = (LENGTH ps) * (max_degree - 1);
@@ -1251,7 +1251,22 @@ Theorem parity_equations_to_state_machine_equivalent:
            (convolve_parity_equations ps bs) =
       DROP num_to_drop (vd_encode (parity_equations_to_state_machine ps) bs 0)
 Proof
-  gvs[]
+  rpt strip_tac
+  >> Induct_on ‘bs’ >> gvs[] >> rpt strip_tac
+  >> gvs[vd_encode_def]
+  >> gvs[convolve_parity_equations_def]
+  >> gvs[TAKE_APPEND]
+  >> gvs[DROP_APPEND]
+  >> sg ‘LENGTH ps * SUC (LENGTH bs) - (LENGTH ps + LENGTH ps * (MAX_LIST (MAP LENGTH ps) - 1)) = LENGTH ps * LENGTH bs - LENGTH ps * (MAX_LIST (MAP LENGTH ps)  - 1)’
+  >- gvs[ADD1]
+  >> simp[] >> gvs[]
+  >> gvs[DROP_APPEND]
+  
+
+
+
+  
+        gvs[]
   >> rpt strip_tac
   (* Handle the special case of ps = [] now so that we don't have to deal with
        it later. Note: this was more meaningful before adding the assumption
