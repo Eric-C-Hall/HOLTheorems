@@ -1,0 +1,21 @@
+Split single window into two : ""
+
+C-x C-c
+
+Control-x control-e evaluate previous lisp expression
+
+(add-hook 'holscript-mode-hook
+ (lambda () (display-fill-column-indicator-mode 1) (set-fill-column 80)))
+
+ith_output_window should take num?
+
+chunk: function to break a list up into chunks, then ith_output_window will be EL i (chunk chunk_size bs)
+
+
+use chunks in rich_list_theory
+
+ith_input: take chunk of input window size at appropriate location
+
+M-h M-v: scroll down hol window
+M-h C-v: scroll up hol window
+

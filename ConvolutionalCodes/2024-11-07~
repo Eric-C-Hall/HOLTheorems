@@ -1,0 +1,6 @@
+Split single window into two : ""
+
+Control-x control-e evaluate previous lisp expression
+
+(add-hook 'holscript-mode-hook
+ (lambda () (display-fill-column-indicator-mode 1) (set-fill-column 80)))

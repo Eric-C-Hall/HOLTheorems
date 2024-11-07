@@ -719,8 +719,8 @@ Theorem ith_output_window_vd_encode_vd_encode_state:
   ∀i ps bs.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     i < LENGTH bs ⇒
-    ith_output_window i ps (vd_encode (parity_equations_to_state_machine ps)
-                                      bs 0) =
+    ith_output_window i prev_state
+                      (vd_encode (parity_equations_to_state_machine ps) bs 0) =
     ((parity_equations_to_state_machine ps)
      .transition_fn <| origin := vd_encode_state
                                  (parity_equations_to_state_machine ps)
@@ -1045,7 +1045,8 @@ QED
 
 Theorem tl_zero_extend:
   ∀l bs.
-    TL (zero_extend l bs) = if (l ≤ LENGTH bs) then TL bs else zero_extend (l - 1) bs
+    TL (zero_extend l bs) =
+    if (l ≤ LENGTH bs) then TL bs else zero_extend (l - 1) bs
 Proof
   rpt strip_tac
   >> rw[]
@@ -1226,7 +1227,8 @@ Theorem parity_equations_to_state_machine_equivalent_window:
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     i + MAX_LIST (MAP LENGTH ps) - 1 < LENGTH bs ⇒
     ith_output_window i ps (convolve_parity_equations ps bs) =
-    ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) ps (vd_encode (parity_equations_to_state_machine ps) bs 0)
+    ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) prev_state
+                      (vd_encode (parity_equations_to_state_machine ps) bs 0)
 Proof
   rpt strip_tac
   >> gvs[]
