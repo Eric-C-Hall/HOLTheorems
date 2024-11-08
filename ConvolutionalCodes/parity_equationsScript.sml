@@ -1227,7 +1227,7 @@ Theorem parity_equations_to_state_machine_equivalent_window:
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     i + MAX_LIST (MAP LENGTH ps) - 1 < LENGTH bs ⇒
     ith_output_window i ps (convolve_parity_equations ps bs) =
-    ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) prev_state
+    ith_output_window (i + MAX_LIST (MAP LENGTH ps) - 1) ps
                       (vd_encode (parity_equations_to_state_machine ps) bs 0)
 Proof
   rpt strip_tac
