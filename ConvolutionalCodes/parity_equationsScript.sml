@@ -719,7 +719,7 @@ Theorem ith_output_window_vd_encode_vd_encode_state:
   ∀i ps bs.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     i < LENGTH bs ⇒
-    ith_output_window i prev_state
+    ith_output_window i ps
                       (vd_encode (parity_equations_to_state_machine ps) bs 0) =
     ((parity_equations_to_state_machine ps)
      .transition_fn <| origin := vd_encode_state
