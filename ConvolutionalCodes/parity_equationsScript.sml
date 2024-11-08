@@ -549,6 +549,7 @@ QED
    the ith window of outputs in the output. *)
 (* TODO: Generalise this to state machines in general *)
 (* TODO: Alternatively, remove this entirely and just use TAKE and DROP *)
+(* TODO: Probably ought to have used chunks instead. *)
 Definition ith_output_window_def:
   ith_output_window i ps bs = TAKE (LENGTH ps) (DROP (i * LENGTH ps) bs)
 End
@@ -1238,6 +1239,90 @@ Proof
   >> simp[]
 QED
 
+(* TODO: Rename.
+   Alternative form of DIVISION theorem which I found more useful in my use
+   case. The form which gvs[] simplified to in my case was the form written
+   in this theorem. *)
+Theorem DIVISION_2:
+  ∀a b.
+    0 < b ⇒
+    b * (a DIV b) + a MOD b = a
+Proof
+  rpt strip_tac
+  >> qspec_then ‘b’ assume_tac DIVISION
+  >> gvs[]
+  >> pop_assum $ qspec_then ‘a’ assume_tac
+  >> gvs[]
+QED
+
+Theorem ith_output_window_el:
+  ∀ps bs i.
+    0 < LENGTH ps ∧
+    i < LENGTH bs ⇒
+    (EL i bs ⇔ (EL (i MOD (LENGTH ps)) (ith_output_window (i DIV (LENGTH ps)) ps bs)))
+Proof
+  rpt strip_tac
+  >> gvs[ith_output_window_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[EL_TAKE]
+  >> gvs[MOD_LESS]
+  >> DEP_PURE_ONCE_REWRITE_TAC[EL_DROP]
+  >> conj_tac
+  >- gvs[DIVISION_2]
+  >> gvs[DIVISION_2]
+QED
+
+Theorem maxdeg_valid_ps_length_nonzero[simp]:
+  ∀ps.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
+    0 < LENGTH ps
+Proof
+  rpt strip_tac
+  >> Cases_on ‘ps’ >> gvs[]
+QED
+
+Theorem MULT_DIV_SUB_MOD:
+  ∀a b.
+    0 < b ⇒
+    b * (a DIV b) = a - a MOD b
+Proof
+  rpt strip_tac
+  >> gvs[SUB_LEFT_EQ]
+  >> gvs[DIVISION_2]
+QED
+
+Theorem parity_equations_to_state_machine_equivalent_individual:
+  ∀ps bs i.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
+    i + (MAX_LIST (MAP LENGTH ps) - 1) * LENGTH ps <  LENGTH bs * LENGTH ps ⇒
+    EL i (convolve_parity_equations ps bs) =
+    EL (i + (MAX_LIST (MAP LENGTH ps) - 1) * LENGTH ps)
+       (vd_encode (parity_equations_to_state_machine ps) bs 0)
+Proof
+  rpt strip_tac
+  >> qspec_then ‘ps’ assume_tac ith_output_window_el
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> gvs[convolve_parity_equations_length]
+  >> Cases_on ‘0 < LENGTH bs’ >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[parity_equations_to_state_machine_equivalent_window]
+  >> gvs[]
+  >> conj_tac
+  >- (qsuff_tac ‘MAX_LIST (MAP LENGTH ps) - 1 + i DIV LENGTH ps < LENGTH bs’
+      >- gvs[]
+      >> qsuff_tac ‘LENGTH ps * (MAX_LIST (MAP LENGTH ps) - 1 + i DIV LENGTH ps) < LENGTH ps * LENGTH bs’
+      >- gvs[]
+      >> PURE_REWRITE_TAC[LEFT_ADD_DISTRIB]
+      >> gvs[MULT_DIV_SUB_MOD]
+     )
+  >> qmatch_goalsub_abbrev_tac ‘LHS = _’
+  >> qspec_then ‘ps’ assume_tac ith_output_window_el
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> gvs[]
+  >> unabbrev_all_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[ADD_DIV_RWT]
+  >> gvs[]
+  >> gvs[MULT_TO_DIV]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine representation of a convolutional code is     *)
 (* equivalent to the parity equations representation                          *)
@@ -1254,6 +1339,16 @@ Theorem parity_equations_to_state_machine_equivalent:
       DROP num_to_drop (vd_encode (parity_equations_to_state_machine ps) bs 0)
 Proof
   rpt strip_tac
+  >> Induct_on ‘bs’ using SNOC_INDUCT >> gvs[Excl "LIST_EQ_SIMP_CONV"] >> rpt strip_tac
+  >> gvs[vd_encode_snoc, Excl "LIST_EQ_SIMP_CONV"]
+  >> gvs[convolve_parity_equations_snoc, Excl "LIST_EQ_SIMP_CONV"]
+                                                                              
+  >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
+  >> gvs[Excl "SNOC_APPEND"]
+
+        
+
+  >> rpt strip_tac
   >> Induct_on ‘bs’ >> gvs[] >> rpt strip_tac
   >> gvs[vd_encode_def]
   >> gvs[convolve_parity_equations_def]
@@ -1263,12 +1358,12 @@ Proof
   >- gvs[ADD1]
   >> simp[] >> gvs[]
   >> gvs[DROP_APPEND]
-  
+  >>   
 
 
 
   
-        gvs[]
+(*gvs[]
   >> rpt strip_tac
   (* Handle the special case of ps = [] now so that we don't have to deal with
        it later. Note: this was more meaningful before adding the assumption
@@ -1314,11 +1409,11 @@ Proof
      ’
 
      
-  >> Induct_on ‘MAX_LIST (MAP LENGTH ps)’
+  >> Induct_on ‘MAX_LIST (MAP LENGTH ps)’*)
 
 
-               
-  >> Induct_on ‘LENGTH bs’
+  
+(*>> Induct_on ‘LENGTH bs’
   >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def,
          vd_encode_def]
   >> rpt strip_tac
@@ -1353,7 +1448,7 @@ Proof
   (* This uses the inductive hypothesis to complete the inductive step *)
   >> drule_all (iffRL LT_LE)
   >> rpt strip_tac >> gvs[]
-  >> 
+  >> *)
 QED
 
 Theorem TODOpaddedequal:

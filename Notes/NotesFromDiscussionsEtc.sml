@@ -78,6 +78,12 @@ val _ = new_theory "thingsToDiscuss";
 
 (* avoid writing an excessive number of new definitions. Do not unnecessarily multiply entities *)
 
+(* In order to have more detail on the simplifier, use:
+   set_trace "simplifier" 6
+   this in particular is a high enough level to trace conversions *)
+
+(* LIST_EQ_SIMP_CONV is what is reducing SNOC to APPEND *)
+
 val _ = export_theory();
 
 
