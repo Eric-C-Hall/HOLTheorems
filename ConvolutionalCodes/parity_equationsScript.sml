@@ -1447,9 +1447,54 @@ Proof
   >> gvs[GSYM DROP_TAKE]
 QED
 
-Theorem TODOpaddedequal:
+(* This definition is simply used in order to avoid infinite loops when
+   applying gvs. It is equivalent to APPEND, but cannot be treated by HOL
+   as APPEND, which means, amongst other things, it cannot be used in
+   rewrite rules that require an APPEND. Thus, if a rewrite rule takes an
+   APPEND as input and produces an APPEND as output, using this version will
+   prevent infinite loops where the outputted value is used as input to the
+   next iteration. *)
+Definition APPEND_DONOTEXPAND_def:
+  APPEND_DONOTEXPAND = APPEND
+End
 
+(* TODO: Is there a better way of avoiding infintie loops rather than using
+   APPEND_DONOTEXPAND? *)
+Theorem convolve_parity_equations_append:
+  ∀ps bs cs.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
+    convolve_parity_equations ps (bs ⧺ cs) =
+    TAKE (LENGTH ps * LENGTH bs) (convolve_parity_equations ps (APPEND_DONOTEXPAND bs cs)) ⧺ convolve_parity_equations ps cs
 Proof
+  gvs[APPEND_DONOTEXPAND_def]
+  >> Induct_on ‘bs’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[convolve_parity_equations_def]
+  >> PURE_ONCE_REWRITE_TAC[MULT_COMM]
+  >> gvs[MULT]        
+  >> gvs[TAKE_SUM]
+  >> gvs[TAKE_APPEND]
+  >> gvs[TAKE_LENGTH_TOO_LONG]                
+QED
+
+Theorem parity_equations_to_state_machine_equivalent_with_padding:
+  ∀ps bs.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
+    convolve_parity_equations_padded ps bs =
+    vd_encode_zero_tailed (parity_equations_to_state_machine ps) bs 0
+Proof
+  rpt strip_tac
+  >> gvs[LOG2_2_EXP]
+  >> qmatch_goalsub_abbrev_tac ‘convolve_parity_equations _ (APPEND padding _)’
+  >> qspecl_then [‘ps’, ‘padding ⧺ bs ⧺ padding’] assume_tac parity_equations_to_state_machine_equivalent
+  >> gvs[]
+  >> gvs[vd_encode_append]
+  >> gvs[DROP_APPEND]
+  >> qmatch_asmsub_abbrev_tac ‘DROP l1 _ ⧺ DROP l2 _ ⧺ DROP l3 _’
+  >> 
+  
+  >> Cases_on ‘LENGTH ps = 0’ >> gvs[]
+  >> gvs[convolve_parity_equations_append]
 QED
 
 
