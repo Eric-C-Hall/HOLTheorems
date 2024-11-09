@@ -1323,6 +1323,58 @@ Proof
   >> gvs[MULT_TO_DIV]
 QED
 
+(* TODO: is there a pre-existing theorem along these lines? *)
+Theorem LIST_TRANSLATE:
+  ∀ls ks d.
+    LENGTH ls + d ≤ LENGTH ks ⇒
+    ((∀n. n < LENGTH ls ⇒ EL n ls = EL (n + d) ks) ⇔
+       TAKE (LENGTH ls) (DROP d ks) = ls)
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >> irule LIST_EQ (* TODO: Idea: It can be hard to search for this
+                          theorem. Perhaps we need to work out a better way
+                          of searching for such a theorem, if we don't know
+                          the precise statement it has. For example, I was
+                          expecting it to use an iff, and I forgot that it
+                          would require the precondition x < LENGTH l1. *)
+      >> conj_tac
+      >- (rpt strip_tac
+          >> gvs[EL_TAKE, EL_DROP]
+         )
+      >> gvs[LENGTH_TAKE]
+     )
+  >> rpt strip_tac
+  >> qmatch_asmsub_abbrev_tac ‘TAKE m _’
+  >> gvs[]
+  >> gvs[EL_TAKE, EL_DROP]
+QED
+
+(* Unsure what name to give this *)
+Theorem ADD_LEQ_IFF_ZERO_RIGHT[simp]:
+  ∀a b.
+    a + b ≤ a ⇔ b = 0
+Proof
+  rpt strip_tac
+  >> Cases_on ‘b’ >> gvs[]
+QED
+
+(* Perhaps this should be done in a more general way. In particular, maybe
+   the length of parity_equations_to_state_machine should be added as a simp
+     rule, and TAKE of the exact length should be added as a simp rule. *)
+Theorem take_exact_length_encode[simp]:
+  ∀ps bs.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
+    TAKE (LENGTH bs * LENGTH ps)
+         (vd_encode (parity_equations_to_state_machine ps) bs 0) =
+    vd_encode (parity_equations_to_state_machine ps) bs 0
+Proof
+  rpt strip_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[TAKE_LENGTH_TOO_LONG]
+  >> gvs[vd_encode_length]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the state machine representation of a convolutional code is     *)
 (* equivalent to the parity equations representation                          *)
@@ -1339,116 +1391,60 @@ Theorem parity_equations_to_state_machine_equivalent:
       DROP num_to_drop (vd_encode (parity_equations_to_state_machine ps) bs 0)
 Proof
   rpt strip_tac
-  >> Induct_on ‘bs’ using SNOC_INDUCT >> gvs[Excl "LIST_EQ_SIMP_CONV"] >> rpt strip_tac
-  >> gvs[vd_encode_snoc, Excl "LIST_EQ_SIMP_CONV"]
-  >> gvs[convolve_parity_equations_snoc, Excl "LIST_EQ_SIMP_CONV"]
-                                                                              
-  >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
-  >> gvs[Excl "SNOC_APPEND"]
-
-        
-
-  >> rpt strip_tac
-  >> Induct_on ‘bs’ >> gvs[] >> rpt strip_tac
-  >> gvs[vd_encode_def]
-  >> gvs[convolve_parity_equations_def]
-  >> gvs[TAKE_APPEND]
-  >> gvs[DROP_APPEND]
-  >> sg ‘LENGTH ps * SUC (LENGTH bs) - (LENGTH ps + LENGTH ps * (MAX_LIST (MAP LENGTH ps) - 1)) = LENGTH ps * LENGTH bs - LENGTH ps * (MAX_LIST (MAP LENGTH ps)  - 1)’
-  >- gvs[ADD1]
-  >> simp[] >> gvs[]
-  >> gvs[DROP_APPEND]
-  >>   
-
-
-
-  
-(*gvs[]
-  >> rpt strip_tac
-  (* Handle the special case of ps = [] now so that we don't have to deal with
-       it later. Note: this was more meaningful before adding the assumption
-       0 < MAX_LIST (MAP LENGTH ps) *)
-  >> Cases_on ‘ps = []’
-  >- (rpt strip_tac
-      >> gvs[]
-     )
-  (* Give names to the important parts of the goal*)
-  >> qmatch_goalsub_abbrev_tac ‘TAKE nl csl = DROP nr csr’
-  (* Handle the special case where the maximum parity equation degree is greater
-        than the length of bs. In this special case, the LHS and RHS both reduce
-        to [], because there's not enough room to apply the parity equations. *)
-  >> Cases_on ‘LENGTH bs < MAX_LIST (MAP LENGTH ps)’
-  >- (sg ‘nl = 0’ >> gvs[]
-      >- (unabbrev_all_tac
-          >> gvs[ADD1]
+  >> gvs[]
+  (* Handle the special case where we are dropping all elements.
+     First line is the total number of elements
+     Second line is num_to_drop *)
+  >> Cases_on ‘(LENGTH ps) * (LENGTH bs) ≤
+               (LENGTH ps) * (MAX_LIST (MAP LENGTH ps) - 1)’
+  >- (qmatch_goalsub_abbrev_tac ‘TAKE take_num _’
+      >> sg ‘take_num = 0’
+      >- (gvs[Abbr ‘take_num’]
           >> PURE_REWRITE_TAC[Once MULT_COMM]
           >> gvs[]
          )
-      >> unabbrev_all_tac
       >> gvs[]
-      >> gvs[parity_equations_to_state_machine_def]
      )
-  >> gvs[NOT_LT]
-  (* Show that the state machine we are working on is well-formed, so that we
-     don't have to re-prove that later. *)
-  >> qmatch_asmsub_abbrev_tac ‘vd_encode m bs 0’
-  >> sg ‘wfmachine m’
-  >- (gvs[Abbr ‘m’]
+  >> gvs[NOT_LESS_EQUAL]
+  (* This theorem is essentially an instance of LIST_TRANSLATE, so
+     apply that theorem. *)      
+  >> qspecl_then [‘TAKE ((LENGTH ps) * (LENGTH bs) -
+                         (LENGTH ps) * (MAX_LIST (MAP LENGTH ps) - 1))
+                   (convolve_parity_equations ps bs)’,
+                  ‘vd_encode (parity_equations_to_state_machine ps) bs 0’,
+                  ‘(MAX_LIST (MAP LENGTH ps) - 1) * LENGTH ps’]
+                 assume_tac LIST_TRANSLATE
+  >> qmatch_asmsub_abbrev_tac ‘P1 ⇒ (P2 ⇔ P3)’
+  >> sg ‘P1’
+  >- (gvs[Abbr ‘P1’]
+      >> DEP_PURE_ONCE_REWRITE_TAC[LENGTH_TAKE]
+      >> gvs[convolve_parity_equations_length]
+      >> DEP_PURE_ONCE_REWRITE_TAC[SUB_ADD]
+      >> gvs[]
+      >> PURE_REWRITE_TAC[Once MULT_COMM]
+      >> gvs[]
      )
-  (* We have finished handling special cases, now we don't have to worry about
-     them whenever they arise during the course of the main proof. *)
-  >> unabbrev_all_tac
-  >> gvs[]
-        
-  >> qsuff_tac
-     ‘∀i.
-        i ≤ LENGTH bs * LENGTH ps - LENGTH ps * (MAX_LIST (MAP LENGTH ps) - 1) ⇒
-        TAKE i (convolve_parity_equations ps bs) =
-        TAKE i (DROP (LENGTH ps * (MAX_LIST (MAP LENGTH ps) - 1))
-                     (vd_encode (parity_equations_to_state_machine ps) bs 0))
-     ’
-
-     
-  >> Induct_on ‘MAX_LIST (MAP LENGTH ps)’*)
-
-
-  
-(*>> Induct_on ‘LENGTH bs’
-  >- gvs[convolve_parity_equations_def, parity_equations_to_state_machine_def,
-         vd_encode_def]
-  >> rpt strip_tac
-  (* Move the SUC's and CONS's out in order to make the conclusion a closer
-       match with the inductive hypothesis. *)
-  >> simp[convolve_parity_equations_def]
-  >> gvs[MULT_SUC]
-  (*>> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
-         >> conj_tac
-         >- (unabbrev_all_tac
-             >> gvs[ADD1]
-             >> PURE_REWRITE_TAC[Once MULT_COMM]
-             >> simp[]
-            )*)
-  >> gvs[TAKE_SUM, TAKE_APPEND, TAKE_LENGTH_ID_rwt, DROP_APPEND, TAKE_APPEND,
-         DROP_LENGTH_NIL_rwt]
-  >> qmatch_goalsub_abbrev_tac ‘stepL ⧺ indL = _’
-  (* The left hand side has been successfully transformed into a form
-        which allows us to use the inductive hypothesis. Now work on the RHS *)
-  >> qspec_then ‘h::bs’ assume_tac (GSYM APPEND_FRONT_LAST)
-  >> gvs[Excl "APPEND_FRONT_LAST"]
-  >> pop_assum (fn th => PURE_REWRITE_TAC [Once th])
-  >> gvs[vd_encode_append, DROP_APPEND]
-  >> 
-  (* This is essentially the base case, where the size of the bitstring is
-       only just big enough to fit one window of parity equations. *)
-  >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = SUC (LENGTH bs)’
-  >- (gvs[]
-      >> gvs[vd_encode_def, parity_equations_to_state_machine_def]
-      >> cheat (* Come back to this later *)
+  >> first_x_assum drule >> disch_tac
+  >> qpat_x_assum ‘P1’ kall_tac
+  >> qpat_x_assum ‘Abbrev (P1 ⇔ _)’ kall_tac
+  >> sg ‘P3’
+  >- (qpat_x_assum ‘Abbrev (P3 ⇔ _)’ kall_tac
+      >> pop_assum (fn th => irule (iffLR th))
+      >> unabbrev_all_tac
+      >> rpt strip_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[LENGTH_TAKE]
+      >> gvs[convolve_parity_equations_length]
+      >> gvs[EL_TAKE]
+      (* Important step: use
+          parity_equations_to_state_machine_equivalent_individual
+          to prove that the lists are equivalent on each relevant index*)
+      >> gvs[parity_equations_to_state_machine_equivalent_individual]
      )
-  (* This uses the inductive hypothesis to complete the inductive step *)
-  >> drule_all (iffRL LT_LE)
-  >> rpt strip_tac >> gvs[]
-  >> *)
+  >> qpat_x_assum ‘P2 ⇔ P3’ kall_tac
+  >> qpat_x_assum ‘Abbrev (P2 ⇔ _)’ kall_tac
+  >> gvs[Abbr ‘P3’]
+  >> gvs[LENGTH_TAKE, convolve_parity_equations_length]
+  >> gvs[GSYM DROP_TAKE]
 QED
 
 Theorem TODOpaddedequal:
@@ -1577,5 +1573,5 @@ Proof
   >> Cases_on ‘t'’
   >- (Cases_on ‘h’ >> EVAL_TAC)
 QED
- 
+
 val _ = export_theory();
