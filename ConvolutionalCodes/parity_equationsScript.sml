@@ -53,7 +53,8 @@ open useful_tacticsLib;
 Definition apply_parity_equation_def:
   apply_parity_equation [] bs = F ∧
   apply_parity_equation (p::ps) [] = F ∧
-  apply_parity_equation (p::ps) (b::bs) = ((p ∧ b) ⇎ (apply_parity_equation ps bs))
+  apply_parity_equation (p::ps) (b::bs) =
+  ((p ∧ b) ⇎ (apply_parity_equation ps bs))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -63,7 +64,8 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition apply_parity_equations_def:
   apply_parity_equations [] bs = [] ∧
-  apply_parity_equations (p::ps) bs = (apply_parity_equation p bs)::(apply_parity_equations ps bs)
+  apply_parity_equations (p::ps) bs =
+  (apply_parity_equation p bs)::(apply_parity_equations ps bs)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -436,7 +438,8 @@ Theorem transition_fn_output_empty[simp]:
   ∀m s b.
     wfmachine m ∧
     s < m.num_states ⇒
-    ((m.transition_fn <| origin := s; input := h |>).output = [] ⇔ m.output_length = 0)
+    ((m.transition_fn <| origin := s; input := h |>).output = [] ⇔
+       m.output_length = 0)
 Proof
   rpt strip_tac
   >> EQ_TAC >> gvs[]
@@ -685,7 +688,8 @@ Theorem drop_vd_encode_append[simp]:
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     s < (parity_equations_to_state_machine ps).num_states ∧
     i = LENGTH bs ⇒ 
-    DROP (i * LENGTH ps) (vd_encode (parity_equations_to_state_machine ps) bs s ⧺ cs) = cs
+    DROP (i * LENGTH ps)
+         (vd_encode (parity_equations_to_state_machine ps) bs s ⧺ cs) = cs
 Proof
   rpt strip_tac
   >> gvs[DROP_APPEND]
@@ -703,7 +707,8 @@ QED
 (* Goal: to show that each window of parity equations is equivalent to the    *)
 (* corresponding window of state machines.                                    *)
 (*                                                                            *)
-(* Step 1: Show that a particular window can be calculated by first using     *)(* vd_encode_state to arrive at the appropriate state, then applying the      *)
+(* Step 1: Show that a particular window can be calculated by first using     *)
+(* vd_encode_state to arrive at the appropriate state, then applying the      *)
 (* transition to generate the corresponding output.                           *)
 (*                                                                            *)
 (* Step 2: Induct over vd_encode_state to show that at any point, the state   *)
@@ -849,7 +854,9 @@ Proof
   >> gvs[]
   (* TODO: IDEA: would be nice to be able to irule
      wfmachine_transition_fn_destination_is_valid here, but i *)
-  >> qspecl_then [‘parity_equations_to_state_machine ps’, ‘<| origin := i; input := b |>’] assume_tac wfmachine_transition_fn_destination_is_valid
+  >> qspecl_then [‘parity_equations_to_state_machine ps’,
+                  ‘<| origin := i; input := b |>’]
+                 assume_tac wfmachine_transition_fn_destination_is_valid
   >> gvs[Excl "wfmachine_transition_fn_destination_is_valid"]
 QED
 
@@ -1062,13 +1069,15 @@ Theorem vd_encode_state_parity_equations_to_state_machine:
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     i < 2 ** (MAX_LIST (MAP LENGTH ps) - 1) ⇒
     vd_encode_state (parity_equations_to_state_machine ps) bs i =
-    v2n (LASTN (MAX_LIST (MAP LENGTH ps) - 1) (zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v_2 i ⧺ bs)))
+    v2n (LASTN (MAX_LIST (MAP LENGTH ps) - 1)
+               (zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v_2 i ⧺ bs)))
 Proof
   Induct_on ‘bs’ using SNOC_INDUCT >> gvs[]
   >- (rpt strip_tac
       >> PURE_REWRITE_TAC[Once zero_extend_lastn_swap]
       >> gvs[]
-      >> gvs[n2v_2_length_le, v2n_n2v_2] (* Maybe these length functions should be in the simp set *)
+      >> gvs[n2v_2_length_le, v2n_n2v_2] (* Maybe these length functions should
+                                            be in the simp set *)
      )
   >> rpt strip_tac
   >> gvs[vd_encode_state_snoc, parity_equations_to_state_machine_def]
@@ -1214,7 +1223,10 @@ Proof
   >> simp[]
   >> gvs[zero_extend_replicate]
   >> qmatch_goalsub_abbrev_tac ‘LHS = apply_parity_equations _ cs’
-  >> assume_tac (SPECL [“ps : bool list list”, “cs : bool list”, “MAX_LIST (MAP LENGTH (ps : bool list list))”] (GSYM apply_parity_equations_take_maxdeg))
+  >> assume_tac (SPECL [“ps : bool list list”,
+                        “cs : bool list”,
+                        “MAX_LIST (MAP LENGTH (ps : bool list list))”]
+                       (GSYM apply_parity_equations_take_maxdeg))
   >> gvs[Excl "apply_parity_equations_take_maxdeg", Abbr ‘cs’]
   >> gvs[Excl "apply_parity_equations_take_maxdeg", TAKE_APPEND]
   >> unabbrev_all_tac
