@@ -1454,9 +1454,16 @@ QED
    APPEND as input and produces an APPEND as output, using this version will
    prevent infinite loops where the outputted value is used as input to the
    next iteration. *)
-Definition APPEND_DONOTEXPAND_def:
+Definition APPEND_DONOTEXPAND_DEF:
   APPEND_DONOTEXPAND = APPEND
 End
+
+Theorem APPEND_DONOTEXPAND_APPEND_ASSOC:
+  ∀bs cs ds.
+    APPEND_DONOTEXPAND (bs ⧺ cs) ds = bs ⧺ APPEND_DONOTEXPAND cs ds 
+Proof
+  gvs[APPEND_DONOTEXPAND_DEF]
+QED
 
 (* TODO: Is there a better way of avoiding infintie loops rather than using
    APPEND_DONOTEXPAND? *)
@@ -1466,7 +1473,7 @@ Theorem convolve_parity_equations_append:
     convolve_parity_equations ps (bs ⧺ cs) =
     TAKE (LENGTH ps * LENGTH bs) (convolve_parity_equations ps (APPEND_DONOTEXPAND bs cs)) ⧺ convolve_parity_equations ps cs
 Proof
-  gvs[APPEND_DONOTEXPAND_def]
+  gvs[APPEND_DONOTEXPAND_DEF]
   >> Induct_on ‘bs’ >> gvs[]
   >> rpt strip_tac
   >> gvs[convolve_parity_equations_def]
@@ -1477,21 +1484,83 @@ Proof
   >> gvs[TAKE_LENGTH_TOO_LONG]                
 QED
 
+(* TODO: can this be generalized somehow to a more general state machine?
+         On the other hand, do we even want to bother? *) 
+Theorem vd_encode_state_replicate_f[simp]:
+  ∀ps n.
+    vd_encode_state (parity_equations_to_state_machine ps) (REPLICATE n F) 0 = 0
+Proof
+  Induct_on ‘n’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[vd_encode_state_def]
+  >> gvs[parity_equations_to_state_machine_def]
+QED
+
+Theorem vd_encode_state_append:
+  ∀m bs cs i.
+    vd_encode_state m (bs ⧺ cs) i =
+    vd_encode_state m cs (vd_encode_state m bs i)
+Proof
+  Induct_on ‘bs’ >> gvs[vd_encode_state_def]
+QED
+
+(* See comment for vd_encode_state_replicate_f *)
+Theorem vd_encode_state_replicate_f_append[simp]:
+  ∀ps bs n.
+    vd_encode_state (parity_equations_to_state_machine ps)
+                    (REPLICATE n F ⧺ bs) 0 =
+    vd_encode_state (parity_equations_to_state_machine ps) bs 0
+Proof
+  gvs[vd_encode_state_append]
+QED
+
 Theorem parity_equations_to_state_machine_equivalent_with_padding:
   ∀ps bs.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
     convolve_parity_equations_padded ps bs =
     vd_encode_zero_tailed (parity_equations_to_state_machine ps) bs 0
 Proof
+  (* Simplify *)
   rpt strip_tac
   >> gvs[LOG2_2_EXP]
+  (* This is an instance of parity_equations_to_state_machine_equivalent when
+     applied to the bitstring with padding on both sides. For one side, the
+     padding will be shaved off in one direciton, and for the other side, the
+     padding will be shaved off in the other direction. *)
   >> qmatch_goalsub_abbrev_tac ‘convolve_parity_equations _ (APPEND padding _)’
   >> qspecl_then [‘ps’, ‘padding ⧺ bs ⧺ padding’] assume_tac parity_equations_to_state_machine_equivalent
+  (* Simplify assumption *)
   >> gvs[]
+  (* Split DROP side by appends, so we have 3 appended strings.
+     We will later split the TAKE side by appends, and we will get 3
+     corresponding appended strings. One appended string on each side
+     will be reduced to the empty string, and the remaining two will
+     correspond to two in the goal. *)
   >> gvs[vd_encode_append]
   >> gvs[DROP_APPEND]
   >> qmatch_asmsub_abbrev_tac ‘DROP l1 _ ⧺ DROP l2 _ ⧺ DROP l3 _’
+  >> sg ‘l2 = 0’
+  >- gvs[Abbr ‘l2’, Abbr ‘padding’, LENGTH_REPLICATE]
+  >> sg ‘l3 = 0’
+  >- gvs[Abbr ‘l3’, LENGTH_REPLICATE]
+  >> gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘DROP l1 cs’
+  >> sg ‘DROP l1 cs = []’
+  >- gvs[Abbr ‘l1’, Abbr ‘cs’, Abbr ‘padding’]
+  >> gvs[]
+  >> gvs[Abbr ‘padding’]
+  >> qmatch_goalsub_abbrev_tac ‘convolve_parity_equations ps (padding ⧺ bs)’
+  
+  (* Split TAKE side by appends *)
+  >> gvs[convolve_parity_equations_append, APPEND_DONOTEXPAND_APPEND_ASSOC]
+  >> gvs[APPEND_DONOTEXPAND_DEF]
+  >> gvs[TAKE_APPEND]
+  >> gvs[GEN_ALL TAKE_TAKE_MIN]
   >> 
+
+
+  >> qmatch_asmsub_abbrev_tac ‘DROP l1 _ ⧺ DROP l2 _ ⧺ DROP l3 _’
+  >>
   
   >> Cases_on ‘LENGTH ps = 0’ >> gvs[]
   >> gvs[convolve_parity_equations_append]
