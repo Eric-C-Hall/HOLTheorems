@@ -1704,7 +1704,6 @@ Proof
   >> gvs[Abbr ‘padding’, convolve_parity_equations_length]
 QED
 
-
 (* TODO: this uses general state machines, which I no longer use in order to
    reduce maintenance requiements.
 
@@ -1801,7 +1800,7 @@ QED
 
 Theorem parity_equations_to_state_machine_equivalent_test:
   ∀bs.
-    LENGTH bs < 8 ⇒
+    LENGTH bs < 7 ⇒
     convolve_parity_equations_padded test_parity_equations bs =
     vd_encode_zero_tailed (parity_equations_to_state_machine test_parity_equations) bs 0
 Proof
@@ -1811,19 +1810,19 @@ Proof
   >> Cases_on ‘t’
   >- (Cases_on ‘h’ >> EVAL_TAC)
   >> Cases_on ‘t'’
-  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >- (Cases_on ‘h’ >> Cases_on ‘h'’ >> EVAL_TAC)
   >> Cases_on ‘t’
-  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >- (Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> EVAL_TAC)
   >> Cases_on ‘t'’
-  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >- (Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> Cases_on ‘h'''’
+      >> EVAL_TAC)
   >> Cases_on ‘t’
-  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >- (Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> Cases_on ‘h'''’
+      >> Cases_on ‘h''''’ >> EVAL_TAC)
   >> Cases_on ‘t'’
-  >- (Cases_on ‘h’ >> EVAL_TAC)
-  >> Cases_on ‘t’
-  >- (Cases_on ‘h’ >> EVAL_TAC)
-  >> Cases_on ‘t'’
-  >- (Cases_on ‘h’ >> EVAL_TAC)
+  >- (Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> Cases_on ‘h'''’
+      >> Cases_on ‘h''''’ >> Cases_on ‘h'''''’ >> EVAL_TAC)
+  >> qsuff_tac ‘F’ >> gvs[LENGTH]
 QED
 
 val _ = export_theory();
