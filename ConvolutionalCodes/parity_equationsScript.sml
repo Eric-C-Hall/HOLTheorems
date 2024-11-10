@@ -1105,7 +1105,10 @@ QED
 
 (* Possibly a better theorem than LENGTH_TAKE, because it isn't dependent on
    any preconditions, and hence can always be used, even when the precondition
-   required by LENGTH_TAKE is false. *)
+   required by LENGTH_TAKE is false.
+
+   Didn't notice LENGTH_TAKE_EQ when I wrote this. Still, I don't like how
+   the variables aren't quantified in LENGTH_TAKE_EQ *)
 Theorem LENGTH_TAKE_2:
   ∀n l.
     LENGTH (TAKE n l) = MIN n (LENGTH l)
@@ -1526,6 +1529,80 @@ Proof
   gvs[vd_encode_state_append]
 QED
 
+Theorem convolve_parity_equations_snoc:
+  ∀ps bs b.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
+    convolve_parity_equations ps (SNOC b bs) =
+    TAKE (LENGTH ps * LENGTH bs) (convolve_parity_equations ps (SNOC b bs)) ⧺
+         convolve_parity_equations ps [b]
+Proof
+  rpt strip_tac
+  >> gvs[convolve_parity_equations_append]
+  >> gvs[APPEND_DONOTEXPAND_DEF]
+  >> Induct_on ‘LENGTH bs’ >> gvs[] >> rpt strip_tac
+  >> Cases_on ‘bs’ >> gvs[]
+  >> gvs[convolve_parity_equations_def, TAKE_APPEND, ADD1]
+  >> gvs[TAKE_LENGTH_TOO_LONG, apply_parity_equations_length, convolve_parity_equations_length]
+QED
+
+Theorem convolve_parity_equations_replicate_f[simp]:
+  ∀ps n.
+    convolve_parity_equations ps (REPLICATE n F) =
+    REPLICATE (LENGTH ps * n) F
+Proof
+  Induct_on ‘n’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[ADD1, convolve_parity_equations_def]
+  >> PURE_REWRITE_TAC[GSYM (cj 2 REPLICATE)]
+  >> PURE_REWRITE_TAC[apply_parity_equations_replicate_f]
+  >> gvs[REPLICATE_APPEND]
+  >> AP_THM_TAC
+  >> AP_TERM_TAC
+  >> decide_tac
+QED
+
+Theorem apply_parity_equation_append_replicate_f[simp]:
+  ∀ps bs n.
+    apply_parity_equation ps (bs ⧺ REPLICATE n F) =
+    apply_parity_equation ps bs
+Proof
+  Induct_on ‘bs’ >> gvs[] >> rpt strip_tac
+  >> Cases_on ‘ps’ >> gvs[apply_parity_equation_def]
+QED
+
+Theorem apply_parity_equations_append_replicate_f[simp]:
+  ∀ps bs n.
+    apply_parity_equations ps (bs ⧺ REPLICATE n F) =
+    apply_parity_equations ps bs
+Proof
+  Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
+QED
+
+Theorem convolve_parity_equations_append_replicate_f[simp]:
+  ∀ps bs n.
+    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
+    convolve_parity_equations ps (bs ⧺ REPLICATE n F) =
+    convolve_parity_equations ps bs ⧺ REPLICATE (n * LENGTH ps) F
+Proof
+  rpt strip_tac
+  >> Induct_on ‘bs’ >> gvs[] >> rpt strip_tac
+  >> gvs[convolve_parity_equations_def]
+  >> PURE_REWRITE_TAC[GSYM (cj 2 APPEND)]
+  >> PURE_REWRITE_TAC[apply_parity_equations_def]
+  >> irule apply_parity_equations_append_replicate_f
+  >> PURE_REWRITE_TAC[apply_parity_equations_replicate_f]
+QED
+
+(* I found using this theorem more convienient than mucking around with
+   other theorems and stuff, although it's not a particularly insightful
+   theorem *)
+Theorem EQ_IMP_LEQ:
+  ∀a b : num.
+    a = b ⇒ a ≤ b
+Proof
+  gvs[]
+QED
+
 Theorem parity_equations_to_state_machine_equivalent_with_padding:
   ∀ps bs.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
@@ -1562,20 +1639,69 @@ Proof
   >> gvs[]
   >> gvs[Abbr ‘padding’]
   >> qmatch_goalsub_abbrev_tac ‘convolve_parity_equations ps (padding ⧺ bs)’
-  
+  >> qpat_x_assum ‘LENGTH cs ≤ l1’ kall_tac (* not sure if I should remove this
+                                               assumption *)
+  >> gvs[Abbr ‘cs’, Abbr ‘l1’]
   (* Split TAKE side by appends *)
   >> gvs[convolve_parity_equations_append, APPEND_DONOTEXPAND_APPEND_ASSOC]
   >> gvs[APPEND_DONOTEXPAND_DEF]
-  >> gvs[TAKE_APPEND]
+  >> rpt (pop_assum mp_tac)
+  >> PURE_REWRITE_TAC[TAKE_APPEND]
+  >> rpt strip_tac
+  >> qmatch_asmsub_abbrev_tac ‘TAKE l1 _ ⧺ TAKE l2 _ ⧺ TAKE l3 _’
   >> gvs[GEN_ALL TAKE_TAKE_MIN]
-  >> 
-
-
-  >> qmatch_asmsub_abbrev_tac ‘DROP l1 _ ⧺ DROP l2 _ ⧺ DROP l3 _’
-  >>
-  
-  >> Cases_on ‘LENGTH ps = 0’ >> gvs[]
-  >> gvs[convolve_parity_equations_append]
+  >> sg ‘l3 = 0’
+  >- (unabbrev_all_tac
+      >> pop_assum kall_tac
+      >> simp_tac (srw_ss()) [] (* gvs is too strong and gets stuck trying to
+                                   prove things *)
+      >> rw[MIN_DEF]
+      >> rw[LENGTH_TAKE, convolve_parity_equations_length]
+      >> irule EQ_IMP_LEQ
+      >> qmatch_goalsub_abbrev_tac ‘ps_len * (bs_len + 2 * maxdeg) = _’
+      >> decide_tac (* Idea: decide_tac really ought to be able to work even
+          before ensuring the functions are all represented as variables.
+          Just make sure that all functions returning numbers are abbreviated
+          to their num form, as I did manually above. *)
+     )
+  >> qpat_x_assum ‘Abbrev (l3 = _)’ kall_tac
+  >> gvs[]
+  >> sg ‘l1 = LENGTH ps * (LENGTH bs + MAX_LIST (MAP LENGTH ps) - 1)’
+  >- (unabbrev_all_tac
+      >> pop_assum kall_tac
+      >> gvs[GSYM LEFT_SUB_DISTRIB]
+     )
+  >> qpat_x_assum ‘Abbrev (l1 = _)’ kall_tac
+  >> gvs[]
+  >> sg ‘l2 = LENGTH bs * LENGTH ps’
+  >- (unabbrev_all_tac
+      >> pop_assum kall_tac
+      >> simp_tac (srw_ss()) [LENGTH_TAKE_2, convolve_parity_equations_length]
+      >> rw[MIN_DEF]
+      >> gvs[GSYM LEFT_SUB_DISTRIB]
+     )
+  >> qpat_x_assum ‘Abbrev (l2 = _)’ kall_tac
+  >> gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘TAKE l1 _ ⧺ TAKE l2 _’
+  >> sg ‘l1 = LENGTH ps * (MAX_LIST (MAP LENGTH ps) - 1)’
+  >- (unabbrev_all_tac
+      >> pop_assum kall_tac
+      >> rw[MIN_DEF]
+     )
+  >> qpat_x_assum ‘Abbrev (l1 = _)’ kall_tac
+  >> gvs[]
+  >> sg ‘l2 = LENGTH bs * LENGTH ps’
+  >- (unabbrev_all_tac
+      >> pop_assum kall_tac
+      >> rw[LENGTH_TAKE, LENGTH_REPLICATE, convolve_parity_equations_length]
+      >> rw[MIN_DEF]
+      >> rw[GSYM LEFT_SUB_DISTRIB]
+     )
+  >> qpat_x_assum ‘Abbrev (l2 = _)’ kall_tac
+  >> gvs[]
+  >> qpat_x_assum ‘_ = vd_encode _ _ _ ⧺ vd_encode _ _ _’
+                  (fn th => gvs[GSYM th])
+  >> gvs[Abbr ‘padding’, convolve_parity_equations_length]
 QED
 
 

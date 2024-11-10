@@ -82,7 +82,7 @@ val _ = new_theory "thingsToDiscuss";
    set_trace "simplifier" 6
    this in particular is a high enough level to trace conversions *)
 
-(* LIST_EQ_SIMP_CONV is what is reducing SNOC to APPEND *)
+(* LIST_EQ_SIMP_CONV is what is reducing SNOC to APPEND. TODO: perhaps this shouldn't be included in the simpset *)
 
 val _ = export_theory();
 
