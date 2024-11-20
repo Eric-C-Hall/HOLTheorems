@@ -109,13 +109,22 @@ Definition wfmachine_def:
          state. This makes it easier to determine which input was provided to
          the state machine if we know what path was taken through the state
          machine's states. *)
-    (∀r. r.origin < m.num_states ⇒ (m.transition_fn r).destination < m.num_states) ∧
-    (∀s. s < m.num_states ⇒ (∃s' b. s' < m.num_states ∧ (m.transition_fn <| origin := s'; input := b; |>).destination = s)) ∧
-    (∀s. s < m.num_states ⇒ (m.transition_fn <| origin := s; input := T; |>).destination ≠ (m.transition_fn <| origin := s; input := F; |>).destination) ∧
+    (∀r. r.origin < m.num_states ⇒
+         (m.transition_fn r).destination < m.num_states) ∧
+    (∀s. s < m.num_states ⇒
+         (∃s' b.
+            s' < m.num_states ∧
+            (m.transition_fn <| origin := s'; input := b; |>).destination = s))
+    ∧
+    (∀s. s < m.num_states ⇒
+         ((m .transition_fn <| origin := s; input := T; |>).destination)
+         ≠ (m.transition_fn <| origin := s; input := F; |>).destination) ∧
     (* output_length:
        - each transition must output a string of length output_length
-       - output_length must be greater than 0*)
-    (∀n b. n < m.num_states ⇒ LENGTH (m.transition_fn <| origin := n; input := b |>).output = m.output_length) ∧
+       - output_length must be greater than 0 *)
+    (∀n b. n < m.num_states ⇒
+           LENGTH (m.transition_fn <| origin := n; input := b |>).output =
+           m.output_length) ∧
     0 < m.output_length
 End
 
