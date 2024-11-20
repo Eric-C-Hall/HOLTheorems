@@ -253,7 +253,8 @@ Theorem viterbi_correctness:
   ∀m bs rs.
     wfmachine m ∧
     LENGTH rs = m.output_length * LENGTH bs ⇒
-    hamming_distance rs (vd_encode m (vd_decode m rs) 0) ≤ hamming_distance rs (vd_encode m bs 0)
+    hamming_distance rs (vd_encode m (vd_decode m rs) 0) ≤
+    hamming_distance rs (vd_encode m bs 0)
 Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
