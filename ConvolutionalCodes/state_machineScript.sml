@@ -116,9 +116,6 @@ Definition wfmachine_def:
             s' < m.num_states ∧
             (m.transition_fn <| origin := s'; input := b; |>).destination = s))
     ∧
-    (∀s. s < m.num_states ⇒
-         ((m .transition_fn <| origin := s; input := T; |>).destination)
-         ≠ (m.transition_fn <| origin := s; input := F; |>).destination) ∧
     (* output_length:
        - each transition must output a string of length output_length
        - output_length must be greater than 0 *)
@@ -128,12 +125,18 @@ Definition wfmachine_def:
     0 < m.output_length
 End
 
+(* Old property included in well-formedness: the two transitions leading from a state may not arrive at the same state.
+(∀s. s < m.num_states ⇒
+     ((m .transition_fn <| origin := s; input := T; |>).destination)
+≠ (m.transition_fn <| origin := s; input := F; |>).destination) ∧*)
+
+
 Theorem wfmachine_zero_is_valid[simp] = cj 1 (iffLR wfmachine_def);
 Theorem wfmachine_transition_fn_destination_is_valid[simp] = cj 2 (iffLR wfmachine_def) |> SRULE [AND_IMP_INTRO, GSYM RIGHT_FORALL_IMP_THM];
 Theorem wfmachine_every_state_has_prior_state = cj 3 (iffLR wfmachine_def) |> SRULE [AND_IMP_INTRO, GSYM RIGHT_FORALL_IMP_THM];
-Theorem wfmachine_transition_fn_from_state_injective[simp] = cj 4 (iffLR wfmachine_def) |> SRULE [AND_IMP_INTRO, GSYM RIGHT_FORALL_IMP_THM];
-Theorem wfmachine_transition_fn_output_length[simp] = cj 5 (iffLR wfmachine_def) |> SRULE [AND_IMP_INTRO, GSYM RIGHT_FORALL_IMP_THM];
-Theorem wfmachine_output_length_greater_than_zero[simp] = cj 6 (iffLR wfmachine_def);
+(*Theorem wfmachine_transition_fn_from_state_injective[simp] = cj 4 (iffLR wfmachine_def) |> SRULE [AND_IMP_INTRO, GSYM RIGHT_FORALL_IMP_THM];*)
+Theorem wfmachine_transition_fn_output_length[simp] = cj 4 (iffLR wfmachine_def) |> SRULE [AND_IMP_INTRO, GSYM RIGHT_FORALL_IMP_THM];
+Theorem wfmachine_output_length_greater_than_zero[simp] = cj 5 (iffLR wfmachine_def);
 
 (* -------------------------------------------------------------------------- *)
 (* Encodes a binary string using convolutional coding, according to a chosen  *)
@@ -750,12 +753,12 @@ Proof
       >> EVAL_TAC
       >> gvs[ADD1]
      )
-  >- (rpt strip_tac
-      >> gvs[example_state_machine_def]
-      >> Cases_on ‘s’ >> gvs[]
-      >> Cases_on ‘n’ >> gvs[]
-      >> Cases_on ‘n'’ >> gvs[]
-     )
+  (*>- (rpt strip_tac
+          >> gvs[example_state_machine_def]
+          >> Cases_on ‘s’ >> gvs[]
+          >> Cases_on ‘n’ >> gvs[]
+          >> Cases_on ‘n'’ >> gvs[]
+     )*)
   >- (rpt strip_tac
       >> gvs[example_state_machine_def]
       >> Cases_on ‘b’ >> gvs[]

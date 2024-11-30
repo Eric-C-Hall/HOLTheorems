@@ -352,8 +352,8 @@ Proof
       >> gvs[LESS_EQ, ADD1]
       >> rpt strip_tac
       >> Cases_on ‘l = 0’ >> gvs[])
-  >> conj_tac
-  >- (rpt strip_tac
+  (*>> conj_tac
+      >- (rpt strip_tac
       >> gvs[parity_equations_to_state_machine_def]
       >> pop_assum mp_tac >> gvs[]
       >> qmatch_goalsub_abbrev_tac ‘SNOC T ls’
@@ -373,7 +373,7 @@ Proof
       >> Cases_on ‘ls’ >> gvs[]
       >> gvs[EXP]
       >> gvs[le_v2n]
-     )
+     )*)
   >> conj_tac
   >- (rpt strip_tac
       >> gvs[parity_equations_to_state_machine_def]
