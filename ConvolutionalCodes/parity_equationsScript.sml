@@ -1,5 +1,12 @@
-
 open HolKernel Parse boolLib bossLib;
+
+(* TODO: In many instances, it may be possible to replace the precondition
+   0 < MAX_LIST (MAP LENGTH ps) - 1 with the precondition
+   0 < MAX_LIST (MAP LENGTH ps) because we no longer require that the
+   transitions from a state arrive at different states in the definition of
+   well-formedness, and thus state machines with a window length of 1 are
+   well formed. I should check to make sure that this precondition has been
+   replaced by a weaker precondition where possible *)
 
 val _ = new_theory "parity_equations";
 
@@ -291,7 +298,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_wfmachine[simp]:
   ∀ps.
-    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
+    0 < MAX_LIST (MAP LENGTH ps) ⇒
     wfmachine (parity_equations_to_state_machine ps)
 Proof
   rpt strip_tac
