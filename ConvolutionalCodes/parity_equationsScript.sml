@@ -295,7 +295,7 @@ QED
 (* TODO: This theorem is designed to support legacy behaviour, specifically,  *)
 (* a change from the precondition 0 < MAX_LIST (MAP LENGTH ps) - 1 to the     *)
 (* precondition 0 < LENGTH ps. This legacy behaviour should probably be fixed *)
-(* and this code should be deleted                                            *)
+(* and this theorem should be deleted                                         *)
 (* -------------------------------------------------------------------------- *)
 Theorem legacy_precondition[simp]:
   ∀ps.
