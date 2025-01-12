@@ -1278,9 +1278,11 @@ QED*)
 (* actually needed, resulting in the relevant input being calculated multiple *)
 (* times:                                                                     *)
 (*                                                                            *)
-(* 200: 3.700                                                                 *)(*                                                                            *)
+(* 200: 3.700                                                                 *)
+(*                                                                            *)
 (* After the aforementioned relevant input change:                            *)
-(*                                                                            *)(* 200: 9.070                                                                 *)
+(*                                                                            *)
+(* 200: 9.070                                                                 *)
 (* -------------------------------------------------------------------------- *)
 (* Theorem viterbi_trellis_row_efficiency_test:
   let

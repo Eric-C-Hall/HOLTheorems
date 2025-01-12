@@ -1,5 +1,13 @@
-
 open HolKernel Parse boolLib bossLib;
+
+(* TODO: In many instances, it may be possible to remove or weaken the
+   precondition 0 < MAX_LIST (MAP LENGTH ps) - 1. This is because this
+   precondition has been weakened to 0 < LENGTH ps in the proof of the
+   well-formedness of the state machine derived from parity equations. This was
+   possible due to a weakening of the definition of well-formedness, where we
+   no longer require that the transitions from a state arrive at different
+   states. I should check to make sure that this precondition has been
+   replaced by a weaker precondition where possible *)
 
 val _ = new_theory "parity_equations";
 
@@ -284,6 +292,21 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* TODO: This theorem is designed to support legacy behaviour, specifically,  *)
+(* a change from the precondition 0 < MAX_LIST (MAP LENGTH ps) - 1 to the     *)
+(* precondition 0 < LENGTH ps. This legacy behaviour should probably be fixed *)
+(* and this theorem should be deleted                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem legacy_precondition[simp]:
+  ∀ps.
+    0 < MAX_LIST (MAP LENGTH ps) ⇒
+    0 < LENGTH ps
+Proof
+  rpt strip_tac
+  >> Cases_on ‘ps’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Prove that the state machine generated from the parity equations is        *)
 (* well-formed                                                                *)
 (* -------------------------------------------------------------------------- *)
@@ -291,7 +314,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem parity_equations_to_state_machine_wfmachine[simp]:
   ∀ps.
-    0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
+    0 < LENGTH ps ⇒
     wfmachine (parity_equations_to_state_machine ps)
 Proof
   rpt strip_tac

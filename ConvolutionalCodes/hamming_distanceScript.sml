@@ -9,6 +9,10 @@ open dep_rewrite;
 val _ = new_theory "hamming_distance";
 
 val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "bxor", tok = "⊕"}
+
+(* TODO: Simplify the definition of hamming distance so that it is more easily
+   verifiable from first principles, and doesn't rely on bxor which has a
+   complicated definition, nor even on hamming_weight which is unnecessary. *)
                                                                    
 Definition hamming_weight_def:
   hamming_weight [] = 0 ∧
