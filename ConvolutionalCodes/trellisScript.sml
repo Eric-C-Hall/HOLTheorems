@@ -38,7 +38,7 @@ open state_machineTheory;
 Datatype:
   viterbi_node_datatype = <|
     num_errors : infnum;
-    prev_transition : transition option;
+    prev_transition : (num # bool) option;
   |> 
 End
 
@@ -78,7 +78,7 @@ End
 (* Invalid at time-step 0 because there is no previous row in this case.      *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_after_step_def:
-  get_num_errors_after_step m bs t previous_row r = (EL r.origin previous_row).num_errors + N (hamming_distance (m.transition_fn r).output (relevant_input m bs t))
+  get_num_errors_after_step m bs t previous_row r = (EL (FST r) previous_row).num_errors + N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs t))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -166,7 +166,7 @@ End
 (* theorems between this function and get_num_errors_after_step?              *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_after_step_no_prev_data_def:
-  get_num_errors_after_step_no_prev_data m bs 0 r = (if ((m.transition_fn r).destination = 0) then N0 else INFINITY) ∧
+  get_num_errors_after_step_no_prev_data m bs 0 r = (if (FST (m.transition_fn r) = 0) then N0 else INFINITY) ∧
   get_num_errors_after_step_no_prev_data m bs (SUC t) r = get_num_errors_after_step m bs (SUC t) (viterbi_trellis_row m bs t) r
 End
 
@@ -182,10 +182,10 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_slow:
   get_num_errors_after_step_slow m bs 0 r =
-  (if ((m.transition_fn r).destination = 0) then N0 else INFINITY) ∧
+  (if (FST (m.transition_fn r) = 0) then N0 else INFINITY) ∧
   get_num_errors_after_step_slow m bs (SUC t) r = 
-  (viterbi_trellis_node_slow m bs r.origin t).num_errors +
-  N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t))) ∧
+  (viterbi_trellis_node_slow m bs (FST r) t).num_errors +
+  N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs (SUC t))) ∧
   (best_origin_slow m bs t s = inargmin (get_num_errors_after_step_slow m bs t) (transition_inverse m s)) ∧
   viterbi_trellis_node_slow m bs s t =
   let
@@ -255,7 +255,7 @@ Definition vd_decode_to_state_def:
   let
     prev_transition = best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s;
   in
-    SNOC (prev_transition).input (vd_decode_to_state m bs prev_transition.origin t)
+    SNOC (SND (prev_transition)) (vd_decode_to_state m bs (FST prev_transition) t)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -285,7 +285,7 @@ Theorem best_origin_is_valid[simp]:
   ∀m bs prev_row t s.
     wfmachine m ∧
     s < m.num_states ⇒
-    (best_origin m bs prev_row t s).origin < m.num_states
+    FST (best_origin m bs prev_row t s) < m.num_states
 Proof
   rpt strip_tac
   >> gvs[best_origin_def]
@@ -303,7 +303,6 @@ Proof
   gvs[viterbi_trellis_row_def]
 QED
 
-
 (* -------------------------------------------------------------------------- *)
 (* Prove that each previous state in the trellis is valid.                    *)
 (* -------------------------------------------------------------------------- *)
@@ -312,7 +311,7 @@ Theorem viterbi_trellis_row_prev_transition_valid[simp]:
     wfmachine m ∧
     s < m.num_states ∧
     (EL s (viterbi_trellis_row m bs t)).prev_transition ≠ NONE ⇒
-    (THE (EL s (viterbi_trellis_row m bs t)).prev_transition).origin < m.num_states
+    FST (THE (EL s (viterbi_trellis_row m bs t)).prev_transition) < m.num_states
 Proof
   rpt strip_tac
   >> qmatch_goalsub_abbrev_tac ‘THE n’
@@ -327,7 +326,7 @@ Theorem transition_fn_best_origin_slow_destination[simp]:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    (m.transition_fn (best_origin_slow m bs t s)).destination = s
+    FST (m.transition_fn (best_origin_slow m bs t s)) = s
 Proof
   rpt strip_tac
   >> simp[best_origin_slow_def]
@@ -337,7 +336,7 @@ Theorem vd_step_best_origin_slow[simp]:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states ⇒
-    (m.transition_fn (best_origin_slow m bs t s)).destination = s
+    FST (m.transition_fn (best_origin_slow m bs t s)) = s
 Proof
   rpt strip_tac
   >> gvs[]
@@ -354,8 +353,8 @@ QED
 
 Theorem get_num_errors_after_step_slow_best_origin_slow:
   ∀m bs t s r.
-    r.origin < m.num_states ∧
-    (m.transition_fn r).destination = s ⇒
+    FST r < m.num_states ∧
+    FST (m.transition_fn r) = s ⇒
     get_num_errors_after_step_slow m bs t (best_origin_slow m bs t s) ≤ get_num_errors_after_step_slow m bs t r
 Proof
   rpt gen_tac
@@ -385,7 +384,7 @@ Theorem best_origin_slow_is_valid[simp]:
   ∀m bs t s.
     wfmachine m ∧
     s < m.num_states ⇒
-    (best_origin_slow m bs t s).origin < m.num_states
+    FST (best_origin_slow m bs t s) < m.num_states
 Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac best_origin_slow_transition_inverse
@@ -417,7 +416,7 @@ QED
 
 Theorem viterbi_trellis_node_slow_num_errors:
   ∀m bs t r.
-    (viterbi_trellis_node_slow m bs r.origin t).num_errors = get_num_errors_after_step_slow m bs (SUC t) r - N (hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)))
+    (viterbi_trellis_node_slow m bs (FST r) t).num_errors = get_num_errors_after_step_slow m bs (SUC t) r - N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs (SUC t)))
 Proof
   rpt strip_tac
   >> gvs[get_num_errors_after_step_slow_def]
@@ -459,7 +458,7 @@ Proof
   >> simp[viterbi_trellis_node_slow_def]
   >> simp[get_num_errors_after_step_slow_def]
   (* Let r denote the best origin leading to s *)
-  >> qmatch_goalsub_abbrev_tac ‘viterbi_trellis_node_slow m bs r.origin t’
+  >> qmatch_goalsub_abbrev_tac ‘viterbi_trellis_node_slow m bs (FST r) t’
   >> simp[is_reachable_suc_transition_fn_destination]
   (* The second goal turns out to be easier, so we do it first *)
   >> REVERSE EQ_TAC
@@ -476,7 +475,7 @@ Proof
       >> unabbrev_all_tac
       >> gvs[best_origin_slow_is_valid])
   >> strip_tac
-  >> last_x_assum (qspecl_then [‘m’, ‘bs’, ‘r'.origin’] assume_tac)
+  >> last_x_assum (qspecl_then [‘m’, ‘bs’, ‘FST r'’] assume_tac)
   >> gs[]
   >> imp_prove
   >- (unabbrev_all_tac
@@ -578,7 +577,7 @@ QED
 Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data:
   ∀m bs t r.
     wfmachine m ∧
-    r.origin < m.num_states ⇒
+    (FST r) < m.num_states ⇒
     get_num_errors_after_step_slow m bs t r = get_num_errors_after_step_no_prev_data m bs t r
 Proof
   NTAC 2 gen_tac
@@ -595,7 +594,7 @@ Proof
   >> AP_TERM_TAC
   >> namedCases_on ‘t’ ["", "t"]
   >- (gvs[viterbi_trellis_row_def]
-      >> Cases_on ‘r.origin’ >> gvs[])
+      >> Cases_on ‘FST r’ >> gvs[])
   >> gvs[viterbi_trellis_node_slow_def]
   >> gvs[viterbi_trellis_row_el_legacy]
   >> gvs[viterbi_trellis_node_def]
@@ -613,7 +612,7 @@ QED
 Theorem get_num_errors_after_step_slow_get_num_errors_after_step:
   ∀m bs t r.
     wfmachine m ∧
-    r.origin < m.num_states ⇒
+    FST r < m.num_states ⇒
     get_num_errors_after_step_slow m bs (SUC t) r = get_num_errors_after_step m bs (SUC t) (viterbi_trellis_row m bs t) r
 Proof
   gvs[get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data, get_num_errors_after_step_no_prev_data_def]
@@ -711,7 +710,7 @@ Theorem viterbi_trellis_node_slow_best_origin_slow_num_errors:
     wfmachine m ∧
     s < m.num_states ∧
     MEM r (transition_inverse m s) ∧
-    (viterbi_trellis_node_slow m bs (best_origin_slow m bs (SUC t) s).origin t).num_errors = INFINITY ⇒ (viterbi_trellis_node_slow m bs r.origin t).num_errors = INFINITY
+    (viterbi_trellis_node_slow m bs (FST (best_origin_slow m bs (SUC t) s)) t).num_errors = INFINITY ⇒ (viterbi_trellis_node_slow m bs (FST r) t).num_errors = INFINITY
 Proof
   rpt gen_tac
   >> strip_tac
@@ -738,7 +737,7 @@ Theorem viterbi_trellis_node_slow_best_origin_slow_num_errors_infinity:
   ∀m bs s t.
     wfmachine m ∧
     s < m.num_states  ⇒
-    ((viterbi_trellis_node_slow m bs (best_origin_slow m bs (SUC t) s).origin t).num_errors = INFINITY ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).num_errors = INFINITY)
+    ((viterbi_trellis_node_slow m bs (FST (best_origin_slow m bs (SUC t) s)) t).num_errors = INFINITY ⇔ (viterbi_trellis_node_slow m bs s (SUC t)).num_errors = INFINITY)
 Proof
   rpt strip_tac
   (* this direction is easier when using the is_reachable definition, so do
@@ -768,7 +767,7 @@ Theorem is_reachable_best_origin_slow[simp]:
   ∀m i bs s t.
     wfmachine m ∧
     s < m.num_states  ⇒
-    (is_reachable m 0 (best_origin_slow m bs (SUC t) s).origin t ⇔ is_reachable m 0 s (SUC t))
+    (is_reachable m 0 (FST (best_origin_slow m bs (SUC t) s)) t ⇔ is_reachable m 0 s (SUC t))
 Proof
   rpt strip_tac
   >> EQ_TAC >> rpt strip_tac >> gvs[]
@@ -939,7 +938,7 @@ Theorem vd_decode_to_state_def_slow:
      let
        prev_transition = best_origin_slow m bs (SUC t) s
      in
-       SNOC prev_transition.input (vd_decode_to_state m bs prev_transition.origin t))
+       SNOC (SND prev_transition) (vd_decode_to_state m bs (FST prev_transition) t))
 Proof
   rpt strip_tac >> gvs[vd_decode_to_state_def]
   >> gvs[best_origin_slow_best_origin]
@@ -1052,12 +1051,12 @@ QED
 Theorem get_num_errors_after_step_slow_get_num_errors:
   ∀m bs t r.
     wfmachine m ∧
-    r.origin < m.num_states ∧
-    is_reachable m 0 r.origin t ∧
+    (FST r) < m.num_states ∧
+    is_reachable m 0 (FST r) t ∧
     LENGTH bs = (t + 1) * m.output_length ⇒
     infnum_to_num
     (get_num_errors_after_step_slow m bs (t + 1) r) =
-    hamming_distance (TAKE (t * m.output_length) bs) (vd_encode m (vd_decode_to_state m bs r.origin t) 0) + hamming_distance (m.transition_fn r).output (relevant_input m bs (SUC t)) 
+    hamming_distance (TAKE (t * m.output_length) bs) (vd_encode m (vd_decode_to_state m bs (FST r) t) 0) + hamming_distance (SND (m.transition_fn r)) (relevant_input m bs (SUC t)) 
 Proof
   rpt strip_tac
   (* Split up into the current step and the previous part *)
@@ -1073,7 +1072,7 @@ Proof
   (* The remainder can be proven by appealing to
      get_num_errors_get_num_errors_after_step_slow, so long as we make sure to
      restrict the input to the appropriate length*)
-  >> qspecl_then [‘m’, ‘TAKE (t * m.output_length) bs’, ‘r.origin’, ‘t’] assume_tac get_num_errors_get_num_errors_after_step_slow
+  >> qspecl_then [‘m’, ‘TAKE (t * m.output_length) bs’, ‘FST r’, ‘t’] assume_tac get_num_errors_get_num_errors_after_step_slow
   >> gvs[vd_decode_to_state_restrict_input, get_num_errors_after_step_slow_restrict_input, best_origin_slow_restrict_input]
   >> gvs[viterbi_trellis_node_slow_def]
 QED
@@ -1081,7 +1080,7 @@ QED
 Theorem vd_decode_to_state_def_nolet:
   ∀m bs s t.
     vd_decode_to_state m bs s (SUC t) = 
-    vd_decode_to_state m bs (best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s).origin t ⧺ [(best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s).input]                       
+    vd_decode_to_state m bs (FST (best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s)) t ⧺ [SND (best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s)]
 Proof
   rpt strip_tac
   >> gvs[vd_decode_to_state_def]
@@ -1331,10 +1330,10 @@ Theorem viterbi_trellis_row_test:
     (node 1 4).num_errors = N 3 ∧
     (node 2 4).num_errors = N 2 ∧
     (node 3 4).num_errors = N 4 ∧
-    (node 0 4).prev_transition = SOME <| origin := 2; input := F |> ∧
-    ((node 1 4).prev_transition = SOME <| origin := 0; input := T |> ∨ (node 1 4).prev_transition = SOME <| origin := 2; input := T |>) ∧
-    (node 2 4).prev_transition = SOME <| origin := 1; input := F |> ∧
-    ((node 3 4).prev_transition = SOME <| origin := 1; input := F |> ∨ (node 3 4).prev_transition = SOME <| origin := 3; input := T |>) ∧
+    (node 0 4).prev_transition = SOME (2, F) ∧
+    ((node 1 4).prev_transition = SOME (0, T) ∨ (node 1 4).prev_transition = SOME (2, T)) ∧
+    (node 2 4).prev_transition = SOME (1, F) ∧
+    ((node 3 4).prev_transition = SOME (1, F) ∨ (node 3 4).prev_transition = SOME (3, T)) ∧
     (* Node which isn't reachable, but isn't in the first row *)
     (node 2 1).num_errors = INFINITY ∧
     (node 2 1).prev_transition = NONE
@@ -1355,19 +1354,19 @@ QED*)
 Theorem get_num_errors_after_step_slow_get_num_errors_after_step_no_prev_data_test:
   ∀t r.
     t < 3 ∧
-    r.origin < 4 ⇒
+    FST r < 4 ⇒
     get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step_no_prev_data example_state_machine test_path (SUC t) r
 Proof
   rpt strip_tac
-  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’ >> gvs[]
+  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2) ∧ (FST r = 0 ∨ FST r = 1 ∨ FST r = 2 ∨ FST r = 3)’ >> gvs[]
   (* This sequence of tactics will simultaneously prove all 12 proof
      obligations *)
-  >> (qmatch_asmsub_abbrev_tac ‘r.origin = r_val’
+  >> (qmatch_asmsub_abbrev_tac ‘FST r = r_val’
       >> Cases_on ‘r’
-      >> ‘n = r_val’ by gvs[]
+      (*>> ‘n = r_val’ by gvs[]*)
       >> unabbrev_all_tac
       >> gvs[]
-      >> Cases_on ‘b’
+      (*>> Cases_on ‘b’*)
       >> EVAL_TAC)
 QED
 
@@ -1419,20 +1418,20 @@ QED*)
 Theorem get_num_errors_after_step_slow_get_num_errors_after_step_test:
   ∀t r.
     t < 4 ∧
-    r.origin < 4 ⇒
+    FST r < 4 ⇒
     get_num_errors_after_step_slow example_state_machine test_path (SUC t) r = get_num_errors_after_step example_state_machine test_path (SUC t) (viterbi_trellis_row example_state_machine test_path t) r
 Proof
   rpt strip_tac
-  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3) ∧ (r.origin = 0 ∨ r.origin = 1 ∨ r.origin = 2 ∨ r.origin = 3)’
+  >> sg ‘(t = 0 ∨ t = 1 ∨ t = 2 ∨ t = 3) ∧ (FST r = 0 ∨ FST r = 1 ∨ FST r = 2 ∨ FST r = 3)’
   (* This sequence of tactics will simultaneously prove all 16 proof
      obligations *)
   >> (gvs[]
-      >> qmatch_asmsub_abbrev_tac ‘r.origin = r_val’
+      >> qmatch_asmsub_abbrev_tac ‘FST r = r_val’
       >> Cases_on ‘r’
-      >> ‘n = r_val’ by gvs[]
+      (*>> ‘n = r_val’ by gvs[]*)
       >> unabbrev_all_tac
       >> gvs[]
-      >> Cases_on ‘b’
+      (*>> Cases_on ‘b’*)
       >> EVAL_TAC)
 QED
 

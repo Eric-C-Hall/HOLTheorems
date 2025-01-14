@@ -11,6 +11,12 @@ open logrootTheory;
 
 open dep_rewrite;
 
+(* TODO: Avoid quantifying over transitions, and instead quantify over states
+   and inputs. This ensures we are always in the same representation, and the
+   state/input representation is the most flexible because we may not always
+   have both a state and an input. There is little need for the state and the
+   input to be bound together into a pair. *)
+
 (* -------------------------------------------------------------------------- *)
 (* This theory contains the definition of the state machine used in my proofs *)
 (* of the correctness of convolutional codes.                                 *)
@@ -25,34 +31,6 @@ open dep_rewrite;
 (* file because then people can browse through all the definitions, without   *)
 (* being distracted by long, verbose proofs that get in the way.              *)
 (* -------------------------------------------------------------------------- *)
-
-Datatype:
-  transition = <|
-    origin : num;
-    input : bool;
-  |>
-End
-
-(* -------------------------------------------------------------------------- *)
-(* The automatically generated record theorems don't seem to be automatically *)
-(* fetched or something, so I have to fetch them manually.                    *)
-(* -------------------------------------------------------------------------- *)
-val transition_component_equality_local = fetch "state_machine" "transition_component_equality";
-
-Theorem transition_literal_components[simp]:
-  ∀r.
-    <| origin := r.origin; input := r.input |> = r
-Proof
-  rpt strip_tac
-  >> gvs[transition_component_equality_local]
-QED
-
-Datatype:
-  transition_destination = <|
-    destination : num;
-    output : bool list;
-  |> 
-End
 
 (* -------------------------------------------------------------------------- *)
 (* A concrete state machine based on the num type.                            *)
@@ -82,7 +60,7 @@ End
 Datatype:
   state_machine = <|
     num_states : num;
-    transition_fn : transition -> transition_destination;
+    transition_fn : num # bool -> num # bool list;
     output_length : num;
   |>
 End
@@ -109,18 +87,14 @@ Definition wfmachine_def:
          state. This makes it easier to determine which input was provided to
          the state machine if we know what path was taken through the state
          machine's states. *)
-    (∀r. r.origin < m.num_states ⇒
-         (m.transition_fn r).destination < m.num_states) ∧
+    (∀s b. s < m.num_states ⇒ FST (m.transition_fn (s, b)) < m.num_states) ∧
     (∀s. s < m.num_states ⇒
-         (∃s' b.
-            s' < m.num_states ∧
-            (m.transition_fn <| origin := s'; input := b; |>).destination = s))
-    ∧
+         (∃s' b. s' < m.num_states ∧ FST (m.transition_fn (s', b)) = s)) ∧
     (* output_length:
        - each transition must output a string of length output_length
        - output_length must be greater than 0 *)
     (∀n b. n < m.num_states ⇒
-           LENGTH (m.transition_fn <| origin := n; input := b |>).output =
+           LENGTH (SND (m.transition_fn (n, b))) =
            m.output_length) ∧
     0 < m.output_length
 End
@@ -141,14 +115,18 @@ Theorem wfmachine_output_length_greater_than_zero[simp] = cj 5 (iffLR wfmachine_
 (* -------------------------------------------------------------------------- *)
 (* Encodes a binary string using convolutional coding, according to a chosen  *)
 (* state machine, starting from a given state                                 *)
+(*                                                                            *)
+(* Note: you probably should use vd_encode_def2: this ensures consistency     *)
+(* with other parts where it is more natural to use FST and SND rather than   *)
+(* let (..., ...) = ...                                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_encode_def:
   vd_encode _ [] _ = [] ∧
   vd_encode (m : state_machine) (b::bs : bool list) (s : num) =
   let
-    d = m.transition_fn <| origin := s; input := b; |>
+    (s', out) = m.transition_fn (s, b)
   in
-    d.output ⧺ vd_encode m bs d.destination
+    out ⧺ vd_encode m bs s'
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -172,11 +150,11 @@ End
 Definition vd_encode_state_def:
   vd_encode_state (m : state_machine) [] s = s ∧
   vd_encode_state m (b::bs) s =
-  vd_encode_state m bs (m.transition_fn <| origin := s; input := b; |>).destination
+  vd_encode_state m bs (FST (m.transition_fn (s, b)))
 End 
 
 Definition all_transitions_helper_def:
-  all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. <| origin := n; input := b |>) m.num_states
+  all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. (n, b)) m.num_states
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -187,7 +165,7 @@ Definition all_transitions_def:
 End
 
 Definition all_transitions_set_helper_def:
-  all_transitions_set_helper (m : state_machine) b = {<| origin := s; input := b |> | s < m.num_states}
+  all_transitions_set_helper (m : state_machine) b = {(s, b) | s < m.num_states}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -195,7 +173,7 @@ End
 (* transition                                                                 *)
 (* -------------------------------------------------------------------------- *)
 Definition all_transitions_set_def:
-  all_transitions_set (m : state_machine) = {<| origin := s; input := b |> | s < m.num_states ∧ (b ∨ ¬b)}
+  all_transitions_set (m : state_machine) = {(s, b) | s < m.num_states ∧ (b ∨ ¬b)}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -205,7 +183,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition transition_inverse_def:
   transition_inverse (m : state_machine) dest =
-  FILTER (λorgn. (m.transition_fn orgn).destination = dest) (all_transitions m)
+  FILTER (λorgn. FST (m.transition_fn orgn) = dest) (all_transitions m)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -215,6 +193,18 @@ End
 Definition is_reachable_def:
   is_reachable m i s t = ∃bs. (LENGTH bs = t ∧ vd_encode_state m bs i = s)
 End
+
+Theorem vd_encode_def2:
+  ∀m b bs s.
+    vd_encode m [] s = [] ∧
+    vd_encode m (b::bs) s =
+    SND (m.transition_fn (s, b)) ⧺ vd_encode m bs (FST (m.transition_fn (s, b)))
+Proof
+  rpt strip_tac
+  >> gvs[vd_encode_def]
+  >> Cases_on ‘m.transition_fn (s,b)’
+  >> gvs[]
+QED
 
 Theorem wfmachine_nonzero[simp]:
   ∀m.
@@ -236,10 +226,10 @@ QED
 Theorem vd_encode_cons:
   ∀m b bs s.
     vd_encode m (b :: bs) s =
-    (m.transition_fn <| origin := s; input := b; |>).output ⧺ (vd_encode m bs (m.transition_fn <| origin := s; input := b; |>).destination)
+    SND (m.transition_fn (s, b)) ⧺ (vd_encode m bs (FST (m.transition_fn (s, b))))
 Proof
   rpt strip_tac
-  >> gvs[vd_encode_def]
+  >> gvs[vd_encode_def2]
   >> gvs[vd_encode_state_def]
 QED
 
@@ -263,17 +253,17 @@ QED
 Theorem vd_encode_snoc:
   ∀m b bs s.
     vd_encode m (SNOC b bs) s =
-    vd_encode m bs s ⧺ (m.transition_fn <| origin := vd_encode_state m bs s; input := b; |>).output
+    vd_encode m bs s ⧺ SND (m.transition_fn (vd_encode_state m bs s, b))
 Proof
   rpt strip_tac
   >> gvs[SNOC_APPEND]
   >> gvs[vd_encode_append]
-  >> gvs[vd_encode_def]
+  >> gvs[vd_encode_def2]
 QED
 
 Theorem vd_encode_state_snoc:
   ∀m b bs s.
-    vd_encode_state m (SNOC b bs) s = (m.transition_fn <| origin := (vd_encode_state m bs s); input := b; |>).destination
+    vd_encode_state m (SNOC b bs) s = FST (m.transition_fn ((vd_encode_state m bs s), b))
 Proof
   Induct_on ‘bs’
   >- (rpt strip_tac >> EVAL_TAC)
@@ -284,7 +274,7 @@ QED
 
 Theorem all_transitions_helper_mem_is_valid[simp]:
   ∀m b r.
-    MEM r (all_transitions_helper m b) ⇒ r.origin < m.num_states
+    MEM r (all_transitions_helper m b) ⇒ FST r < m.num_states
 Proof
   rpt strip_tac
   >> gvs[all_transitions_helper_def]
@@ -293,37 +283,34 @@ QED
 
 Theorem all_transitions_mem_is_valid[simp]:
   ∀m r.
-    MEM r (all_transitions m) ⇒ r.origin < m.num_states
+    MEM r (all_transitions m) ⇒ FST r < m.num_states
 Proof
   rpt strip_tac
   >> gvs[all_transitions_def]
   >> metis_tac[all_transitions_helper_mem_is_valid]
 QED
 
-
 Theorem all_transitions_helper_mem:
   ∀m r b.
-    r.origin < m.num_states ∧
-    r.input = b ⇒
+    FST r < m.num_states ∧
+    SND r = b ⇒
     MEM r (all_transitions_helper m b)
 Proof
   rpt strip_tac
   >> gvs[all_transitions_helper_def]
   >> gvs[MEM_GENLIST]
-  >> qexists ‘r.origin’
+  >> qexists ‘FST r’
   >> gvs[]
-  >> gvs[transition_component_equality_local]
 QED
 
 Theorem all_transitions_mem:
   ∀m r.
-    r.origin < m.num_states ⇒
+    FST r < m.num_states ⇒
     MEM r (all_transitions m)
 Proof
   rpt strip_tac
-  >> Cases_on ‘r’
   >> gvs[all_transitions_def]
-  >> Cases_on ‘b’ >> gvs[all_transitions_helper_mem]
+  >> Cases_on ‘SND r’ >> gvs[all_transitions_helper_mem]
 QED
 
 Theorem all_transitions_set_list_equiv:
@@ -388,7 +375,7 @@ QED
 Theorem transition_inverse_mem:
   ∀m s r.
     MEM r (transition_inverse m s) ⇔
-      (m.transition_fn r).destination = s ∧ MEM r (all_transitions m)
+      FST (m.transition_fn r) = s ∧ MEM r (all_transitions m)
 Proof
   rpt strip_tac
   >> gvs[transition_inverse_def]
@@ -398,7 +385,7 @@ QED
 Theorem transition_inverse_mem_forward[simp]:
   ∀m s r.
     MEM r (transition_inverse m s) ⇒
-    (m.transition_fn r).destination = s
+    FST (m.transition_fn r) = s
 Proof
   metis_tac[transition_inverse_mem]
 QED
@@ -406,7 +393,7 @@ QED
 Theorem transition_inverse_mem_is_valid[simp]:
   ∀m s r.
     MEM r (transition_inverse m s) ⇒
-    r.origin < m.num_states
+    FST r < m.num_states
 Proof
   rpt strip_tac
   >> gvs[transition_inverse_def]
@@ -427,7 +414,7 @@ Proof
   >> gvs[]
   >> gvs[FILTER_EQ_NIL]
   >> gvs[EVERY_MEM]
-  >> first_x_assum $ qspec_then ‘<|origin := s'; input := b |>’ assume_tac
+  >> first_x_assum $ qspec_then ‘(s', b)’ assume_tac
   >> gvs[]
   >> pop_assum mp_tac
   >> gvs[NOT_DEF]
@@ -483,7 +470,7 @@ Theorem transition_fn_output_length_0[simp]:
     wfmachine m ∧
     s < m.num_states ∧
     m.output_length = 0 ⇒
-    (m.transition_fn <| origin := s; input := b |>).output = []
+    SND (m.transition_fn (s, b)) = []
 Proof
   rpt strip_tac
   >> PURE_REWRITE_TAC[GSYM LENGTH_EQ_0]
@@ -499,13 +486,13 @@ Theorem vd_encode_output_length_0[simp]:
 Proof
   gen_tac
   >> Induct_on ‘bs’ >> rpt strip_tac
-  >- gvs[vd_encode_def]
+  >- gvs[vd_encode_def2]
   >> gvs[vd_encode_cons]
 QED
 
 Theorem all_transitions_helper_valid:
   ∀m b.
-    EVERY (λs2. s2.origin < m.num_states) (all_transitions_helper m b)
+    EVERY (λs2. FST s2 < m.num_states) (all_transitions_helper m b)
 Proof
   rpt strip_tac
   >> gvs[EVERY_EL]
@@ -515,7 +502,7 @@ QED
 
 Theorem all_transitions_valid:
   ∀m.
-    EVERY (λs2. s2.origin < m.num_states) (all_transitions m)
+    EVERY (λs2. FST s2 < m.num_states) (all_transitions m)
 Proof
   rpt strip_tac
   >> gvs[all_transitions_def]
@@ -524,7 +511,7 @@ QED
 
 Theorem transition_inverse_valid:
   ∀m s.
-    EVERY (λs2. s2.origin < m.num_states) (transition_inverse m s)
+    EVERY (λs2. FST s2 < m.num_states) (transition_inverse m s)
 Proof
   rpt strip_tac
   >> gvs[transition_inverse_def]
@@ -534,21 +521,23 @@ QED
 
 Theorem mem_transition_inverse_transition_fn_destination:
   ∀m r.
-    r.origin < m.num_states ⇒
-    MEM r (transition_inverse m (m.transition_fn r).destination)
+    FST r < m.num_states ⇒
+    MEM r (transition_inverse m (FST (m.transition_fn r)))
 Proof
   rpt strip_tac
   >> irule (iffRL transition_inverse_mem)
   >> gvs[]
   >> gvs[all_transitions_def, all_transitions_helper_def]
   >> gvs[MEM_GENLIST]
-  >> Cases_on ‘r.input’
+  >> Cases_on ‘SND r’
   >- (disj1_tac
-      >> qexists ‘r.origin’
-      >> gvs[transition_component_equality_local])
+      >> qexists ‘FST r’
+      >> gvs[]
+      >> Cases_on ‘r’ >> gvs[])
   >> disj2_tac
-  >> qexists ‘r.origin’
-  >> gvs[transition_component_equality_local]
+  >> qexists ‘FST r’
+  >> gvs[]
+  >> Cases_on ‘r’ >> gvs[]
 QED
 
 Theorem is_reachable_init_zero[simp]:
@@ -576,7 +565,7 @@ QED
 
 Theorem is_reachable_transition_fn:
   ∀m i s t b.
-    is_reachable m i s t ⇒ is_reachable m i (m.transition_fn <| origin := s; input := b |>).destination (SUC t)
+    is_reachable m i s t ⇒ is_reachable m i (FST (m.transition_fn (s, b))) (SUC t)
 Proof
   rpt strip_tac
   >> gvs[is_reachable_def]
@@ -587,16 +576,16 @@ QED
 
 Theorem is_reachable_transition_fn_destination:
   ∀m i r t.
-    is_reachable m i r.origin t ⇒ is_reachable m i (m.transition_fn r).destination (SUC t)
+    is_reachable m i (FST r) t ⇒ is_reachable m i (FST (m.transition_fn r)) (SUC t)
 Proof
   rpt strip_tac
-  >> qspecl_then [‘m’, ‘i’, ‘r.origin’, ‘t’, ‘r.input’] assume_tac is_reachable_transition_fn
+  >> qspecl_then [‘m’, ‘i’, ‘FST r’, ‘t’, ‘SND r’] assume_tac is_reachable_transition_fn
   >> gvs[]
 QED
 
 Theorem is_reachable_suc:
   ∀m i s t.
-    is_reachable m i s (SUC t) ⇔ ∃s' b. is_reachable m i s' t ∧ (m.transition_fn <| origin := s'; input := b |>).destination = s
+    is_reachable m i s (SUC t) ⇔ ∃s' b. is_reachable m i s' t ∧ (FST (m.transition_fn (s', b))) = s
 Proof
   rpt strip_tac
   >> EQ_TAC
@@ -619,17 +608,17 @@ QED
 
 Theorem is_reachable_suc_transition_fn_destination:
   ∀m i s t.
-    is_reachable m i s (SUC t) ⇔ ∃r. is_reachable m i r.origin t ∧ (m.transition_fn  r).destination = s
+    is_reachable m i s (SUC t) ⇔ ∃r. is_reachable m i (FST r) t ∧ (FST (m.transition_fn r)) = s
 Proof
   rpt strip_tac
   >> gvs[]
   >> gvs[is_reachable_suc]
   >> EQ_TAC
   >- (rpt strip_tac
-      >> qexists ‘<| origin := s'; input := b|>’
+      >> qexists ‘(s', b)’
       >> gvs[])
   >> rpt strip_tac
-  >> qexistsl [‘r.origin’, ‘r.input’]
+  >> qexistsl [‘FST r’, ‘SND r’]
   >> gvs[]
 QED
 
@@ -651,10 +640,10 @@ QED
 
 Theorem vd_encode_singleton[simp]:
   ∀m b s.
-    vd_encode m [b] s = (m.transition_fn <| origin := s; input := b |>).output
+    vd_encode m [b] s = SND (m.transition_fn (s, b))
 Proof
   rpt strip_tac
-  >> gvs[vd_encode_def]
+  >> gvs[vd_encode_def2]
 QED
 
 Theorem is_reachable_vd_encode_state[simp]:
@@ -677,7 +666,7 @@ Proof
   >> Induct_on ‘t’
   >- (qexists ‘0’ >> gvs[])
   >> gvs[]
-  >> qexists ‘(m.transition_fn <|origin := s; input := F |>).destination’
+  >> qexists ‘FST (m.transition_fn (s, F))’
   >> gvs[]
   >> gvs[is_reachable_suc]
   >> qexistsl [‘s’, ‘F’]
@@ -702,18 +691,18 @@ Definition example_state_machine_def:
   example_state_machine = <|
     num_states := 4;
     transition_fn := λd.
-                       case d.input of
-                         T => (case d.origin of
-                                 0 => <| destination := 1; output := [T; T] |>
-                               | 1 => <| destination := 3; output := [F; F] |>
-                               | 2 => <| destination := 1; output := [F; T] |>
-                               | 3 => <| destination := 3; output := [T; F] |>
+                       case SND d of
+                         T => (case FST d of
+                                 0 => (1, [T; T])
+                               | 1 => (3, [F; F])
+                               | 2 => (1, [F; T])
+                               | 3 => (3, [T; F])
                               )
-                       | F => (case d.origin of
-                                 0 => <| destination := 0; output := [F; F] |>
-                               | 1 => <| destination := 2; output := [T; T] |>
-                               | 2 => <| destination := 0; output := [T; F] |>
-                               | 3 => <| destination := 2; output :=  [F; T] |>
+                       | F => (case FST d of
+                                 0 => (0, [F; F])
+                               | 1 => (2, [T; T])
+                               | 2 => (0, [T; F])
+                               | 3 => (2, [F; T])
                               );
     output_length := 2;
   |> : state_machine
@@ -727,8 +716,8 @@ Proof
   >- EVAL_TAC
   >- (gvs[example_state_machine_def]
       >> rpt strip_tac
-      >> Cases_on ‘r.input’ >> gvs[]
-      >> Cases_on ‘r.origin’ >> gvs[]
+      >> Cases_on ‘b’ >> gvs[]
+      >> Cases_on ‘s’ >> gvs[]
       >> Cases_on ‘n’ >> gvs[]
       >> Cases_on ‘n'’ >> gvs[]
      )
@@ -767,7 +756,7 @@ Proof
       >> Cases_on ‘n’ >> gvs[]
      )
   >- gvs[example_state_machine_def]
-QED
+QED 
 
 (* -------------------------------------------------------------------------- *)
 (* An example message which may have been recieved.                           *)
@@ -794,8 +783,8 @@ Theorem transition_inverse_test:
     test_inverse = transition_inverse example_state_machine 2;
   in
     LENGTH test_inverse = 2 ∧
-    MEM (<| origin := 1; input := F |>) test_inverse ∧
-    MEM (<| origin := 3; input := F |>) test_inverse
+    MEM (1, F) test_inverse ∧
+    MEM (3, F) test_inverse
 Proof
   EVAL_TAC
 QED
