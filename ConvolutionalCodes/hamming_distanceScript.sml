@@ -8,20 +8,24 @@ open dep_rewrite;
 
 val _ = new_theory "hamming_distance";
 
-val _ = set_mapped_fixity{fixity = Infixl 500, term_name = "bxor", tok = "⊕"}
-
-(* TODO: Simplify the definition of hamming distance so that it is more easily
-   verifiable from first principles, and doesn't rely on bxor which has a
-   complicated definition, nor even on hamming_weight which is unnecessary. *)
-                                                                   
-Definition hamming_weight_def:
-  hamming_weight [] = 0 ∧
-  hamming_weight (b::bs) = (if b then 1 else 0) + hamming_weight bs
-End
-
 Definition hamming_distance_def:
-  hamming_distance l1 l2 = hamming_weight (l1 ⊕ l2)
+  hamming_distance [] cs = 0 ∧
+  hamming_distance bs [] = 0 ∧
+  hamming_distance (b::bs) (c::cs) = hamming_distance bs cs + if b = c then 0 else 1
 End
+
+Theorem hamming_distance_empty_left[simp]:
+  ∀cs. hamming_distance [] cs = 0
+Proof
+  gvs[hamming_distance_def]
+QED
+
+Theorem hamming_distance_empty_right[simp]:
+  ∀bs. hamming_distance bs [] = 0
+Proof
+  Cases_on ‘bs’
+  >> gvs[hamming_distance_def]
+QED
 
 Theorem bitwise_cons:
   ∀f b bs c cs.
@@ -74,25 +78,66 @@ Proof
   >> decide_tac
 QED
 
+Theorem hamming_distance_append:
+  ∀bs cs ds es.
+    LENGTH bs = LENGTH ds ⇒
+    hamming_distance (bs ⧺ cs) (ds ⧺ es) = hamming_distance bs ds + hamming_distance cs es
+Proof
+  Induct_on ‘bs’ >> Cases_on ‘ds’ >> gvs[]
+  >> rpt strip_tac
+  >> last_x_assum $ qspecl_then [‘cs’, ‘t’, ‘es’] assume_tac
+  >> gvs[]
+  >> gvs[hamming_distance_def]
+QED
+
+Theorem hamming_distance_restrict:
+  ∀bs cs.
+    hamming_distance bs cs =
+    hamming_distance (TAKE (LENGTH cs) bs) (TAKE (LENGTH bs) cs)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘LENGTH bs ≤ LENGTH cs’
+  >- (gvs[TAKE_LENGTH_TOO_LONG]
+      >> qspecl_then [‘LENGTH bs’, ‘cs’] assume_tac TAKE_DROP
+      >> pop_assum (fn th => PURE_REWRITE_TAC [Once (GSYM th)])
+      >> PURE_REWRITE_TAC[Once (GSYM APPEND_NIL)]
+      >> gvs[hamming_distance_append])
+  >> ‘LENGTH cs < LENGTH bs’ by gvs[] >> gvs[]
+  >> gvs[TAKE_LENGTH_TOO_LONG]
+  >> qspecl_then [‘LENGTH cs’, ‘bs’] assume_tac TAKE_DROP
+  >> pop_assum (fn th => PURE_REWRITE_TAC [Once (GSYM th)])
+  >> ‘cs = cs ⧺ []’ by gvs[] >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> gvs[hamming_distance_append]
+QED
+
 Theorem hamming_distance_self[simp]:
   ∀bs. hamming_distance bs bs = 0
 Proof
   rpt strip_tac
-  >> gvs[hamming_distance_def]
   >> Induct_on ‘bs’
-  >- EVAL_TAC
+  >> gvs[hamming_distance_def]
+QED
+
+Theorem hamming_distance_symmetric_equal_length:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    hamming_distance bs cs = hamming_distance cs bs
+Proof
+  Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
   >> rpt strip_tac
-  >> DEP_PURE_ONCE_REWRITE_TAC[bxor_cons]
+  >> gvs[hamming_distance_def]
+  >> gvs[EQ_SYM_EQ]
+  >> last_x_assum irule
   >> gvs[]
-  >> gvs[hamming_weight_def]
 QED
 
 Theorem hamming_distance_symmetric:
   ∀bs cs. hamming_distance bs cs = hamming_distance cs bs
 Proof
   rpt strip_tac
-  >> gvs[hamming_distance_def]
-  >> gvs[bxor_commutative]
+  >> PURE_ONCE_REWRITE_TAC[hamming_distance_restrict]
+  >> irule hamming_distance_symmetric_equal_length
+  >> gvs[LENGTH_TAKE_EQ]
 QED
 
 (*Theorem hamming_distance_triangle_inequality:
@@ -104,17 +149,6 @@ Proof
   rpt strip_tac
 QED*)
 
-Theorem hamming_distance_cons:
-  ∀b bs c cs.
-    LENGTH bs = LENGTH cs ⇒
-    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
-Proof
-  rpt strip_tac
-  >> gvs[hamming_distance_def]
-  >> gvs[bxor_cons]
-  >> gvs[hamming_weight_def]
-  >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[]
-QED
 
 Theorem hamming_distance_append_left:
   ∀bs cs ds.
@@ -127,7 +161,7 @@ Proof
   >> Cases_on ‘bs’
   >- gvs[]
   >> gvs[APPEND]
-  >> gvs[hamming_distance_cons]
+  >> gvs[hamming_distance_def]
 QED
 
 Theorem hamming_distance_append_right:
@@ -141,23 +175,6 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* -------------------------------------------------------------------------- *)
-
-Theorem bxor_test:
-  [F; T; T; F; T; F; F] ⊕ [T; T; F; F; T; T; F] = [T; F; T; F; F; T; F] ∧
-  [F; F; F; F; F; F; F] ⊕ [T; F; F; T; T; F; F] = [T; F; F; T; T; F; F] ∧
-  [T; T; T; T; F; F; F] ⊕ [F; F; F; T; T; T; T] = [T; T; T; F; T; T; T]
-Proof
-  EVAL_TAC  
-QED
-
-Theorem hamming_weight_test:
-  hamming_weight [F; T; F; F; F; F; F; F; F; T; T; F; F; F; F; T] = 4 ∧
-  hamming_weight [] = 0 ∧
-  hamming_weight [T; T; T] = 3 ∧
-  hamming_weight [F; T; F; T] = 2
-Proof
-  EVAL_TAC
-QED
 
 Theorem hamming_distance_test:
   hamming_distance [F; T; T; F; T; F; F] [T; T; F; F; T; T; F] = 3 ∧
