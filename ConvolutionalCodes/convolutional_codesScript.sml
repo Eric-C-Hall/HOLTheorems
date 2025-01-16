@@ -192,7 +192,7 @@ Proof
   >> ‘LHS ≤ step + optInd’ suffices_by gvs[]
   (* If we were to show that the right hand side was equal to f applied to
      the last transition, that would be sufficient. *)
-  >> qsuff_tac ‘step + optInd = infnum_to_num (f (<| origin := vd_encode_state m l 0; input := x; |>))’
+  >> qsuff_tac ‘step + optInd = infnum_to_num (f ((vd_encode_state m l 0, x)))’
   >- (gvs[]
       >> disch_tac >> pop_assum kall_tac
       >> gvs[Abbr ‘LHS’]

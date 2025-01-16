@@ -154,14 +154,11 @@ Definition parity_equations_to_state_machine_def:
     transition_fn :=
     λr.
       let
-        r_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v_2 (r.origin));
-        window = SNOC r.input r_vec;
+        r_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v_2 (FST r));
+        window = SNOC (SND r) r_vec;
         new_vec = TL (window);
       in
-        <|
-          destination := v2n new_vec;
-          output := apply_parity_equations ps window
-        |>
+        (v2n new_vec, apply_parity_equations ps window)
     ;
     output_length := LENGTH ps;
   |>
@@ -324,7 +321,7 @@ Proof
   >> conj_tac
   >- (rpt strip_tac
       >> gvs[parity_equations_to_state_machine_def]
-      >> qmatch_asmsub_abbrev_tac ‘r.origin < 2 ** l’
+      (*>> qmatch_asmsub_abbrev_tac ‘FST r < 2 ** l’*)
       >> irule v2n_lt_imp
       >> gvs[LENGTH_TL]
       >> gvs[length_zero_extend_2]
@@ -462,7 +459,7 @@ Theorem transition_fn_output_empty[simp]:
   ∀m s b.
     wfmachine m ∧
     s < m.num_states ⇒
-    ((m.transition_fn <| origin := s; input := h |>).output = [] ⇔
+    (SND (m.transition_fn (s, b)) = [] ⇔
        m.output_length = 0)
 Proof
   rpt strip_tac
@@ -490,7 +487,7 @@ Proof
   >> EQ_TAC >> gvs[]
   >> rpt strip_tac
   >> Cases_on ‘bs’ >> gvs[]
-  >> gvs[vd_encode_def]
+  >> gvs[vd_encode_def2]
 QED
 
 Theorem output_length_nonzero[simp]:
@@ -508,7 +505,7 @@ Theorem vd_encode_parity_equations_to_state_machine_empty[simp]:
     vd_encode (parity_equations_to_state_machine []) bs s = []
 Proof
   gvs[parity_equations_to_state_machine_def]
-  >> Induct_on ‘bs’ >> gvs[vd_encode_def]
+  >> Induct_on ‘bs’ >> gvs[vd_encode_def2]
 QED
 
 Theorem convolve_parity_equations_length:
@@ -672,11 +669,8 @@ Theorem parity_equations_to_state_machine_maxdeg_zero_transition_fn[simp]:
     MAX_LIST (MAP LENGTH ps) = 0 ∧
     s = 0 ⇒
     (parity_equations_to_state_machine ps).transition_fn
-                                          <| origin := s; input := b |> =
-    <|
-      destination := 0;
-      output := REPLICATE (LENGTH ps) F;
-    |>
+                                          (s, b) =
+    (0, REPLICATE (LENGTH ps) F)
 Proof
   rpt strip_tac
   >> gvs[parity_equations_to_state_machine_def]
@@ -751,12 +745,12 @@ Theorem ith_output_window_vd_encode_vd_encode_state:
     i < LENGTH bs ⇒
     ith_output_window i ps
                       (vd_encode (parity_equations_to_state_machine ps) bs 0) =
-    ((parity_equations_to_state_machine ps)
-     .transition_fn <| origin := vd_encode_state
-                                 (parity_equations_to_state_machine ps)
-                                 (TAKE i bs) 0;
-                       input := EL i bs;
-                    |>).output
+    (SND ((parity_equations_to_state_machine ps)
+          .transition_fn (vd_encode_state
+                          (parity_equations_to_state_machine ps)
+                          (TAKE i bs) 0
+                          , EL i bs
+                         )))
 Proof
   rpt strip_tac
   >> Cases_on ‘bs = []’ >> gvs[]
@@ -869,8 +863,8 @@ Theorem parity_equations_to_state_machine_destination_is_valid[simp]:
   ∀ps i b.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     i < 2 ** (MAX_LIST (MAP LENGTH ps) - 1) ⇒
-    ((parity_equations_to_state_machine ps)
-     .transition_fn <| origin := i; input := b |>).destination <
+    (FST ((parity_equations_to_state_machine ps)
+          .transition_fn (i, b))) <
     2 ** (MAX_LIST (MAP LENGTH ps) - 1)
 Proof
   gvs[]
@@ -879,7 +873,8 @@ Proof
   (* TODO: IDEA: would be nice to be able to irule
      wfmachine_transition_fn_destination_is_valid here, but i *)
   >> qspecl_then [‘parity_equations_to_state_machine ps’,
-                  ‘<| origin := i; input := b |>’]
+                  ‘i’,
+                  ‘b’]
                  assume_tac wfmachine_transition_fn_destination_is_valid
   >> gvs[Excl "wfmachine_transition_fn_destination_is_valid"]
 QED
