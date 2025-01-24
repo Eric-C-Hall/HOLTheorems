@@ -227,15 +227,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_encode_cons                             *)
 (* -------------------------------------------------------------------------- *)
-Theorem vd_encode_cons:
-  ∀m b bs s.
-    vd_encode m (b :: bs) s =
-    SND (m.transition_fn (s, b)) ⧺ (vd_encode m bs (FST (m.transition_fn (s, b))))
-Proof
-  rpt strip_tac
-  >> gvs[vd_encode_def2]
-  >> gvs[vd_encode_state_def]
-QED
+Theorem vd_encode_cons = cj 2 vd_encode_def2;
 
 (* -------------------------------------------------------------------------- *)
 (* See comment for vd_encode_append                           *)
