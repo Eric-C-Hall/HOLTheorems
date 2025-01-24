@@ -1,3 +1,0 @@
-1. Ensure that the HOL code has been made using Holmake -r cleanAll followed by Holmake -r
-
-2. Run the command: mkmunge.exe convolutional_codesTheory hamming_distanceTheory parity_equations_helperTheory parity_equationsTheory state_machineTheory trellisTheory useful_theoremsTheory -o convolutional_codes_munge.exe
