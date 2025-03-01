@@ -9,22 +9,14 @@ open dep_rewrite;
 val _ = new_theory "hamming_distance";
 
 Definition hamming_distance_def:
-  hamming_distance [] cs = 0 ∧
-  hamming_distance bs [] = 0 ∧
+  hamming_distance [] [] = 0 ∧
   hamming_distance (b::bs) (c::cs) = hamming_distance bs cs + if b = c then 0 else 1
 End
 
-Theorem hamming_distance_empty_left[simp]:
-  ∀cs. hamming_distance [] cs = 0
+Theorem hamming_distance_empty[simp]:
+  ∀cs. hamming_distance [] [] = 0
 Proof
   gvs[hamming_distance_def]
-QED
-
-Theorem hamming_distance_empty_right[simp]:
-  ∀bs. hamming_distance bs [] = 0
-Proof
-  Cases_on ‘bs’
-  >> gvs[hamming_distance_def]
 QED
 
 Theorem bitwise_cons:
@@ -90,26 +82,6 @@ Proof
   >> gvs[hamming_distance_def]
 QED
 
-Theorem hamming_distance_restrict:
-  ∀bs cs.
-    hamming_distance bs cs =
-    hamming_distance (TAKE (LENGTH cs) bs) (TAKE (LENGTH bs) cs)
-Proof
-  rpt strip_tac
-  >> Cases_on ‘LENGTH bs ≤ LENGTH cs’
-  >- (gvs[TAKE_LENGTH_TOO_LONG]
-      >> qspecl_then [‘LENGTH bs’, ‘cs’] assume_tac TAKE_DROP
-      >> pop_assum (fn th => PURE_REWRITE_TAC [Once (GSYM th)])
-      >> PURE_REWRITE_TAC[Once (GSYM APPEND_NIL)]
-      >> gvs[hamming_distance_append])
-  >> ‘LENGTH cs < LENGTH bs’ by gvs[] >> gvs[]
-  >> gvs[TAKE_LENGTH_TOO_LONG]
-  >> qspecl_then [‘LENGTH cs’, ‘bs’] assume_tac TAKE_DROP
-  >> pop_assum (fn th => PURE_REWRITE_TAC [Once (GSYM th)])
-  >> ‘cs = cs ⧺ []’ by gvs[] >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >> gvs[hamming_distance_append]
-QED
-
 Theorem hamming_distance_self[simp]:
   ∀bs. hamming_distance bs bs = 0
 Proof
@@ -118,7 +90,7 @@ Proof
   >> gvs[hamming_distance_def]
 QED
 
-Theorem hamming_distance_symmetric_equal_length:
+Theorem hamming_distance_symmetric:
   ∀bs cs.
     LENGTH bs = LENGTH cs ⇒
     hamming_distance bs cs = hamming_distance cs bs
@@ -129,15 +101,6 @@ Proof
   >> gvs[EQ_SYM_EQ]
   >> last_x_assum irule
   >> gvs[]
-QED
-
-Theorem hamming_distance_symmetric:
-  ∀bs cs. hamming_distance bs cs = hamming_distance cs bs
-Proof
-  rpt strip_tac
-  >> PURE_ONCE_REWRITE_TAC[hamming_distance_restrict]
-  >> irule hamming_distance_symmetric_equal_length
-  >> gvs[LENGTH_TAKE_EQ]
 QED
 
 (*Theorem hamming_distance_triangle_inequality:
@@ -169,7 +132,8 @@ Theorem hamming_distance_append_right:
     LENGTH bs = LENGTH cs + LENGTH ds ⇒
     hamming_distance bs (cs ⧺ ds) = hamming_distance (TAKE (LENGTH cs) bs) cs + hamming_distance (DROP (LENGTH cs) bs) ds
 Proof
-  metis_tac[hamming_distance_append_left, hamming_distance_symmetric]
+  gvs[hamming_distance_append_left]
+     metis_tac[hamming_distance_append_left, hamming_distance_symmetric]
 QED
 
 (* -------------------------------------------------------------------------- *)
