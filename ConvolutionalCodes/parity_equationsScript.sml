@@ -152,8 +152,8 @@ Definition parity_equations_to_state_machine_def:
     transition_fn :=
     λ(s, b).
       let
-        r_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v s);
-        window = r_vec ⧺ [b];
+        s_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v s);
+        window = s_vec ⧺ [b];
         new_vec = TL (window);
       in
         (v2n new_vec, apply_parity_equations ps window)
