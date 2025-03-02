@@ -50,6 +50,8 @@ open useful_tacticsLib;
 (* the shorter parity equations with F's at the end.                          *)
 (* -------------------------------------------------------------------------- *)
 
+Overload window_length = “\m. MAX_LIST (MAP LENGTH m)”
+
 (* -------------------------------------------------------------------------- *)
 (* Treats a bitstring as a parity equation, and applies it to a sufficiently  *)
 (* long bitstring. If the second bitstring isn't sufficiently large, pads it  *)
