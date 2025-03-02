@@ -153,7 +153,7 @@ Definition parity_equations_to_state_machine_def:
     λr.
       let
         r_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v (FST r));
-        window = SNOC (SND r) r_vec;
+        window = r_vec ⧺ [SND r];
         new_vec = TL (window);
       in
         (v2n new_vec, apply_parity_equations ps window)
@@ -329,6 +329,7 @@ Proof
   >> conj_tac
   >- (rpt strip_tac
       >> gvs[parity_equations_to_state_machine_def]
+      >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
       >> Cases_on ‘s = 0’
       >- (gvs[]
           >> qexistsl [‘0’, ‘F’]
@@ -1086,6 +1087,7 @@ Proof
      )
   >> rpt strip_tac
   >> gvs[vd_encode_state_snoc, parity_equations_to_state_machine_def]
+  >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
   (*  *)
   >> qmatch_goalsub_abbrev_tac ‘v2n (TL (SNOC _ (LASTN l (zero_extend _ (cs)))))’
   >> Cases_on ‘l ≤ LENGTH cs’
@@ -1514,6 +1516,7 @@ Proof
   >> rpt strip_tac
   >> gvs[vd_encode_state_def]
   >> gvs[parity_equations_to_state_machine_def]
+  >> gvs[GSYM SNOC_APPEND]
 QED
 
 Theorem vd_encode_state_append:
