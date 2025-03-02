@@ -122,29 +122,27 @@ Definition convolve_parity_equations_padded_def[simp]:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* n2v chooses n2v 0 to be [F], however, this makes many proofs messy, because*)
-(* this is the only number it creates with a leading F; it is treating 0 in a *)
-(* very special way. My version (called n2v_2) chooses n2v 0 to be [], which  *)
-(* is more consistent with how all the other numbers have their leading       *)
-(* zeroes/F's removed, and leads to many nicer proofs.                        *)
+(* bitstringTheory.n2v chooses n2v 0 to be [F]. This makes many proofs messy, *)
+(* because this is the only number it creates with a leading F; it is         *)
+(* treating 0 in a very special way.                                          *)
+(* My version (called parity_equationsTheory.n2v) chooses n2v 0 to be [],     *)
+(* which is more consistent with how all the other numbers have their leading *)
+(* zeroes/F's removed, and leads to many nicer theorems and proofs.           *)
 (*                                                                            *)
-(* One advantage is that it allows the state machine converted from parity    *)
-(* equations to be a valid state machine even if all input parity equations   *)
-(* have length 0 (or at least I think it does. It certainly removes some      *)
-(* barriers.) Another advantage is that it ensures that the equation          *)
-(* LENGTH (n2v_2 n) ≤ 2 **                                                    *)
+(* We use big-endian, because that's how binary numbers are usually written   *)
+(* in English.                                                                *)
 (*                                                                            *)
-(* We use big-endian because to a mathematician that is more natural,         *)
-(* although this may mean some definitions are less natural.                  *)
-(*                                                                            *)
-(* Disadvantage of this definition: errant SUC. However, this is still better *)
-(* than using if n = 0 then [] else ... <recursive call> ..., because the     *)
-(* if-then-else definition has the issue that when used as a rewrite rule, it *)
-(* will enter an infinite loop of rewrites.                                   *)
+(* In the inductive case, we deconstruct our input using SUC to ensure it is  *)
+(* nonzero. Unfortunately we have to reconstruct our input using SUC on the   *)
+(* right hand side. This deconstructing and reconstructing process is a bit   *)
+(* of a waste of time, but necessary to ensure that the number is nonzero.    *)
+(* It is also better than using if n = 0 then [] else <recursive call>,       *)
+(* because the if-then-else definition has the issue that when used as a      *)
+(* rewrite rule, it will enter an infinite loop of rewrites.                  *)
 (* -------------------------------------------------------------------------- *)
-Definition n2v_2_def:
-  n2v_2 0 = [] ∧
-  n2v_2 (SUC n) = SNOC ((SUC n) MOD 2 = 1) (n2v_2 ((SUC n) DIV 2))
+Definition n2v_def:
+  n2v 0 = [] ∧
+  n2v (SUC n) = SNOC ((SUC n) MOD 2 = 1) (n2v ((SUC n) DIV 2))
 End
 
 Definition parity_equations_to_state_machine_def:
@@ -154,7 +152,7 @@ Definition parity_equations_to_state_machine_def:
     transition_fn :=
     λr.
       let
-        r_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v_2 (FST r));
+        r_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v (FST r));
         window = SNOC (SND r) r_vec;
         new_vec = TL (window);
       in
@@ -185,23 +183,23 @@ QED
    an infinite loop of rewrites, which is why it isn't used as the original
    definition. However, it's still useful if the input isn't of the form
    (SUC n) or of the form 0, and we still want to expand the function anyway. *)
-Theorem n2v_2_expand:
+Theorem n2v_expand:
   ∀n.
-    n2v_2 n = if n = 0 then [] else SNOC (n MOD 2 = 1) (n2v_2 (n DIV 2))
+    n2v n = if n = 0 then [] else SNOC (n MOD 2 = 1) (n2v (n DIV 2))
 Proof
   Cases_on ‘n’
-  >> gvs[n2v_2_def]
+  >> gvs[n2v_def]
 QED
 
-Theorem n2v_2_n2v:
+Theorem n2v_bitstring_n2v:
   ∀n.
-    n2v_2 n = (if n = 0 then [] else n2v n)
+    n2v n = (if n = 0 then [] else bitstring$n2v n)
 Proof
   rpt strip_tac
-  >> rw[n2v_2_def]
+  >> rw[n2v_def]
   >> completeInduct_on ‘n’
   >> rpt strip_tac
-  >> PURE_ONCE_REWRITE_TAC[n2v_2_expand]
+  >> PURE_ONCE_REWRITE_TAC[n2v_expand]
   >> rw[]
   >> last_x_assum $ qspec_then ‘n DIV 2’ assume_tac
   >> gvs[]
@@ -209,7 +207,7 @@ Proof
   >- (gvs[DIV_2_0]
       >> EVAL_TAC
      )
-  >> gvs[n2v_def]
+  >> gvs[bitstringTheory.n2v_def]
   >> irule EQ_SYM
   >> PURE_REWRITE_TAC[Once n2l_def]
   >> gvs[]
@@ -227,12 +225,12 @@ Proof
   >> gvs[]
 QED
 
-Theorem n2v_2_length_le:
+Theorem n2v_length_le:
   ∀n l.
-    n < 2 ** l ⇒ LENGTH (n2v_2 n) ≤ l
+    n < 2 ** l ⇒ LENGTH (n2v n) ≤ l
 Proof
   rpt strip_tac
-  >> gvs[n2v_2_n2v]
+  >> gvs[n2v_bitstring_n2v]
   >> Cases_on ‘n = 0’ >> gvs[]
   >> DEP_PURE_ONCE_REWRITE_TAC[n2v_length_le]
   >> gvs[]
@@ -240,27 +238,27 @@ Proof
 QED
 
 Theorem n2v2_2_zero[simp]:
-  n2v_2 0 = []
+  n2v 0 = []
 Proof
-  gvs[n2v_2_def]
+  gvs[n2v_def]
 QED
 
-Theorem v2n_n2v_2[simp]:
+Theorem v2n_n2v[simp]:
   ∀n.
-    v2n (n2v_2 n) = n
+    v2n (n2v n) = n
 Proof
   rpt strip_tac
-  >> gvs[n2v_2_n2v]
+  >> gvs[n2v_bitstring_n2v]
   >> Cases_on ‘n = 0’ >> gvs[]
 QED
 
-Theorem last_n2v_2[simp]:
+Theorem last_n2v[simp]:
   ∀n.
     n ≠ 0 ⇒
-    (if LAST (n2v_2 n) then 1n else 0n) = n MOD 2
+    (if LAST (n2v n) then 1n else 0n) = n MOD 2
 Proof
   rpt strip_tac
-  >> PURE_ONCE_REWRITE_TAC[n2v_2_expand]
+  >> PURE_ONCE_REWRITE_TAC[n2v_expand]
   >> Cases_on ‘n’ >> gvs[]
   >> qmatch_goalsub_abbrev_tac ‘_ = m’
   >> Cases_on ‘m’ >> gvs[]
@@ -278,14 +276,14 @@ Proof
   >> Induct_on ‘ps’ >> gvs[apply_parity_equations_def]
 QED
 
-Theorem n2v_2_empty[simp]:
+Theorem n2v_empty[simp]:
   ∀n.
-    n2v_2 n = [] ⇔ n = 0
+    n2v n = [] ⇔ n = 0
 Proof
   rpt strip_tac
   >> EQ_TAC >> gvs[]
   >> rpt strip_tac
-  >> Cases_on ‘n’ >> gvs[n2v_2_def]
+  >> Cases_on ‘n’ >> gvs[n2v_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -325,7 +323,7 @@ Proof
       >> irule v2n_lt_imp
       >> gvs[LENGTH_TL]
       >> gvs[length_zero_extend_2]
-      >> irule n2v_2_length_le
+      >> irule n2v_length_le
       >> gvs[]
      )
   >> conj_tac
@@ -336,20 +334,20 @@ Proof
           >> qexistsl [‘0’, ‘F’]
           >> gvs[]
          )
-      >> qexistsl [‘v2n (FRONT (F::(n2v_2 s)))’, ‘LAST (n2v_2 s)’]
+      >> qexistsl [‘v2n (FRONT (F::(n2v s)))’, ‘LAST (n2v s)’]
       >> conj_tac
       >- (irule v2n_lt_imp
           >> gvs[LENGTH_FRONT, LENGTH_CONS]
-          >> irule n2v_2_length_le
+          >> irule n2v_length_le
           >> gvs[]
          )
       >> gvs[v2n_tl]
       >> qmatch_goalsub_abbrev_tac ‘_ - n’
       >> gvs[v2n_snoc]
       >> gvs[v2n_zero_extend]
-      >> gvs[v2n_n2v_2]
+      >> gvs[v2n_n2v]
       >> gvs[v2n_front]
-      >> gvs[v2n_n2v_2]
+      >> gvs[v2n_n2v]
       >> gvs[DIV_MULT_THM2]
       >> DEP_PURE_ONCE_REWRITE_TAC[SUB_ADD]
       >> gvs[MOD_LESS_EQ]
@@ -358,17 +356,17 @@ Proof
       >> rw[]
       >> pop_assum mp_tac >> gvs[]
       >> qmatch_asmsub_abbrev_tac ‘s < 2 ** l’
-      >> qsuff_tac ‘LENGTH (n2v_2 (s DIV 2)) < l’
+      >> qsuff_tac ‘LENGTH (n2v (s DIV 2)) < l’
       >- (disch_tac
           >> Cases_on ‘l’ >> gvs[]
           >> gvs[zero_extend_suc])
-      >> drule n2v_2_length_le
+      >> drule n2v_length_le
       >> sg ‘s DIV 2 < 2 ** (l - 1)’
       >- (gvs[DIV_LT_X]
           >> gvs[ADD1]
           >> Cases_on ‘l’ >> gvs[ADD1]
          )
-      >> drule n2v_2_length_le
+      >> drule n2v_length_le
       >> gvs[LESS_EQ, ADD1]
       >> rpt strip_tac
       >> Cases_on ‘l = 0’ >> gvs[])
@@ -887,16 +885,16 @@ Proof
   >> Cases_on ‘n’ >> Cases_on ‘bs’ >> rw[zero_extend_suc]
 QED
 
-Theorem n2v_2_snoc:
+Theorem n2v_snoc:
   ∀i j.
     (i ≠ 0 ∨ j ≠ 0) ∧
     j < 2 ⇒
-    n2v_2 (2 * i + j) = SNOC (j = 1) (n2v_2 i)
+    n2v (2 * i + j) = SNOC (j = 1) (n2v i)
 Proof
   rpt gen_tac
   >> rpt disch_tac
   >> Cases_on ‘2 * i + j’ >> gvs[]
-  >> gvs[n2v_2_def]
+  >> gvs[n2v_def]
   >> pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
   >> conj_tac
   >- (AP_TERM_TAC
@@ -907,24 +905,13 @@ Proof
   >> gvs[MOD_MULT]
 QED
 
-Theorem n2v_n2v_2:
+Theorem bitstring_n2v_n2v:
   ∀n.
-    n2v n = if n = 0 then [F] else n2v_2 n
+    bitstring$n2v n = if n = 0 then [F] else n2v n
 Proof
   rpt strip_tac >> rw[]
   >- EVAL_TAC
-  >> gvs[n2v_2_n2v]
-QED
-
-Theorem n2v_snoc:
-  ∀i j.
-    (i ≠ 0 ∨ j ≠ 0) ∧
-    ¬(i = 0 ∧ j = 1) ∧
-    j < 2 ⇒
-    n2v (2 * i + j) = SNOC (j = 1) (n2v i)
-Proof
-  rpt gen_tac >> rpt disch_tac
-  >> rw[n2v_n2v_2, n2v_2_snoc]
+  >> gvs[n2v_bitstring_n2v]
 QED
 
 Theorem zero_extend_replicate:
@@ -981,10 +968,10 @@ Proof
   >> gvs[zero_extend_suc]
 QED
         
-Theorem zero_extend_n2v_2_v2n[simp]:
+Theorem zero_extend_n2v_v2n[simp]:
   ∀l bs.
     l = LENGTH bs ⇒
-    zero_extend l (n2v_2 (v2n bs)) = bs
+    zero_extend l (n2v (v2n bs)) = bs
 Proof
   Induct_on ‘bs’ using SNOC_INDUCT >> gvs[] >> rpt strip_tac
   >> Cases_on ‘LENGTH bs’ >> gvs[]
@@ -997,11 +984,10 @@ Proof
       >> PURE_REWRITE_TAC[GSYM $ cj 2 REPLICATE]
       >> PURE_REWRITE_TAC[ADD1]
       >> gvs[])
-  >> DEP_PURE_ONCE_REWRITE_TAC[n2v_2_snoc]
+  >> DEP_PURE_ONCE_REWRITE_TAC[n2v_snoc]
   >> gvs[]
-  >> conj_tac
-  >- rw[]
   >> gvs[zero_extend_append]
+  >> Cases_on ‘x’ >> gvs[]
 QED
 
 Theorem lastn_zero_extend_length[simp]:
@@ -1089,13 +1075,13 @@ Theorem vd_encode_state_parity_equations_to_state_machine:
     i < 2 ** (MAX_LIST (MAP LENGTH ps) - 1) ⇒
     vd_encode_state (parity_equations_to_state_machine ps) bs i =
     v2n (LASTN (MAX_LIST (MAP LENGTH ps) - 1)
-               (zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v_2 i ⧺ bs)))
+               (zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v i ⧺ bs)))
 Proof
   Induct_on ‘bs’ using SNOC_INDUCT >> gvs[]
   >- (rpt strip_tac
       >> PURE_REWRITE_TAC[Once zero_extend_lastn_swap]
       >> gvs[]
-      >> gvs[n2v_2_length_le, v2n_n2v_2] (* Maybe these length functions should
+      >> gvs[n2v_length_le, v2n_n2v] (* Maybe these length functions should
                                             be in the simp set *)
      )
   >> rpt strip_tac
@@ -1792,10 +1778,10 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* We want to be sure that n2v_2 is evaluable                                 *)
+(* We want to be sure that n2v is evaluable                                 *)
 (* -------------------------------------------------------------------------- *)
-Theorem n2v_2_test:
-  n2v_2 22 = [T; F; T; T; F]
+Theorem n2v_test:
+  n2v 22 = [T; F; T; T; F]
 Proof
   EVAL_TAC
 QED
