@@ -232,7 +232,7 @@ Proof
   rpt strip_tac
   >> gvs[n2v_bitstring_n2v]
   >> Cases_on ‘n = 0’ >> gvs[]
-  >> DEP_PURE_ONCE_REWRITE_TAC[n2v_length_le]
+  >> DEP_PURE_ONCE_REWRITE_TAC[bitstring_n2v_length_le]
   >> gvs[]
   >> Cases_on ‘l’ >> gvs[]
 QED

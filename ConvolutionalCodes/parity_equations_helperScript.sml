@@ -94,7 +94,7 @@ Proof
   >> gvs[LOG_POW_LT]
 QED
 
-Theorem n2v_length_le:
+Theorem bitstring_n2v_length_le:
   ∀n l.
     0 < l ∧
     n < 2 ** l ⇒
