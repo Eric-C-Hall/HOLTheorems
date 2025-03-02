@@ -150,10 +150,10 @@ Definition parity_equations_to_state_machine_def:
   <|
     num_states := 2 ** (MAX_LIST (MAP LENGTH ps) - 1);
     transition_fn :=
-    λr.
+    λ(s, b).
       let
-        r_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v (FST r));
-        window = r_vec ⧺ [SND r];
+        r_vec = zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v s);
+        window = r_vec ⧺ [b];
         new_vec = TL (window);
       in
         (v2n new_vec, apply_parity_equations ps window)
