@@ -255,7 +255,7 @@ Definition vd_decode_to_state_def:
   let
     prev_transition = best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s;
   in
-    SNOC (SND (prev_transition)) (vd_decode_to_state m bs (FST prev_transition) t)
+    (vd_decode_to_state m bs (FST prev_transition) t) ⧺ [SND (prev_transition)]
 End
 
 (* -------------------------------------------------------------------------- *)
