@@ -253,9 +253,10 @@ Definition vd_decode_to_state_def:
   vd_decode_to_state m bs s 0 = [] ∧
   vd_decode_to_state m bs s (SUC t) =
   let
-    prev_transition = best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s;
+    (prev_state, prev_input) =
+    best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s;
   in
-    (vd_decode_to_state m bs (FST prev_transition) t) ⧺ [SND (prev_transition)]
+    (vd_decode_to_state m bs (prev_state) t) ⧺ [prev_input]
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -544,6 +545,9 @@ Theorem vd_decode_to_state_length[simp]:
     LENGTH (vd_decode_to_state m bs s t) = t
 Proof
   Induct_on ‘t’ >> gvs[vd_decode_to_state_def]
+  >> rpt strip_tac
+  >> Cases_on ‘best_origin m bs (viterbi_trellis_row m bs t) (SUC t) s’
+  >> gvs[]
 QED
 
 Theorem vd_decode_empty[simp]:
@@ -936,9 +940,9 @@ Theorem vd_decode_to_state_def_slow:
     (vd_decode_to_state m bs s 0 = [] ∧
      vd_decode_to_state m bs s (SUC t) =
      let
-       prev_transition = best_origin_slow m bs (SUC t) s
+       (prev_state, prev_input) = best_origin_slow m bs (SUC t) s
      in
-       SNOC (SND prev_transition) (vd_decode_to_state m bs (FST prev_transition) t))
+       SNOC (prev_input) (vd_decode_to_state m bs (prev_state) t))
 Proof
   rpt strip_tac >> gvs[vd_decode_to_state_def]
   >> gvs[best_origin_slow_best_origin]
