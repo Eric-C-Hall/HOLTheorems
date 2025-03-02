@@ -60,7 +60,8 @@ End
 (* unnecessary symbols which confuse the proofs                               *)
 (* -------------------------------------------------------------------------- *)
 Definition relevant_input_def:
-  relevant_input m bs t = TAKE m.output_length (DROP ((t - 1) * m.output_length) bs)
+  relevant_input m bs t = TAKE m.output_length
+                               (DROP ((t - 1) * m.output_length) bs)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -78,7 +79,9 @@ End
 (* Invalid at time-step 0 because there is no previous row in this case.      *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_after_step_def:
-  get_num_errors_after_step m bs t previous_row r = (EL (FST r) previous_row).num_errors + N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs t))
+  get_num_errors_after_step m bs t previous_row r
+  = (EL (FST r) previous_row).num_errors
+    + N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs t))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -87,7 +90,10 @@ End
 (* previous row.                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition best_origin_def:
-  best_origin m bs previous_row t s = inargmin (get_num_errors_after_step m bs t previous_row) (transition_inverse m s)
+  best_origin m bs previous_row t s
+  = inargmin
+    (get_num_errors_after_step m bs t previous_row)
+    (transition_inverse m s)
 End
 
 (* -------------------------------------------------------------------------- *)
