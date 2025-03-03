@@ -295,7 +295,7 @@ Proof
          )
       >> unabbrev_all_tac
       >> gvs[]
-      >> gvs[viterbi_trellis_row_el]
+      >> gvs[viterbi_trellis_column_el]
       >> gvs[viterbi_trellis_node_slow_def]
      )
   >> irule viterbi_correctness_general
