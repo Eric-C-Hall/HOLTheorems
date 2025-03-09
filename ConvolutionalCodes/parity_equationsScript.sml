@@ -1617,7 +1617,7 @@ Theorem parity_equations_to_state_machine_equivalent_with_padding:
   ∀ps bs.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
     convolve_parity_equations_padded ps bs =
-    vd_encode_zero_tailed (parity_equations_to_state_machine ps) bs 0
+    vd_encode_padded (parity_equations_to_state_machine ps) bs 0
 Proof
   (* Simplify *)
   rpt strip_tac
@@ -1800,10 +1800,10 @@ QED
 
 (* Test that convolve_parity_equations_padded corresponds with the behaviour we
    would expect it to have and that it corresponds to the behaviour of
-   vd_encode_zero_tailed (parity_equations_to_state_machine ps) *)
+   vd_encode_padded (parity_equations_to_state_machine ps) *)
 Theorem convolve_parity_equations_padded_test:
   convolve_parity_equations_padded test_parity_equations test_parity_equations_input = [T; T; T; T; T; F; F; F; T; T; F; F; T; F; T; F; F; T; F; T; T; T; F; T; T; T; T; F] ∧
-  convolve_parity_equations_padded test_parity_equations test_parity_equations_input = vd_encode_zero_tailed (parity_equations_to_state_machine test_parity_equations) test_parity_equations_input 0
+  convolve_parity_equations_padded test_parity_equations test_parity_equations_input = vd_encode_padded (parity_equations_to_state_machine test_parity_equations) test_parity_equations_input 0
 Proof
   EVAL_TAC
 QED
@@ -1812,7 +1812,7 @@ Theorem parity_equations_to_state_machine_equivalent_test:
   ∀bs.
     LENGTH bs < 7 ⇒
     convolve_parity_equations_padded test_parity_equations bs =
-    vd_encode_zero_tailed (parity_equations_to_state_machine test_parity_equations) bs 0
+    vd_encode_padded (parity_equations_to_state_machine test_parity_equations) bs 0
 Proof
   rpt strip_tac
   >> Cases_on ‘bs’

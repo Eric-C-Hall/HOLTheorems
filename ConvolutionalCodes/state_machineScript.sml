@@ -142,8 +142,8 @@ End
 (* In general, avoid using this definition, and instead use the vanilla       *)
 (* vd_encode, in order to avoid unnecessary duplication of theorems.          *)
 (* -------------------------------------------------------------------------- *)
-Definition vd_encode_zero_tailed_def[simp]:
-  vd_encode_zero_tailed m bs s =
+Definition vd_encode_padded_def[simp]:
+  vd_encode_padded m bs s =
   vd_encode m (bs ⧺ REPLICATE (LOG 2 m.num_states) F) s
 End
 
