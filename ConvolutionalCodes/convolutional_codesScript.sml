@@ -157,8 +157,8 @@ Proof
      since best_origin_slow is defined such that it minimizes get_num_errors_after_step_slow. *)
   >> rw[get_num_errors_get_num_errors_after_step_slow]
   >> simp[best_origin_slow_def]
-  >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (inargmin _ ls))’
-  >> qspecl_then [‘f’, ‘ls’] assume_tac inargmin_inle
+  >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (argmin _ ls))’
+  >> qspecl_then [‘f’, ‘ls’] assume_tac argmin_inle
   >> gs[]
   (* Now we need to get the right hand side into the form of f applied to
    something. Since bs may not take the optimal path, we will need to
@@ -197,12 +197,12 @@ Proof
       >> disch_tac >> pop_assum kall_tac
       >> gvs[Abbr ‘LHS’]
       >> unabbrev_all_tac
-      >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (inargmin _ qs)) ≤ infnum_to_num (f q)’
+      >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (argmin _ qs)) ≤ infnum_to_num (f q)’
       >> qmatch_goalsub_abbrev_tac ‘infnum_to_num min ≤ infnum_to_num specific’
-      >> sg ‘f (inargmin (λa. f a) qs) ≤ f q’
+      >> sg ‘f (argmin (λa. f a) qs) ≤ f q’
       >- (gvs[ETA_THM]
           >> unabbrev_all_tac
-          >> irule inargmin_inle
+          >> irule argmin_inle
           >> gvs[transition_inverse_mem] (* TODO: should transition_inverse_mem and all_transitions_mem be simp rules? *)
           >> gvs[all_transitions_mem]
           >> gvs[GSYM SNOC_APPEND]
@@ -215,7 +215,7 @@ Proof
       >- (gvs[]
           >> qmatch_goalsub_abbrev_tac ‘LHS ≠ INFINITY ⇒ RHS ≠ INFINITY’
           >> Cases_on ‘LHS’ >> Cases_on ‘RHS’ >> gvs[]
-          >> qpat_x_assum ‘f (inargmin _ _) ≤ f _’ kall_tac
+          >> qpat_x_assum ‘f (argmin _ _) ≤ f _’ kall_tac
           >> unabbrev_all_tac
           >> gvs[get_num_errors_after_step_slow_def]
          )
@@ -267,15 +267,15 @@ Proof
   >- gvs[]
   >> conj_tac >> gvs[Abbr ‘best_state_best_path_errs’, Abbr ‘actual_state_best_path_errs’, Abbr ‘actual_state_actual_path_errs’]
   >- (unabbrev_all_tac
-      >> qmatch_goalsub_abbrev_tac ‘inargmin f ls’
+      >> qmatch_goalsub_abbrev_tac ‘argmin f ls’
       >> DEP_PURE_REWRITE_TAC[get_num_errors_get_num_errors_after_step_slow]
       >> gvs[]
       >> conj_tac
       >- (unabbrev_all_tac
           >> gvs[]
          )
-      >> sg ‘f (inargmin f ls) ≤ f (vd_encode_state m bs 0)’
-      >- (irule inargmin_inle
+      >> sg ‘f (argmin f ls) ≤ f (vd_encode_state m bs 0)’
+      >- (irule argmin_inle
           >> unabbrev_all_tac
           >> gvs[MEM_COUNT_LIST]
          )
@@ -285,7 +285,7 @@ Proof
       >- (gvs[get_num_errors_after_step_slow_is_reachable]
           >> DEP_PURE_ONCE_REWRITE_TAC[get_num_errors_after_step_slow_is_reachable]
           >> gvs[]
-          >> sg ‘inargmin f ls < m.num_states’
+          >> sg ‘argmin f ls < m.num_states’
           >- (unabbrev_all_tac
               >> gvs[]
              )

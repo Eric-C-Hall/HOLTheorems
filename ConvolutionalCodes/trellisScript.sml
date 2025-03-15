@@ -90,7 +90,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition best_origin_def:
   best_origin m bs previous_row t s
-  = inargmin
+  = argmin
     (get_num_errors_after_step m bs t previous_row)
     (transition_inverse m s)
 End
@@ -192,7 +192,7 @@ Definition viterbi_trellis_slow:
   get_num_errors_after_step_slow m bs (SUC t) r = 
   (viterbi_trellis_node_slow m bs (FST r) t).num_errors +
   N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs (SUC t))) ∧
-  (best_origin_slow m bs t s = inargmin (get_num_errors_after_step_slow m bs t) (transition_inverse m s)) ∧
+  (best_origin_slow m bs t s = argmin (get_num_errors_after_step_slow m bs t) (transition_inverse m s)) ∧
   viterbi_trellis_node_slow m bs s t =
   let
     local_best_origin = best_origin_slow m bs t s;
@@ -276,7 +276,7 @@ Definition vd_decode_def:
   let
     max_timestep = (LENGTH bs) DIV m.output_length;
     last_row = viterbi_trellis_column m bs max_timestep;
-    best_state = inargmin (λs. (EL s last_row).num_errors) (COUNT_LIST m.num_states)
+    best_state = argmin (λs. (EL s last_row).num_errors) (COUNT_LIST m.num_states)
   in
     vd_decode_to_state m bs best_state max_timestep
 End
@@ -296,7 +296,7 @@ Proof
   >> gvs[best_origin_def]
   >> irule transition_inverse_mem_is_valid
   >> qexists ‘s’
-  >> irule inargmin_mem
+  >> irule argmin_mem
   >> gvs[]
 QED
 
@@ -365,8 +365,8 @@ Proof
   rpt gen_tac
   >> strip_tac
   >> gs[best_origin_slow_def]
-  >> qmatch_goalsub_abbrev_tac ‘get_num_errors_after_step_slow _ _ _ (inargmin f _) ≤ _’
-  >> qspecl_then [‘f’, ‘transition_inverse m s’, ‘r’] assume_tac inargmin_inle
+  >> qmatch_goalsub_abbrev_tac ‘get_num_errors_after_step_slow _ _ _ (argmin f _) ≤ _’
+  >> qspecl_then [‘f’, ‘transition_inverse m s’, ‘r’] assume_tac argmin_inle
   >> imp_prove
   >- (gvs[]
       >> irule mem_transition_inverse_transition_fn_destination
@@ -382,7 +382,7 @@ Theorem best_origin_slow_transition_inverse:
 Proof
   rpt strip_tac
   >> gvs[best_origin_slow_def]
-  >> gvs[inargmin_mem]
+  >> gvs[argmin_mem]
 QED
 
 Theorem best_origin_slow_is_valid[simp]:
@@ -607,7 +607,7 @@ Proof
   >> AP_TERM_TAC
   >> gvs[best_origin_slow_def]
   >> gvs[best_origin_def]
-  >> irule inargmin_domain
+  >> irule argmin_domain
   >> gvs[]
   >> rpt strip_tac
   >> last_x_assum irule
@@ -631,7 +631,7 @@ Theorem best_origin_slow_best_origin:
 Proof
   rpt strip_tac
   >> gvs[best_origin_slow_def, best_origin_def]
-  >> irule inargmin_domain
+  >> irule argmin_domain
   >> rpt strip_tac >> gvs[]
   >> irule get_num_errors_after_step_slow_get_num_errors_after_step
   >> gvs[]
@@ -1092,11 +1092,11 @@ Proof
 QED
 
 (* This could go in state_machineScript, but it currently doesn't depend on
-   inargminScript, and I didn't want to add that dependency. *)
-Theorem inargmin_count_list_num_states[simp]:
+   argminScript, and I didn't want to add that dependency. *)
+Theorem argmin_count_list_num_states[simp]:
   ∀m f.
     wfmachine m ⇒
-    inargmin f (COUNT_LIST m.num_states) < m.num_states
+    argmin f (COUNT_LIST m.num_states) < m.num_states
 Proof
   rpt strip_tac
   >> gvs[GSYM MEM_COUNT_LIST]
@@ -1149,21 +1149,21 @@ QED
 Theorem best_state_zero_zero[simp]:
   ∀m rs.
     wfmachine m ⇒
-    inargmin (λs. (EL s (viterbi_trellis_column m rs 0)).num_errors)
-             (COUNT_LIST m.num_states) = 0
+    argmin (λs. (EL s (viterbi_trellis_column m rs 0)).num_errors)
+           (COUNT_LIST m.num_states) = 0
 Proof
   rpt strip_tac
   >> Cases_on ‘COUNT_LIST m.num_states’ >> gvs[]
   >> Cases_on ‘m.num_states’ >> gvs[]
   >> gvs[COUNT_LIST_def]
-  >> gvs[inargmin_def]       
+  >> gvs[argmin_def]       
   >> Cases_on ‘n = 0’ >> gvs[]
-  >> PURE_REWRITE_TAC[inargmin2_def]
+  >> PURE_REWRITE_TAC[argmin2_def]
   >> gvs[]
   >> rw[]
   >> ‘F’ suffices_by gvs[]
   >> qmatch_asmsub_abbrev_tac ‘(EL best_state _).num_errors ≤ N0’
-  >> qmatch_asmsub_abbrev_tac ‘inargmin f _’
+  >> qmatch_asmsub_abbrev_tac ‘argmin f _’
   (* Rewrite _.num_errors ≤ N0 as f best_state ≤ N0 *)
   >> ‘f best_state ≤ N0’ by gvs[] >> qpat_x_assum ‘_.num_errors ≤ N0’ kall_tac
   (* *)
@@ -1181,16 +1181,16 @@ QED
 Theorem best_state_is_reachable[simp]:
   ∀m rs t.
     wfmachine m ⇒
-    is_reachable m 0 (inargmin (λs. (EL s (viterbi_trellis_column m rs t)).num_errors) (COUNT_LIST m.num_states)) t
+    is_reachable m 0 (argmin (λs. (EL s (viterbi_trellis_column m rs t)).num_errors) (COUNT_LIST m.num_states)) t
 Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘t’] assume_tac exists_is_reachable
   >> gvs[]
   >> qspecl_then [‘m’, ‘rs’] assume_tac is_reachable_viterbi_trellis_node_slow_num_errors
   >> pop_assum (fn th => gvs[th])
-  >> qmatch_goalsub_abbrev_tac ‘inargmin f ls’
-  >> sg ‘f (inargmin f ls) ≤ f s’
-  >- (irule inargmin_inle
+  >> qmatch_goalsub_abbrev_tac ‘argmin f ls’
+  >> sg ‘f (argmin f ls) ≤ f s’
+  >- (irule argmin_inle
       >> unabbrev_all_tac
       >> gvs[MEM_COUNT_LIST]
      )
