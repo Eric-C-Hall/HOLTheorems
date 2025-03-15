@@ -1,4 +1,3 @@
-
 open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "trellis";
@@ -259,10 +258,9 @@ Theorem viterbi_trellis_node_slow_def = cj 4 viterbi_trellis_slow
 Definition vd_decode_to_state_def:
   vd_decode_to_state m bs s 0 = [] ∧
   vd_decode_to_state m bs s (SUC t) =
-  let
-    prev_transition = best_origin m bs (viterbi_trellis_column m bs t) (SUC t) s;
+  let (prev_state, prev_input) = best_origin m bs (viterbi_trellis_column m bs t) (SUC t) s;
   in
-    (vd_decode_to_state m bs (FST prev_transition) t) ⧺ [SND (prev_transition)]
+    (vd_decode_to_state m bs (prev_state) t) ⧺ [prev_input]
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -546,11 +544,11 @@ Proof
   >> gvs[vd_decode_to_state_def]
 QED
 
-Theorem vd_decode_to_state_length[simp]:
+Theorem vd_decode_to_state_length[simp]: 
   ∀m bs s t.
     LENGTH (vd_decode_to_state m bs s t) = t
 Proof
-  Induct_on ‘t’ >> gvs[vd_decode_to_state_def]
+  Induct_on ‘t’ >> gvs[vd_decode_to_state_def, pairTheory.UNCURRY]
 QED
 
 Theorem vd_decode_empty[simp]:
@@ -947,7 +945,7 @@ Theorem vd_decode_to_state_def_slow:
      in
        SNOC (SND prev_transition) (vd_decode_to_state m bs (FST prev_transition) t))
 Proof
-  rpt strip_tac >> gvs[vd_decode_to_state_def]
+  rpt strip_tac >> gvs[vd_decode_to_state_def, pairTheory.UNCURRY]
   >> gvs[best_origin_slow_best_origin]
 QED
 
@@ -1090,7 +1088,7 @@ Theorem vd_decode_to_state_def_nolet:
     vd_decode_to_state m bs (FST (best_origin m bs (viterbi_trellis_column m bs t) (SUC t) s)) t ⧺ [SND (best_origin m bs (viterbi_trellis_column m bs t) (SUC t) s)]
 Proof
   rpt strip_tac
-  >> gvs[vd_decode_to_state_def]
+  >> gvs[vd_decode_to_state_def, pairTheory.UNCURRY]
 QED
 
 (* This could go in state_machineScript, but it currently doesn't depend on
