@@ -9,8 +9,8 @@ open dep_rewrite;
 (* -------------------------------------------------------------------------- *)
 (* Infnum argmin for pairs of elements                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition inargmin2_def:
-  inargmin2 f x y = if (f x < f y) then x else y
+Definition argmin2_def:
+  argmin2 f x y = if (f x < f y) then x else y
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -49,53 +49,53 @@ End
 (* list and function.                                                         *)
 (*                                                                            *)
 (* However, the non-constructive properties are useful and proven in the      *)
-(* functions inargmin_mem and inargmin_inle                                   *)
+(* functions argmin_mem and argmin_inle                                   *)
 (* -------------------------------------------------------------------------- *)
 (* Would it be better for this to return an option type?                      *)
 (* -------------------------------------------------------------------------- *)
 
-Definition inargmin_def:
-  inargmin f (x::xs) = if (xs = [])
+Definition argmin_def:
+  argmin f (x::xs) = if (xs = [])
                        then x
-                       else inargmin2 f x (inargmin f xs)
+                       else argmin2 f x (argmin f xs)
 End
 
-Theorem inargmin_singleton[simp]:
+Theorem argmin_singleton[simp]:
   ∀f x.
-  inargmin f [x] = x
+  argmin f [x] = x
 Proof
-  simp[inargmin_def] 
+  simp[argmin_def] 
 QED
 
-Theorem inargmin_cons_cons[simp]:
+Theorem argmin_cons_cons[simp]:
   ∀f x x' xs.
-  inargmin f (x::x'::xs) = inargmin2 f x (inargmin f (x'::xs))
+  argmin f (x::x'::xs) = argmin2 f x (argmin f (x'::xs))
 Proof
-  gvs[inargmin_def]
+  gvs[argmin_def]
 QED
 
-Theorem inargmin2_le[simp]:
+Theorem argmin2_le[simp]:
   ∀f x y z.
-  f (inargmin2 f x y) ≤ f z ⇔ f x ≤ f z ∨ f y ≤ f z
+  f (argmin2 f x y) ≤ f z ⇔ f x ≤ f z ∨ f y ≤ f z
 Proof
-  rw[inargmin2_def, EQ_IMP_THM]
+  rw[argmin2_def, EQ_IMP_THM]
   >> metis_tac[inlt_inle, inle_TRANS]
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* First defining property of inargmin: the result is an element of the list  *)
+(* First defining property of argmin: the result is an element of the list  *)
 (* that we took the argmin over                                               *)
 (* -------------------------------------------------------------------------- *)
-Theorem inargmin_mem[simp]:
+Theorem argmin_mem[simp]:
   ∀f ls.
   ls ≠ [] ⇒
-  MEM (inargmin f ls) ls
+  MEM (argmin f ls) ls
 Proof
   rpt strip_tac
   >> Induct_on ‘ls’ >> gvs[]
   >> rpt strip_tac
-  >> gns[inargmin_def]
-  >> gns[inargmin2_def]
+  >> gns[argmin_def]
+  >> gns[argmin2_def]
   >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
   >> Cases_on ‘b’ >> gns[]
   >> Cases_on ‘ls’ >> gns[]
@@ -104,27 +104,27 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Second defining property of inargmin: the result has a lower value of f    *)
+(* Second defining property of argmin: the result has a lower value of f    *)
 (* than any other member of the list we took the argmin over                  *)
 (* -------------------------------------------------------------------------- *)
-Theorem inargmin_inle[simp]:
+Theorem argmin_inle[simp]:
   ∀f ls l.
     MEM l ls ⇒
-    f (inargmin f ls) ≤ f l
+    f (argmin f ls) ≤ f l
 Proof
-  Induct_on ‘ls’ >> rw[inargmin_def]
+  Induct_on ‘ls’ >> rw[argmin_def]
   >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Associativity of inargmin2                                                 *)
+(* Associativity of argmin2                                                 *)
 (* -------------------------------------------------------------------------- *)
-Theorem inargmin2_assoc:
+Theorem argmin2_assoc:
   ∀f x y z.
-  inargmin2 f x (inargmin2 f y z) = inargmin2 f (inargmin2 f x y) z
+    argmin2 f x (argmin2 f y z) = argmin2 f (argmin2 f x y) z
 Proof
   rpt strip_tac
-  >> gns[inargmin2_def]
+  >> gns[argmin2_def]
   >> rpt (qmatch_goalsub_abbrev_tac ‘if b then _ else _’ >> Cases_on ‘b’ >> gns[])
   >> rpt (qmatch_asmsub_abbrev_tac ‘if b then _ else _’ >> Cases_on ‘b’ >> gns[])
   >> Cases_on ‘f x’ >> Cases_on ‘f y’ >> Cases_on ‘f z’ >> gns[]
@@ -135,16 +135,16 @@ QED
 (* individually taking the argmin of each list, and then choosing the lesser  *)
 (* of the results.                                                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem inargmin_append:
+Theorem argmin_append:
   ∀f xs ys.
   xs ≠ [] ∧
   ys ≠ [] ⇒
-  inargmin f (xs ⧺ ys) = inargmin2 f (inargmin f xs) (inargmin f ys)
+  argmin f (xs ⧺ ys) = argmin2 f (argmin f xs) (argmin f ys)
 Proof
-  Induct_on ‘xs’ >> gns[inargmin_def]
+  Induct_on ‘xs’ >> gns[argmin_def]
   >> rpt strip_tac
   >> Cases_on ‘xs = []’ >> gns[]
-  >> gns[inargmin2_assoc]
+  >> gns[argmin2_assoc]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -153,46 +153,46 @@ QED
 (* same, even if the functions are not identical on elements which are not    *)
 (* contained in the list.                                                     *)
 (* -------------------------------------------------------------------------- *)
-Theorem inargmin_domain:
+Theorem argmin_domain:
   ∀f g ls.
   ls ≠ [] ∧
   (∀l. MEM l ls ⇒ f l = g l) ⇒
-  inargmin f ls = inargmin g ls 
+  argmin f ls = argmin g ls 
 Proof
   rpt strip_tac
   >> Induct_on ‘ls’
   >- gvs[]
   >> rpt strip_tac
-  >> gvs[inargmin_def]
+  >> gvs[argmin_def]
   >> Cases_on ‘ls’ >> gvs[]
-  >> gvs[inargmin2_def]
-  >> pop_assum $ qspec_then ‘inargmin g (h'::t)’ assume_tac
-  >> Cases_on ‘inargmin g (h'::t) = h'’ >> gvs[]
+  >> gvs[argmin2_def]
+  >> pop_assum $ qspec_then ‘argmin g (h'::t)’ assume_tac
+  >> Cases_on ‘argmin g (h'::t) = h'’ >> gvs[]
   >> swap_assums
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
   >> gvs[]
   >> disj2_tac
-  >> qspecl_then [‘g’, ‘h'::t’] assume_tac inargmin_mem
-  >> gvs[Excl "inargmin_mem"]
+  >> qspecl_then [‘g’, ‘h'::t’] assume_tac argmin_mem
+  >> gvs[Excl "argmin_mem"]
 QED
 
-Theorem inargmin_mem_inle:
+Theorem argmin_mem_inle:
   ∀f l ls.
-    MEM l ls ⇒ f (inargmin f ls) ≤ f l
+    MEM l ls ⇒ f (argmin f ls) ≤ f l
 Proof
   rpt strip_tac
   >> Induct_on ‘ls’ >> gvs[]
 QED
 
-Theorem inargmin_inle_mem:
+Theorem argmin_inle_mem:
   ∀f ls i.
     ls ≠ [] ⇒
-    (f (inargmin f ls) ≤ i ⇔ ∃l. MEM l ls ∧ f l ≤ i)
+    (f (argmin f ls) ≤ i ⇔ ∃l. MEM l ls ∧ f l ≤ i)
 Proof
   rpt strip_tac
   >> EQ_TAC
   >- (rpt strip_tac
-      >> qexists ‘inargmin f ls’
+      >> qexists ‘argmin f ls’
       >> gvs[])
   >> rpt strip_tac
   >> drule_all inlet_TRANS
