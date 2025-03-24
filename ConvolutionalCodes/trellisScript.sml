@@ -66,7 +66,7 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Returns the total number of errors that would be present if we took a path *)
 (* through the transition with origin r, given the number of errors in the    *)
-(* previous row.                                                              *)
+(* previous column.                                                           *)
 (*                                                                            *)
 (* m: the state machine                                                       *)
 (* bs: the entire input bitstring                                             *)
@@ -75,48 +75,49 @@ End
 (* r: the choice of origin that we are returning the number of errors for if  *)
 (*    we were to pass through this transition.                                *)
 (*                                                                            *)
-(* Invalid at time-step 0 because there is no previous row in this case.      *)
+(* Invalid at time-step 0 because there is no previous column in this case.   *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_after_step_def:
-  get_num_errors_after_step m bs t previous_row r
-  = (EL (FST r) previous_row).num_errors
+  get_num_errors_after_step m bs t previous_column r
+  = (EL (FST r) previous_column).num_errors
     + N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs t))
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Returns the best choice of origin you should take if you want to arrive at *)
 (* the state s at timestep t, given the number of errors at each state in the *)
-(* previous row.                                                              *)
+(* previous column.                                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition best_origin_def:
-  best_origin m bs previous_row t s
+  best_origin m bs previous_column t s
   = argmin
-    (get_num_errors_after_step m bs t previous_row)
+    (get_num_errors_after_step m bs t previous_column)
     (transition_inverse m s)
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Returns a specific node in the trellis. Takes the previous row as input,   *)
-(* so that we can reuse those precomputed values rather than recomputing them,*)
-(* which would end up taking exponential time.                                *)
+(* Returns a specific node in the trellis. Takes the previous column as       *)
+(* input, so that we can reuse those precomputed values rather than           *)
+(* recomputing them, which would end up taking exponential time.              *)
 (*                                                                            *)
 (* m: the state machine                                                       *)
 (* bs: the entire input bitstring                                             *)
 (* s: the state associated with this node in the trellis                      *)
 (* t: the time step associated with this node in the trellis                  *)
-(* previous_row: the row of data associated with the previous time step.      *)
+(* previous_column: the column of data associated with the previous time      *)
+(* step.                                                                      *)
 (*                                                                            *)
 (* Outputs a tuple containing the number of errors at this point as well as   *)
 (* the previous state on the optimal path towards this point                  *)
 (*                                                                            *)
-(* Only valid when a previous row exists, i.e. when we aren't in the zeroth   *)
-(* time-step.                                                                 *)
+(* Only valid when a previous column exists, i.e. when we aren't in the       *)
+(* zeroth time-step.                                                          *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_node_def:
-  viterbi_trellis_node m bs s t previous_row =
+  viterbi_trellis_node m bs s t previous_column =
   let
-    local_best_origin = best_origin m bs previous_row t s;
-    local_num_errors = get_num_errors_after_step m bs t previous_row local_best_origin;
+    local_best_origin = best_origin m bs previous_column t s;
+    local_num_errors = get_num_errors_after_step m bs t previous_column local_best_origin;
     local_prev_transition = (if local_num_errors = INFINITY then NONE else SOME local_best_origin);
   in
     <| num_errors := local_num_errors;
@@ -124,17 +125,19 @@ Definition viterbi_trellis_node_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Returns a row of the trellis, used by the Viterbi algorithm to decode a    *)
-(* convolutional code. The previous row is completely evaluated before        *)
-(* starting the evaluation of this row, and so we can reuse it multiple times *)
-(* in the evaluation of this row, in a dynamic programming way. This ensures  *)
-(* that the trellis is evaluated in linear time rather than exponential time. *)(*                                                                            *)
+(* Returns a column of the trellis, used by the Viterbi algorithm to decode a *)
+(* convolutional code. The previous column is completely evaluated before     *)
+(* starting the evaluation of this column, and so we can reuse it multiple    *)
+(* times in the evaluation of this column, in a dynamic programming way. This *)
+(* ensures that the trellis is evaluated in linear time rather than           *)
+(* exponential time.                                                          *)
+(*                                                                            *)
 (* m: the state machine                                                       *)
 (* bs: the entire bitstring we want to decode                                 *)
-(* t: the timestep to calculate the row for,                                  *)
+(* t: the timestep to calculate the colun for,                                *)
 (*                                                                            *)
-(* Output: the corresponding row of the trellis, in list form, where the nth  *)
-(* element of the list corresponds to the nth state, and is a tuple of the    *)
+(* Output: the corresponding column of the trellis, in list form, where the   *)
+(* nth element of the list corresponds to the nth state, and is a tuple of    *)
 (* the form <| num_errors; prev_state |>                                      *)
 (* -------------------------------------------------------------------------- *)
 Definition viterbi_trellis_column_def:
@@ -143,17 +146,17 @@ Definition viterbi_trellis_column_def:
   ∧
   viterbi_trellis_column m bs (SUC t)
   = let
-      previous_row = viterbi_trellis_column m bs t
+      previous_column = viterbi_trellis_column m bs t
     in
-      GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_row) m.num_states
+      GENLIST (λn. viterbi_trellis_node m bs n (SUC t) previous_column) m.num_states
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Calculate a node in the trellis for the fast version when the previous row *)
-(* is not available (by calculating all prior rows of the trellis)            *)
+(* Calculate a node in the trellis for the fast version when the previous     *)
+(* column is not available (by calculating all prior columns of the trellis)  *)
 (*                                                                            *)
 (* Defined in such a way as to be valid even at time-step 0, when there isn't *)
-(* a previous row present.                                                    *)
+(* a previous column present.                                                 *)
 (*                                                                            *)
 (* Note: avoid writing theorems for this definition, as it may cause          *)
 (* duplication with theorems for viterbi_trellis_column and                   *)
@@ -165,7 +168,7 @@ End
 
 (* -------------------------------------------------------------------------- *)
 (* Version of get_num_errors_after_step which works even if you do not provide*)
-(* it with the previous row of errors                                         *)
+(* it with the previous column of errors                                      *)
 (*                                                                            *)
 (* TODO: should this be removed, because it's not significant enough to be    *)
 (* worth adding a definition, which may cause duplication in necessary        *)
@@ -180,8 +183,8 @@ End
 (* A slower but mathematically simpler implementation of the function for     *)
 (* working out the best origin in the viterbi trellis.                        *)
 (*                                                                            *)
-(* We remove the previous_row argument, which effectively holds state. This   *)
-(* makes the definitions more purely functional.                              *)
+(* We remove the previous_column argument, which effectively holds state.     *)
+(* This makes the definitions more purely functional.                         *)
 (*                                                                            *)
 (* Combined definition of several functions because these functions are       *)
 (* recursively dependent on each other.                                       *)
@@ -252,8 +255,8 @@ Theorem viterbi_trellis_node_slow_def = cj 4 viterbi_trellis_slow
 (*                                                                            *)
 (* vd stands for Viterbi Decode                                               *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: In each step we call viterbi_trellis_column. This is slow, because it   *)
-(* regenerates all rows before it at each step.                               *)
+(* TODO: In each step we call viterbi_trellis_column. This is slow, because   *)
+(* it regenerates all columns before it at each step.                         *)
 (* -------------------------------------------------------------------------- *)
 Definition vd_decode_to_state_def:
   vd_decode_to_state m bs s 0 = [] ∧
@@ -275,8 +278,8 @@ Definition vd_decode_def:
   vd_decode m bs =
   let
     max_timestep = (LENGTH bs) DIV m.output_length;
-    last_row = viterbi_trellis_column m bs max_timestep;
-    best_state = argmin (λs. (EL s last_row).num_errors) (COUNT_LIST m.num_states)
+    last_column = viterbi_trellis_column m bs max_timestep;
+    best_state = argmin (λs. (EL s last_column).num_errors) (COUNT_LIST m.num_states)
   in
     vd_decode_to_state m bs best_state max_timestep
 End
@@ -287,10 +290,10 @@ Definition get_num_errors_obsolete_def:
 End
 
 Theorem best_origin_is_valid[simp]:
-  ∀m bs prev_row t s.
+  ∀m bs prev_column t s.
     wfmachine m ∧
     s < m.num_states ⇒
-    FST (best_origin m bs prev_row t s) < m.num_states
+    FST (best_origin m bs prev_column t s) < m.num_states
 Proof
   rpt strip_tac
   >> gvs[best_origin_def]
@@ -822,10 +825,10 @@ Proof
 QED
 
 Theorem best_origin_restrict_input:
-  ∀m bs previous_row t n.
+  ∀m bs previous_column t n.
     t * m.output_length ≤ n ∧
     0 < t ⇒
-    best_origin m (TAKE n bs) previous_row t = best_origin m bs previous_row t
+    best_origin m (TAKE n bs) previous_column t = best_origin m bs previous_column t
 Proof
   rpt strip_tac
   >> EXT_ALL_TAC
@@ -834,10 +837,10 @@ Proof
 QED
 
 Theorem viterbi_trellis_node_restrict_input:
-  ∀m bs s t previous_row n.
+  ∀m bs s t previous_column n.
     t * m.output_length ≤ n ∧
     0 < t ⇒
-    viterbi_trellis_node m (TAKE n bs) s t previous_row = viterbi_trellis_node m bs s t previous_row
+    viterbi_trellis_node m (TAKE n bs) s t previous_column = viterbi_trellis_node m bs s t previous_column
 Proof
   rpt strip_tac
   >> gvs[viterbi_trellis_node_def]
@@ -1214,25 +1217,25 @@ QED
 (* super inefficient in HOL. In particular, I was concerned that since at     *)
 (* each stage it needs to recurse multiple times, this might cause it to take *)
 (* exponential time overall. Luckily, this doesn't seem to be the case.       *)
-(* Perhaps it evaluates the previous row fully before substituting it in      *)
+(* Perhaps it evaluates the previous column fully before substituting it in   *)
 (* multiple places.                                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition example_recursive_grid_row_def:
-  example_recursive_grid_row 0 = REPLICATE 10 1 ∧
-  example_recursive_grid_row (SUC n) =
+Definition example_recursive_grid_column_def:
+  example_recursive_grid_column 0 = REPLICATE 10 1 ∧
+  example_recursive_grid_column (SUC n) =
   let
-    prior_grid_row = example_recursive_grid_row n
+    prior_grid_column = example_recursive_grid_column n
   in
-    MAP (λm. (if 0 < m then EL (m - 1) prior_grid_row else 0) + EL m prior_grid_row + (if m < 9 then EL (m + 1) prior_grid_row else 0)) (COUNT_LIST 10)
+    MAP (λm. (if 0 < m then EL (m - 1) prior_grid_column else 0) + EL m prior_grid_column + (if m < 9 then EL (m + 1) prior_grid_column else 0)) (COUNT_LIST 10)
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Testing whether or not example_recursive_grid_row takes an exponential     *)
+(* Testing whether or not example_recursive_grid_column takes an exponential  *)
 (* amount of time to compute. It could theoretically take an exponential      *)
-(* amount of time if the previous row was substituted in multiple places, and *)
-(* expanded out fully multiple times. Each subsequent row would double the    *)
-(* amount of time taken because it has to do the computation from the         *)
-(* previous row twice.                                                        *)
+(* amount of time if the previous column was substituted in multiple places,  *)
+(* and expanded out fully multiple times. Each subsequent column would double *)
+(* the amount of time taken because it has to do the computation from the     *)
+(* previous column twice.                                                     *)
 (*                                                                            *)
 (* 100: 0.681                                                                 *)
 (* 200: 2.311                                                                 *)
@@ -1243,8 +1246,8 @@ End
 (* 700: 26.521                                                                *)
 (* 800: 34.426                                                                *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem example_recursive_grid_row_time_test:
-  example_recursive_grid_row 100 = ARB
+(*Theorem example_recursive_grid_column_time_test:
+  example_recursive_grid_column 100 = ARB
 Proof
   EVAL_TAC
 QED*)
@@ -1252,16 +1255,16 @@ QED*)
 (* -------------------------------------------------------------------------- *)
 (* A similar test as above, with a slightly different definition.             *)
 (* -------------------------------------------------------------------------- *)
-Definition example_recursive_grid_row2_def:
-  example_recursive_grid_row2 0 = REPLICATE 10 1 ∧
-  example_recursive_grid_row2 (SUC n) =
-  MAP (λm. (if 0 < m then EL (m - 1) (example_recursive_grid_row2 n) else 0) + EL m (example_recursive_grid_row2 n) + (if m < 9 then EL (m + 1) (example_recursive_grid_row2 n) else 0)) (COUNT_LIST 10)
+Definition example_recursive_grid_column2_def:
+  example_recursive_grid_column2 0 = REPLICATE 10 1 ∧
+  example_recursive_grid_column2 (SUC n) =
+  MAP (λm. (if 0 < m then EL (m - 1) (example_recursive_grid_column2 n) else 0) + EL m (example_recursive_grid_column2 n) + (if m < 9 then EL (m + 1) (example_recursive_grid_column2 n) else 0)) (COUNT_LIST 10)
 End
 
-Theorem example_recursive_grid_row_example_recursive_grid_row2:
-  ∀n. example_recursive_grid_row n = example_recursive_grid_row2 n
+Theorem example_recursive_grid_column_example_recursive_grid_column2:
+  ∀n. example_recursive_grid_column n = example_recursive_grid_column2 n
 Proof
-  Induct_on ‘n’ >> gvs[example_recursive_grid_row_def, example_recursive_grid_row2_def]
+  Induct_on ‘n’ >> gvs[example_recursive_grid_column_def, example_recursive_grid_column2_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1271,8 +1274,8 @@ QED
 (* 3: 5.443                                                                   *)
 (* 4: 145.7                                                                   *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem example_recursive_grid_row_time_test:
-  example_recursive_grid_row2 4 = ARB
+(*Theorem example_recursive_grid_column_time_test:
+  example_recursive_grid_column2 4 = ARB
 Proof
   EVAL_TAC
 QED*)
@@ -1324,13 +1327,13 @@ Theorem viterbi_trellis_column_test:
   let
     node s t = (EL s (viterbi_trellis_column example_state_machine test_path t));
   in
-    (* First row first state *)
+    (* First column first state *)
     (node 0 0).num_errors = N 0 ∧
     (node 0 0).prev_transition = NONE ∧
-    (* First row other state *)
+    (* First column other state *)
     (node 2 0).num_errors = INFINITY ∧
     (node 2 0).prev_transition = NONE ∧
-    (* Row in the middle *)
+    (* Column in the middle *)
     (node 0 4).num_errors = N 3 ∧
     (node 1 4).num_errors = N 3 ∧
     (node 2 4).num_errors = N 2 ∧
@@ -1339,7 +1342,7 @@ Theorem viterbi_trellis_column_test:
     ((node 1 4).prev_transition = SOME (0, T) ∨ (node 1 4).prev_transition = SOME (2, T)) ∧
     (node 2 4).prev_transition = SOME (1, F) ∧
     ((node 3 4).prev_transition = SOME (1, F) ∨ (node 3 4).prev_transition = SOME (3, T)) ∧
-    (* Node which isn't reachable, but isn't in the first row *)
+    (* Node which isn't reachable, but isn't in the first column *)
     (node 2 1).num_errors = INFINITY ∧
     (node 2 1).prev_transition = NONE
 Proof
@@ -1349,9 +1352,9 @@ QED
 (*Theorem viterbi_trellis_column_eval:
   let
     t = 5;
-    test_row = viterbi_trellis_column example_state_machine test_path t
+    test_column = viterbi_trellis_column example_state_machine test_path t
   in
-    test_row = ARB
+    test_column = ARB
 Proof
   EVAL_TAC
 QED*)
