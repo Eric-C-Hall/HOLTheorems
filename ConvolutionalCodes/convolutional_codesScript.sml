@@ -40,11 +40,7 @@ val _ = monadsyntax.enable_monad "option"
 (* https://web.archive.org/web/20241204202124/https://ocw.mit.edu/courses/6-02-introduction-to-eecs-ii-digital-communication-systems-fall-2012/pages/readings/*)
 (* 2012. MIT lecture notes.                                                   *)
 (* -------------------------------------------------------------------------- *)
-
-(* TODO: Ensure this all works starting from an arbitrary state *)
-
-(* TODO: Ensure that we are using the best practices for how to choose the starting state (tail-biting, zero-tail, etc) *)
-                   
+                  
 (* -------------------------------------------------------------------------- *)
 (* If you want to work on my code, I recommend using abbreviations, because   *)
 (* many of my variable names are quite long. for example, when I type the     *)
