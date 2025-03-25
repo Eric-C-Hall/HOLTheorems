@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -34,9 +33,12 @@ val _ = monadsyntax.enable_monadsyntax()
 val _ = monadsyntax.enable_monad "option"
                    
 (* -------------------------------------------------------------------------- *)
-(* Based on the MIT 6.02 DRAFT Lecture Notes Fall 2010                        *)
+(* Main Reference:                                                            *)
 (*                                                                            *)
-(* TODO: Cite better                                                          *)
+(* Hari Balakrishnan, Christopher Terman, George Verghese,                    *)
+(* Introduction to EECS II: Digital communication systems.                    *)
+(* https://web.archive.org/web/20241204202124/https://ocw.mit.edu/courses/6-02-introduction-to-eecs-ii-digital-communication-systems-fall-2012/pages/readings/*)
+(* 2012. MIT lecture notes.                                                   *)
 (* -------------------------------------------------------------------------- *)
 
 (* TODO: Ensure this all works starting from an arbitrary state *)
@@ -146,7 +148,7 @@ Proof
        property that we have already proven, which relates the number of
        errors of a decoded string to the number of errors calculated using
        the trellis functions.
-   *)
+                    *)
   (* Complete base case and simplify *)
   gen_tac
   >> Induct_on ‘t’
@@ -168,7 +170,7 @@ Proof
    result will in theory be equivalent to f applied to the last transition.
 .
    Our first step is to break this up into the two parts.
-   *)
+                    *)
   >> qmatch_goalsub_abbrev_tac ‘LHS ≤ _’
   >> Cases_on ‘bs’ using SNOC_CASES >> gs[]
   >> gs[SNOC_APPEND]
@@ -232,7 +234,7 @@ Proof
 .
      First, expand out the part we are focusing on, and collapse the part we
      are not focusing on.
-   *)
+                    *)
   >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
   >> gvs[Abbr ‘LHS’, Abbr ‘step’, Abbr ‘optInd’]
   >> simp[Abbr ‘indLength’]
