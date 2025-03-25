@@ -1673,31 +1673,6 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Function for converting from a list of parity equations to a corresponding *)
-(* state machine                                                              *)
-(* -------------------------------------------------------------------------- *)
-Definition parity_equations_to_gen_state_machine_def:
-  parity_equations_to_gen_state_machine ps =
-  let
-    num_parity_equations = LENGTH ps;
-    window_length = parity_equations_max_length ps;
-    memory_length = window_length - 1;
-    num_memory_configurations = 2 ** memory_length;
-  in
-    <|
-      states := {s | LENGTH s = memory_length} : (bool list) set;
-      transition_fn := (λorigin.
-                          <| destination := TL (SNOC origin.input origin.origin);
-                             output := apply_parity_equations ps (SNOC origin.input origin.origin) |>
-                       ) : (bool list) gen_transition -> (bool list) gen_transition_destination;
-      init := REPLICATE window_length F : (bool list);
-      output_length := num_parity_equations : num;
-    |>
-End
- *)
-
-
-(* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* -------------------------------------------------------------------------- *)
 
