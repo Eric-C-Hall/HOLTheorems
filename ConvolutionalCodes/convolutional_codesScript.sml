@@ -243,8 +243,8 @@ Proof
      in terms of get_num_errors *)
   >> gvs[get_num_errors_after_step_slow_get_num_errors, ADD1]
   >> gvs[vd_decode_to_state_restrict_input]
-  (* Simplify relevant_input in the direction of DROP _ _ *)
-  >> gvs[relevant_input_def]
+  (* Simplify nth_chunk in the direction of DROP _ _ *)
+  >> gvs[nth_chunk_def]
   >> gvs[TAKE_LENGTH_TOO_LONG]
   >> gvs[hamming_distance_symmetric]
 QED

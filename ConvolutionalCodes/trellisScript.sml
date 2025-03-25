@@ -58,8 +58,8 @@ End
 (* TODO: this definition probably isn't worth making, because it adds         *)
 (* unnecessary symbols which confuse the proofs                               *)
 (* -------------------------------------------------------------------------- *)
-Definition relevant_input_def:
-  relevant_input m bs t = TAKE m.output_length
+Definition nth_chunk_def:
+  nth_chunk m bs t = TAKE m.output_length
                                (DROP ((t - 1) * m.output_length) bs)
 End
 
@@ -80,7 +80,7 @@ End
 Definition get_num_errors_after_step_def:
   get_num_errors_after_step m bs t previous_column r
   = (EL (FST r) previous_column).num_errors
-    + N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs t))
+    + N (hamming_distance (SND (m.transition_fn r)) (nth_chunk m bs t))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -194,7 +194,7 @@ Definition viterbi_trellis_slow:
   (if (FST (m.transition_fn r) = 0) then N0 else INFINITY) ∧
   get_num_errors_after_step_slow m bs (SUC t) r = 
   (viterbi_trellis_node_slow m bs (FST r) t).num_errors +
-  N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs (SUC t))) ∧
+  N (hamming_distance (SND (m.transition_fn r)) (nth_chunk m bs (SUC t))) ∧
   (best_origin_slow m bs t s = argmin (get_num_errors_after_step_slow m bs t) (transition_inverse m s)) ∧
   viterbi_trellis_node_slow m bs s t =
   let
@@ -424,7 +424,7 @@ QED
 
 Theorem viterbi_trellis_node_slow_num_errors:
   ∀m bs t r.
-    (viterbi_trellis_node_slow m bs (FST r) t).num_errors = get_num_errors_after_step_slow m bs (SUC t) r - N (hamming_distance (SND (m.transition_fn r)) (relevant_input m bs (SUC t)))
+    (viterbi_trellis_node_slow m bs (FST r) t).num_errors = get_num_errors_after_step_slow m bs (SUC t) r - N (hamming_distance (SND (m.transition_fn r)) (nth_chunk m bs (SUC t)))
 Proof
   rpt strip_tac
   >> gvs[get_num_errors_after_step_slow_def]
@@ -789,14 +789,14 @@ Proof
   >> metis_tac[viterbi_trellis_node_slow_best_origin_slow_num_errors_infinity]
 QED
 
-Theorem relevant_input_restrict_input:
+Theorem nth_chunk_restrict_input:
   ∀m bs t n.
     0 < t ∧
     t * m.output_length ≤ n ⇒
-    relevant_input m (TAKE n bs) t = relevant_input m bs t
+    nth_chunk m (TAKE n bs) t = nth_chunk m bs t
 Proof
   rpt strip_tac 
-  >> gvs[relevant_input_def]
+  >> gvs[nth_chunk_def]
   >> gvs[DROP_TAKE]
   >> gvs[TAKE_TAKE_MIN]
   >> gvs[MIN_DEF]
@@ -821,7 +821,7 @@ Proof
   rpt strip_tac
   >> EXT_ALL_TAC
   >> gvs[get_num_errors_after_step_def]
-  >> gvs[relevant_input_restrict_input]
+  >> gvs[nth_chunk_restrict_input]
 QED
 
 Theorem best_origin_restrict_input:
@@ -882,7 +882,7 @@ Theorem get_num_errors_after_step_slow_restrict_input:
     get_num_errors_after_step_slow m (TAKE n bs) t = get_num_errors_after_step_slow m bs t
 Proof
   Induct_on ‘t’ >> rpt strip_tac >> EXT_ALL_TAC >> gvs[get_num_errors_after_step_slow_def]
-  >> gvs[relevant_input_restrict_input]
+  >> gvs[nth_chunk_restrict_input]
   >> gvs[viterbi_trellis_node_slow_def, best_origin_slow_def]
   >> AP_THM_TAC
   >> AP_TERM_TAC
@@ -1042,7 +1042,7 @@ Proof
   >> unabbrev_all_tac
   (* Simplify right hand side to make it more similar to left hand side:
      DROP (t * m.output_length) bs. *)
-  >> gvs[relevant_input_def]
+  >> gvs[nth_chunk_def]
   >> gvs[TAKE_DROP_SWAP]
   >> DEP_PURE_ONCE_REWRITE_TAC[TAKE_LENGTH_TOO_LONG]
   (* Simplify dependency *)
@@ -1064,7 +1064,7 @@ Theorem get_num_errors_after_step_slow_get_num_errors:
     LENGTH bs = (t + 1) * m.output_length ⇒
     infnum_to_num
     (get_num_errors_after_step_slow m bs (t + 1) r) =
-    hamming_distance (TAKE (t * m.output_length) bs) (vd_encode m (vd_decode_to_state m bs (FST r) t) 0) + hamming_distance (SND (m.transition_fn r)) (relevant_input m bs (SUC t)) 
+    hamming_distance (TAKE (t * m.output_length) bs) (vd_encode m (vd_decode_to_state m bs (FST r) t) 0) + hamming_distance (SND (m.transition_fn r)) (nth_chunk m bs (SUC t)) 
 Proof
   rpt strip_tac
   (* Split up into the current step and the previous part *)
