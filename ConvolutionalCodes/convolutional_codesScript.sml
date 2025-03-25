@@ -1,4 +1,4 @@
-(* Written by Eric Hall, under the guidance of Michael Norrish *)
+(* Written by <REDACTED>, under the guidance of <REDACTED> *)
 
 open HolKernel Parse boolLib bossLib;
 
