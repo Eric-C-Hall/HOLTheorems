@@ -201,7 +201,7 @@ Proof
       >- (gvs[ETA_THM]
           >> unabbrev_all_tac
           >> irule argmin_inle
-          >> gvs[transition_inverse_mem] (* TODO: should transition_inverse_mem and all_transitions_mem be simp rules? *)
+          >> gvs[transition_inverse_mem]
           >> gvs[all_transitions_mem]
           >> gvs[GSYM SNOC_APPEND]
           >> gvs[vd_encode_state_snoc]
@@ -257,7 +257,7 @@ Proof
   rpt strip_tac
   >> gvs[vd_decode_def]
   >> qmatch_goalsub_abbrev_tac ‘(vd_decode_to_state m rs best_state _)’
-  >> gvs[MULT_DIV] (* TODO: Should MULT_DIV be in the simp set already? *)
+  >> gvs[MULT_DIV]
   >> qmatch_goalsub_abbrev_tac ‘best_state_best_path_errs ≤ actual_state_actual_path_errs’
   >> qabbrev_tac ‘actual_state_best_path_errs = hamming_distance rs (vd_encode m (vd_decode_to_state m rs (vd_encode_state m bs 0) (LENGTH bs)) 0)’
   >> qsuff_tac ‘best_state_best_path_errs ≤ actual_state_best_path_errs ∧

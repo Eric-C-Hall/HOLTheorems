@@ -37,6 +37,4 @@ fun delete_nth_assumption n = (if (n = 0) then pop_assum kall_tac else pop_assum
 
 val EXT_ALL_TAC = rpt (irule EQ_EXT >> gen_tac)
 
-(* TODO: write a function to negate both sides of an if and only if statement, even in the presence of quantifiers *)
-
 end

@@ -2,7 +2,6 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "donotexpand";
 
-(* TODO: Find better way to do this *)
 Definition donotexpand_def:
   donotexpand P = P
 End

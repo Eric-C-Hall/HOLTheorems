@@ -10,17 +10,7 @@ open pred_setTheory;
 open logrootTheory;
 
 open dep_rewrite;
-
-(* TODO: edit parts of the code that were modified in the change from record
-   to pairs in order to make them cleaner. In particular, remove FST and SND
-   where possible by, for example, replacing a forall over a transition with a
-   forall over the state and input corresponding to that transition *)
-(* TODO: Avoid quantifying over transitions, and instead quantify over states
-   and inputs. This ensures we are always in the same representation, and the
-   state/input representation is the most flexible because we may not always
-   have both a state and an input. There is little need for the state and the
-   input to be bound together into a pair. *)
-   
+  
 (* -------------------------------------------------------------------------- *)
 (* This theory contains the definition of the state machine used in my proofs *)
 (* of the correctness of convolutional codes.                                 *)

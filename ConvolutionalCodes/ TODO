@@ -1,5 +1,0 @@
-- Develop a formal probability theory version of the main Viterbi correctness property
-
-(* TODO: Ensure this all works starting from an arbitrary state *)
-
-(* TODO: Ensure that we are using the best practices for how to choose the starting state (tail-biting, zero-tail, etc) *)
