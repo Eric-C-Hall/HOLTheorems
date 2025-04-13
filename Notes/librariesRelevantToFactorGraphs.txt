@@ -1,0 +1,20 @@
+High relevance:
+
+Medium relevance:
+
+dirGraph (Depth first traversal of directed graphs that can contain cycles.)
+ltree (semi-relevant: rose tree)
+itree  (irrelevant: "This file defines a type for potentially infinite interaction trees. We take inspiration from the itree type of Xia et al.'s POPL'20 paper titled "Interaction Trees".
+lbtree (irrelevant: lazy binary tree. We need nonbinary trees)
+sptree (irrelevant: array implementation using trees for log-time random access)
+
+Medium low relevance:
+
+nets (irrelevant: generalisation of sequences to arbitrary ordered sets)
+
+Low relevance:
+
+alist_tree
+fmaptree
+inftree
+itreeTau
