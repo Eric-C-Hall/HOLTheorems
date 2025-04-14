@@ -28,6 +28,29 @@ val _ = new_theory "factor_graphs";
 (* TODO: How do I represent the type of an arbitrary function, which can have *)
 (* an arbitrary number of inputs?                                             *)
 (* TODO: Should I use dir_graphTheory?                                        *)
+(* TODO: How do I balance efficient implementation and usability?             *)
+(*       In particular, defining a graph in terms of a set of nodes and a     *)
+(*       set of edges is nice from a theoretical perspective, as it is a      *)
+(*       relatively conceptually simple realisation, but if we want to find   *)
+(*       the edges which connect to a node, this is relatively expensive.     *)
+(*       Whereas defining a graph in terms of nodes, and describing the edges *)
+(*       emanating from each node will make it easier to find the edges       *)
+(*       connecting to that node, but we will either have to store the edge   *)
+(*       in both directions, or finding the adjacent nodes will be hard again *)
+(* TODO: Alternative representation could be defining a list of function nodes*)
+(*       and a list of variable nodes independently. Then the edges could be  *)
+(*       represented by pairs, where the first element of the pair represents *)
+(*       the index of the function node and the second element of the pair    *)
+(*       represents the index of the variable node.                           *)
+(* TODO: In my initial interpretation, function nodes and variable nodes were *)
+(*       each simply considered nodes, as the same kind of object, and each   *)
+(*       node would have a boolean telling me whether it was a function or a  *)
+(*       variable. However, the new version seems simpler: we don't have to   *)
+(*       store whether each node is a variable or an object, and we can in    *)
+(*       fact do away with all information within the variable nodes          *)
+(*       completely, only storing the number of variable nodes.               *)
+(* TODO: Should I change the list of (function, variable) pairs to some kind  *)
+(*       of map?                                                              *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -103,24 +126,22 @@ val _ = new_theory "factor_graphs";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* is_function: boolean which tells us whether the node represents a variable *)
-(*   or a function                                                            *)
-(* function: if the node represents a function, this tells us which funciton  *)
-(*   it represents                                                            *)
+(* The factor graph                                                           *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
-  fg_node = <|
-    is_function : bool;
-    function : extreal list list;
-  |>
-End
-
-Datatype:
-  fg = <|
-    nodes : fg_node list;
+  fg_type = <|
+    functions : ((extreal list) list) list;
+    num_variables : num;
     edges : (num # num) list;
   |>
 End
+
+(* -------------------------------------------------------------------------- *)
+(* The data used by the message passing algorithm applied to the factor graph *)
+(* -------------------------------------------------------------------------- *)
+(*Datatype:
+  fg_data = (num # num) -> (extreal list)
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
@@ -146,63 +167,82 @@ End
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 (* The following example factor graph is based on Example 2.2.                *)
-(* We define the nodes and edges in depth-first, left to right order.         *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_example_def:
-  fg_example = <|
-    nodes = <|
-      is_function = false;
-      function = ARB; (* x_1 *)
-                 |>;
-                <|
-                  is_function = true;
-                  function = ARB; (* f_1 *)
-                |>;
-                <|
-                  is_function = false;
-                  function = ARB; (* x_2 *)
-                |>;
-                <|
-                  is_function = false;
-                  function = ARB; (* x_3 *)
-                |>;
-                <|
-                  is_function = true;
-                  function = ARB; (* f_2 *)
-                |>;
-                <|
-                  is_function = false;
-                  function = ARB; (* x_4 *)
-                |>;
-                <|
-                  is_function = true;
-                  function = ARB (* f_3 *)
-                |>;
-                <|
-                  is_function = true;
-                  function = ARB (* f_4 *)
-                |>;
-                <|
-                  is_function = true;
-                  function = ARB (* x_5 *)
-                |>;
-                <|
-                  is_function = false;
-                  function = ARB (*x_6*)
-                |>;
-                edges = [
-                    (0, 1);
-                    (1, 2);
-                    (1, 3);
-                    (0, 4);
-                    (4, 5);
-                    (5, 6);
-                    (5, 7);
-                    (7, 8);
-                    (4, 9);
-                  ]
+  fg_example =
+  <|
+    functions := [ARB; ARB; ARB];
+    num_variables := 6;
+    edges := [
+        (0, 0);
+        (0, 1);
+        (0, 2);
+        (1, 0);
+        (1, 3);
+        (1, 5);
+        (2, 3);
+        (3, 3);
+        (3, 4);
+      ];
   |>
 End
+
+Definition fg_get_adjacent_function_nodes_taboo_def:
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Input:                                                                     *)
+(* - fg, the factor graph                                                     *)
+(* - n, the index of the function node to find the connected region from      *)
+(* - taboo_nodes, the list of function nodes that we cannot go to             *)
+(* Output:                                                                    *)
+(* - A list of node indexes that are contained in the connected region        *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_get_connected_region_taboo_def:
+  fg_get_connected_region_taboo fg n taboo_nodes =
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Input:                                                                     *)
+(* - fg, the factor graph                                                     *)
+(* - n, the index of the function node to find the connected region from      *)
+(* Output:                                                                    *)
+(* - A list of node indexes that are contained in the connected region        *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_get_connected_region_def:
+  fg_get_connected_region fg n = fg_get_connected_region_taboo fg n []
+End
+
+Definition fg_split_into_trees_recursive_def:
+  fg_split_into_trees_recursive fg [] = [] ∧
+  fg_split_into_trees_recursive fg available_nodes =
+  let
+    (nodes_in_tree, other_nodes) = fg_get_nodes_in_tree fg (HD available_nodes)
+  in
+    nodes_in_tree::fg_split_into_trees_
+End
+
+(* *)
+Definition fg_split_into_trees_def:
+  fg_split_into_trees fg = fg_split_into_trees_recursive fg (COUNT (LENGTH fg.nodes))
+End
+
+Definition fg_identify_leaves_def:
+  fg_identify_leaves = 
+End
+
+Definition fg_initialise_messages_def:
+  fg_initialise_messages = 
+End
+
+
+Definition fg_calculate_data_def:
+  fg_calculate_data = 
+End
+
+
+
+
 
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
