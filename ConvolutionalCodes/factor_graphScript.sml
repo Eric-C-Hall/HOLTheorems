@@ -1,8 +1,7 @@
 open HolKernel Parse boolLib bossLib;
 
 open probabilityTheory;
-open dirGraphTheory;
-
+open listTheory;
 
 val _ = new_theory "factor_graphs";
 
@@ -28,6 +27,7 @@ val _ = new_theory "factor_graphs";
 (* TODO: Any pre-existing graph types?                                        *)
 (* TODO: How do I represent the type of an arbitrary function, which can have *)
 (* an arbitrary number of inputs?                                             *)
+(* TODO: Should I use dir_graphTheory?                                        *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -80,7 +80,8 @@ val _ = new_theory "factor_graphs";
 (*                                                                            *)
 (* - The graph is a list of nodes and a list of edges.                        *)
 (* - Each node is labelled according to its order in the list.                *)
-(* - Each edge contains the label of the two nodes it connects.               *)
+(* - Each edge contains the label of the two nodes it connects. The edge is   *)
+(*   not directed, so we do not need a second edge in the opposite direction. *)
 (* - Each node contains a boolean which tells us whether it represents a      *)
 (*   variable or a function                                                   *)
 (* - If a node represents a function, it contains data representing the       *)
@@ -102,31 +103,22 @@ val _ = new_theory "factor_graphs";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* The type used by                                                           *)
-(* -------------------------------------------------------------------------- *)
-Datatype:
-  fg_function = extreal list;
-End
-
-(* -------------------------------------------------------------------------- *)
 (* is_function: boolean which tells us whether the node represents a variable *)
 (*   or a function                                                            *)
 (* function: if the node represents a function, this tells us which funciton  *)
 (*   it represents                                                            *)
 (* -------------------------------------------------------------------------- *)
-
 Datatype:
   fg_node = <|
     is_function : bool;
-    variable_index : num;
-    function : fg_function;
+    function : extreal list list;
   |>
 End
 
 Datatype:
   fg = <|
     nodes : fg_node list;
-    edges : (fg_node × fg_node) list;
+    edges : (num # num) list;
   |>
 End
 
@@ -153,23 +145,70 @@ End
 (*                                    x_5                                     *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-(* The following example factor graph is based on Example 2.2:                *)
+(* The following example factor graph is based on Example 2.2.                *)
+(* We define the nodes and edges in depth-first, left to right order.         *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_example_def:
-  fg_example = [<|
-                   is_function = false;
-
-                   function = ARB;
+  fg_example = <|
+    nodes = <|
+      is_function = false;
+      function = ARB; (* x_1 *)
                  |>;
                 <|
-                |>
+                  is_function = true;
+                  function = ARB; (* f_1 *)
+                |>;
                 <|
-                |>
+                  is_function = false;
+                  function = ARB; (* x_2 *)
+                |>;
                 <|
-                |>
-               ]
+                  is_function = false;
+                  function = ARB; (* x_3 *)
+                |>;
+                <|
+                  is_function = true;
+                  function = ARB; (* f_2 *)
+                |>;
+                <|
+                  is_function = false;
+                  function = ARB; (* x_4 *)
+                |>;
+                <|
+                  is_function = true;
+                  function = ARB (* f_3 *)
+                |>;
+                <|
+                  is_function = true;
+                  function = ARB (* f_4 *)
+                |>;
+                <|
+                  is_function = true;
+                  function = ARB (* x_5 *)
+                |>;
+                <|
+                  is_function = false;
+                  function = ARB (*x_6*)
+                |>;
+                edges = [
+                    (0, 1);
+                    (1, 2);
+                    (1, 3);
+                    (0, 4);
+                    (4, 5);
+                    (5, 6);
+                    (5, 7);
+                    (7, 8);
+                    (4, 9);
+                  ]
+  |>
 End
 
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
 Definition fg_leaf_nodes_def:
   fg
 End
