@@ -187,7 +187,42 @@ Definition fg_example_def:
   |>
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Gets the variable nodes connected to a given function node via one of the  *)
+(* provided edges.                                                            *)
+(*                                                                            *)
+(* Input:                                                                     *)
+(* - n, the index of the function node we want to find the connected variable *)
+(*   nodes of                                                                 *)
+(* - edges, the list of edges we may take                                     *)
+(*                                                                            *)
+(* Output:                                                                    *)
+(* - The list of variable nodes which are connected to the funtion node via   *)
+(*   an edge.                                                                 *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_get_adjacent_variable_nodes_via_edges_def:
+  fg_get_adjacent_variable_nodes_via_edges n [] = 
+  fg_get_adjacent_variable_nodes_via_edges n (function_index, variable_index)::remaining_edges = 
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Gets the variable nodes connected to a given function node                 *)
+(* Input:                                                                     *)
+(* - fg, the factor graph                                                     *)
+(* - n, the index of the function node we want to find the connected variable *)
+(*   node of                                                                  *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_get_adjacent_variable_nodes_def:
+  fg_get_adjacent_variable_nodes fg n = fg_get_adjacent_variable_nodes_via_edges n edges
+End
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
 Definition fg_get_adjacent_function_nodes_taboo_def:
+  fg_get_adjacent_function_nodes_taboo fg
 End
 
 (* -------------------------------------------------------------------------- *)
