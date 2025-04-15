@@ -201,8 +201,15 @@ End
 (*   an edge.                                                                 *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_get_adjacent_variable_nodes_via_edges_def:
-  fg_get_adjacent_variable_nodes_via_edges n [] = 
-  fg_get_adjacent_variable_nodes_via_edges n (function_index, variable_index)::remaining_edges = 
+  fg_get_adjacent_variable_nodes_via_edges n [] = [] ∧
+  fg_get_adjacent_variable_nodes_via_edges
+  n ((function_index, variable_index)::remaining_edges) =
+  let
+    recursive_call = fg_get_adjacent_variable_nodes_via_edges n remaining_edges;
+  in
+    if (function_index = n)
+    then (variable_index)::recursive_call
+    else recursive_call
 End
 
 (* -------------------------------------------------------------------------- *)
