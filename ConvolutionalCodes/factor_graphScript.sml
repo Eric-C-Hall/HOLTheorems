@@ -188,7 +188,7 @@ Definition fg_example_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Gets the variable nodes connected to a given function node via one of the  *)
+(* Gets the variable nodes adjacent to a given function node via one of the   *)
 (* provided edges.                                                            *)
 (*                                                                            *)
 (* Input:                                                                     *)
@@ -213,7 +213,7 @@ Definition fg_get_adjacent_variable_nodes_via_edges_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Gets the variable nodes connected to a given function node                 *)
+(* Gets the variable nodes adjacent to a given function node                  *)
 (*                                                                            *)
 (* Input:                                                                     *)
 (* - fg, the factor graph                                                     *)
@@ -221,34 +221,54 @@ End
 (*   node of                                                                  *)
 (*                                                                            *)
 (* Output:                                                                    *)
-(* - The list of variable nodes which are connected to the function node via  *)
+(* - The list of variable nodes which are adjacent to the function node via   *)
 (*   an edge in the factor graph                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_get_adjacent_variable_nodes_def:
-  fg_get_adjacent_variable_nodes fg n = fg_get_adjacent_variable_nodes_via_edges n fg.edges
+  fg_get_adjacent_variable_nodes fg n =
+  fg_get_adjacent_variable_nodes_via_edges n fg.edges
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Gets the function nodes connected to a particular variable node            *)
+(* Gets the function nodes adjacent to a particular variable node             *)
 (*                                                                            *)
 (* Input:                                                                     *)
-(* -                                                                          *)
+(* - n, the index of the variable node we are finding the adjacent function   *)
+(*   nodes for                                                                *)
+(* - edges, the list of edges that we may take                                *)
+(*                                                                            *)
+(* Output:                                                                    *)
+(* - The list of function nodes which are adjacent to the variable node via   *)
+(*   one of the provided edges                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_get_adjacent_function_nodes_via_edges_def:
   fg_get_adjacent_function_nodes_via_edges n [] = [] ∧
-  fg_get_adjacent_function_nodes_via_edges n 
+  fg_get_adjacent_function_nodes_via_edges
+  n ((function_index, variable_index)::remaining_edges) =
+  let
+    recursive_call = fg_get_adjacent_function_nodes_via_edges n remaining_edges;
+  in
+    if (variable_index = n)
+    then (function_index)::recursive_call
+    else recursive_call
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Gets the function nodes connected to a given variable node                 *)
+(*                                                                            *)
 (* Input:                                                                     *)
 (* - fg, the factor graph                                                     *)
+(* - n, the index of the variable node we are finding the adjacent function   *)
+(*   nodes for                                                                *)
 (*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
+(* Output:                                                                    *)
+(* - The list of function nodes which are adjacent to the provided variable   *)
+(*   node.                                                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_get_adjacent_function_nodes_def:
+  fg_get_adjacent_function_nodes fg n =
+  fg_get_adjacent_function_nodes_via_edges n fg.edges
 End
-
 
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
