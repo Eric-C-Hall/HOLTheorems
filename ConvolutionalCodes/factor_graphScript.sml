@@ -214,14 +214,41 @@ End
 
 (* -------------------------------------------------------------------------- *)
 (* Gets the variable nodes connected to a given function node                 *)
+(*                                                                            *)
 (* Input:                                                                     *)
 (* - fg, the factor graph                                                     *)
 (* - n, the index of the function node we want to find the connected variable *)
 (*   node of                                                                  *)
+(*                                                                            *)
+(* Output:                                                                    *)
+(* - The list of variable nodes which are connected to the function node via  *)
+(*   an edge in the factor graph                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_get_adjacent_variable_nodes_def:
   fg_get_adjacent_variable_nodes fg n = fg_get_adjacent_variable_nodes_via_edges n fg.edges
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Gets the function nodes connected to a particular variable node            *)
+(*                                                                            *)
+(* Input:                                                                     *)
+(* -                                                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_get_adjacent_function_nodes_via_edges_def:
+  fg_get_adjacent_function_nodes_via_edges n [] = [] ∧
+  fg_get_adjacent_function_nodes_via_edges n 
+
+(* -------------------------------------------------------------------------- *)
+(* Gets the function nodes connected to a given variable node                 *)
+(* Input:                                                                     *)
+(* - fg, the factor graph                                                     *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_get_adjacent_function_nodes_def:
+End
+
 
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
