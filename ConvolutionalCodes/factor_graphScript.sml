@@ -51,6 +51,11 @@ val _ = new_theory "factor_graphs";
 (*       completely, only storing the number of variable nodes.               *)
 (* TODO: Should I change the list of (function, variable) pairs to some kind  *)
 (*       of map?                                                              *)
+(* TODO: On the one hand, I feel like using sets may be easier to program,    *)
+(*       But on the other hand, lists may be more evaluable                   *)
+(* TODO: Is there an easy function to deduplicate lists?                      *)
+(* -------------------------------------------------------------------------- *)
+
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -262,8 +267,8 @@ End
 (*   nodes for                                                                *)
 (*                                                                            *)
 (* Output:                                                                    *)
-(* - The list of function nodes which are adjacent to the provided variable   *)
-(*   node.                                                                    *)
+(* - The list of function node indices which are adjacent to the provided     *)
+(* variable node.                                                             *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_get_adjacent_function_nodes_def:
   fg_get_adjacent_function_nodes fg n =
@@ -271,7 +276,24 @@ Definition fg_get_adjacent_function_nodes_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Gets the function nodes that are adjacent to nodes which themselves are    *)
+(* adjacent to the given function node                                        *)
 (*                                                                            *)
+(* Input:                                                                     *)
+(* - fg, the factor graph                                                     *)
+(* - n, the index of the variable node we start from                          *)
+(*                                                                            *)
+(* Output:                                                                    *)
+(* - The list of function nodes which are adjacent to variable nodes which    *)
+(* themselves are adjacent to the function node n (Duplicates may be present) *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_get_adjacent_adjacent_function_nodes_def:
+  fg_get_adjacent_adjacent_function_nodes fg n =
+  FOLDR APPEND [] (MAP (fg_get_adjacent_function_nodes fg) (fg_get_adjacent_variable_nodes fg n))
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Gets the function nodes that are adjacent to a particular                  *)
 (*                                                                            *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
@@ -289,6 +311,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition fg_get_connected_region_taboo_def:
   fg_get_connected_region_taboo fg n taboo_nodes =
+  
 End
 
 (* -------------------------------------------------------------------------- *)
