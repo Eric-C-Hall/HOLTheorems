@@ -275,6 +275,11 @@ Definition fg_get_adjacent_function_nodes_def:
   fg_get_adjacent_function_nodes_via_edges n fg.edges
 End
 
+(*Definition deduplicate_def:
+  deduplicate [] = [] ∧
+  deduplicate l::ls = if ()
+                         End*)
+
 (* -------------------------------------------------------------------------- *)
 (* Gets the function nodes that are adjacent to nodes which themselves are    *)
 (* adjacent to the given function node                                        *)
@@ -291,6 +296,13 @@ Definition fg_get_adjacent_adjacent_function_nodes_def:
   fg_get_adjacent_adjacent_function_nodes fg n =
   FOLDR APPEND [] (MAP (fg_get_adjacent_function_nodes fg) (fg_get_adjacent_variable_nodes fg n))
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Deduplicate fg_get_adjacent_adjacent_function_nodes                        *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_get_adjacent_adjacent_function_nodes_no_duplicates_def:
+  fg_get_adjacent_adjacent_function_nodes_no_duplicates fg n =
+End 
 
 (* -------------------------------------------------------------------------- *)
 (* Gets the function nodes that are adjacent to a particular                  *)
