@@ -220,7 +220,7 @@ End
 (*   node of                                                                  *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_get_adjacent_variable_nodes_def:
-  fg_get_adjacent_variable_nodes fg n = fg_get_adjacent_variable_nodes_via_edges n edges
+  fg_get_adjacent_variable_nodes fg n = fg_get_adjacent_variable_nodes_via_edges n fg.edges
 End
 
 (* -------------------------------------------------------------------------- *)
