@@ -1,7 +1,8 @@
 open HolKernel Parse boolLib bossLib;
 
-open probabilityTheory;
-open listTheory;
+(*open probabilityTheory;*)
+(*open listTheory;*)
+open fsgraphTheory;
 
 val _ = new_theory "factor_graphs";
 
@@ -23,39 +24,32 @@ val _ = new_theory "factor_graphs";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: Is there a union type in HOL4?                                       *)
-(* TODO: Any pre-existing graph types?                                        *)
-(* TODO: How do I represent the type of an arbitrary function, which can have *)
-(* an arbitrary number of inputs?                                             *)
-(* TODO: Should I use dir_graphTheory?                                        *)
-(* TODO: How do I balance efficient implementation and usability?             *)
-(*       In particular, defining a graph in terms of a set of nodes and a     *)
-(*       set of edges is nice from a theoretical perspective, as it is a      *)
-(*       relatively conceptually simple realisation, but if we want to find   *)
-(*       the edges which connect to a node, this is relatively expensive.     *)
-(*       Whereas defining a graph in terms of nodes, and describing the edges *)
-(*       emanating from each node will make it easier to find the edges       *)
-(*       connecting to that node, but we will either have to store the edge   *)
-(*       in both directions, or finding the adjacent nodes will be hard again *)
-(* TODO: Alternative representation could be defining a list of function nodes*)
-(*       and a list of variable nodes independently. Then the edges could be  *)
-(*       represented by pairs, where the first element of the pair represents *)
-(*       the index of the function node and the second element of the pair    *)
-(*       represents the index of the variable node.                           *)
-(* TODO: In my initial interpretation, function nodes and variable nodes were *)
-(*       each simply considered nodes, as the same kind of object, and each   *)
-(*       node would have a boolean telling me whether it was a function or a  *)
-(*       variable. However, the new version seems simpler: we don't have to   *)
-(*       store whether each node is a variable or an object, and we can in    *)
-(*       fact do away with all information within the variable nodes          *)
-(*       completely, only storing the number of variable nodes.               *)
-(* TODO: Should I change the list of (function, variable) pairs to some kind  *)
-(*       of map?                                                              *)
-(* TODO: On the one hand, I feel like using sets may be easier to program,    *)
-(*       But on the other hand, lists may be more evaluable                   *)
-(* TODO: Is there an easy function to deduplicate lists?                      *)
+(* Graph representation:                                                      *)
+(*                                                                            *)
+(* We use a representation based on fsgraphScript.                            *)
+(*                                                                            *)
+(* Each node has a label.                                                     *)
+(*                                                                            *)
+(* Our graph is bipartite, and is split up into the function nodes contained  *)
+(* in the set F, and the variable nodes contained in the set V                *)
 (* -------------------------------------------------------------------------- *)
 
+(* -------------------------------------------------------------------------- *)
+(* Function representation:                                                   *)
+(*                                                                            *)
+(* function label -> ([list of variable labels in order],                     *)
+(*                    bool list -> extreal)                                   *)
+(*                                                                            *)
+(* Where the bool list is the list of values that the variable inputs take.   *)
+(*                                                                            *)
+(* So, for example, f(x_1,x_2,x_3) =                                          *)
+(*                   if x_1 then 0.5 else (if x_2 then 0.2 else 0.3)          *)
+(*     would be represented by:                                               *)
+(* "f" -> (["x_1", "x_2", "x_3"],                                             *)
+(*         \x_1, x_2, x_3. if x_1 then 0.5 else (if x_2 then 0.2 else 0.3))   *)
+(*                                                                            *)
+(* Where "f" denotes a function label corresponding to f, which may, for      *)
+(* example, be a num.                                                         *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -63,90 +57,60 @@ val _ = new_theory "factor_graphs";
 (* and to factor graphs which represent a probability distribution.           *)
 (* -------------------------------------------------------------------------- *)
 
-(* -------------------------------------------------------------------------- *)
-(* Major question: How should I represent a function node?                    *)
-(*                                                                            *)
-(* I could represent a function node by a function which takes a list of      *)
-(* (variable, value) pairs and returns a probability. Perhaps it should be a  *)
-(* set of (variable, value) pairs, because the order doesn't matter? Perhaps  *)
-(* we should prevent a particular variable from existing twice on the left    *)
-(* hand side, because a variable can only be set to one value?                *)
-(*                                                                            *)
-(* A function over a single binary variable which outputs a probability can   *)
-(* be represented as [output1, output2], where output1 is the probability     *)
-(* represented on an input of 0, and output2 is the probability on an input   *)
-(* of 1. This becomes more complicated (but still representable in the same   *)
-(* way) if there are more than one input variable.                            *)
-(*                                                                            *)
-(* In a similar way, we could essentially represent a function like a big     *)
-(* n-dimensional table, where n is the number of variables input to the       *)
-(* function                                                                   *)
-(* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
-(* What do I want from my graph?                                              *)
-(*                                                                            *)
-(* - I want a graph object, which can be used to store all the data from the  *)
-(*   graph, so I can provide it as input to another function                  *)
-(* - I want a way to find the edges associated with a given node              *)
-(* - I want a way to find the nodes associated with a given edge              *)
-(* - I want a way to determine whether a given node is a function node or a   *)
-(*   variable node                                                            *)
-(* - I want a way to uniquely determine a variable node in the graph          *)
-(* - I want a way to identify the function associated with a function node    *)
-(* - I want a way of representing the message passing algorithm along that    *)
-(*   graph, so that I can attach the appropriate data to the graph            *)
-(*   -- This involves having a message passing in each direction along each   *)
-(*      edge                                                                  *)
-(*   -- This ought not to be directly part of the graph                       *)
-(* - I want a way to go from an edge in the graph to the message passing data *)
-(*   associated with that edge.                                               *)
-(* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
-(* Graph design:                                                              *)
-(*                                                                            *)
-(* - The graph is a list of nodes and a list of edges.                        *)
-(* - Each node is labelled according to its order in the list.                *)
-(* - Each edge contains the label of the two nodes it connects. The edge is   *)
-(*   not directed, so we do not need a second edge in the opposite direction. *)
-(* - Each node contains a boolean which tells us whether it represents a      *)
-(*   variable or a function                                                   *)
-(* - If a node represents a function, it contains data representing the       *)
-(*   function as per the "Function design" section.                           *)
-(* - The message passing data is a function which takes the labels of the two *)
-(*   nodes it connects and returns the message, which is a vector of length   *)
-(*   two as is typical in the message passing algorithm.                      *)
-(* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
-(* Function design:                                                           *)
-(*                                                                            *)
-(* We only need to store the marginals of the function with respect to each   *)
-(* variable in the function. A single marginal can be stored as a vector of   *)
-(* length two in the same way as a message is typically stored in the message *)
-(* passing algorithm. We store each marginal in a list, starting with the     *)
-(* marginal associated with the variable with the smallest label, and ending  *)
-(* with the marginal associated with the variable with the largest label.     *)
-(* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
-(* The factor graph                                                           *)
-(* -------------------------------------------------------------------------- *)
 Datatype:
-  fg_type = <|
-    functions : ((extreal list) list) list;
-    num_variables : num;
-    edges : (num # num) list;
-  |>
+  test1 = <| foo : α list;
+             bar : β list; |>
 End
 
-(* -------------------------------------------------------------------------- *)
-(* The data used by the message passing algorithm applied to the factor graph *)
-(* -------------------------------------------------------------------------- *)
-(*Datatype:
-  fg_data = (num # num) -> (extreal list)
-End*)
+Type test2[pp] = “:(num)test1”
+
+Definition fg_example_functions_def:
+  fg_example_functions = 0 -> []
+End
+
+Definition graph_test_def:
+  graph_test = <| nodes := {};
+                  edges := ;
+                  hyperp := ;
+                  nlab := ;
+                  nfincst := ;
+                  dircst := ;
+                  slcst :=;
+                        edgecst := ;
+               |> 
+End
+
+(* The following code is from the generic_graphs example *)
+
+Datatype:
+  graphrep = <| nodes : ('a+num) set ;
+                (* useful to have countable space to expand into *)
+                edges : ('a,'el) core_edge bag ;
+                hyperp : 'hyperp itself;
+                nlab : 'a+num -> 'nl ;
+                nfincst : 'nf itself ;
+                dircst : 'd itself ;  (* true implies directed graph *)
+                slcst : 'slc itself ; (* true implies self-loops allowed *)
+                edgecst : 'ec  itself
+             |>
+End
+
+
+Type ulabgraph[pp] = “:(α,
+                        δ (* undirected? *),
+                        oneedgeG,
+                        unit (* edge label *),
+                        'h,
+                        ν (* infinite nodes allowed? *),
+                        unit (* node label *),
+                        σ (* self-loops? *)) graph”;
+
+Type udulgraph[pp] = “:(α, undirectedG, unhyperG, ν, σ)ulabgraph”;
+Type fsgraph[pp] = “:(unit,finiteG,noSL) udulgraph”;
+
+Definition test_finite_graph_def:
+  test_finite_fraph = : 
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)

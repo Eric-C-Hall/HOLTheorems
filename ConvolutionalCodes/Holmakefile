@@ -1,1 +1,1 @@
-INCLUDES = ../Utility
+INCLUDES = ../Utility $(HOLDIR)/examples/generic_graphs
