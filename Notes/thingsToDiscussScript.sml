@@ -4,6 +4,10 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* Would be cool to make wfmachine into its own type of well-formed machines, a la graphrep, graph, wfgraph *)
+
+(* Should I go to the formal methods workshop *)
+
 (* In this problem, it is common to represent functions with boolean inputs as lists of size 2: [falseValue, trueValue]. Thus, to apply the input F, we return falseValue, and to apply the input T, we return trueValue.
 
 This is the typical representation when sending messages over the edges, although I am so far unaware of any typical representation for the functions within the nodes themselves.

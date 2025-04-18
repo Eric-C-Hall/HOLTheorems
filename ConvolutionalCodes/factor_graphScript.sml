@@ -1,6 +1,6 @@
 open HolKernel Parse boolLib bossLib;
 
-(*open probabilityTheory;*)
+open probabilityTheory;
 (*open listTheory;*)
 open fsgraphTheory;
 
@@ -53,64 +53,39 @@ val _ = new_theory "factor_graphs";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* We restrict our attention to factor graphs over a binary field,            *)
-(* and to factor graphs which represent a probability distribution.           *)
+(* We restrict our attention to factor graphs with binary inputs and outputs  *)
+(* which represent probabilities (of type extreal).                          *)
 (* -------------------------------------------------------------------------- *)
 
 Datatype:
-  test1 = <| foo : α list;
-             bar : β list; |>
+  factor_graph =
+  <|
+    underlying_graph : fsgraph;
+    function_nodes : (unit + num) -> bool;
+    variable_nodes : (unit + num) -> bool;
+    function_map : (unit + num) -> (unit + num) list # (bool list -> extreal)
+  |>
 End
 
-Type test2[pp] = “:(num)test1”
-
-Definition fg_example_functions_def:
-  fg_example_functions = 0 -> []
+Definition wffactor_graph_def:
+  wffactor_graph fg =
+  (gen_bipartite fg.underlying_graph fg.function_nodes fg.variable_nodes) ∧
+  (∀f bs. ARB
+  (*
+            let
+              output = (SND (fg.function_map f)) bs;
+            in
+              0 ≤ output ∧ output ≤ 1*)
+  )
 End
 
-Definition graph_test_def:
-  graph_test = <| nodes := {};
-                  edges := ;
-                  hyperp := ;
-                  nlab := ;
-                  nfincst := ;
-                  dircst := ;
-                  slcst :=;
-                        edgecst := ;
-               |> 
-End
+(* ∧
+(∀f.
+     let
+      variables = FST (fg.function_map f)
+    in
+      ∀x. x ∈ set variables ⇒ x ∈ variables)*)
 
-(* The following code is from the generic_graphs example *)
-
-Datatype:
-  graphrep = <| nodes : ('a+num) set ;
-                (* useful to have countable space to expand into *)
-                edges : ('a,'el) core_edge bag ;
-                hyperp : 'hyperp itself;
-                nlab : 'a+num -> 'nl ;
-                nfincst : 'nf itself ;
-                dircst : 'd itself ;  (* true implies directed graph *)
-                slcst : 'slc itself ; (* true implies self-loops allowed *)
-                edgecst : 'ec  itself
-             |>
-End
-
-
-Type ulabgraph[pp] = “:(α,
-                        δ (* undirected? *),
-                        oneedgeG,
-                        unit (* edge label *),
-                        'h,
-                        ν (* infinite nodes allowed? *),
-                        unit (* node label *),
-                        σ (* self-loops? *)) graph”;
-
-Type udulgraph[pp] = “:(α, undirectedG, unhyperG, ν, σ)ulabgraph”;
-Type fsgraph[pp] = “:(unit,finiteG,noSL) udulgraph”;
-
-Definition test_finite_graph_def:
-  test_finite_fraph = : 
-End
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
@@ -137,6 +112,19 @@ End
 (* -------------------------------------------------------------------------- *)
 (* The following example factor graph is based on Example 2.2.                *)
 (* -------------------------------------------------------------------------- *)
+Definition fg_example_functions_def:
+  fg_example_functions =
+  λf. if f = 1 then
+        ([0, 2, 3], λxs. ARB)
+      else if f = 4 then
+        ([0, 5, 9], λxs. ARB)
+      else if f = 6 then
+        ([5], λxs. ARB)
+      else if f = 7 then
+        ([5, 8], λxs. ARB)
+      else ARB
+End
+
 Definition fg_example_def:
   fg_example =
   <|
@@ -154,6 +142,26 @@ Definition fg_example_def:
         (3, 4);
       ];
   |>
+End
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* The following is a manually designed example graph based on Example 2.2    *)
+(* -------------------------------------------------------------------------- *)
+Definition helloworld_graph_def:
+  helloworld_graph : fsgraph =
+  fsgAddEdges {
+              {INR 0; INR 1;};
+           {INR 1; INR 2;};
+           {INR 1; INR 3;};
+           {INR 0; INR 4;};
+           {INR 4; INR 5;};
+           {INR 5; INR 6;};
+           {INR 5; INR 7;};
+           {INR 7; INR 8;};
+           {INR 4; INR 9;};
+           } (fsgAddNodes {INR x | x ∈ count 10} emptyG)
 End
 
 (* -------------------------------------------------------------------------- *)

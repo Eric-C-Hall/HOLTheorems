@@ -39,3 +39,11 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* Use qabbrev_tac even if the abbreviation you want to make isn't yet contained as a pattern in the goal or assumptions, e.g. if you just want to define a new name for convenience *)
 
 (* if you want to hide it manually (and unhide later), this might work (?): qpat_abbrev_tac`snoc = SNOC` *)
+
+(* Underneath all HOL type definitions is a call to new_type_definition, which asks the caller to show that a specified subset of an existing type is inhabited. If it is, then the call introduces functions mapping from the subset to the new type (the "abs"), and from the new type to the subset (the "rep"). Based on the bare minimum returned by new_type_definition there are other functions that prove more properties of the rep and abs functions. I think this is what is going on here. *)
+
+(* I recommend doing help "new_type_definition" and help "define_new_type_bijections" for detailed information. I think rich_new_type is bundling up a bunch of boilerplate commonly used to move from the initial introduction of a new type to a useful set of theorems for working with that type. *)
+
+(* Use "Theorem foo[local]:" to define a local theorem *) 
+
+(* The "graph" type seems to correspond to the subset of the "graphrep" type which consists of well-formed graphs*)
