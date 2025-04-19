@@ -106,10 +106,11 @@ Definition wffactor_graph_def:
   ) ∧
   (∀f.
      f ∈ fg.function_nodes ⇒
-     let
-       variables = FST (fg.function_map f)
+     (let
+        variables = FST (fg.function_map f)
      in
        ∀x. x ∈ (set variables) ⇒ x ∈ fg.variable_nodes
+     )
   )
   )
 End
@@ -145,8 +146,7 @@ Theorem fg_empty_wf:
   wffactor_graph fg_empty
 Proof
   gvs[fg_empty_def, wffactor_graph_def]
-  >> conj_tac
-  >- gvs[gen_bipartite
+  >> rpt strip_tac
 QED
 
 (* -------------------------------------------------------------------------- *)
