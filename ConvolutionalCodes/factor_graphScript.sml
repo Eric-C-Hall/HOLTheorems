@@ -76,13 +76,11 @@ Datatype:
   |>
 End
 
-
-
 (* -------------------------------------------------------------------------- *)
 (* Well-formedness of a factor graph.                                         *)
 (*                                                                            *)
 (* - the underlying graph should be bipartite with respect to the function    *)
-(*   nodes and variable nodes                                                 *)
+(*   nodes and variable nodes, assuming we have function nodes at all         *)
 (* - the outputs of each function should be probabilities, and thus between   *)
 (*   0 and 1                                                                  *)
 (* - the variables used as input to each function must be amongst the         *)
@@ -95,7 +93,10 @@ End
 Definition wffactor_graph_def:
   wffactor_graph fg =
   (
-  (gen_bipartite fg.underlying_graph fg.function_nodes fg.variable_nodes
+  (
+  (fg.function_nodes = ∅ ∧ nodes fg.underlying_graph = fg.variable_nodes) ∨
+  (fg.variable_nodes = ∅ ∧ nodes fg.underlying_graph = fg.function_nodes) ∨
+  (gen_bipartite fg.underlying_graph fg.function_nodes fg.variable_nodes)
   ) ∧
   (∀f bs.
      let
@@ -104,6 +105,7 @@ Definition wffactor_graph_def:
        0 ≤ output ∧ output ≤ 1
   ) ∧
   (∀f.
+     f ∈ fg.function_nodes ⇒
      let
        variables = FST (fg.function_map f)
      in
@@ -112,14 +114,46 @@ Definition wffactor_graph_def:
   )
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Create an empty factor graph                                               *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_empty_def:
+  fg_empty = <|
+    underlying_graph := emptyG;
+    function_nodes := {};
+    variable_nodes := {};
+    function_map := ARB;
+  |>
+End
 
+(* -------------------------------------------------------------------------- *)
+(* The empty graph is bipartite into the empty set and the empty set          *)
+(*                                                                            *)
+(* This theorem would be convenient, but isn't true, becuase                  *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+(*Theorem gen_bipartite_empty[simp]:
+  gen_bipartite emptyG ∅ ∅
+Proof
+  gvs[gen_bipartite_def]
+QED*)
+
+(* -------------------------------------------------------------------------- *)
+(* Prove that the empty factor graph is well-formed                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_empty_wf:
+  wffactor_graph fg_empty
+Proof
+  gvs[fg_empty_def, wffactor_graph_def]
+  >> conj_tac
+  >- gvs[gen_bipartite
+QED
 
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-
 Definition factor_graph_add_node_def:
   factor_graph_add_node fg node = 
 End
