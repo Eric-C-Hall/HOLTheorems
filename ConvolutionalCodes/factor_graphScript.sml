@@ -69,23 +69,24 @@ End
 
 Definition wffactor_graph_def:
   wffactor_graph fg =
-  (gen_bipartite fg.underlying_graph fg.function_nodes fg.variable_nodes) ∧
+  (
+  (gen_bipartite fg.underlying_graph fg.function_nodes fg.variable_nodes
+  ) ∧
   (∀f bs. ARB
-  (*
-            let
-              output = (SND (fg.function_map f)) bs;
-            in
-              0 ≤ output ∧ output ≤ 1*)
+          let
+            output = (SND (fg.function_map f)) bs;
+          in
+            0 ≤ output ∧ output ≤ 1
+  ) ∧
+  (∀f.
+     let
+       variables = FST (fg.function_map f)
+     in
+       ARB
+       ∀x. x ∈ (set variables) ⇒ x ∈ fg.variable_nodes
+  )
   )
 End
-
-(* ∧
-(∀f.
-     let
-      variables = FST (fg.function_map f)
-    in
-      ∀x. x ∈ set variables ⇒ x ∈ variables)*)
-
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
