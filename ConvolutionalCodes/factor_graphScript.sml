@@ -53,10 +53,19 @@ val _ = new_theory "factor_graphs";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
+(* Factor Graph Datatype:                                                     *)
+(*                                                                            *)
+(* The "underlying_graph" variable represents the underlying factor graph.    *)
+(*                                                                            *)
+(* Our graph is bipartite, split into the sets "function_nodes" and           *)
+(* "variable_nodes"                                                           *)
+(*                                                                            *)
+(* function_map maps a function node to its function representation, as       *)
+(* described in the "Function representation" section above.                  *)
+(*                                                                            *)
 (* We restrict our attention to factor graphs with binary inputs and outputs  *)
-(* which represent probabilities (of type extreal).                          *)
+(* which represent probabilities (of type extreal).                           *)
 (* -------------------------------------------------------------------------- *)
-
 Datatype:
   factor_graph =
   <|
@@ -67,25 +76,52 @@ Datatype:
   |>
 End
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* Well-formedness of a factor graph.                                         *)
+(*                                                                            *)
+(* - the underlying graph should be bipartite with respect to the function    *)
+(*   nodes and variable nodes                                                 *)
+(* - the outputs of each function should be probabilities, and thus between   *)
+(*   0 and 1                                                                  *)
+(* - the variables used as input to each function must be amongst the         *)
+(*   variable_nodes.                                                          *)
+(* - We currently don't require that the input to the function map itself has *)
+(*   to be a function node, because this doesn't gel well with the            *)
+(*   representation of functions in HOL, which requires a function to have a  *)
+(*   value for all inputs                                                     *)
+(* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
   wffactor_graph fg =
   (
   (gen_bipartite fg.underlying_graph fg.function_nodes fg.variable_nodes
   ) ∧
-  (∀f bs. ARB
-          let
-            output = (SND (fg.function_map f)) bs;
-          in
-            0 ≤ output ∧ output ≤ 1
+  (∀f bs.
+     let
+       output = (SND (fg.function_map f)) bs;
+     in
+       0 ≤ output ∧ output ≤ 1
   ) ∧
   (∀f.
      let
        variables = FST (fg.function_map f)
      in
-       ARB
        ∀x. x ∈ (set variables) ⇒ x ∈ fg.variable_nodes
   )
   )
+End
+
+
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+Definition factor_graph_add_node_def:
+  factor_graph_add_node fg node = 
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -113,6 +149,9 @@ End
 (* -------------------------------------------------------------------------- *)
 (* The following example factor graph is based on Example 2.2.                *)
 (* -------------------------------------------------------------------------- *)
+Definition fg_example_factor_graph_def:
+End
+
 Definition fg_example_functions_def:
   fg_example_functions =
   λf. if f = 1 then
