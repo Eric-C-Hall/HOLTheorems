@@ -3,6 +3,7 @@ open HolKernel Parse boolLib bossLib;
 open probabilityTheory;
 (*open listTheory;*)
 open fsgraphTheory;
+open pred_setTheory;
 
 val _ = new_theory "factor_graphs";
 
@@ -65,6 +66,9 @@ val _ = new_theory "factor_graphs";
 (*                                                                            *)
 (* We restrict our attention to factor graphs with binary inputs and outputs  *)
 (* which represent probabilities (of type extreal).                           *)
+(*                                                                            *)
+(* We expect the nodes of the factor graph to be consecutive natural numbers  *)
+(* starting from 0.                                                           *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
   factor_graph =
@@ -85,6 +89,7 @@ End
 (*   0 and 1                                                                  *)
 (* - the variables used as input to each function must be amongst the         *)
 (*   variable_nodes.                                                          *)
+(* - the nodes should be the consecutive natural numbers starting from 0      *)
 (* - We currently don't require that the input to the function map itself has *)
 (*   to be a function node, because this doesn't gel well with the            *)
 (*   representation of functions in HOL, which requires a function to have a  *)
@@ -99,10 +104,12 @@ Definition wffactor_graph_def:
   (gen_bipartite fg.underlying_graph fg.function_nodes fg.variable_nodes)
   ) ∧
   (∀f bs.
-     let
-       output = (SND (fg.function_map f)) bs;
+     f ∈ fg.function_nodes ⇒
+     (let
+        output = (SND (fg.function_map f)) bs;
      in
        0 ≤ output ∧ output ≤ 1
+     )
   ) ∧
   (∀f.
      f ∈ fg.function_nodes ⇒
@@ -111,6 +118,9 @@ Definition wffactor_graph_def:
      in
        ∀x. x ∈ (set variables) ⇒ x ∈ fg.variable_nodes
      )
+  ) ∧
+  (∃n.
+     fg.variable_nodes ∪ fg.function_nodes = {INR i | i ∈ count n}
   )
   )
 End
@@ -130,33 +140,245 @@ End
 (* -------------------------------------------------------------------------- *)
 (* The empty graph is bipartite into the empty set and the empty set          *)
 (*                                                                            *)
-(* This theorem would be convenient, but isn't true, becuase                  *)
-(*                                                                            *)
+(* This theorem would be convenient, but isn't true, because a partition is   *)
+(* only considered to be valid if each of the components is nonempty. I don't *)
+(* think this should be how a partition is defined, but on the other hand,    *)
+(* there is some precedent for this.                                          *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem gen_bipartite_empty[simp]:
   gen_bipartite emptyG ∅ ∅
 Proof
   gvs[gen_bipartite_def]
 QED*)
-
+ 
 (* -------------------------------------------------------------------------- *)
 (* Prove that the empty factor graph is well-formed                           *)
 (* -------------------------------------------------------------------------- *)
-Theorem fg_empty_wf:
+Theorem fg_empty_wf[simp]:
   wffactor_graph fg_empty
 Proof
   gvs[fg_empty_def, wffactor_graph_def]
-  >> rpt strip_tac
+  >- (qexists ‘0’ >> gvs[])
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Add a variable node to the factor_graph.                                   *)
 (*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
+(* The first node added (variable or function) should be 0, the next node     *)
+(* should be 1, etc.                                                          *)
 (* -------------------------------------------------------------------------- *)
-Definition factor_graph_add_node_def:
-  factor_graph_add_node fg node = 
+Definition fg_add_variable_node_def:
+  fg_add_variable_node fg =
+  let
+    new_node = (INR (CARD (nodes fg.underlying_graph)))
+  in
+    fg with
+       <|
+         underlying_graph := fsgAddNode new_node fg.underlying_graph;
+         variable_nodes := new_node INSERT fg.variable_nodes
+       |>
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Adds n variable nodes to the factor graph                                  *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_add_n_variable_nodes_def:
+  fg_add_n_variable_nodes fg 0 = fg ∧
+  fg_add_n_variable_nodes fg (SUC n) =
+  fg_add_variable_node (fg_add_n_variable_nodes fg)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The next few theorems explore the properties of {INR i | i ∈ count n},    *)
+(* which can equivalently be described as {INR i | i < n}                     *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Fundamental inductive method used to produce a set of this form. This      *)
+(* allows us to work by induction on this set.                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem INR_COMP_SUC:
+  ∀n : num.
+    {INR i | i < SUC n} = (INR n) INSERT {INR i | i < n}
+Proof
+  rpt strip_tac
+  >> irule (iffRL EXTENSION)
+  >> rpt strip_tac
+  >> Cases_on ‘x’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* In order to associate a finite cardinality with this set, we first need to *)
+(* know that it's finite.                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem FINITE_INR_COMP[simp]:
+  ∀n : num.
+    FINITE {INR i | i < n}
+Proof
+  rpt strip_tac
+  >> Induct_on ‘n’ >> gvs[]
+  >> gvs[INR_COMP_SUC]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Useful for simplification in fg_add_variable_node_wf                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem CARD_INR_COMP[simp]:
+  ∀n.
+    CARD {INR i | i < n} = n
+Proof
+  rpt strip_tac >> gvs[]
+  >> Induct_on ‘n’ >> gvs[]
+  >> gvs[INR_COMP_SUC]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Proof that after adding a variable node, the resulting factor graph will   *)
+(* be well-formed.                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_add_variable_node_wf[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    wffactor_graph (fg_add_variable_node fg)
+Proof
+  rpt strip_tac
+  >> gvs[wffactor_graph_def, fg_add_variable_node_def]
+  >- (qexists ‘SUC n’ >> gvs[INR_COMP_SUC])
+  >- (conj_tac
+      >- (Cases_on ‘n’ >> gvs[]
+          >> disj2_tac
+          >> gvs[gen_bipartite_def]
+          >> gvs[INR_COMP_SUC]
+          >> conj_tac
+          >- (gvs[UNION_DEF, INSERT_DEF]
+              >> irule (iffRL EXTENSION)
+              >> rpt strip_tac >> Cases_on ‘x’ >> gvs[]
+             )
+          >> rpt strip_tac
+          >> ‘F’ suffices_by gvs[] (* We cannot have any two edges in the orig *)
+
+                                Cases_on ‘{INR i | i < n} = ∅’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Add a function node to the factor graph.                                    *)
+(*                                                                            *)
+(* Input:                                                                     *)
+(* - fg, the factor graph                                                     *)
+(* - f, the function to be added.                                             *)
+(*                                                                            *)
+(* Output:                                                                    *)
+(* - the factor graph with the new function node. The edges to other variable *)
+(* ts label will be the next  *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*   unused label.                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_add_function_node_def:
+  fg_add_function_node fg f =
+  let
+    new_node = (INR (CARD (nodes fg.underlying_graph)))
+  in
+    fg with
+       <|
+         underlying_graph := fsgAddNode new_node fg.underlying_graph;
+         function_nodes := new_node INSERT fg.variable_nodes;
+         function_map := λfunction_label.
+                           if function_label = new_node
+                           then
+                             f
+                           else
+                             fg.function_map function_label
+       |>
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Adding a function node to a factor graph maintains well-formedness         *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_add_function_node_wf[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    wffactor_graph (fg_add_variable_node fg)
+Proof
+  rpt strip_tac
+  >> gvs[wffactor_graph_def, fg_add_variable_node_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Prove that two elements in a two-element set can be swapped                *)
+(* -------------------------------------------------------------------------- *)
+Theorem set_two_element_sym:
+  ∀n1 n2.
+    {n1; n2} = {n2; n1}
+Proof
+  rpt strip_tac
+  >> gvs[INSERT_DEF]
+  >> irule (iffRL EXTENSION)
+  >> rpt strip_tac
+  >> gvs[]
+  >> metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Prove that adding an edge between two elements is the same regardless of   *)
+(* which order the two elements are provided in                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_add_edge_sym:
+  ∀fg n1 n2.
+    fg_add_edge fg n1 n2 = fg_add_edge fg n2 n1
+Proof
+  rpt strip_tac
+  >> gvs[fg_add_edge_def]
+  >> rw[]
+  >> Cases_on ‘n1 ∈ fg.variable_nodes’ >> Cases_on ‘n2 ∈ fg.variable_nodes’ >> Cases_on ‘n1 ∈ fg.function_nodes’ >> Cases_on ‘n2 ∈ fg.function_nodes’ >> gvs[]
+  >> gvs[set_two_element_sym]
+QED
+
+Theorem fg_add_edge_wf_spec:
+  ∀fg n1 n2.
+    (n1 ∈ fg.variable_nodes ∧ n2 ∈ fg.function_nodes) ⇒
+    wffactor_graph (fg_add_edge fg n1 n2)
+Proof
+  rpt strip_tac
+  >> gvs[wffactor_graph_def, fg_add_edge_def]
+  >> 
+QED
+
+Theorem fg_add_edge_wf:
+  ∀fg n1 n2.
+    ((n1 ∈ fg.variable_nodes ∧ n2 ∈ fg.function_nodes) ∨
+     (n1 ∈ fg.function_nodes ∧ n2 ∈ fg.variable_nodes)) ⇒
+    wffactor_graph (fg_add_edge fg n1 n2)
+Proof
+  rw[]
+  >> metis_tac[fg_add_edge_wf_spec, fg_add_edge_sym]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Adds several variable and function nodes. This is intended to be much      *)
+(* easier to use than manually calling fg_add_variable_node and               *)
+(* fg_add_function_node repeatedly.                                            *)
+(*                                                                            *)
+(* Input:                                                                     *)
+(* - fg, the factor graph to add the nodes to.                                *)
+(* - nt::nts (aka. node types), a list of booleans, where the ith element is  *)
+(*   T if we need to add a function node and F if we need to add a variable   *)
+(*   node.                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_add_variable_and_function_nodes:
+  fg_add_variable_and_function_nodes fg [] = fg ∧
+  fg_add_variable_and_function_nodes fg nt::nts =
+  let
+    recursive_call = fg_add_variable_and_function_nodes fg nts
+  in
+    if nt
+    then
+      fg_add_function_node      
+    else
+Proof
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
@@ -184,6 +406,7 @@ End
 (* The following example factor graph is based on Example 2.2.                *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_example_factor_graph_def:
+  fg_example_factor_graph = fg_add_variable_node ∘ fg_add_variable_node ∘ fg_add_function_node ∘ fg_add_variable_node fg_empty
 End
 
 Definition fg_example_functions_def:
