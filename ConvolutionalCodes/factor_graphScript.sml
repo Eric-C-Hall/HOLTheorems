@@ -185,7 +185,7 @@ End
 Definition fg_add_n_variable_nodes_def:
   fg_add_n_variable_nodes fg 0 = fg ∧
   fg_add_n_variable_nodes fg (SUC n) =
-  fg_add_variable_node (fg_add_n_variable_nodes fg)
+  fg_add_variable_node (fg_add_n_variable_nodes fg n)
 End
 
 (* -------------------------------------------------------------------------- *)
