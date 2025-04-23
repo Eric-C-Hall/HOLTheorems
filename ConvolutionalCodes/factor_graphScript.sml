@@ -321,6 +321,34 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Adds an edge between two nodes in the graph.                               *)
+(*                                                                            *)
+(* If the edge would be between a function node and a function node or a      *)
+(* variable node and a variable node, this returns turns ARB, which should    *)
+(* hopefully indicate that something has gone wrong.                          *)
+(*                                                                            *)
+(* Input:                                                                     *)
+(* - fg, the factor graph                                                     *)
+(* - n1, the first node to                                                    *)
+(* - n2, the second node                                                      *)
+(*                                                                            *)
+(* Output:                                                                    *)
+(* - the updated factor graph                                                 *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_add_edge_def:
+  fg_add_edge fg n1 n2 =
+  if ((n1 ∈ fg.variable_nodes ∧ n2 ∈ fg.variable_nodes) ∨
+      (n1 ∈ fg.function_nodes ∧ n2 ∈ fg.function_nodes))
+  then
+    ARB
+  else
+    fg with
+       <|
+         underlying_graph := fsgAddEdges {{n1; n2}} fg.underlying_graph
+       |>
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Prove that adding an edge between two elements is the same regardless of   *)
 (* which order the two elements are provided in                               *)
 (* -------------------------------------------------------------------------- *)
