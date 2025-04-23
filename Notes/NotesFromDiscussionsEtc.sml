@@ -84,6 +84,8 @@ val _ = new_theory "thingsToDiscuss";
 
 (* LIST_EQ_SIMP_CONV is what is reducing SNOC to APPEND. TODO: perhaps this shouldn't be included in the simpset *)
 
+(* Function for deduplicating lists: nub *)
+
 val _ = export_theory();
 
 

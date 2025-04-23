@@ -469,8 +469,6 @@ Definition fg_example_def:
   |>
 End
 
-
-
 (* -------------------------------------------------------------------------- *)
 (* The following is a manually designed example graph based on Example 2.2    *)
 (* -------------------------------------------------------------------------- *)
