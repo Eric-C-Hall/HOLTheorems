@@ -86,6 +86,10 @@ val _ = new_theory "thingsToDiscuss";
 
 (* Function for deduplicating lists: nub *)
 
+(* Be careful about including conditional rewrites in simp rules, beacause they
+   require the simplifier to do extra, possibly useless work every time they
+   see the LHS *)
+
 val _ = export_theory();
 
 

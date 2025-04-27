@@ -89,3 +89,20 @@ End*)
 (* -------------------------------------------------------------------------- *)
 
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* This theorem is very helpful in simplifying the above definition of        *)
+(* gen_partite_ea if we happen to know that the empty set is not in v.        *)
+(*                                                                            *)
+(* Good to combine with gen_partite_empty_set_not_in                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem simplify_set_of_nonempty_if_no_nonempty[simp] :
+  ∀v.
+    ∅ ∉ v ⇒ ({s | s ∈ v ∧ s ≠ ∅} = v)
+Proof
+  rpt strip_tac
+  >> irule (iffRL EXTENSION)
+  >> rpt strip_tac >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >> Cases_on ‘x’ >> gvs[]
+QED
