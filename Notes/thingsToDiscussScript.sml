@@ -22,10 +22,16 @@ I was thinking it might be possible to represent the function nodes in a similar
 
 We could then flatten this out into a 1-dimensional list, so that it has a consistent type, and the type doesn't change depending on how many neighbours the function node has.*)
 
+open arithmeticTheory pairTheory listTheory pred_setTheory sortingTheory
+                      hurdUtils;
+
 Theorem test:
   ∀v.
-    ARB = CARD (v DELETE ∅) * 1 ⇒
+    FINITE (v DELETE ∅) ∧
+    (ARB ⇒ (CARD (v DELETE ∅) * 1 = ARB)) ⇒ CARD (v DELETE ∅) = ARB
 Proof
+  rpt strip_tac
+  >> gvs[]
 QED
 
 val _ = export_theory();

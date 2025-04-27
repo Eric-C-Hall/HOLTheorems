@@ -47,3 +47,5 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* Use "Theorem foo[local]:" to define a local theorem *) 
 
 (* The "graph" type seems to correspond to the subset of the "graphrep" type which consists of well-formed graphs*)
+
+(* Automatically simplify a theorem: SIMP_RULE (srw_ss()) [] *)

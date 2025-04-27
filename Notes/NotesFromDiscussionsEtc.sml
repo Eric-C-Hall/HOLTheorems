@@ -90,6 +90,19 @@ val _ = new_theory "thingsToDiscuss";
    require the simplifier to do extra, possibly useless work every time they
    see the LHS *)
 
+(* In order to allow gvs[], etc to apply forward implications, we can add SF SFY_ss to the assumptions. That is, we can write gvs[SF SFY].
+
+For example, by default, I'm fairly sure gvs[] can't solve the following:
+
+    0.  gen_partite_ea r g v
+    1.  gen_partite_ea r g v ⇒ FINITE v
+   ------------------------------------
+        FINITE v
+
+*)
+
+Include the following: 
+
 val _ = export_theory();
 
 
