@@ -61,14 +61,16 @@ val _ = new_theory "factor_graphs";
 (*                                                                            *)
 (* The "underlying_graph" variable represents the underlying factor graph.    *)
 (*                                                                            *)
-(* Our graph is bipartite, split into the sets "function_nodes" and           *)
-(* "variable_nodes"                                                           *)
+(* The "is_function_node" function takes a node and returns 1 if it is a      *)
+(* function node, and 0 if it is a variable node. This may be used to split   *)
+(* our graph into a set of function nodes and a set of variable nodes,        *)
+(* showing that our graph is bipartite.                                       *)
 (*                                                                            *)
-(* function_map maps a function node to its function representation, as       *)
-(* described in the "Function representation" section above.                  *)
+(* function_map maps a function node to its function, as described in the     *)
+(* "Function representation" section above.                                   *)
 (*                                                                            *)
-(* We restrict our attention to factor graphs with binary inputs and outputs  *)
-(* which represent probabilities (of type extreal).                           *)
+(* We restrict our attention to factor graphs which have binary inputs and    *)
+(* have outputs that represent probabilities (probabilities are extreals).    *)
 (*                                                                            *)
 (* We expect the nodes of the factor graph to be consecutive natural numbers  *)
 (* starting from 0.                                                           *)
@@ -77,7 +79,7 @@ Datatype:
   factor_graph =
   <|
     underlying_graph : fsgraph;
-    colouring_function : (unit + num) |-> num;
+    is_function_node : (unit + num) |-> num;
     function_map : (unit + num) |-> (unit + num) list # (bool list -> extreal);
   |>
 End
@@ -99,27 +101,25 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
   wffactor_graph fg =
-  (
-  (gen_bipartite_ea fg.underlying_graph fg.function_nodes fg.variable_nodes) ∧
+  (gen_bipartite_ea fg.underlying_graph fg.is_function_node) ∧
   (∀f bs.
-     f ∈ fg.function_nodes ⇒
-     (let
-        output = (SND (fg.function_map f)) bs;
-      in
-        0 ≤ output ∧ output ≤ 1
-     )
+     fg.is_function_node ' f ⇒
+     let
+       (f_args, f_func) = fg.function_map ' f
+     in
+       LENGTH bs = LENGTH f_args ⇒
+       0 ≤ f_func bs ∧ f_func bs ≤ 1
   ) ∧
   (∀f.
-     f ∈ fg.function_nodes ⇒
+     fg.is_function_node ' f ⇒
      (let
-        variables = FST (fg.function_map f)
+        variables = FST (fg.function_map ' f)
       in
         ∀x. x ∈ (set variables) ⇒ x ∈ fg.variable_nodes
      )
   ) ∧
   (∃n.
      fg.variable_nodes ∪ fg.function_nodes = {INR i | i ∈ count n}
-  )
   )
 End
 
