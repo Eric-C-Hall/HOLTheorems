@@ -3,6 +3,7 @@ open HolKernel Parse boolLib bossLib;
 open useful_tacticsLib;
 open dep_rewrite;
 open fsgraphTheory;
+open finite_mapTheory;
 
 val _ = new_theory "partite_ea";
 
@@ -32,9 +33,9 @@ val _ = new_theory "partite_ea";
 (* although archive.org did not successfully archive the entire page).        *)
 (* -------------------------------------------------------------------------- *)
 Definition gen_partite_def :
-  gen_partite r (g : fsgraph) (f : unit + num -> num) <=>
-  (∀m. m ∈ nodes g ⇒ f m < r) ∧
-  (∀e. e ∈ fsgedges g ⇒ CARD (IMAGE f e) = 2)
+  gen_partite r (g : fsgraph) (f : unit + num |-> num) <=>
+  (∀m. m ∈ nodes g ⇒ f ' m < r) ∧
+  (∀e. e ∈ fsgedges g ⇒ CARD (IMAGE ($' f) e) = 2)
 End
 
 (* -------------------------------------------------------------------------- *)

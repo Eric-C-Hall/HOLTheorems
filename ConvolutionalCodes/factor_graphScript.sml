@@ -77,7 +77,7 @@ Datatype:
   factor_graph =
   <|
     underlying_graph : fsgraph;
-    colouring_function : (unit + num) -> num;
+    colouring_function : (unit + num) |-> num;
     function_map : (unit + num) |-> (unit + num) list # (bool list -> extreal);
   |>
 End
@@ -100,25 +100,21 @@ End
 Definition wffactor_graph_def:
   wffactor_graph fg =
   (
-  (
-  (fg.function_nodes = ∅ ∧ nodes fg.underlying_graph = fg.variable_nodes) ∨
-  (fg.variable_nodes = ∅ ∧ nodes fg.underlying_graph = fg.function_nodes) ∨
-  (gen_bipartite fg.underlying_graph fg.function_nodes fg.variable_nodes)
-  ) ∧
+  (gen_bipartite_ea fg.underlying_graph fg.function_nodes fg.variable_nodes) ∧
   (∀f bs.
      f ∈ fg.function_nodes ⇒
      (let
         output = (SND (fg.function_map f)) bs;
-     in
-       0 ≤ output ∧ output ≤ 1
+      in
+        0 ≤ output ∧ output ≤ 1
      )
   ) ∧
   (∀f.
      f ∈ fg.function_nodes ⇒
      (let
         variables = FST (fg.function_map f)
-     in
-       ∀x. x ∈ (set variables) ⇒ x ∈ fg.variable_nodes
+      in
+        ∀x. x ∈ (set variables) ⇒ x ∈ fg.variable_nodes
      )
   ) ∧
   (∃n.
