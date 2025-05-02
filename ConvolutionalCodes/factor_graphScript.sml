@@ -4,6 +4,9 @@ open probabilityTheory;
 (*open listTheory;*)
 open fsgraphTheory;
 open pred_setTheory;
+open finite_mapTheory;
+
+open partite_eaTheory;
 
 val _ = new_theory "factor_graphs";
 
@@ -29,10 +32,10 @@ val _ = new_theory "factor_graphs";
 (*                                                                            *)
 (* We use a representation based on fsgraphScript.                            *)
 (*                                                                            *)
-(* Each node has a label.                                                     *)
+(* Each node has a label, in the form of a natural number.                    *)
 (*                                                                            *)
-(* Our graph is bipartite, and is split up into the function nodes contained  *)
-(* in the set F, and the variable nodes contained in the set V                *)
+(* Our graph is bipartite, and can be split up into function nodes and        *)
+(* variable nodes                                                             *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -74,9 +77,8 @@ Datatype:
   factor_graph =
   <|
     underlying_graph : fsgraph;
-    function_nodes : (unit + num) -> bool;
-    variable_nodes : (unit + num) -> bool;
-    function_map : (unit + num) -> (unit + num) list # (bool list -> extreal)
+    colouring_function : (unit + num) -> num;
+    function_map : (unit + num) |-> (unit + num) list # (bool list -> extreal);
   |>
 End
 
@@ -150,7 +152,7 @@ End
 Proof
   gvs[gen_bipartite_def]
 QED*)
- 
+
 (* -------------------------------------------------------------------------- *)
 (* Prove that the empty factor graph is well-formed                           *)
 (* -------------------------------------------------------------------------- *)
