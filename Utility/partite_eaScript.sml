@@ -32,8 +32,8 @@ val _ = new_theory "partite_ea";
 (* discussion of this change (this page has been archived on archive.org,     *)
 (* although archive.org did not successfully archive the entire page).        *)
 (* -------------------------------------------------------------------------- *)
-Definition gen_partite_def :
-  gen_partite r (g : fsgraph) (f : unit + num |-> num) <=>
+Definition gen_partite_ea_def :
+  gen_partite_ea r (g : fsgraph) (f : unit + num |-> num) <=>
   (∀m. m ∈ nodes g ⇒ f ' m < r) ∧
   (∀e. e ∈ fsgedges g ⇒ CARD (IMAGE ($' f) e) = 2)
 End
@@ -46,18 +46,18 @@ End
 (* need to prove a theorem for gen_partite, and it will automatically also be *)
 (* proven for gen_bipartite.                                                  *)
 (* -------------------------------------------------------------------------- *)
-Overload gen_bipartite = “gen_partite 2 g f”;
+Overload gen_bipartite_ea = “gen_partite_ea 2 g f”;
 
 (* -------------------------------------------------------------------------- *)
 (* Partite: when we only care that a partition exists, but we don't care what *)
 (* the specific partition is                                                  *)
 (* -------------------------------------------------------------------------- *)
-Overload partite = “∃f. gen_partite r g f”;
+Overload partite_ea = “∃f. gen_partite_ea r g f”;
 
 (* -------------------------------------------------------------------------- *)
 (* Bipartite: when we don't care what specific partition we use, and we are   *)
 (* working with a graph that can be split into two components                 *)
 (* -------------------------------------------------------------------------- *)
-Overload bipartite = “∃f. gen_partite 2 g f”;
+Overload bipartite_ea = “∃f. gen_partite_ea 2 g f”;
 
 val _ = export_theory();
