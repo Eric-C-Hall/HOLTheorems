@@ -50,7 +50,7 @@ Overload gen_bipartite_ea = “gen_partite_ea 2”;
 
 (* ------------------------------------------------------------------------
    Messy workaround: using “2” instead of (mk_numeral ...) would cause the
-   following comment to be indented incorrectly.
+   following comment to be automatically indented incorrectly.
 
    When this issue is fixed, remove the "open numSyntax" and replace
    (mk_numeral $ Arbnum.fromString "2") with “2”
@@ -69,5 +69,16 @@ Overload partite_ea = “λr g. ∃f. gen_partite_ea r g f”;
 (* working with a graph that can be split into two components                 *)
 (* -------------------------------------------------------------------------- *)
 Overload bipartite_ea = “λg. ∃f. gen_partite_ea 2 g f”;
+
+(* -------------------------------------------------------------------------- *)
+(* Any function shows that the empty graph is r-partite for any r             *)
+(* -------------------------------------------------------------------------- *)
+Theorem gen_partite_ea_empty[simp]:
+  ∀r f.
+    gen_partite_ea r emptyG f
+Proof
+  rpt strip_tac
+  >> gvs[gen_partite_ea_def]
+QED
 
 val _ = export_theory();

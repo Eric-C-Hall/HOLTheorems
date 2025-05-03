@@ -8,6 +8,9 @@ open finite_mapTheory;
 
 open partite_eaTheory;
 
+(* Lifting and transfer libraries *)
+open liftLib liftingTheory transferLib transferTheory;
+
 val _ = new_theory "factor_graphs";
 
 (* -------------------------------------------------------------------------- *)
@@ -76,7 +79,7 @@ val _ = new_theory "factor_graphs";
 (* starting from 0.                                                           *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
-  factor_graph =
+  factor_graph_rep =
   <|
     underlying_graph : fsgraph;
     is_function_node : (unit + num) |-> num;
@@ -87,6 +90,10 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Well-formedness of a factor graph.                                         *)
 (*                                                                            *)
+(* Used to create an abstract factor_graph type based on the underlying       *)
+(* factor_graph_rep representation. A factor_graph is a factor_graph_rep      *)
+(* which satisfies the well-formedness properties.                            *)
+(*                                                                            *)
 (* - the underlying graph should be bipartite with respect to the function    *)
 (*   nodes and variable nodes, assuming we have function nodes at all         *)
 (* - the outputs of each function should be probabilities, and thus between   *)
@@ -96,9 +103,10 @@ End
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
-  wffactor_graph fg ⇔
+  wffactor_graph (fg : factor_graph_rep) ⇔
     (gen_bipartite_ea fg.underlying_graph fg.is_function_node) ∧
     (∀f bs.
+       f ∈ nodes fg.underlying_graph ∧
        fg.is_function_node ' f = 1 ⇒ 
        let
          (f_args, f_func) = fg.function_map ' f
@@ -107,6 +115,7 @@ Definition wffactor_graph_def:
          0 ≤ f_func bs ∧ f_func bs ≤ 1
     ) ∧
     (∀f.
+       f ∈ nodes fg.underlying_graph ∧
        fg.is_function_node ' f = 1 ⇒
        (let
           variables = FST (fg.function_map ' f)
@@ -114,46 +123,154 @@ Definition wffactor_graph_def:
           ∀x. x ∈ (set variables) ⇒ (x ∈ nodes fg.underlying_graph ∧ fg.is_function_node ' x = 0)
        )
     ) ∧
-    (∃n.
-       nodes fg.underlying_graph = {INR i | i ∈ count n}
-    )
+    nodes fg.underlying_graph = {INR i | i < CARD (nodes fg.underlying_graph)}
 End
 
-
 (* -------------------------------------------------------------------------- *)
-(* Create an empty factor graph                                               *)
+(* The empty factor_graph_rep object.                                         *)
 (* -------------------------------------------------------------------------- *)
-Definition fg_empty_def:
-  fg_empty = <|
+Definition fg_empty0_def:
+  fg_empty0 : factor_graph_rep =
+  <|
     underlying_graph := emptyG;
-    function_nodes := {};
-    variable_nodes := {};
-    function_map := ARB;
+    is_function_node := FEMPTY;
+    function_map := FEMPTY;
   |>
 End
 
 (* -------------------------------------------------------------------------- *)
-(* The empty graph is bipartite into the empty set and the empty set          *)
-(*                                                                            *)
-(* This theorem would be convenient, but isn't true, because a partition is   *)
-(* only considered to be valid if each of the components is nonempty. I don't *)
-(* think this should be how a partition is defined, but on the other hand,    *)
-(* there is some precedent for this.                                          *)
-(* -------------------------------------------------------------------------- *)
-(*Theorem gen_bipartite_empty[simp]:
-  gen_bipartite emptyG ∅ ∅
-Proof
-  gvs[gen_bipartite_def]
-QED*)
-
-(* -------------------------------------------------------------------------- *)
-(* Prove that the empty factor graph is well-formed                           *)
+(* The empty factor graph is well-formed                                      *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_empty_wf[simp]:
-  wffactor_graph fg_empty
+  wffactor_graph fg_empty0
 Proof
-  gvs[fg_empty_def, wffactor_graph_def]
-  >- (qexists ‘0’ >> gvs[])
+  gvs[fg_empty0_def, wffactor_graph_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* There exists at least one well-formed object of type factor_graph_rep.     *)
+(*                                                                            *)
+(* We need this in order to generate the abstract factor_graph type as a      *)
+(* well-formed object of type factor_graph_rep                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem factor_graphs_exist[local]:
+  ∃fg. wffactor_graph fg
+Proof
+  qexists ‘fg_empty0’
+  >> gvs[]
+QED
+
+val tydefrec = newtypeTools.rich_new_type { tyname = "factor_graph",
+exthm  = factor_graphs_exist,
+ABS = "factor_graph_ABS",
+REP = "factor_graph_REP"};
+
+(* -------------------------------------------------------------------------- *)
+(* Defines the equivalence class of graphs that are equivalent to a           *)
+(* well-formed graph, in this instance, we use ordinary equality.             *)
+(*                                                                            *)
+(* The above comment may be inaccurate: I'm not entirely confident how to use *)
+(* the "lifting" code. My understanding is that we are essentially using      *)
+(* "modulo" to create a congruence class, but in this case, the congruence    *)
+(* class has exactly 1 element, so all of the elements without a congruence   *)
+(* class are discarded and cannot be accessed in the abstract type.           *)
+(* It's largely based on the code used by genericGraphScript.                 *)
+(* -------------------------------------------------------------------------- *)
+Definition fgequiv_def:
+  fgequiv fg1 fg2 ⇔ fg1 = fg2 ∧ wffactor_graph fg2
+End
+
+(* -------------------------------------------------------------------------- *)
+(* A relation which relates a well-formed representative of a factor graph to *)
+(* its corresponding abstract value.                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_AR_def:
+  fg_AR r a ⇔ wffactor_graph r ∧ r = factor_graph_REP a
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
+(* -------------------------------------------------------------------------- *)
+Theorem wfgraph_relates[transfer_rule]:
+  (fg_AR ===> (=)) wffactor_graph (K T)
+Proof
+  simp[FUN_REL_def, fg_AR_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
+(* -------------------------------------------------------------------------- *)
+Theorem AReq_relates[transfer_rule]:
+  (fg_AR ===> fg_AR ===> (=)) (=) (=)
+Proof
+  simp[fg_AR_def, FUN_REL_def, #termP_term_REP tydefrec, #term_REP_11 tydefrec]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A proof that fg_empty0 can be represented in a well-formed manner, and     *)
+(* thus it can be lifted to become a member of the abstract type factor_graph *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_empty0_respects:
+  fgequiv fg_empty0 fg_empty0
+Proof
+  simp[fgequiv_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
+(* -------------------------------------------------------------------------- *)
+Theorem right_unique_fg_AR[transfer_simp]:
+  right_unique fg_AR
+Proof
+  simp[right_unique_def, fg_AR_def, #term_REP_11 tydefrec]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
+(* -------------------------------------------------------------------------- *)
+Theorem surj_fg_AR[transfer_simp]:
+  surj fg_AR
+Proof
+  simp[surj_def, fg_AR_def, #termP_term_REP tydefrec]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
+(* -------------------------------------------------------------------------- *)
+Theorem RDOM_AR[transfer_simp]:
+  RDOM fg_AR = {gr | wffactor_graph gr}
+Proof
+  simp[relationTheory.RDOM_DEF, Once FUN_EQ_THM, fg_AR_def, SF CONJ_ss,
+       #termP_term_REP tydefrec] >>
+  metis_tac[#termP_term_REP tydefrec, #repabs_pseudo_id tydefrec]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
+(* -------------------------------------------------------------------------- *)
+Theorem Qt_graphs[liftQt]:
+  Qt fgequiv factor_graph_ABS factor_graph_REP fg_AR
+Proof
+  simp[Qt_alt, fg_AR_def, #absrep_id tydefrec, fgequiv_def, #termP_term_REP tydefrec]>>
+  simp[SF CONJ_ss, #term_ABS_pseudo11 tydefrec] >>
+  simp[SF CONJ_ss, FUN_EQ_THM, fg_AR_def, #termP_term_REP tydefrec,
+       CONJ_COMM] >>
+  simp[EQ_IMP_THM, #termP_term_REP tydefrec, #absrep_id tydefrec,
+       #repabs_pseudo_id tydefrec]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Many of the theorems above were copy/pasted to get this to work.           *)
+(* -------------------------------------------------------------------------- *)
+val _ = liftdef fg_empty0_respects "fg_empty"
+
+(* -------------------------------------------------------------------------- *)
+(* The empty graph is bipartite into the empty set and the empty set          *)
+(* -------------------------------------------------------------------------- *)
+Theorem gen_bipartite_ea_fg_empty[simp]:
+  gen_bipartite_ea emptyG FEMPTY
+Proof
+  gvs[gen_bipartite_ea_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -162,17 +279,74 @@ QED
 (* The first node added (variable or function) should be 0, the next node     *)
 (* should be 1, etc.                                                          *)
 (* -------------------------------------------------------------------------- *)
-Definition fg_add_variable_node_def:
-  fg_add_variable_node fg =
+Definition fg_add_variable_node0_def:
+  fg_add_variable_node0 fg =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)))
   in
     fg with
        <|
          underlying_graph := fsgAddNode new_node fg.underlying_graph;
-         variable_nodes := new_node INSERT fg.variable_nodes
+         is_function_node updated_by (λf. FUPDATE f (new_node, 0));
        |>
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Adding a variable node maintains well-formedness                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_add_variable_node0_wf:
+  ∀fg.
+    wffactor_graph fg ⇒
+    wffactor_graph (fg_add_variable_node0 fg)
+Proof
+  rpt strip_tac
+  >> simp[wffactor_graph_def, fg_add_variable_node0_def]
+  >> conj_tac
+  >- (
+  )
+  >> conj_tac
+  >- (rw[]
+      >- (qmatch_goalsub_abbrev_tac ‘_ arg’
+          >> Cases_on ‘arg’ >> gvs[])
+      >- (qmatch_goalsub_abbrev_tac ‘_ arg’
+          >> Cases_on ‘arg’ >> gvs[]
+          >> disch_tac
+          >> drule $ cj 2 (iffLR wffactor_graph_def)
+          >> disch_tac
+          >> pop_assum $ qspecl_then [‘f’, ‘bs’] assume_tac
+          >> gvs[]
+          >> pop_assum irule
+          >> qpat_x_assum ‘_ ' f = 1’ (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+          >> SYM_TAC
+          >> irule NOT_EQ_FAPPLY
+          >> drule $ cj 4 (iffLR wffactor_graph_def)
+          >> strip_tac
+          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >> gvs[]
+          >> gvs[cj 4 (iffLR wffactor_graph_def), SF SFY_ss]
+         )
+     )
+
+  >- (
+  )
+  >- (
+  )
+  >- (
+  )
+QED
+
+Theorem fg_add_variable_node0_respects:
+  ∀fg.
+    fgequiv (fg_add_variable_node0 fg) (fg_add_variable_node0 fg)
+Proof
+  rpt strip_tac
+  >> gvs[fgequiv_def]
+  >> 
+QED
+
+val _ = liftdef fg_empty0_respects "fg_empty"
+
+
 
 (* -------------------------------------------------------------------------- *)
 (* Adds n variable nodes to the factor graph                                  *)
