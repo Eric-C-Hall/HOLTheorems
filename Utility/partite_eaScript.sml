@@ -46,18 +46,28 @@ End
 (* need to prove a theorem for gen_partite, and it will automatically also be *)
 (* proven for gen_bipartite.                                                  *)
 (* -------------------------------------------------------------------------- *)
-Overload gen_bipartite_ea = “gen_partite_ea 2 g f”;
+Overload gen_bipartite_ea = “gen_partite_ea 2”;
+
+(* ------------------------------------------------------------------------
+   Messy workaround: using “2” instead of (mk_numeral ...) would cause the
+   following comment to be indented incorrectly.
+
+   When this issue is fixed, remove the "open numSyntax" and replace
+   (mk_numeral $ Arbnum.fromString "2") with “2”
+   ------------------------------------------------------------------------ *)
+open numSyntax;
+Theorem gen_bipartite_ea_def = SPEC (mk_numeral $ Arbnum.fromString "2") gen_partite_ea_def;
 
 (* -------------------------------------------------------------------------- *)
 (* Partite: when we only care that a partition exists, but we don't care what *)
 (* the specific partition is                                                  *)
 (* -------------------------------------------------------------------------- *)
-Overload partite_ea = “∃f. gen_partite_ea r g f”;
+Overload partite_ea = “λr g. ∃f. gen_partite_ea r g f”;
 
 (* -------------------------------------------------------------------------- *)
 (* Bipartite: when we don't care what specific partition we use, and we are   *)
 (* working with a graph that can be split into two components                 *)
 (* -------------------------------------------------------------------------- *)
-Overload bipartite_ea = “∃f. gen_partite_ea 2 g f”;
+Overload bipartite_ea = “λg. ∃f. gen_partite_ea 2 g f”;
 
 val _ = export_theory();

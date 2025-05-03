@@ -91,37 +91,34 @@ End
 (*   nodes and variable nodes, assuming we have function nodes at all         *)
 (* - the outputs of each function should be probabilities, and thus between   *)
 (*   0 and 1                                                                  *)
-(* - the variables used as input to each function must be amongst the         *)
-(*   variable_nodes.                                                          *)
+(* - the variables used as input to each function must be valid nodes and     *)
+(*   they should be variable nodes.                                           *)
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
-(* - We currently don't require that the input to the function map itself has *)
-(*   to be a function node, because this doesn't gel well with the            *)
-(*   representation of functions in HOL, which requires a function to have a  *)
-(*   value for all inputs                                                     *)
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
-  wffactor_graph fg =
-  (gen_bipartite_ea fg.underlying_graph fg.is_function_node) ∧
-  (∀f bs.
-     fg.is_function_node ' f ⇒
-     let
-       (f_args, f_func) = fg.function_map ' f
-     in
-       LENGTH bs = LENGTH f_args ⇒
-       0 ≤ f_func bs ∧ f_func bs ≤ 1
-  ) ∧
-  (∀f.
-     fg.is_function_node ' f ⇒
-     (let
-        variables = FST (fg.function_map ' f)
-      in
-        ∀x. x ∈ (set variables) ⇒ x ∈ fg.variable_nodes
-     )
-  ) ∧
-  (∃n.
-     fg.variable_nodes ∪ fg.function_nodes = {INR i | i ∈ count n}
-  )
+  wffactor_graph fg ⇔
+    (gen_bipartite_ea fg.underlying_graph fg.is_function_node) ∧
+    (∀f bs.
+       fg.is_function_node ' f = 1 ⇒ 
+       let
+         (f_args, f_func) = fg.function_map ' f
+       in
+         LENGTH bs = LENGTH f_args ⇒
+         0 ≤ f_func bs ∧ f_func bs ≤ 1
+    ) ∧
+    (∀f.
+       fg.is_function_node ' f = 1 ⇒
+       (let
+          variables = FST (fg.function_map ' f)
+        in
+          ∀x. x ∈ (set variables) ⇒ (x ∈ nodes fg.underlying_graph ∧ fg.is_function_node ' x = 0)
+       )
+    ) ∧
+    (∃n.
+       nodes fg.underlying_graph = {INR i | i ∈ count n}
+    )
 End
+
 
 (* -------------------------------------------------------------------------- *)
 (* Create an empty factor graph                                               *)
