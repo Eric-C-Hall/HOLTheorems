@@ -126,7 +126,8 @@ Definition wffactor_graph_def:
           ∀x. x ∈ (set variables) ⇒ (x ∈ nodes fg.underlying_graph ∧ fg.is_function_node ' x = 0)
        )
     ) ∧
-    nodes fg.underlying_graph = {INR i | i < CARD (nodes fg.underlying_graph)}
+    (the edges in the graph must relate to the inputs to the funciton) ∧
+nodes fg.underlying_graph = {INR i | i < CARD (nodes fg.underlying_graph)}
 End
 
 (* -------------------------------------------------------------------------- *)
