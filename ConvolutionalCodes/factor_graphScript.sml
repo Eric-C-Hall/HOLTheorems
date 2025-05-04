@@ -164,9 +164,32 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* The next few theorems explore the properties of {INR i | i ∈ count n},    *)
+(* which can equivalently be described as {INR i | i < n}                     *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Fundamental inductive method used to produce a set of this form.           *)
+(* This allows us to work by induction on this set.                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem INR_COMP_SUC:
+  ∀n : num.
+    {INR i | i < SUC n} = (INR n) INSERT {INR i | i < n}
+Proof
+  rpt strip_tac
+  >> gvs[EXTENSION]
+  >> rpt strip_tac
+  >> Cases_on ‘x’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Automatically simplify when inserting a node into the underlying graph     *)
 (* for a well-formed factor graph (as the node sets of well-formed factor     *)
 (* graphs have this form                                                      *)
+(*                                                                            *)
+(* Note: similar to INR_COMP_SUC. I wrote these independently. I used one in  *)
+(* one direction and the other in the other direction, and added one with the *)
+(* [simp] attribute                                                           *)
 (* -------------------------------------------------------------------------- *)
 Theorem inr_comprehension_suc[simp]:
   ∀fg.
@@ -179,6 +202,31 @@ Proof
   >> gvs[EXTENSION]
   >> rw[]
   >> Cases_on ‘x’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* In order to associate a finite cardinality with this set, we first need to *)
+(* know that it's finite.                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem FINITE_INR_COMP[simp]:
+  ∀n : num.
+    FINITE {INR i | i < n}
+Proof
+  rpt strip_tac
+  >> Induct_on ‘n’ >> gvs[]
+  >> gvs[INR_COMP_SUC]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Useful for simplification in fg_add_variable_node_wf                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem CARD_INR_COMP[simp]:
+  ∀n.
+    CARD {INR i | i < n} = n
+Proof
+  rpt strip_tac >> gvs[]
+  >> Induct_on ‘n’ >> gvs[]
+  >> gvs[INR_COMP_SUC]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -262,8 +310,10 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* A proof that fg_empty0 can be represented in a well-formed manner, and     *)
-(* thus it can be lifted to become a member of the abstract type factor_graph *)
+(* A proof that fg_empty0 is equivalent to itself when considered as a member *)
+(* of the well-formed members of the representative class, and thus it can be *)
+(* lifted to become a member of the abstract type factor_graph                *)
+(* (My understanding of lifting is limited)                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_empty0_respects:
   fgequiv fg_empty0 fg_empty0
@@ -404,18 +454,22 @@ Proof
      )
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* A proof that if the inputs are equivalent as factor graphs, then the       *)
+(* outputs are also equivalent as factor graphs, and thus we can lift         *)
+(* fg_add_variable_node to our abstract type                                  *)
+(* -------------------------------------------------------------------------- *)
 Theorem fg_add_variable_node0_respects:
   ∀fg.
-    fgequiv (fg_add_variable_node0 fg) (fg_add_variable_node0 fg)
+    (fgequiv ===> fgequiv) fg_add_variable_node0 fg_add_variable_node0
 Proof
   rpt strip_tac
+  >> gvs[FUN_REL_def]
   >> gvs[fgequiv_def]
-  >> 
+  >> gvs[fg_add_variable_node0_wf]
 QED
 
-val _ = liftdef fg_empty0_respects "fg_empty"
-
-
+val _ = liftdef fg_add_variable_node0_respects "fg_add_variable_node"
 
 (* -------------------------------------------------------------------------- *)
 (* Adds n variable nodes to the factor graph                                  *)
@@ -425,78 +479,6 @@ Definition fg_add_n_variable_nodes_def:
   fg_add_n_variable_nodes fg (SUC n) =
   fg_add_variable_node (fg_add_n_variable_nodes fg n)
 End
-
-(* -------------------------------------------------------------------------- *)
-(* The next few theorems explore the properties of {INR i | i ∈ count n},    *)
-(* which can equivalently be described as {INR i | i < n}                     *)
-(* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
-(* Fundamental inductive method used to produce a set of this form. This      *)
-(* allows us to work by induction on this set.                                *)
-(* -------------------------------------------------------------------------- *)
-Theorem INR_COMP_SUC:
-  ∀n : num.
-    {INR i | i < SUC n} = (INR n) INSERT {INR i | i < n}
-Proof
-  rpt strip_tac
-  >> irule (iffRL EXTENSION)
-  >> rpt strip_tac
-  >> Cases_on ‘x’ >> gvs[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* In order to associate a finite cardinality with this set, we first need to *)
-(* know that it's finite.                                                     *)
-(* -------------------------------------------------------------------------- *)
-Theorem FINITE_INR_COMP[simp]:
-  ∀n : num.
-    FINITE {INR i | i < n}
-Proof
-  rpt strip_tac
-  >> Induct_on ‘n’ >> gvs[]
-  >> gvs[INR_COMP_SUC]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Useful for simplification in fg_add_variable_node_wf                       *)
-(* -------------------------------------------------------------------------- *)
-Theorem CARD_INR_COMP[simp]:
-  ∀n.
-    CARD {INR i | i < n} = n
-Proof
-  rpt strip_tac >> gvs[]
-  >> Induct_on ‘n’ >> gvs[]
-  >> gvs[INR_COMP_SUC]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Proof that after adding a variable node, the resulting factor graph will   *)
-(* be well-formed.                                                            *)
-(* -------------------------------------------------------------------------- *)
-Theorem fg_add_variable_node_wf[simp]:
-  ∀fg.
-    wffactor_graph fg ⇒
-    wffactor_graph (fg_add_variable_node fg)
-Proof
-  rpt strip_tac
-  >> gvs[wffactor_graph_def, fg_add_variable_node_def]
-  >- (qexists ‘SUC n’ >> gvs[INR_COMP_SUC])
-  >- (conj_tac
-      >- (Cases_on ‘n’ >> gvs[]
-          >> disj2_tac
-          >> gvs[gen_bipartite_def]
-          >> gvs[INR_COMP_SUC]
-          >> conj_tac
-          >- (gvs[UNION_DEF, INSERT_DEF]
-              >> irule (iffRL EXTENSION)
-              >> rpt strip_tac >> Cases_on ‘x’ >> gvs[]
-             )
-          >> rpt strip_tac
-          >> ‘F’ suffices_by gvs[] (* We cannot have any two edges in the orig *)
-
-                                Cases_on ‘{INR i | i < n} = ∅’ >> gvs[]
-QED
 
 (* -------------------------------------------------------------------------- *)
 (* Add a function node to the factor graph.                                    *)
