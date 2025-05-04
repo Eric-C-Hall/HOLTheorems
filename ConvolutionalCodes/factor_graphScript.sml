@@ -495,21 +495,16 @@ End
 (*                                                                            *)
 (*   unused label.                                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition fg_add_function_node_def:
-  fg_add_function_node fg f =
+Definition fg_add_function_node0_def:
+  fg_add_function_node fg fn =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)))
   in
     fg with
        <|
          underlying_graph := fsgAddNode new_node fg.underlying_graph;
-         function_nodes := new_node INSERT fg.variable_nodes;
-         function_map := λfunction_label.
-                           if function_label = new_node
-                           then
-                             f
-                           else
-                             fg.function_map function_label
+         is_function_node updated_by (λf. FUPDATE f (new_node, 1));
+         function_map updated_by (λf. FUPDATE f (new_node, fn));
        |>
 End
 
