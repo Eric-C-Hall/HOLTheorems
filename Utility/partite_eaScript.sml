@@ -4,6 +4,7 @@ open useful_tacticsLib;
 open dep_rewrite;
 open fsgraphTheory;
 open finite_mapTheory;
+open pred_setTheory;
 
 val _ = new_theory "partite_ea";
 
@@ -80,5 +81,66 @@ Proof
   rpt strip_tac
   >> gvs[gen_partite_ea_def]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* Adding a node to a graph, without adding any corresponding edges, and      *)
+(* updating the partite function to include this node maintains partiteness   *)
+(* -------------------------------------------------------------------------- *)
+Theorem gen_partite_fsgAddNode:
+  ∀r g f x z.
+    gen_partite_ea r g f ∧
+    x ∉ nodes g ∧
+    z < r ⇒
+    gen_partite_ea r (fsgAddNode x g) (f |+ (x, z))
+Proof
+  rw[]
+  >> gvs[gen_partite_ea_def]
+  >> rw[]
+  >- gvs[]
+  >- (DEP_PURE_ONCE_REWRITE_TAC[NOT_EQ_FAPPLY]
+      >> gvs[]
+      >> CCONTR_TAC
+      >> gvs[]
+     )
+  >- (first_x_assum drule
+      >> rw[]
+      >> ‘FINITE e’ by gvs[fsgedges_def]
+      >> sg ‘CARD e = 2’
+      >- (‘2 ≤ CARD e’ by metis_tac[CARD_IMAGE_LE]
+          >> sg ‘CARD e ≤ 2’ >- (gvs[fsgedges_def] >> Cases_on ‘m = n’ >> gvs[])
+          >> gvs[])
+      >> Cases_on ‘e’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
+      >> qmatch_asmsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
+      (* Doing Case_on ‘x = x'’ and Cases_on ‘x = x''’ and then applying
+         gvs[NOT_EQ_FAPPLY, FAPPLY_FUPDATE] automatically solves for the
+         cases where we don't have x = x' or x = x''.
+.
+         We then use "without loss of generality" to show that x = x' is
+         an equivalent proof state to x = x'', as they are symmetric*)
+      >> Q.SUBGOAL_THEN ‘x = x' \/ x = x''’ assume_tac
+      >- (Cases_on ‘x = x'’ >> Cases_on ‘x = x''’
+          >> gvs[NOT_EQ_FAPPLY, FAPPLY_FUPDATE])
+      >> wlog_tac ‘x = x'’ [‘x'’, ‘x''’]
+      >- (gvs[]
+            >> pop_assum $ qspec_then ‘x'’ assume_tac
+            >> gvs[]
+          >> ‘{x;x'} = {x';x}’ by (gvs[EXTENSION] >> rpt strip_tac
+                                   >> EQ_TAC >> rw[])
+          >> metis_tac[])
+      >> gvs[]
+      >- (drule alledges_valid
+          >> rw[]
+          >> gvs[]
+          >> Cases_on ‘x = a’ >> gvs[]
+          >> Cases_on ‘x = b’ >> gvs[]
+          >> ‘x ∈ {x; x''} ∧ x ∉ {a; b}’ by gvs[]
+          >> metis_tac[])
+     )
+QED
+
 
 val _ = export_theory();

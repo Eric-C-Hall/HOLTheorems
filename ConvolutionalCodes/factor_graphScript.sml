@@ -8,6 +8,9 @@ open finite_mapTheory;
 
 open partite_eaTheory;
 
+(* I find DEP_PURE_ONCE_REWRITE_TAC, etc to be very helpful *)
+open dep_rewrite;
+
 (* Lifting and transfer libraries *)
 open liftLib liftingTheory transferLib transferTheory;
 
@@ -125,6 +128,58 @@ Definition wffactor_graph_def:
     ) ∧
     nodes fg.underlying_graph = {INR i | i < CARD (nodes fg.underlying_graph)}
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Simplify INR x ∈ nodes fg.underlying_graph                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem inr_in_nodes_underlying_graph:
+  ∀fg x.
+    wffactor_graph fg ⇒
+    (INR x ∈ nodes fg.underlying_graph ⇔ x < CARD (nodes fg.underlying_graph))
+Proof
+  rpt strip_tac
+  >> gvs[wffactor_graph_def]
+  >> first_assum (fn th => PURE_REWRITE_TAC[Once th])
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Suppose we have an updated is_function_node map, as a result of adding a   *)
+(* new node to the graph (and hence the new node has the specific value which *)
+(* is 1 more than any previous node). Then applying the updated map to a      *)
+(* value in the old graph is equivalent to applying the old map to that value *)
+(* -------------------------------------------------------------------------- *)
+Theorem fupdate_is_function_node[simp]:
+  ∀fg f x.
+    wffactor_graph fg ∧
+    f ∈ nodes fg.underlying_graph ⇒
+    (fg.is_function_node |+ (INR (CARD (nodes fg.underlying_graph)), x)) ' f =
+    fg.is_function_node ' f
+Proof
+  rw[]
+  >> irule NOT_EQ_FAPPLY
+  >> rpt strip_tac
+  >> gvs[]
+  >> gvs[inr_in_nodes_underlying_graph]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Automatically simplify when inserting a node into the underlying graph     *)
+(* for a well-formed factor graph (as the node sets of well-formed factor     *)
+(* graphs have this form                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem inr_comprehension_suc[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    INR (CARD (nodes fg.underlying_graph)) INSERT
+        {INR i | i < CARD (nodes fg.underlying_graph)} =
+                 {INR i | i < SUC (CARD (nodes fg.underlying_graph))}
+Proof
+  rpt strip_tac
+  >> gvs[EXTENSION]
+  >> rw[]
+  >> Cases_on ‘x’ >> gvs[]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* The empty factor_graph_rep object.                                         *)
@@ -301,38 +356,52 @@ Theorem fg_add_variable_node0_wf:
 Proof
   rpt strip_tac
   >> simp[wffactor_graph_def, fg_add_variable_node0_def]
-  >> conj_tac
-  >- (
-  )
-  >> conj_tac
-  >- (rw[]
-      >- (qmatch_goalsub_abbrev_tac ‘_ arg’
-          >> Cases_on ‘arg’ >> gvs[])
-      >- (qmatch_goalsub_abbrev_tac ‘_ arg’
-          >> Cases_on ‘arg’ >> gvs[]
-          >> disch_tac
-          >> drule $ cj 2 (iffLR wffactor_graph_def)
-          >> disch_tac
-          >> pop_assum $ qspecl_then [‘f’, ‘bs’] assume_tac
-          >> gvs[]
-          >> pop_assum irule
-          >> qpat_x_assum ‘_ ' f = 1’ (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
-          >> SYM_TAC
-          >> irule NOT_EQ_FAPPLY
-          >> drule $ cj 4 (iffLR wffactor_graph_def)
-          >> strip_tac
-          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
-          >> gvs[]
-          >> gvs[cj 4 (iffLR wffactor_graph_def), SF SFY_ss]
-         )
+  >> rw[]
+  >- (drule (cj 1 (iffLR wffactor_graph_def))
+      >> rw[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_fsgAddNode]
+      >> gvs[]
+      >> gvs[inr_in_nodes_underlying_graph]
      )
-
-  >- (
+  >- gvs[]
+  >- (gvs[] >> gvs[wffactor_graph_def]
+     (*drule $ cj 2 (iffLR wffactor_graph_def)
+       >> disch_tac
+       >> gvs[]
+       >> pop_assum irule
+       >> gvs[]
+       >> qpat_x_assum ‘_ ' f = 1’ (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+       >> SYM_TAC
+       >> irule NOT_EQ_FAPPLY
+       >> strip_tac
+       >> gvs[]
+       >> gvs[inr_in_nodes_underlying_graph]*)
   )
-  >- (
-  )
-  >- (
-  )
+  >- gvs[FAPPLY_FUPDATE]
+  >- gvs[FAPPLY_FUPDATE]
+  >- (gvs[]
+      >> disj2_tac
+      >> gvs[]
+      >> drule (cj 3 (iffLR wffactor_graph_def))
+      >> rpt strip_tac
+      >> pop_assum drule
+      >> rw[]
+     )
+  >- (gvs[]
+      >> drule (cj 3 (iffLR wffactor_graph_def))
+      >> rw[]
+      >> pop_assum drule
+      >> rw[]
+     )
+  >- gvs[inr_in_nodes_underlying_graph]
+  >- (gvs[inr_in_nodes_underlying_graph]
+      >> drule (cj 4 (iffLR wffactor_graph_def))
+      >> rw[]
+      >> qmatch_abbrev_tac ‘donotexpand1 INSERT _ = donotexpand2’
+      >> qpat_x_assum ‘nodes _ = _’ (fn th => PURE_REWRITE_TAC[Once th])
+      >> unabbrev_all_tac
+      >> gvs[]
+     )
 QED
 
 Theorem fg_add_variable_node0_respects:
