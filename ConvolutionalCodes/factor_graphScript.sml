@@ -164,6 +164,23 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Similar to fupdate_is_function_node, but for function_map instead          *)
+(* -------------------------------------------------------------------------- *)
+Theorem fupdate_is_function_node[simp]:
+  ∀fg f x.
+    wffactor_graph fg ∧
+    f ∈ nodes fg.underlying_graph ⇒
+    (fg.function_map |+ (INR (CARD (nodes fg.underlying_graph)), x)) ' f =
+    fg.function_map ' f
+Proof
+  rw[]
+  >> irule NOT_EQ_FAPPLY
+  >> rpt strip_tac
+  >> gvs[]
+  >> gvs[inr_in_nodes_underlying_graph]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* The next few theorems explore the properties of {INR i | i ∈ count n},    *)
 (* which can equivalently be described as {INR i | i < n}                     *)
 (* -------------------------------------------------------------------------- *)
@@ -481,6 +498,15 @@ Definition fg_add_n_variable_nodes_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Add the edges between a function node being added to the graph and         *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition fg_add_edges_for_function_node0_def:
+
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Add a function node to the factor graph.                                    *)
 (*                                                                            *)
 (* Input:                                                                     *)
@@ -496,7 +522,7 @@ End
 (*   unused label.                                                            *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_function_node0_def:
-  fg_add_function_node fg fn =
+  fg_add_function_node0 fg fn =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)))
   in
@@ -511,13 +537,53 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Adding a function node to a factor graph maintains well-formedness         *)
 (* -------------------------------------------------------------------------- *)
-Theorem fg_add_function_node_wf[simp]:
-  ∀fg.
-    wffactor_graph fg ⇒
-    wffactor_graph (fg_add_variable_node fg)
+Theorem fg_add_function_node0_wf[simp]:
+  ∀fg fn.
+    wffactor_graph fg ∧
+    (∀bs. LENGTH bs = LENGTH (FST fn) ⇒ 0 ≤ (SND fn) bs ∧ (SND fn) bs ≤ 1) ⇒
+    wffactor_graph (fg_add_function_node0 fg fn)
 Proof
   rpt strip_tac
-  >> gvs[wffactor_graph_def, fg_add_variable_node_def]
+  >> simp[wffactor_graph_def, fg_add_function_node0_def]
+  >> rw[]
+  (* Much of this is copy/pasted from fg_add_variable_node0_wf *)
+  >- (drule (cj 1 (iffLR wffactor_graph_def))
+      >> rw[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_fsgAddNode]
+      >> gvs[]
+      >> gvs[inr_in_nodes_underlying_graph]
+     )
+  >- (gvs[]
+      >> Cases_on ‘fn’ >> gvs[])
+  >- (gvs[] >> gvs[wffactor_graph_def])
+  >- (gvs[]
+      >> drule (cj 3 (iffLR wffactor_graph_def))
+      >> rpt strip_tac
+     )
+  >- gvs[FAPPLY_FUPDATE]
+  >- (gvs[]
+      >> disj2_tac
+      >> gvs[]
+      >> drule (cj 3 (iffLR wffactor_graph_def))
+      >> rpt strip_tac
+      >> pop_assum drule
+      >> rw[]
+     )
+  >- (gvs[]
+      >> drule (cj 3 (iffLR wffactor_graph_def))
+      >> rw[]
+      >> pop_assum drule
+      >> rw[]
+     )
+  >- gvs[inr_in_nodes_underlying_graph]
+  >- (gvs[inr_in_nodes_underlying_graph]
+      >> drule (cj 4 (iffLR wffactor_graph_def))
+      >> rw[]
+      >> qmatch_abbrev_tac ‘donotexpand1 INSERT _ = donotexpand2’
+      >> qpat_x_assum ‘nodes _ = _’ (fn th => PURE_REWRITE_TAC[Once th])
+      >> unabbrev_all_tac
+      >> gvs[]
+     )
 QED
 
 (* -------------------------------------------------------------------------- *)
