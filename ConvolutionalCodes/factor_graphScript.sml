@@ -103,6 +103,8 @@ End
 (*   0 and 1                                                                  *)
 (* - the variables used as input to each function must be valid nodes and     *)
 (*   they should be variable nodes.                                           *)
+(* - the edges in the graph should connect an function and variable if and    *)
+(*   only if that variable is one of the inputs to that function              *)
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
@@ -126,8 +128,13 @@ Definition wffactor_graph_def:
           ∀x. x ∈ (set variables) ⇒ (x ∈ nodes fg.underlying_graph ∧ fg.is_function_node ' x = 0)
        )
     ) ∧
-    (the edges in the graph must relate to the inputs to the funciton) ∧
-nodes fg.underlying_graph = {INR i | i < CARD (nodes fg.underlying_graph)}
+    (∀e. e ∈ fsgedges fg.underlying_graph ⇔
+           (∃f v. e = {f; v} ∧ f ∈ nodes fg.underlying_graph
+                          ∧ v ∈ nodes fg.underlying_graph
+                          ∧ fg.is_function_node ' f = 1
+                          ∧ fg.is_function_node ' v = 0
+                          ∧ MEM v (FST (fg.function_map ' f)))) ∧
+    nodes fg.underlying_graph = {INR i | i < CARD (nodes fg.underlying_graph)}
 End
 
 (* -------------------------------------------------------------------------- *)
