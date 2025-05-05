@@ -468,9 +468,27 @@ Proof
       >> pop_assum drule
       >> rw[]
      )
+  >- (drule (cj 4 (iffLR wffactor_graph_def))
+      >> disch_tac
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
+      >> EQ_TAC >> rw[]
+      >- (qexistsl [‘f’, ‘v’] >> gvs[])
+      >- (qexistsl [‘f’, ‘v’] >> gvs[])
+      >- (qexistsl [‘f’, ‘v’] >> gvs[])
+      >- (gvs[] >> ‘F’ suffices_by gvs[] (* MEM _ _ is a contradiction *)
+          (* Use MEM _ _ to show that our node is in the nodes of the
+             underlying graph, which contradicts the form of the nodes of
+             the underlying graph for a well formed factor graph *)
+          >> drule (cj 3 (iffLR wffactor_graph_def)) >> rpt strip_tac
+          >> pop_assum drule >> rpt strip_tac >> gvs[]
+          >> pop_assum drule >> rpt strip_tac
+          >> gvs[inr_in_nodes_underlying_graph]
+         )
+      >- (qexistsl [‘f’, ‘v’] >> gvs[])
+     )
   >- gvs[inr_in_nodes_underlying_graph]
   >- (gvs[inr_in_nodes_underlying_graph]
-      >> drule (cj 4 (iffLR wffactor_graph_def))
+      >> drule (cj 5 (iffLR wffactor_graph_def))
       >> rw[]
       >> qmatch_abbrev_tac ‘donotexpand1 INSERT _ = donotexpand2’
       >> qpat_x_assum ‘nodes _ = _’ (fn th => PURE_REWRITE_TAC[Once th])
