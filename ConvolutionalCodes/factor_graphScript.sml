@@ -416,7 +416,7 @@ Definition fg_add_variable_node0_def:
   in
     fg with
        <|
-         underlying_graph := fsgAddNode new_node fg.underlying_graph;
+         underlying_graph updated_by (fsgAddNode new_node);
          is_function_node updated_by (λf. FUPDATE f (new_node, 0));
        |>
 End
@@ -524,12 +524,12 @@ Definition fg_add_n_variable_nodes_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Add the edges between a function node being added to the graph and         *)
-(*                                                                            *)
-(*                                                                            *)
+(* Add the edges between a function node being added to the graph and the     *)
+(* variable nodes that it relies on                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_edges_for_function_node0_def:
-
+  fg_add_edges_for_function_node0 fg fn = 
+  
 End
 
 (* -------------------------------------------------------------------------- *)
