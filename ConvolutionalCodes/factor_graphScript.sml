@@ -1,5 +1,6 @@
 open HolKernel Parse boolLib bossLib;
 
+open boolTheory;
 open probabilityTheory;
 (*open listTheory;*)
 open fsgraphTheory;
@@ -10,6 +11,8 @@ open partite_eaTheory;
 
 (* I find DEP_PURE_ONCE_REWRITE_TAC, etc to be very helpful *)
 open dep_rewrite;
+
+open ConseqConv;
 
 (* Lifting and transfer libraries *)
 open liftLib liftingTheory transferLib transferTheory;
@@ -577,13 +580,172 @@ Definition fg_add_function_node0_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Adding edges doesn't affect the nodes of a graph                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem nodes_fg_add_edges_for_function_node0[simp]:
+  ∀m vs g.
+    m ∈ nodes (fg_add_edges_for_function_node0 vs g) ⇔ m ∈ nodes g
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> gvs[fg_add_edges_for_function_node0_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Insert a single edge at a time                                             *)
+(*                                                                            *)
+(* Nodes that {e} = e INSERT {}, which causes a loop when attempting to use   *)
+(* this as a rewrite rule more than once                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem fsgAddEdges_insert:
+  ∀e es.
+    fsgAddEdges (e INSERT es) = (fsgAddEdges {e}) ∘ (fsgAddEdges es)
+Proof
+  rw[]
+  >> gvs[FUN_EQ_THM]
+  >> rw[]
+  >> gvs[fsgraph_component_equality]
+  >> gvs[fsgedges_fsgAddEdges]
+  >> gvs[EXTENSION]
+  >> rw[]
+  >> EQ_TAC >> rw[]
+  >- (disj1_tac >> qexistsl [‘m’,‘n’] >> gvs[])
+  >- (disj2_tac >> disj1_tac >> qexistsl [‘m’,‘n’] >> gvs[])
+  >- (disj2_tac >> disj2_tac >> gvs[])
+  >- (disj1_tac >> qexistsl [‘m’,‘n’] >> gvs[])
+  >- (disj1_tac >> qexistsl [‘m’,‘n’] >> gvs[])
+  >- (disj2_tac >> gvs[])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Adding edges once and then adding edges on top of that is equivalent to    *)
+(* adding the union of the two sets of edges                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem fsgAddEdges_fsgAddEdges[simp]:
+  ∀es ds g.
+    fsgAddEdges es (fsgAddEdges ds g) = fsgAddEdges (es ∪ ds) g
+Proof
+  rw[]
+  >> gvs[fsgraph_component_equality]
+  >> gvs[fsgedges_fsgAddEdges]
+  >> qmatch_goalsub_abbrev_tac ‘inEs ∪ (inDs ∪ _) = (inEsOrDs ∪ _)’
+  >> gvs[UNION_ASSOC]
+  >> ‘inEs ∪ inDs = inEsOrDs’ suffices_by gvs[]
+  >> unabbrev_all_tac
+  >> gvs[EXTENSION]
+  >> rw[]      
+  >> EQ_TAC >> rw[]
+  >- (qexistsl[‘m’,‘n’] >> gvs[])
+  >- (qexistsl[‘m’,‘n’] >> gvs[])
+  >- (disj1_tac >> qexistsl[‘m’,‘n’] >> gvs[])
+  >- (disj2_tac >> qexistsl[‘m’,‘n’] >> gvs[])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Adding the empty set of edges doesn't change anything                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem fsgAddEdges_empty[simp]:
+  ∀g.
+    fsgAddEdges ∅ g = g
+Proof
+  gvs[fsgAddEdges_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Apply fg_add_edges_for_function_node0 for a single step                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_add_edges_for_function_node0_step:
+  ∀v vs g.
+    fg_add_edges_for_function_node0 (v::vs) g =
+    fg_add_edges_for_function_node0
+    vs (fsgAddEdges {{v; INR (CARD (nodes g) - 1)}} g)
+Proof
+  rw[]
+  >> gvs[fg_add_edges_for_function_node0_def]
+  >> gvs[UNION_DEF, INSERT_DEF, DISJ_SYM]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* After adding edges, a edge is in the new graph if and only if it is either *)
+(* in the old graph or it is one of the new edges that were added.            *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_add_edges_for_function_node0:
+  ∀e vs g.
+    e ∈ fsgedges (fg_add_edges_for_function_node0 vs g) ⇔
+      e ∈ fsgedges g ∨ (∃v. MEM v vs ∧ e = {v; INR (CARD (nodes g) - 1)})
+Proof
+  Induct_on ‘vs’ >> gvs[]
+  >- rw[fg_add_edges_for_function_node0_def, fsgAddEdges_def]
+  >> rw[]
+  >> gvs[fg_add_edges_for_function_node0_step]
+  >> EQ_TAC >> rw[]
+  >- (gvs[fsgedges_fsgAddEdges]
+      >> disj2_tac
+      >> qexists ‘h’ >> gvs[])
+  >- (disj2_tac
+      >> qexists ‘v’ >> gvs[])
+  >- (disj1_tac
+      >> gvs[fsgedges_fsgAddEdges])
+  >- (Cases_on ‘MEM h vs’
+      >- (disj2_tac
+          >> qexists ‘h’ >> gvs[])
+      >> 
+
+      disj1_tac >> gvs[]
+      >> gvs[fsgedges_fsgAddEdges]
+      >> disj1_tac
+      >> qexistsl [‘h’, ‘INR (CARD (nodes g) - 1)’]
+      >> gvs[]
+     )
+
+  >> 
+  
+QED
+  
+
+(* -------------------------------------------------------------------------- *)
+(* If the edges being added aren't between nodes of the same type, then       *)
+(* adding edges to a graph doesn't affect partiteness.                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem gen_partite_ea_fg_add_edges_for_function_node0:
+  ∀r (vs : (unit + num) list) g f.
+    (∀x. MEM x vs ⇒ x ∈ nodes g ∧ f ' x = 0) ⇒
+    (gen_partite_ea r (fg_add_edges_for_function_node0 vs g) f ⇔
+       gen_partite_ea r g f)
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> rw[]
+  >- (gvs[fg_add_edges_for_function_node0_def]
+      >> simp[gen_partite_ea_def]
+      >> rw[]
+      >- gvs[gen_partite_ea_def]
+      >> gvs[gen_partite_ea_def]
+      >> first_x_assum irule
+      >> gvs[fsgedges_fsgAddEdges]
+     )
+  >- (gvs[gen_partite_ea_def]
+      >> rw[]
+      >> Cases_on ‘e ∈ fsgedges g’ >> gvs[]
+      >> gvs[fg_add_edges_for_function_node0_def]
+      >> first_x_assum irule
+                       
+                       
+     )
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Adding a function node to a factor graph maintains well-formedness         *)
+(*                                                                            *)
+(* We require that the original graph is well-formed, the function being      *)
+(* added outputs values in the range [0,1], and that the variables associated *)
+(* with the newly added function are valid nodes and variable nodes.          *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_function_node0_wf[simp]:
   ∀fg fn.
     wffactor_graph fg ∧
-    (∀bs. LENGTH bs = LENGTH (FST fn) ⇒ 0 ≤ (SND fn) bs ∧ (SND fn) bs ≤ 1) ⇒
-    wffactor_graph (fg_add_function_node0 fg fn)
+    (∀bs. LENGTH bs = LENGTH (FST fn) ⇒ 0 ≤ (SND fn) bs ∧ (SND fn) bs ≤ 1) ∧
+    (∀x. MEM x (FST fn) ⇒
+         x ∈ nodes (fg.underlying_graph) ∧ fg.is_function_node ' x = 0) ⇒
+    wffactor_graph (fg_add_function_node0 fn fg)
 Proof
   rpt strip_tac
   >> simp[wffactor_graph_def, fg_add_function_node0_def]
@@ -591,6 +753,7 @@ Proof
   (* Much of this is copy/pasted from fg_add_variable_node0_wf *)
   >- (drule (cj 1 (iffLR wffactor_graph_def))
       >> rw[]
+      (* gen_partite_fsgAddNode seems helpful for this *) 
       >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_fsgAddNode]
       >> gvs[]
       >> gvs[inr_in_nodes_underlying_graph]
