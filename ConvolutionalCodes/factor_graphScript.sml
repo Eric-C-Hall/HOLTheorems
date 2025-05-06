@@ -516,20 +516,39 @@ val _ = liftdef fg_add_variable_node0_respects "fg_add_variable_node"
 
 (* -------------------------------------------------------------------------- *)
 (* Adds n variable nodes to the factor graph                                  *)
+(*                                                                            *)
+(* fg is the last input to allow for easy composition: if the first input is  *)
+(* given, our function becomes takes the form factor_graph -> factor_graph,   *)
+(* And so we can easily string together several operations of this form using *)
+(* the ∘ operator, in case we need to make several modifications to the same  *)
+(* factor graph, e.g. adding both variable nodes and function nodes           *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_n_variable_nodes_def:
-  fg_add_n_variable_nodes fg 0 = fg ∧
-  fg_add_n_variable_nodes fg (SUC n) =
-  fg_add_variable_node (fg_add_n_variable_nodes fg n)
+  fg_add_n_variable_nodes 0 fg = fg ∧
+  fg_add_n_variable_nodes (SUC n) =
+  fg_add_variable_node ∘ (fg_add_n_variable_nodes n)
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Add the edges between a function node being added to the graph and the     *)
-(* variable nodes that it relies on                                           *)
+(* variable nodes that it relies on.                                          *)
+(*                                                                            *)
+(* We assume that the related function node has only just been added to the   *)
+(* graph, so that its label is CARD (nodes fg.underlying_graph) - 1           *)
+(*                                                                            *)
+(*                                                                            *)
+(* fg is the last input to allow for easy composition: see comment for        *)
+(* fg_add_n_variable_nodes_def                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_edges_for_function_node0_def:
-  fg_add_edges_for_function_node0 fg fn = 
-  
+  fg_add_edges_for_function_node0 (vs, _) fg =
+  let
+    currnode = CARD (nodes fg.underlying_graph) - 1
+  in
+    fg with
+       <|
+         underlying_graph updated_by (fsgAddEdges (set (MAP (λv. {v; currnode}) vs)));
+       |>
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -546,15 +565,18 @@ End
 (*                                                                            *)
 (*                                                                            *)
 (*   unused label.                                                            *)
+(*                                                                            *)
+(* fg is the last input to allow for easy composition: see comment for        *)
+(* fg_add_n_variable_nodes_def                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_function_node0_def:
-  fg_add_function_node0 fg fn =
+  fg_add_function_node0 fn fg =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)))
   in
     fg with
        <|
-         underlying_graph := fsgAddNode new_node fg.underlying_graph;
+         underlying_graph updated_by (fsgAddNode new_node);
          is_function_node updated_by (λf. FUPDATE f (new_node, 1));
          function_map updated_by (λf. FUPDATE f (new_node, fn));
        |>
