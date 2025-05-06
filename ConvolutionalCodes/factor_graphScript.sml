@@ -543,11 +543,11 @@ End
 Definition fg_add_edges_for_function_node0_def:
   fg_add_edges_for_function_node0 (vs, _) fg =
   let
-    currnode = CARD (nodes fg.underlying_graph) - 1
+    currnode = INR (CARD (nodes fg.underlying_graph) - 1)
   in
     fg with
        <|
-         underlying_graph updated_by (fsgAddEdges (set (MAP (λv. {v; currnode}) vs)));
+         underlying_graph updated_by (fsgAddEdges (LIST_TO_SET (MAP (λv. {v; currnode}) vs)));
        |>
 End
 
