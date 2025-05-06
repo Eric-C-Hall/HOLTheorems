@@ -668,11 +668,12 @@ QED
 (* After adding edges, a edge is in the new graph if and only if it is either *)
 (* in the old graph or it is one of the new edges that were added.            *)
 (* -------------------------------------------------------------------------- *)
-Theorem fg_add_edges_for_function_node0:
+Theorem fsgedges_fg_add_edges_for_function_node0:
   ∀e vs g.
-    e ∈ fsgedges (fg_add_edges_for_function_node0 vs g) ⇔
-      e ∈ fsgedges g ∨ (∃v. MEM v vs ∧ e = {v; INR (CARD (nodes g) - 1)})
-Proof
+    e ⊆ nodes g ∧ CARD e = 2 ⇒
+    (e ∈ fsgedges (fg_add_edges_for_function_node0 vs g) ⇔
+       e ∈ fsgedges g ∨ (∃v. MEM v vs ∧ e = {v; INR (CARD (nodes g) - 1)}))
+Proof  
   Induct_on ‘vs’ >> gvs[]
   >- rw[fg_add_edges_for_function_node0_def, fsgAddEdges_def]
   >> rw[]
@@ -685,22 +686,19 @@ Proof
       >> qexists ‘v’ >> gvs[])
   >- (disj1_tac
       >> gvs[fsgedges_fsgAddEdges])
-  >- (Cases_on ‘MEM h vs’
-      >- (disj2_tac
-          >> qexists ‘h’ >> gvs[])
-      >> 
-
-      disj1_tac >> gvs[]
+  >- (qmatch_goalsub_abbrev_tac ‘_ ∨ b’
+      >> Cases_on ‘b’ >> gvs[]
       >> gvs[fsgedges_fsgAddEdges]
-      >> disj1_tac
+      >> Cases_on ‘{h; INR (CARD (nodes g) - 1)} ∈ fsgedges g’ >> gvs[]
       >> qexistsl [‘h’, ‘INR (CARD (nodes g) - 1)’]
       >> gvs[]
+      >> CCONTR_TAC
+      >> gs[]
      )
-
-  >> 
-  
+  >- (disj2_tac
+      >> qexists ‘v’ >> gvs[]
+     )
 QED
-  
 
 (* -------------------------------------------------------------------------- *)
 (* If the edges being added aren't between nodes of the same type, then       *)
@@ -708,6 +706,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem gen_partite_ea_fg_add_edges_for_function_node0:
   ∀r (vs : (unit + num) list) g f.
+    f ' (INR (CARD (nodes g) - 1)) = 1 ∧
     (∀x. MEM x vs ⇒ x ∈ nodes g ∧ f ' x = 0) ⇒
     (gen_partite_ea r (fg_add_edges_for_function_node0 vs g) f ⇔
        gen_partite_ea r g f)
@@ -725,10 +724,19 @@ Proof
   >- (gvs[gen_partite_ea_def]
       >> rw[]
       >> Cases_on ‘e ∈ fsgedges g’ >> gvs[]
-      >> gvs[fg_add_edges_for_function_node0_def]
-      >> first_x_assum irule
-                       
-                       
+      >> Cases_on ‘e ⊆ nodes g ∧ CARD e = 2’
+      >- (gvs[fsgedges_fg_add_edges_for_function_node0]
+          >> qmatch_asmsub_abbrev_tac ‘if b then 1 else 2’
+          >> Cases_on ‘b’ >> gvs[]
+          >> qmatch_goalsub_abbrev_tac ‘if b then 1 else 2’
+          >> Cases_on ‘b’ >> gvs[]
+          >> first_assum drule >> rpt strip_tac
+         )
+      >- (gvs[]
+          >> Cases_on ‘CARD e = 2’ >> gvs[]
+          >- (
+           )
+         )
      )
 QED
 
