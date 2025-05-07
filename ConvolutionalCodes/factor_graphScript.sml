@@ -88,7 +88,7 @@ Datatype:
   factor_graph_rep =
   <|
     underlying_graph : fsgraph;
-    is_function_node : (unit + num) |-> num;
+    function_nodes : (unit + num) -> bool;
     function_map : (unit + num) |-> (unit + num) list # (bool list -> extreal);
   |>
 End
@@ -112,10 +112,11 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
   wffactor_graph (fg : factor_graph_rep) ⇔
-    (gen_bipartite_ea fg.underlying_graph fg.is_function_node) ∧
+    (gen_bipartite_ea fg.underlying_graph
+                      (FUN_FMAP (λn. if n ∈ fg.function_nodes then 1 else 0)
+                                (nodes fg.underlying_graph))) ∧
     (∀f bs.
-       f ∈ nodes fg.underlying_graph ∧
-       fg.is_function_node ' f = 1 ⇒ 
+       f ∈ fg.function_nodes ⇒ 
        let
          (f_args, f_func) = fg.function_map ' f
        in
@@ -123,21 +124,20 @@ Definition wffactor_graph_def:
          0 ≤ f_func bs ∧ f_func bs ≤ 1
     ) ∧
     (∀f.
-       f ∈ nodes fg.underlying_graph ∧
-       fg.is_function_node ' f = 1 ⇒
+       f ∈ fg.function_nodes ⇒
        (let
           variables = FST (fg.function_map ' f)
         in
-          ∀x. x ∈ (set variables) ⇒ (x ∈ nodes fg.underlying_graph ∧ fg.is_function_node ' x = 0)
+          ∀x. MEM x variables ⇒ (x ∈ nodes fg.underlying_graph ∧ x ∉ fg.function_nodes)
        )
     ) ∧
     (∀e. e ∈ fsgedges fg.underlying_graph ⇔
            (∃f v. e = {f; v} ∧ f ∈ nodes fg.underlying_graph
                           ∧ v ∈ nodes fg.underlying_graph
-                          ∧ fg.is_function_node ' f = 1
-                          ∧ fg.is_function_node ' v = 0
+                          ∧ f ∈ fg.function_nodes
+                          ∧ v ∉ fg.function_nodes
                           ∧ MEM v (FST (fg.function_map ' f)))) ∧
-    nodes fg.underlying_graph = {INR i | i < CARD (nodes fg.underlying_graph)}
+    nodes fg.underlying_graph = {INR i | i < order fg.underlying_graph}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -149,7 +149,7 @@ Theorem inr_in_nodes_underlying_graph:
     (INR x ∈ nodes fg.underlying_graph ⇔ x < CARD (nodes fg.underlying_graph))
 Proof
   rpt strip_tac
-  >> gvs[wffactor_graph_def]
+  >> gvs[wffactor_graph_def, genericGraphTheory.gsize_def]
   >> first_assum (fn th => PURE_REWRITE_TAC[Once th])
   >> gvs[]
 QED
@@ -420,7 +420,6 @@ Definition fg_add_variable_node0_def:
     fg with
        <|
          underlying_graph updated_by (fsgAddNode new_node);
-         is_function_node updated_by (λf. FUPDATE f (new_node, 0));
        |>
 End
 
@@ -528,8 +527,8 @@ val _ = liftdef fg_add_variable_node0_respects "fg_add_variable_node"
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_n_variable_nodes_def:
   fg_add_n_variable_nodes 0 fg = fg ∧
-  fg_add_n_variable_nodes (SUC n) =
-  fg_add_variable_node ∘ (fg_add_n_variable_nodes n)
+  fg_add_n_variable_nodes (SUC n) fg =
+  fg_add_variable_node (fg_add_n_variable_nodes n fg)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -567,16 +566,18 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_function_node0_def:
   fg_add_function_node0 fn fg =
-  let
-    new_node = (INR (CARD (nodes fg.underlying_graph)))
-  in
-    fg with
-       <|
-         underlying_graph updated_by ((fg_add_edges_for_function_node0 (FST fn))
-                                      ∘ (fsgAddNode new_node));
-         is_function_node updated_by (λf. FUPDATE f (new_node, 1));
-         function_map updated_by (λf. FUPDATE f (new_node, fn));
-       |>
+
+  update this to ensure it does nothing if fn is invalid, especially if there are two non-distinct inputs
+                                                                                                   let
+                                                                                                     new_node = (INR (CARD (nodes fg.underlying_graph)))
+                                                                                                   in
+                                                                                                     fg with
+                                                                                                        <|
+                                                                                                          underlying_graph updated_by ((fg_add_edges_for_function_node0 (FST fn))
+                                                                                                                                       ∘ (fsgAddNode new_node));
+                                                                                                          is_function_node updated_by (λf. FUPDATE f (new_node, 1));
+                                                                                                          function_map updated_by (λf. FUPDATE f (new_node, fn));
+                                                                                                        |>
 End
 
 (* -------------------------------------------------------------------------- *)

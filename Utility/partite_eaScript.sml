@@ -35,6 +35,7 @@ val _ = new_theory "partite_ea";
 (* -------------------------------------------------------------------------- *)
 Definition gen_partite_ea_def :
   gen_partite_ea r (g : fsgraph) (f : unit + num |-> num) <=>
+  (FDOM f = nodes g) ∧
   (∀m. m ∈ nodes g ⇒ f ' m < r) ∧
   (∀e. e ∈ fsgedges g ⇒ CARD (IMAGE ($' f) e) = 2)
 End
@@ -76,10 +77,10 @@ Overload bipartite_ea = “λg. ∃f. gen_partite_ea 2 g f”;
 (* -------------------------------------------------------------------------- *)
 Theorem gen_partite_ea_empty[simp]:
   ∀r f.
-    gen_partite_ea r emptyG f
+    gen_partite_ea r emptyG f ⇔ f = FEMPTY
 Proof
   rpt strip_tac
-  >> gvs[gen_partite_ea_def]
+  >> gvs[gen_partite_ea_def, FDOM_EQ_EMPTY]
 QED
 
 (* -------------------------------------------------------------------------- *)
