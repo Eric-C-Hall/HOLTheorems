@@ -1,9 +1,11 @@
+
 open HolKernel Parse boolLib bossLib;
 
 open boolTheory;
 open probabilityTheory;
 (*open listTheory;*)
 open fsgraphTheory;
+open genericGraphTheory;
 open pred_setTheory;
 open finite_mapTheory;
 
@@ -102,6 +104,7 @@ End
 (*                                                                            *)
 (* - the underlying graph should be bipartite with respect to the function    *)
 (*   nodes and variable nodes, assuming we have function nodes at all         *)
+(* - the domain of function_map should be the set of function nodes           *)
 (* - the outputs of each function should be probabilities, and thus between   *)
 (*   0 and 1                                                                  *)
 (* - the variables used as input to each function must be valid nodes and     *)
@@ -115,6 +118,8 @@ Definition wffactor_graph_def:
     (gen_bipartite_ea fg.underlying_graph
                       (FUN_FMAP (λn. if n ∈ fg.function_nodes then 1 else 0)
                                 (nodes fg.underlying_graph))) ∧
+    FDOM fg.function_map = fg.function_nodes ∧
+    fg.function_nodes ⊆ nodes (fg.underlying_graph) ∧
     (∀f bs.
        f ∈ fg.function_nodes ⇒ 
        let
@@ -154,17 +159,19 @@ Proof
   >> gvs[]
 QED
 
-(* -------------------------------------------------------------------------- *)
+(*(* -------------------------------------------------------------------------- *)
 (* Suppose we have an updated is_function_node map, as a result of adding a   *)
 (* new node to the graph (and hence the new node has the specific value which *)
 (* is 1 more than any previous node). Then applying the updated map to a      *)
 (* value in the old graph is equivalent to applying the old map to that value *)
 (* -------------------------------------------------------------------------- *)
-Theorem fupdate_is_function_node[simp]:
+Theorem fupdate_function_nodes_node[simp]:
   ∀fg f x.
     wffactor_graph fg ∧
     f ∈ nodes fg.underlying_graph ⇒
-    (fg.is_function_node |+ (INR (CARD (nodes fg.underlying_graph)), x)) ' f =
+    (fg.function_nodes
+
+       (INR (CARD (nodes fg.underlying_graph)), x)) ' f =
     fg.is_function_node ' f
 Proof
   rw[]
@@ -172,7 +179,7 @@ Proof
   >> rpt strip_tac
   >> gvs[]
   >> gvs[inr_in_nodes_underlying_graph]
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Similar to fupdate_is_function_node, but for function_map instead          *)
@@ -264,7 +271,7 @@ Definition fg_empty0_def:
   fg_empty0 : factor_graph_rep =
   <|
     underlying_graph := emptyG;
-    is_function_node := FEMPTY;
+    function_nodes := ∅;
     function_map := FEMPTY;
   |>
 End
@@ -436,52 +443,46 @@ Proof
   >> rw[]
   >- (drule (cj 1 (iffLR wffactor_graph_def))
       >> rw[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_INSERT]
+      >> conj_tac
+      >- gvs[FINITE_nodes, inr_in_nodes_underlying_graph]
       >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_fsgAddNode]
       >> gvs[]
       >> gvs[inr_in_nodes_underlying_graph]
+      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+      >> Cases_on ‘b’ >> gvs[]
      )
-  >- gvs[]
-  >- (gvs[] >> gvs[wffactor_graph_def]
-     (*drule $ cj 2 (iffLR wffactor_graph_def)
-       >> disch_tac
-       >> gvs[]
-       >> pop_assum irule
-       >> gvs[]
-       >> qpat_x_assum ‘_ ' f = 1’ (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
-       >> SYM_TAC
-       >> irule NOT_EQ_FAPPLY
-       >> strip_tac
-       >> gvs[]
-       >> gvs[inr_in_nodes_underlying_graph]*)
-  )
-  >- gvs[FAPPLY_FUPDATE]
-  >- gvs[FAPPLY_FUPDATE]
+  >- gvs[wffactor_graph_def]
+  >- (drule (cj 3 (iffLR wffactor_graph_def)) >> rw[]
+      >> gvs[SUBSET_DEF])
+  >- (gvs[] >> gvs[wffactor_graph_def])
   >- (gvs[]
       >> disj2_tac
-      >> gvs[]
-      >> drule (cj 3 (iffLR wffactor_graph_def))
+      >> drule (cj 5 (iffLR wffactor_graph_def))
       >> rpt strip_tac
       >> pop_assum drule
       >> rw[]
      )
   >- (gvs[]
-      >> drule (cj 3 (iffLR wffactor_graph_def))
+      >> drule (cj 5 (iffLR wffactor_graph_def))
       >> rw[]
       >> pop_assum drule
       >> rw[]
      )
-  >- (drule (cj 4 (iffLR wffactor_graph_def))
+  >- (drule (cj 6 (iffLR wffactor_graph_def))
       >> disch_tac
       >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
       >> EQ_TAC >> rw[]
       >- (qexistsl [‘f’, ‘v’] >> gvs[])
       >- (qexistsl [‘f’, ‘v’] >> gvs[])
-      >- (qexistsl [‘f’, ‘v’] >> gvs[])
+      >- (qexistsl [‘INR (CARD (nodes fg.underlying_graph))’, ‘v’] >> gvs[]
+          >> drule (cj 3 (iffLR wffactor_graph_def)) >> disch_tac
+         )
       >- (gvs[] >> ‘F’ suffices_by gvs[] (* MEM _ _ is a contradiction *)
           (* Use MEM _ _ to show that our node is in the nodes of the
              underlying graph, which contradicts the form of the nodes of
              the underlying graph for a well formed factor graph *)
-          >> drule (cj 3 (iffLR wffactor_graph_def)) >> rpt strip_tac
+          >> drule (cj 4 (iffLR wffactor_graph_def)) >> rpt strip_tac
           >> pop_assum drule >> rpt strip_tac >> gvs[]
           >> pop_assum drule >> rpt strip_tac
           >> gvs[inr_in_nodes_underlying_graph]
