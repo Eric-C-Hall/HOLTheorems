@@ -593,6 +593,9 @@ End
 (*                                                                            *)
 (* Input:                                                                     *)
 (* - fn, the function to be added, as a tuple (variable_labels, function)     *)
+(*   we expect the variable labels to be valid nodes, which are variable      *)
+(*   nodes, and we expect there to be no duplicates in these nodes.           *)
+(*                                                                            *)
 (* - fg, the factor graph                                                     *)
 (*                                                                            *)
 (* Output:                                                                    *)
@@ -604,18 +607,21 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_function_node0_def:
   fg_add_function_node0 fn fg =
-
-  update this to ensure it does nothing if fn is invalid, especially if there are two non-distinct inputs
-                                                                                                   let
-                                                                                                     new_node = (INR (CARD (nodes fg.underlying_graph)))
-                                                                                                   in
-                                                                                                     fg with
-                                                                                                        <|
-                                                                                                          underlying_graph updated_by ((fg_add_edges_for_function_node0 (FST fn))
-                                                                                                                                       ∘ (fsgAddNode new_node));
-                                                                                                          is_function_node updated_by (λf. FUPDATE f (new_node, 1));
-                                                                                                          function_map updated_by (λf. FUPDATE f (new_node, fn));
-                                                                                                        |>
+  let
+    new_node = (INR (CARD (nodes fg.underlying_graph)));
+    fn_is_invalid = ;
+  in
+    if fn_is_invalid
+    then
+      fg
+    else
+      fg with
+         <|
+           underlying_graph updated_by ((fg_add_edges_for_function_node0 (FST fn))
+                                        ∘ (fsgAddNode new_node));
+           is_function_node updated_by (λf. FUPDATE f (new_node, 1));
+           function_map updated_by (λf. FUPDATE f (new_node, fn));
+         |>
 End
 
 (* -------------------------------------------------------------------------- *)
