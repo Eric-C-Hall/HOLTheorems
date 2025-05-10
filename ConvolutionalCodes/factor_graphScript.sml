@@ -9,8 +9,6 @@ open genericGraphTheory;
 open pred_setTheory;
 open finite_mapTheory;
 
-open partite_eaTheory;
-
 (* I find DEP_PURE_ONCE_REWRITE_TAC, etc to be very helpful *)
 open dep_rewrite;
 
@@ -823,7 +821,6 @@ Theorem nodes_fsgAddNode_auto[simp]:
 Proof
   gvs[nodes_fsgAddNode]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* Adding a function node to a factor graph maintains well-formedness         *)

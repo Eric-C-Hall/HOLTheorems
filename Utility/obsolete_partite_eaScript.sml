@@ -70,7 +70,7 @@ Overload partite_ea = “λr g. ∃f. gen_partite_ea r g f”;
 (* Bipartite: when we don't care what specific partition we use, and we are   *)
 (* working with a graph that can be split into two components                 *)
 (* -------------------------------------------------------------------------- *)
-Overload bipartite_ea = “λg. ∃f. gen_partite_ea 2 g f”;
+Overload bipartite_ea = “λg. ∃f. gen_partite_ea 2 g f”;*)
 
 (* -------------------------------------------------------------------------- *)
 (* Any function shows that the empty graph is r-partite for any r             *)
