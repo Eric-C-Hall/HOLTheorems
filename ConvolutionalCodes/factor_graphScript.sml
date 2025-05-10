@@ -9,6 +9,8 @@ open genericGraphTheory;
 open pred_setTheory;
 open finite_mapTheory;
 
+open partite_eaTheory;
+
 (* I find DEP_PURE_ONCE_REWRITE_TAC, etc to be very helpful *)
 open dep_rewrite;
 
@@ -116,11 +118,8 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
   wffactor_graph (fg : factor_graph_rep) ⇔
-    (gen_bipartite_ea fg.underlying_graph
-                      (FUN_FMAP (λn. if n ∈ fg.function_nodes then 1 else 0)
-                                (nodes fg.underlying_graph))) ∧
+    (gen_bipartite_ea fg.underlying_graph fg.function_nodes) ∧
     FDOM fg.function_map = fg.function_nodes ∧
-    fg.function_nodes ⊆ nodes (fg.underlying_graph) ∧
     (∀f bs.
        f ∈ fg.function_nodes ⇒ 
        let
@@ -420,15 +419,6 @@ QED
 val _ = liftdef fg_empty0_respects "fg_empty"
 
 (* -------------------------------------------------------------------------- *)
-(* The empty graph is bipartite into the empty set and the empty set          *)
-(* -------------------------------------------------------------------------- *)
-Theorem gen_bipartite_ea_fg_empty[simp]:
-  gen_bipartite_ea emptyG FEMPTY
-Proof
-  gvs[gen_bipartite_ea_def]
-QED
-
-(* -------------------------------------------------------------------------- *)
 (* Add a variable node to the factor_graph.                                   *)
 (*                                                                            *)
 (* The first node added (variable or function) should be 0, the next node     *)
@@ -468,7 +458,7 @@ Theorem in_function_nodes_in_nodes_underlying_graph:
     n ∈ nodes (fg.underlying_graph)
 Proof
   rpt strip_tac
-  >> gvs[wffactor_graph_def, SUBSET_DEF]
+  >> gvs[wffactor_graph_def, gen_bipartite_ea_def, SUBSET_DEF]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -481,8 +471,9 @@ Theorem fg_add_variable_node0_wf:
 Proof
   rpt strip_tac
   >> simp[wffactor_graph_def, fg_add_variable_node0_def]
-  >> rw[]
-  >- (drule (cj 1 (iffLR wffactor_graph_def))
+  (* Prove each property of well-formedness one at a time *)
+  >> rpt conj_tac
+  >- (drule (cj 1 (iffLR wffactor_graph_def)) >> disch_tac
       >> rw[]
       >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_INSERT]
       >> conj_tac
