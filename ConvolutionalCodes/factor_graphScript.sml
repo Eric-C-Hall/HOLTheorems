@@ -1,6 +1,6 @@
-
 open HolKernel Parse boolLib bossLib;
 
+open arithmeticTheory;
 open boolTheory;
 open probabilityTheory;
 (*open listTheory;*)
@@ -15,6 +15,7 @@ open partite_eaTheory;
 open dep_rewrite;
 
 open ConseqConv;
+open simpLib;
 
 (* Lifting and transfer libraries *)
 open liftLib liftingTheory transferLib transferTheory;
@@ -105,10 +106,12 @@ End
 (* - the underlying graph should be bipartite with respect to the function    *)
 (*   nodes and variable nodes, assuming we have function nodes at all         *)
 (* - the domain of function_map should be the set of function nodes           *)
+(* - the set of function nodes should be a subset of the nodes                *)
 (* - the outputs of each function should be probabilities, and thus between   *)
 (*   0 and 1                                                                  *)
 (* - the variables used as input to each function must be valid nodes and     *)
-(*   they should be variable nodes.                                           *)
+(*   they should be variable nodes, and one variable should not be used more  *)
+(*   than once                                                                *)
 (* - the edges in the graph should connect an function and variable if and    *)
 (*   only if that variable is one of the inputs to that function              *)
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
@@ -133,7 +136,10 @@ Definition wffactor_graph_def:
        (let
           variables = FST (fg.function_map ' f)
         in
-          ∀x. MEM x variables ⇒ (x ∈ nodes fg.underlying_graph ∧ x ∉ fg.function_nodes)
+          ∀x. MEM x variables ⇒ (x ∈ nodes fg.underlying_graph ∧
+                                 x ∉ fg.function_nodes ∧
+                                 UNIQUE x variables
+                                )
        )
     ) ∧
     (∀e. e ∈ fsgedges fg.underlying_graph ⇔
@@ -237,6 +243,17 @@ Proof
   >> gvs[EXTENSION]
   >> rw[]
   >> Cases_on ‘x’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Any edge is a finite set                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem finite_in_fsgedges:
+  ∀g e.
+    e ∈ fsgedges g ⇒ FINITE e
+Proof
+  rpt strip_tac
+  >> gvs[fsgedges_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -495,6 +512,7 @@ Proof
       >> pop_assum drule
       >> rw[]
      )
+  >- gvs[wffactor_graph_def]
   >- (drule (cj 6 (iffLR wffactor_graph_def))
       >> disch_tac
       >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
@@ -600,7 +618,12 @@ End
 (*                                                                            *)
 (* Output:                                                                    *)
 (* - the factor graph with the new function node. The edges to the variable   *)
-(*   nodes depended upon by this function are also added.                     *)
+(*   nodes depended upon by this function are also added. If the function     *)
+(*   which is being added is invalid, then we simply return the original      *)
+(*   graph. It is invalid if its inputs aren't nodes in the graph, or they    *)
+(*   are function nodes rather than variable nodes, or the same input is      *)
+(*   provided twice, or there is an input to the function that would output   *)
+(*   a value outside the valid range of probabilities, i.e. [0,1].            *)
 (*                                                                            *)
 (* fg is the last input to allow for easy composition: see comment for        *)
 (* fg_add_n_variable_nodes_def                                                *)
@@ -609,7 +632,13 @@ Definition fg_add_function_node0_def:
   fg_add_function_node0 fn fg =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)));
-    fn_is_invalid = ;
+    fn_is_invalid = (∃x. (MEM x (FST fn) ∧
+                          (x ∉ nodes (fg.underlying_graph)
+                           ∨ x ∈ fg.function_nodes
+                           ∨ ¬(UNIQUE x (FST fn)))
+                         ) ∨
+                         (∃bs. LENGTH bs = LENGTH (FST fn) ∧
+                               ((SND fn) bs < 0 ∨ 1 < (SND fn) bs)));
   in
     if fn_is_invalid
     then
@@ -619,7 +648,7 @@ Definition fg_add_function_node0_def:
          <|
            underlying_graph updated_by ((fg_add_edges_for_function_node0 (FST fn))
                                         ∘ (fsgAddNode new_node));
-           is_function_node updated_by (λf. FUPDATE f (new_node, 1));
+           function_nodes updated_by ($INSERT new_node);
            function_map updated_by (λf. FUPDATE f (new_node, fn));
          |>
 End
@@ -629,10 +658,10 @@ End
 (* -------------------------------------------------------------------------- *)
 Theorem nodes_fg_add_edges_for_function_node0[simp]:
   ∀m vs g.
-    m ∈ nodes (fg_add_edges_for_function_node0 vs g) ⇔ m ∈ nodes g
+    nodes (fg_add_edges_for_function_node0 vs g) = nodes g
 Proof
   rpt strip_tac
-  >> EQ_TAC >> gvs[fg_add_edges_for_function_node0_def]
+  >> gvs[fg_add_edges_for_function_node0_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -777,10 +806,10 @@ Proof
           >> Cases_on ‘b’ >> gvs[]
           >> first_assum drule >> rpt strip_tac
          )
-      >- (gvs[]
-          >> Cases_on ‘CARD e = 2’ >> gvs[]
-          >- (
-           )
+      >- (gvs[] (* Perhaps this could be proven more efficiently by moving
+                   this working upwards *)
+          >> gvs[fg_add_edges_for_function_node0_def]
+          >> gvs[fsgedges_fsgAddEdges]
          )
      )
 QED
