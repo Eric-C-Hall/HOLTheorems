@@ -815,6 +815,17 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Add nodes_fsgAddNode to the simpset                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem nodes_fsgAddNode_auto[simp]:
+  ∀g n.
+    nodes (fsgAddNode n g) = n INSERT nodes g
+Proof
+  gvs[nodes_fsgAddNode]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
 (* Adding a function node to a factor graph maintains well-formedness         *)
 (*                                                                            *)
 (* We require that the original graph is well-formed, the function being      *)
@@ -826,18 +837,56 @@ Theorem fg_add_function_node0_wf[simp]:
     wffactor_graph fg ∧
     (∀bs. LENGTH bs = LENGTH (FST fn) ⇒ 0 ≤ (SND fn) bs ∧ (SND fn) bs ≤ 1) ∧
     (∀x. MEM x (FST fn) ⇒
-         x ∈ nodes (fg.underlying_graph) ∧ fg.is_function_node ' x = 0) ⇒
+         x ∈ nodes (fg.underlying_graph) ∧ x ∉ fg.function_nodes) ⇒
     wffactor_graph (fg_add_function_node0 fn fg)
 Proof
   rpt strip_tac
-  >> simp[wffactor_graph_def, fg_add_function_node0_def]
-  >> rw[]
-  (* Much of this is copy/pasted from fg_add_variable_node0_wf *)
-  >- (drule (cj 1 (iffLR wffactor_graph_def))
-      >> rw[]
-      (* gen_partite_fsgAddNode seems helpful for this *) 
+  (* Handle situation in which input function is invalid*)
+  >> simp[fg_add_function_node0_def]
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’ >> rw[]
+  (* Apply (b ⇔ F) ⇔ ¬b *)
+  >> gvs[EQ_CLAUSES]
+  (* Prove each well-formedness property indivudually *)
+  >> simp[wffactor_graph_def] >> rpt conj_tac
+  >- (drule (cj 1 (iffLR wffactor_graph_def)) >> disch_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_ea_fg_add_edges_for_function_node0]
+      >> conj_tac
+      >- (conj_tac
+          >- (gvs[]
+              >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+              >> gvs[]
+              >> conj_tac
+              >- (rw[]
+                  >> disj2_tac
+                  >> gvs[wffactor_graph_def]
+                  >> rw[]
+                 )
+              >> rw[]
+              >> pop_assum mp_tac
+              >> rw[]
+              >> disj2_tac
+              >> gvs[wffactor_graph_def]
+             )
+          >> gvs[]
+          >> rpt strip_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> gvs[]
+          >> rw[]
+          >> last_x_assum drule >> disch_tac
+          >> gvs[]
+          >> gvs[inr_in_nodes_underlying_graph]
+         )
+      (* gen_partite_fsgAddNode seems helpful for this *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_INSERT]
+      >> conj_tac
+      >- (gvs[]
+          >> gvs[inr_in_nodes_underlying_graph]
+         )
       >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_fsgAddNode]
       >> gvs[]
+      >> conj_tac
+      >- (
+       )
       >> gvs[inr_in_nodes_underlying_graph]
      )
   >- (gvs[]
