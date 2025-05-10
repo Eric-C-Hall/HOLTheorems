@@ -462,6 +462,59 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* In a well-formed factor graph, the function nodes are a subset of the      *)
+(* nodes                                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem function_nodes_subset_nodes:
+  ∀fg.
+    wffactor_graph fg ⇒
+    fg.function_nodes ⊆ nodes (fg.underlying_graph)
+Proof
+  rpt strip_tac
+  >> gvs[wffactor_graph_def]
+  >> gvs[gen_bipartite_ea_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Statements of this form come up reasonably regularly                       *)
+(*                                                                            *)
+(* A combination of the fact that this is not a valid node, with the fact     *)
+(* that function nodes are a subset of nodes. A little inefficient to have to *)
+(* write a theorem to express this idea.                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem inr_card_not_in_function_nodes[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    INR (CARD (nodes fg.underlying_graph)) ∉ fg.function_nodes
+Proof
+  rpt strip_tac
+  >> drule function_nodes_subset_nodes >> disch_tac
+  >> gvs[SUBSET_DEF]
+  >> first_assum drule >> disch_tac
+  >> gvs[inr_in_nodes_underlying_graph]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The node just beyond the current set of valid nodes is not a valid node,   *)
+(* and thus, it cannot be one of the variables associated with a function     *)
+(* node.                                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem inr_card_not_in_mem_function_map[simp]:
+  ∀fg f.
+    wffactor_graph fg ∧
+    f ∈ fg.function_nodes ⇒
+    ¬MEM (INR (CARD (nodes fg.underlying_graph))) (FST (fg.function_map ' f))
+Proof
+  rpt strip_tac
+  >> drule (cj 4 (iffLR wffactor_graph_def)) >> disch_tac
+  >> pop_assum drule >> disch_tac
+  >> gvs[]
+  >> pop_assum drule >> disch_tac
+  >> gvs[]
+  >> gvs[inr_in_nodes_underlying_graph]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Adding a variable node maintains well-formedness                           *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_variable_node0_wf:
@@ -473,74 +526,40 @@ Proof
   >> simp[wffactor_graph_def, fg_add_variable_node0_def]
   (* Prove each property of well-formedness one at a time *)
   >> rpt conj_tac
-  >- (drule (cj 1 (iffLR wffactor_graph_def)) >> disch_tac
-      >> rw[]
-      >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_INSERT]
-      >> conj_tac
-      >- gvs[FINITE_nodes, inr_in_nodes_underlying_graph]
-      >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_fsgAddNode]
-      >> gvs[]
-      >> gvs[inr_in_nodes_underlying_graph]
-      >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-      >> Cases_on ‘b’ >> gvs[]
+  >- (DEP_PURE_ONCE_REWRITE_TAC[gen_bipartite_ea_fsgAddNode]
+      >> REVERSE conj_tac >- gvs[wffactor_graph_def]
+      >> gvs[inr_card_not_in_function_nodes]
      )
   >- gvs[wffactor_graph_def]
   >- (drule (cj 3 (iffLR wffactor_graph_def)) >> rw[]
       >> gvs[SUBSET_DEF])
-  >- (gvs[] >> gvs[wffactor_graph_def])
-  >- (gvs[]
-      >> disj2_tac
-      >> drule (cj 5 (iffLR wffactor_graph_def))
-      >> rpt strip_tac
-      >> pop_assum drule
-      >> rw[]
+  >- (drule (cj 4 (iffLR wffactor_graph_def)) >> disch_tac
+      >> strip_tac >> strip_tac
+      >> first_x_assum drule >> strip_tac
+      >> gvs[]
      )
-  >- (gvs[]
-      >> drule (cj 5 (iffLR wffactor_graph_def))
+  >- (drule (cj 5 (iffLR wffactor_graph_def)) >> disch_tac
+      >> gvs[]
+      >> pop_assum kall_tac
       >> rw[]
-      >> pop_assum drule
-      >> rw[]
-     )
-  >- gvs[wffactor_graph_def]
-  >- (drule (cj 6 (iffLR wffactor_graph_def))
-      >> disch_tac
-      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC [th])
-      >> EQ_TAC >> rw[]
-      >- (qexistsl [‘f’, ‘v’] >> gvs[])
-      >- (qexistsl [‘f’, ‘v’] >> gvs[])
-      >- (‘F’ suffices_by gvs[]
-          (* Our assumptions are a contradiction, because
-             INR (CARD (node fg.underlying_graph)) is beyond the end of the
-             underlying graph but is still in fg.function_nodes *)
-          >> qpat_x_assum ‘v ∈ _’ kall_tac
-          >> qpat_x_assum ‘v ∈ _’ kall_tac
-          >> qpat_x_assum ‘v ∉ _’ kall_tac
-          >> qmatch_asmsub_abbrev_tac ‘nodeBeyondEnd ∈ fg.function_nodes’
-          >> drule_all in_function_nodes_in_nodes_underlying_graph >> disch_tac
-          >> gvs[cj 7 (iffLR wffactor_graph_def)]
+      >> EQ_TAC
+      >- (rw[] >> qexistsl [‘f’, ‘v’] >> gvs[])
+      >- (strip_tac
+          >- (qexistsl [‘f’, ‘v’] >> gvs[])
+          >- gvs[inr_card_not_in_function_nodes]
+          >- gvs[inr_card_not_in_function_nodes]
+          >- (qexistsl [‘f’, ‘v’] >> gvs[])
          )
-      >- (gvs[] >> ‘F’ suffices_by gvs[] (* MEM _ _ is a contradiction *)
-          (* Use MEM _ _ to show that our node is in the nodes of the
-             underlying graph, which contradicts the form of the nodes of
-             the underlying graph for a well formed factor graph *)
-          >> drule (cj 5 (iffLR wffactor_graph_def)) >> rpt strip_tac
-          >> pop_assum drule >> rpt strip_tac >> gvs[]
-          >> pop_assum drule >> rpt strip_tac
-          >> gvs[inr_in_nodes_underlying_graph]
-         )
-      >- (qexistsl [‘f’, ‘v’] >> gvs[])
      )
-  >- (drule (cj 7 (iffLR wffactor_graph_def))
-      >> rpt strip_tac
-      >> qmatch_abbrev_tac ‘donotexpand1 INSERT _ = donotexpand2’
-      >> qpat_x_assum ‘nodes _ = _’ (fn th => PURE_REWRITE_TAC[Once th])
+  >- (drule (cj 6 (iffLR wffactor_graph_def)) >> disch_tac
+      >> qmatch_goalsub_abbrev_tac ‘S1 INSERT _ = S2’
+      >> simp[]
       >> unabbrev_all_tac
+      >> pop_assum kall_tac
       >> gvs[order_fsgAddNode]
       >> rw[]
-      >- gvs[inr_in_nodes_underlying_graph]
-      >> gvs[EXTENSION, gsize_def]
-      >> rpt strip_tac
-      >> EQ_TAC >> rw[] >> gvs[inr_in_nodes_underlying_graph, gsize_def]
+      >- gvs[wffactor_graph_def]
+      >> gvs[gsize_def, ADD1]
      )
 QED
 
@@ -560,7 +579,7 @@ Proof
 QED
 
 val _ = liftdef fg_add_variable_node0_respects "fg_add_variable_node"
-
+                
 (* -------------------------------------------------------------------------- *)
 (* Adds n variable nodes to the factor graph                                  *)
 (*                                                                            *)
