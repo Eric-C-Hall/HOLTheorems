@@ -787,39 +787,43 @@ QED
 (* adding edges to a graph doesn't affect partiteness.                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem gen_partite_ea_fg_add_edges_for_function_node0:
-  ∀r (vs : (unit + num) list) g f.
-    f ' (INR (CARD (nodes g) - 1)) = 1 ∧
-    (∀x. MEM x vs ⇒ x ∈ nodes g ∧ f ' x = 0) ⇒
-    (gen_partite_ea r (fg_add_edges_for_function_node0 vs g) f ⇔
-       gen_partite_ea r g f)
+  ∀(vs : (unit + num) list) S g.
+    (INR (CARD (nodes g) - 1)) ∈ S ∧
+    (∀x. MEM x vs ⇒ x ∈ nodes g ∧ x ∉ S) ⇒
+    (gen_bipartite_ea (fg_add_edges_for_function_node0 vs g) S ⇔
+       gen_bipartite_ea g S)
 Proof
-  rpt strip_tac
-  >> EQ_TAC >> rw[]
-  >- (gvs[fg_add_edges_for_function_node0_def]
-      >> simp[gen_partite_ea_def]
+  rw[]
+  >> EQ_TAC
+  >- (rw[]
+      >> gvs[gen_bipartite_ea_def]
       >> rw[]
-      >- gvs[gen_partite_ea_def]
-      >> gvs[gen_partite_ea_def]
-      >> first_x_assum irule
-      >> gvs[fsgedges_fsgAddEdges]
-     )
-  >- (gvs[gen_partite_ea_def]
-      >> rw[]
-      >> Cases_on ‘e ∈ fsgedges g’ >> gvs[]
+      >> Cases_on ‘e ∈ fsgedges (fg_add_edges_for_function_node0 vs g)’
+      >- gvs[]
       >> Cases_on ‘e ⊆ nodes g ∧ CARD e = 2’
-      >- (gvs[fsgedges_fg_add_edges_for_function_node0]
-          >> qmatch_asmsub_abbrev_tac ‘if b then 1 else 2’
-          >> Cases_on ‘b’ >> gvs[]
-          >> qmatch_goalsub_abbrev_tac ‘if b then 1 else 2’
-          >> Cases_on ‘b’ >> gvs[]
-          >> first_assum drule >> rpt strip_tac
+      >- gvs[fsgedges_fg_add_edges_for_function_node0]
+      >> gvs[]
+      >> Cases_on ‘CARD e = 2’
+      >- (gvs[]
+          >> drule alledges_valid >> strip_tac
+          >> gvs[SUBSET_DEF]
          )
-      >- (gvs[] (* Perhaps this could be proven more efficiently by moving
-                   this working upwards *)
-          >> gvs[fg_add_edges_for_function_node0_def]
-          >> gvs[fsgedges_fsgAddEdges]
-         )
+      >> gvs[]
+      >> drule alledges_valid >> strip_tac
+      >> gvs[]
      )
+  >> rw[]
+  >> gvs[gen_bipartite_ea_def]
+  >> rw[]
+  >> Cases_on ‘e ⊆ nodes g ∧ CARD e = 2’
+  >- (qspecl_then [‘e’, ‘vs’, ‘g’] assume_tac fsgedges_fg_add_edges_for_function_node0
+      >> gvs[]
+      >> qexistsl [‘INR (CARD (nodes g) - 1)’, ‘v’]
+      >> gvs[]
+      >> gvs[INSERT_DEF, DISJ_SYM]
+     )
+  >> drule alledges_valid >> strip_tac
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
