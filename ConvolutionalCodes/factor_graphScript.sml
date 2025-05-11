@@ -859,78 +859,93 @@ Proof
   >> gvs[EQ_CLAUSES]
   (* Prove each well-formedness property indivudually *)
   >> simp[wffactor_graph_def] >> rpt conj_tac
+  (* Bipartiteness is retained *)
   >- (drule (cj 1 (iffLR wffactor_graph_def)) >> disch_tac
-      >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_ea_fg_add_edges_for_function_node0]
-      >> conj_tac
-      >- (conj_tac
-          >- (gvs[]
-              >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
-              >> gvs[]
-              >> conj_tac
-              >- (rw[]
-                  >> disj2_tac
-                  >> gvs[wffactor_graph_def]
-                  >> rw[]
-                 )
-              >> rw[]
-              >> pop_assum mp_tac
-              >> rw[]
-              >> disj2_tac
-              >> gvs[wffactor_graph_def]
-             )
-          >> gvs[]
-          >> rpt strip_tac
-          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
-          >> gvs[]
-          >> rw[]
-          >> last_x_assum drule >> disch_tac
-          >> gvs[]
-          >> gvs[inr_in_nodes_underlying_graph]
+      (* Is there a nicer way to do this? Key: 842859 *)
+      >> Cases_on ‘(INR (CARD (nodes (fsgAddNode (INR (CARD (nodes fg.underlying_graph))) fg.underlying_graph)) − 1) ∈ INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes ∧ ∀x. MEM x (FST fn) ⇒ x ∈ nodes (fsgAddNode (INR (CARD (nodes fg.underlying_graph))) fg.underlying_graph) ∧ x ∉ INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes)’
+      >- (DEP_PURE_ONCE_REWRITE_TAC[gen_partite_ea_fg_add_edges_for_function_node0]
+          >> (conj_tac >- gvs[]) >> pop_assum kall_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[gen_bipartite_ea_fsgAddNode]
+          >> 
          )
-      (* gen_partite_fsgAddNode seems helpful for this *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_INSERT]
-      >> conj_tac
-      >- (gvs[]
-          >> gvs[inr_in_nodes_underlying_graph]
+
+         
+      >> 
+     )
+
+     
+    >- (drule (cj 1 (iffLR wffactor_graph_def)) >> disch_tac
+        >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_ea_fg_add_edges_for_function_node0]
+        >> conj_tac
+        >- (conj_tac
+            >- (gvs[]
+                >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+                >> gvs[]
+                >> conj_tac
+                >- (rw[]
+                    >> disj2_tac
+                    >> gvs[wffactor_graph_def]
+                    >> rw[]
+                   )
+                >> rw[]
+                >> pop_assum mp_tac
+                >> rw[]
+                >> disj2_tac
+                >> gvs[wffactor_graph_def]
+               )
+            >> gvs[]
+            >> rpt strip_tac
+            >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+            >> gvs[]
+            >> rw[]
+            >> last_x_assum drule >> disch_tac
+            >> gvs[]
+            >> gvs[inr_in_nodes_underlying_graph]
+           )
+        (* gen_partite_fsgAddNode seems helpful for this *)
+        >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_INSERT]
+        >> conj_tac
+        >- (gvs[]
+            >> gvs[inr_in_nodes_underlying_graph]
+           )
+        >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_fsgAddNode]
+        >> gvs[]
+        >> conj_tac
+        >- (
          )
-      >> DEP_PURE_ONCE_REWRITE_TAC[gen_partite_fsgAddNode]
-      >> gvs[]
-      >> conj_tac
-      >- (
+        >> gvs[inr_in_nodes_underlying_graph]
        )
-      >> gvs[inr_in_nodes_underlying_graph]
-     )
-  >- (gvs[]
-      >> Cases_on ‘fn’ >> gvs[])
-  >- (gvs[] >> gvs[wffactor_graph_def])
-  >- (gvs[]
-      >> drule (cj 3 (iffLR wffactor_graph_def))
-      >> rpt strip_tac
-     )
-  >- gvs[FAPPLY_FUPDATE]
-  >- (gvs[]
-      >> disj2_tac
-      >> gvs[]
-      >> drule (cj 3 (iffLR wffactor_graph_def))
-      >> rpt strip_tac
-      >> pop_assum drule
-      >> rw[]
-     )
-  >- (gvs[]
-      >> drule (cj 3 (iffLR wffactor_graph_def))
-      >> rw[]
-      >> pop_assum drule
-      >> rw[]
-     )
-  >- gvs[inr_in_nodes_underlying_graph]
-  >- (gvs[inr_in_nodes_underlying_graph]
-      >> drule (cj 4 (iffLR wffactor_graph_def))
-      >> rw[]
-      >> qmatch_abbrev_tac ‘donotexpand1 INSERT _ = donotexpand2’
-      >> qpat_x_assum ‘nodes _ = _’ (fn th => PURE_REWRITE_TAC[Once th])
-      >> unabbrev_all_tac
-      >> gvs[]
-     )
+    >- (gvs[]
+        >> Cases_on ‘fn’ >> gvs[])
+    >- (gvs[] >> gvs[wffactor_graph_def])
+    >- (gvs[]
+        >> drule (cj 3 (iffLR wffactor_graph_def))
+        >> rpt strip_tac
+       )
+    >- gvs[FAPPLY_FUPDATE]
+    >- (gvs[]
+        >> disj2_tac
+        >> gvs[]
+        >> drule (cj 3 (iffLR wffactor_graph_def))
+        >> rpt strip_tac
+        >> pop_assum drule
+        >> rw[]
+       )
+    >- (gvs[]
+        >> drule (cj 3 (iffLR wffactor_graph_def))
+        >> rw[]
+        >> pop_assum drule
+        >> rw[]
+       )
+    >- gvs[inr_in_nodes_underlying_graph]
+    >- (gvs[inr_in_nodes_underlying_graph]
+        >> drule (cj 4 (iffLR wffactor_graph_def))
+        >> rw[]
+        >> qmatch_abbrev_tac ‘donotexpand1 INSERT _ = donotexpand2’
+        >> qpat_x_assum ‘nodes _ = _’ (fn th => PURE_REWRITE_TAC[Once th])
+        >> unabbrev_all_tac
+        >> gvs[]
+       )
 QED
 
 (* -------------------------------------------------------------------------- *)

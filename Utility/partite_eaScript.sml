@@ -46,18 +46,111 @@ Proof
   >> gvs[gen_bipartite_ea_def]
 QED
 
+
+
+
 (* -------------------------------------------------------------------------- *)
-(* Adding a new node to the graph maintains bipartiteness because it does not *)
-(* have any edges that would constrain it to either being a part of or not    *)
-(* being a part of the set defining the partition                             *)
+(* Special case 1 of gen_bipartite_ea_fsgAddNode                              *)
 (* -------------------------------------------------------------------------- *)
-Theorem gen_bipartite_ea_fsgAddNode:
+Theorem gen_bipartite_ea_fsgAddNode_special_case_1[local]:
   ∀g n S.
     n ∉ S ⇒
     (gen_bipartite_ea (fsgAddNode n g) S ⇔ gen_bipartite_ea g S)
 Proof
   rpt strip_tac
   >> EQ_TAC >> gvs[gen_bipartite_ea_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Special case 2 of gen_bipartite_ea_fsgAddNode                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem gen_bipartite_ea_fsgAddNode_special_case_2[local]:
+  ∀g n S.
+    n ∉ nodes g ⇒
+    (gen_bipartite_ea (fsgAddNode n g) S ⇔ gen_bipartite_ea g (S DELETE n))
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> gvs[gen_bipartite_ea_def]
+  >- (rw[]
+      >- (gvs[SUBSET_DEF]
+          >> rw[]
+          >> metis_tac[]
+         )
+      >- (first_assum drule >> strip_tac
+          >> Cases_on ‘n1 ≠ n’
+          >- (qexistsl [‘n1’, ‘n2’] >> gvs[])
+          >> gvs[]
+          >> drule alledges_valid
+          >> rw[]
+          >> Cases_on ‘n = a’ >> gvs[]
+          >> Cases_on ‘n = b’ >> gvs[]
+          >> gvs[EXTENSION]
+          >> first_x_assum $ qspec_then ‘n’ assume_tac
+          >> gvs[]
+         )
+     )
+  >- (rw[]
+      >- (gvs[SUBSET_DEF]
+          >> rw[]
+          >> Cases_on ‘x = n’ >> gvs[]
+         )
+      >- (first_assum drule >> strip_tac
+          >- metis_tac[]
+          >- (gvs[]
+              >> drule alledges_valid >> strip_tac
+              >> qsuff_tac ‘∀n1 n a b.
+                              {n1; n} = {a; b} ∧
+                                            a ∈ nodes g ∧
+                                            b ∈ nodes g ∧
+                                            n ∉ nodes g ⇒
+                                            F’
+              >- metis_tac[]
+              >> rpt (pop_assum kall_tac)
+              >> rpt strip_tac
+              >> Cases_on ‘n = a’ >> gvs[]
+              >> Cases_on ‘n = b’ >> gvs[]
+              >> gvs[EXTENSION]
+              >> last_x_assum $ qspec_then ‘n’ assume_tac
+              >> gvs[]
+             )
+         )
+     )
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Special case 3 of gen_bipartite_ea_fsgAddNode                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem gen_bipartite_ea_fsgAddNode_special_case_3[local]:
+  ∀g n S.
+    n ∈ nodes g ⇒
+    (gen_bipartite_ea (fsgAddNode n g) S ⇔ gen_bipartite_ea g S)
+Proof
+  gvs[fsgAddNode_in]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Adding a new node to the graph maintains bipartiteness because it does not *)
+(* have any edges that would constrain it to either being a part of or not    *)
+(* being a part of the set defining the partition.                            *)
+(*                                                                            *)
+(* In the case where n is already in G, then adding the node does nothing,    *)
+(* so we can simply use the same partition S. We cannot delete n from S in    *)
+(* this case, because it may have edges to nodes not in S.                    *)
+(*                                                                            *)
+(* In the case where we are adding n to G, then our partition S of the larger *)
+(* graph may contain n, in which case it is not a partition of the smaller    *)
+(* graph. However, S DELETE n will be a partition of the smaller graph in     *)
+(* this case.                                                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem gen_bipartite_ea_fsgAddNode:
+  ∀g n S.
+    gen_bipartite_ea (fsgAddNode n g) S ⇔
+      gen_bipartite_ea g (if n ∈ nodes g then S else S DELETE n)
+Proof
+  rpt strip_tac
+  >> rw[]
+  >> gvs[gen_bipartite_ea_fsgAddNode_special_case_2,
+         gen_bipartite_ea_fsgAddNode_special_case_3]
 QED
 
 val _ = export_theory();
