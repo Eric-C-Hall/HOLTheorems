@@ -22,6 +22,7 @@ val conj_prove = qmatch_goalsub_abbrev_tac ‘jwlifmn ∧ _’ >> sg ‘jwlifmn�
 
 fun with_all_in_goal t = rpt (pop_assum mp_tac) >> t >> rpt disch_tac;
 
+(* I don't think this works, th is still at the top at the time when t is run *)
 fun ignoring_top t = pop_assum (fn th => (t >> assume_tac th))
 
 fun assume_at th n = (if n = 0 then assume_tac th else pop_assum (fn th2 => assume_at th (n - 1) >> assume_tac th2));

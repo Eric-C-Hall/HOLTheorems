@@ -51,3 +51,4 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* Automatically simplify a theorem: SIMP_RULE (srw_ss()) [] *)
 
 (* The following allows the subgoal to be added without being automatically split: Q.SUBGOAL_THEN ‘x = x' \/ x = x''’ assume_tac *)
+
