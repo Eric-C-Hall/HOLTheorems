@@ -153,4 +153,39 @@ Proof
          gen_bipartite_ea_fsgAddNode_special_case_3]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* This comes up a lot when dealing with edges, because they are treated as   *)
+(* two-element sets.                                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem swap_edge:
+  ∀a b.
+    {a;b} = {b;a}
+Proof
+  rpt strip_tac
+  >> gvs[EXTENSION]
+  >> rw[]
+  >> gvs[DISJ_SYM]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* An expression for partiteness with an element added into the partition     *)
+(* set. Useful for induction as elements are added to the partition set.      *)
+(* -------------------------------------------------------------------------- *)
+Theorem gen_bipartite_ea_insert_new_node:
+  ∀g n S.
+    gen_bipartite_ea g S ∧
+    n ∈ nodes g ∧
+    (∀m. m ∈ nodes g
+         ∧ m ∈ S  ⇒
+         {n; m} ∉ fsgedges g) ⇒
+    gen_bipartite_ea g (n INSERT S)
+Proof
+  rw[gen_bipartite_ea_def] >> gvs[gen_bipartite_ea_def]
+  >> last_x_assum drule >> strip_tac
+  >> Cases_on ‘n1 = n’ >> Cases_on ‘n2 = n’ >> gvs[]
+  >- metis_tac[]
+  >- metis_tac[SUBSET_DEF, swap_edge]
+  >- metis_tac[]
+QED
+
 val _ = export_theory();

@@ -526,10 +526,12 @@ Proof
   >> simp[wffactor_graph_def, fg_add_variable_node0_def]
   (* Prove each property of well-formedness one at a time *)
   >> rpt conj_tac
-  >- (DEP_PURE_ONCE_REWRITE_TAC[gen_bipartite_ea_fsgAddNode]
-      >> REVERSE conj_tac >- gvs[wffactor_graph_def]
-      >> gvs[inr_card_not_in_function_nodes]
-     )
+  >- (gvs[gen_bipartite_ea_fsgAddNode]
+      >> rw[inr_in_nodes_underlying_graph]
+      >> metis_tac[DELETE_NON_ELEMENT_RWT,
+                   inr_card_not_in_function_nodes,
+                   wffactor_graph_def]
+              )
   >- gvs[wffactor_graph_def]
   >- (drule (cj 3 (iffLR wffactor_graph_def)) >> rw[]
       >> gvs[SUBSET_DEF])
@@ -615,6 +617,20 @@ Definition fg_add_edges_for_function_node0_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Determine if a function is invalid with respect to a factor graph          *)
+(* -------------------------------------------------------------------------- *)
+Definition wf_fg_fn_def:
+  wf_fg_fn fn fg ⇔ (∀bs. LENGTH bs = LENGTH (FST fn) ⇒
+                         0 ≤ (SND fn) bs ∧
+                         (SND fn) bs ≤ 1 : extreal) ∧
+                   (∀x. MEM x (FST fn) ⇒
+                        x ∈ nodes fg.underlying_graph ∧
+                        x ∉ fg.function_nodes ∧
+                        UNIQUE x (FST fn)
+                   )
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Add a function node to the factor graph.                                   *)
 (*                                                                            *)
 (* Input:                                                                     *)
@@ -640,15 +656,8 @@ Definition fg_add_function_node0_def:
   fg_add_function_node0 fn fg =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)));
-    fn_is_invalid = (∃x. (MEM x (FST fn) ∧
-                          (x ∉ nodes (fg.underlying_graph)
-                           ∨ x ∈ fg.function_nodes
-                           ∨ ¬(UNIQUE x (FST fn)))
-                         ) ∨
-                         (∃bs. LENGTH bs = LENGTH (FST fn) ∧
-                               ((SND fn) bs < 0 ∨ 1 < (SND fn) bs)));
   in
-    if fn_is_invalid
+    if ¬wf_fg_fn fn fg
     then
       fg
     else
@@ -837,6 +846,20 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* A way of computing the equality of edges using only boolean algebra        *)
+(* -------------------------------------------------------------------------- *)
+Theorem edges_equal:
+  ∀a b c d.
+    {a; b} = {c; d} ⇔ (a = c ∨ a = d) ∧ (b = c ∨ b = d) ∧
+                      (a = c ∨ b = c) ∧ (a = d ∨ b = d)
+Proof
+  rpt strip_tac
+  >> gvs[EXTENSION]
+  >> EQ_TAC >> rw[]
+  >> metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Adding a function node to a factor graph maintains well-formedness         *)
 (*                                                                            *)
 (* We require that the original graph is well-formed, the function being      *)
@@ -845,17 +868,13 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_function_node0_wf[simp]:
   ∀fg fn.
-    wffactor_graph fg ∧
-    (∀bs. LENGTH bs = LENGTH (FST fn) ⇒ 0 ≤ (SND fn) bs ∧ (SND fn) bs ≤ 1) ∧
-    (∀x. MEM x (FST fn) ⇒
-         x ∈ nodes (fg.underlying_graph) ∧ x ∉ fg.function_nodes) ⇒
+    wffactor_graph fg ⇒
     wffactor_graph (fg_add_function_node0 fn fg)
 Proof
   rpt strip_tac
   (* Handle situation in which input function is invalid*)
   >> simp[fg_add_function_node0_def]
   >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’ >> rw[]
-  (* Apply (b ⇔ F) ⇔ ¬b *)
   >> gvs[EQ_CLAUSES]
   (* Prove each well-formedness property indivudually *)
   >> simp[wffactor_graph_def] >> rpt conj_tac
@@ -865,12 +884,36 @@ Proof
       >> Cases_on ‘(INR (CARD (nodes (fsgAddNode (INR (CARD (nodes fg.underlying_graph))) fg.underlying_graph)) − 1) ∈ INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes ∧ ∀x. MEM x (FST fn) ⇒ x ∈ nodes (fsgAddNode (INR (CARD (nodes fg.underlying_graph))) fg.underlying_graph) ∧ x ∉ INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes)’
       >- (DEP_PURE_ONCE_REWRITE_TAC[gen_partite_ea_fg_add_edges_for_function_node0]
           >> (conj_tac >- gvs[]) >> pop_assum kall_tac
-          >> DEP_PURE_ONCE_REWRITE_TAC[gen_bipartite_ea_fsgAddNode]
-          >> 
+          >> gvs[gen_bipartite_ea_fsgAddNode]
+          >> rw[]
+          >- (irule gen_bipartite_ea_insert_new_node
+              >> rw[]
+              >> CCONTR_TAC
+              >> gvs[]
+              >> drule alledges_valid >> strip_tac
+              >> gvs[edges_equal]
+              >> gvs[inr_in_nodes_underlying_graph]
+             )
+          >> gvs[DELETE_INSERT]
+          >> DEP_PURE_ONCE_REWRITE_TAC[DELETE_NON_ELEMENT_RWT]
+          >> gvs[]
          )
-
-         
-      >> 
+      >> ‘F’ suffices_by gvs[]
+      >> pop_assum mp_tac
+      >> gvs[]
+      >> conj_tac
+      >- (rw[]
+          >> disj2_tac
+          >> gvs[INR_in]
+         )
+      >- (
+       )
+            
+      (* *)
+      >- (
+       )
+      >- (
+       )
      )
 
      
