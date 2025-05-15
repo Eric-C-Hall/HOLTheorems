@@ -101,6 +101,17 @@ For example, by default, I'm fairly sure gvs[] can't solve the following:
 
 *)
 
+(* Use >>~-, etc for selecting certain proof goals and proving those proof
+   goals.*)
+
+(* val _ = hide "S" will hide the global definition of "S" so that we can use it in, for example, ∀S. _ *)
+
+(* ASM_SET_TAC automatically expands out things such as SUBSET_DEF, etc, and attempts to prove set-related theorems *)
+
+(* dSimp: automatically rewrites into disjunctive normal form. Same as applying Simp with the appropriate simpset fragment or whatever which converts to disjunctive normal form. *)
+
+(* cSimp: I think there's something like this or something *)
+
 Include the following: 
 
 val _ = export_theory();

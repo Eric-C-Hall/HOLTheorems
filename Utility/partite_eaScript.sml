@@ -8,6 +8,8 @@ open pred_setTheory;
 
 val _ = new_theory "partite_ea";
 
+val _ = hide "S"
+
 (* -------------------------------------------------------------------------- *)
 (* A definition of a set which shows the partiteness of a graph by only using *)
 (* one set to define the partition: we assume that the complement of this set *)
@@ -69,50 +71,13 @@ Theorem gen_bipartite_ea_fsgAddNode_special_case_2[local]:
     n ∉ nodes g ⇒
     (gen_bipartite_ea (fsgAddNode n g) S ⇔ gen_bipartite_ea g (S DELETE n))
 Proof
-  rpt strip_tac
-  >> EQ_TAC >> gvs[gen_bipartite_ea_def]
-  >- (rw[]
-      >- (gvs[SUBSET_DEF]
-          >> rw[]
-          >> metis_tac[]
-         )
-      >- (first_assum drule >> strip_tac
-          >> Cases_on ‘n1 ≠ n’
-          >- (qexistsl [‘n1’, ‘n2’] >> gvs[])
-          >> gvs[]
-          >> drule alledges_valid
-          >> rw[]
-          >> Cases_on ‘n = a’ >> gvs[]
-          >> Cases_on ‘n = b’ >> gvs[]
-          >> gvs[EXTENSION]
-          >> first_x_assum $ qspec_then ‘n’ assume_tac
-          >> gvs[]
-         )
-     )
-  >- (rw[]
-      >- (gvs[SUBSET_DEF]
-          >> rw[]
-          >> Cases_on ‘x = n’ >> gvs[]
-         )
-      >- (first_assum drule >> strip_tac
-          >- metis_tac[]
-          >- (gvs[]
-              >> drule alledges_valid >> strip_tac
-              >> qsuff_tac ‘∀n1 n a b.
-                              {n1; n} = {a; b} ∧
-                                            a ∈ nodes g ∧
-                                            b ∈ nodes g ∧
-                                            n ∉ nodes g ⇒
-                                            F’
-              >- metis_tac[]
-              >> rpt (pop_assum kall_tac)
-              >> rpt strip_tac
-              >> Cases_on ‘n = a’ >> gvs[]
-              >> Cases_on ‘n = b’ >> gvs[]
-              >> gvs[EXTENSION]
-              >> last_x_assum $ qspec_then ‘n’ assume_tac
-              >> gvs[]
-             )
+  rw[gen_bipartite_ea_def, EQ_IMP_THM]
+    >>~- ([‘_ ⊆ _ (*g*)’], ASM_SET_TAC[])
+  >> (first_assum drule
+      >> dsimp[PULL_EXISTS, genericGraphTheory.INSERT2_lemma]
+      >> rw[]
+      >> (drule alledges_valid
+          >> dsimp[PULL_EXISTS, genericGraphTheory.INSERT2_lemma]
          )
      )
 QED
@@ -147,17 +112,16 @@ Theorem gen_bipartite_ea_fsgAddNode:
     gen_bipartite_ea (fsgAddNode n g) S ⇔
       gen_bipartite_ea g (if n ∈ nodes g then S else S DELETE n)
 Proof
-  rpt strip_tac
-  >> rw[]
-  >> gvs[gen_bipartite_ea_fsgAddNode_special_case_2,
-         gen_bipartite_ea_fsgAddNode_special_case_3]
+  rw[]
+  >> simp[gen_bipartite_ea_fsgAddNode_special_case_2,
+          gen_bipartite_ea_fsgAddNode_special_case_3]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* This comes up a lot when dealing with edges, because they are treated as   *)
 (* two-element sets.                                                          *)
 (* -------------------------------------------------------------------------- *)
-Theorem swap_edge:
+Theorem swap_edge: (* This is proven already: INSERT_COMM (more generality) *)
   ∀a b.
     {a;b} = {b;a}
 Proof
