@@ -1338,4 +1338,45 @@ Definition fg_example_factor_graph_def:
     fg_empty
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Message passing algorithm:                                                 *)
+(*                                                                            *)
+(* Messages are represented as follows:                                       *)
+(* message_map : (unit + num) # (unit + num) |-> extreal                      *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Whether or not a particular node is a leaf                                 *)
+(* -------------------------------------------------------------------------- *)
+Overload is_leaf = “λn g. degree n g = 1”;
+
+(* -------------------------------------------------------------------------- *)
+(* The set of all leaves of a graph                                           *)
+(* -------------------------------------------------------------------------- *)
+Overload leaves = “λg. {n | n ∈ nodes g ∧ is_leaf n g}”;
+                   
+(* -------------------------------------------------------------------------- *)
+(* Calculate messages to be initially sent from the leaf nodes of the graph   *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_leaf_messages_def:
+  calculate_leaf_messages fg =
+
+End
+
+
+(* -------------------------------------------------------------------------- *)
+(* Calculate messages                                                         *)
+(*                                                                            *)
+(* 1. Send a message from each leaf node                                      *)
+(* 2. When a node has received incoming messages from all but one of its      *)
+(* connected edges, we may send an outgoing message over the remaining edge   *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_messages_def:
+
+End
+
+
+
 val _ = export_theory();
