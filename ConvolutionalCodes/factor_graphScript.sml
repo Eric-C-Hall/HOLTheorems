@@ -1269,6 +1269,8 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* Prove that two elements in a two-element set can be swapped                *)
+(* Note: there is already a theorem called something along the lines of       *)
+(* INSERT_COMM which does this                                                *)
 (* -------------------------------------------------------------------------- *)
 Theorem set_two_element_sym:
   ∀n1 n2.
@@ -1283,92 +1285,19 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Adds an edge between two nodes in the graph.                               *)
-(*                                                                            *)
-(* If the edge would be between a function node and a function node or a      *)
-(* variable node and a variable node, this returns turns ARB, which should    *)
-(* hopefully indicate that something has gone wrong.                          *)
-(*                                                                            *)
-(* Input:                                                                     *)
-(* - fg, the factor graph                                                     *)
-(* - n1, the first node to                                                    *)
-(* - n2, the second node                                                      *)
-(*                                                                            *)
-(* Output:                                                                    *)
-(* - the updated factor graph                                                 *)
+(* If the input functions are equivalent and input factor graphs are          *)
+(* equivalent as factor graphs, then the output factor graphs are equivalent  *)
+(* as factor graphs                                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition fg_add_edge_def:
-  fg_add_edge fg n1 n2 =
-  if ((n1 ∈ fg.variable_nodes ∧ n2 ∈ fg.variable_nodes) ∨
-      (n1 ∈ fg.function_nodes ∧ n2 ∈ fg.function_nodes))
-  then
-    ARB
-  else
-    fg with
-       <|
-         underlying_graph := fsgAddEdges {{n1; n2}} fg.underlying_graph
-       |>
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Prove that adding an edge between two elements is the same regardless of   *)
-(* which order the two elements are provided in                               *)
-(* -------------------------------------------------------------------------- *)
-Theorem fg_add_edge_sym:
-  ∀fg n1 n2.
-    fg_add_edge fg n1 n2 = fg_add_edge fg n2 n1
+Theorem fg_add_function_node0_respects:
+  ∀fg.
+    ((=) ===> fgequiv ===> fgequiv) fg_add_function_node0 fg_add_function_node0
 Proof
-  rpt strip_tac
-  >> gvs[fg_add_edge_def]
-  >> rw[]
-  >> Cases_on ‘n1 ∈ fg.variable_nodes’ >> Cases_on ‘n2 ∈ fg.variable_nodes’ >> Cases_on ‘n1 ∈ fg.function_nodes’ >> Cases_on ‘n2 ∈ fg.function_nodes’ >> gvs[]
-  >> gvs[set_two_element_sym]
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
 QED
 
-Theorem fg_add_edge_wf_spec:
-  ∀fg n1 n2.
-    (n1 ∈ fg.variable_nodes ∧ n2 ∈ fg.function_nodes) ⇒
-    wffactor_graph (fg_add_edge fg n1 n2)
-Proof
-  rpt strip_tac
-  >> gvs[wffactor_graph_def, fg_add_edge_def]
-  >> 
-QED
-
-Theorem fg_add_edge_wf:
-  ∀fg n1 n2.
-    ((n1 ∈ fg.variable_nodes ∧ n2 ∈ fg.function_nodes) ∨
-     (n1 ∈ fg.function_nodes ∧ n2 ∈ fg.variable_nodes)) ⇒
-    wffactor_graph (fg_add_edge fg n1 n2)
-Proof
-  rw[]
-  >> metis_tac[fg_add_edge_wf_spec, fg_add_edge_sym]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Adds several variable and function nodes. This is intended to be much      *)
-(* easier to use than manually calling fg_add_variable_node and               *)
-(* fg_add_function_node repeatedly.                                            *)
-(*                                                                            *)
-(* Input:                                                                     *)
-(* - fg, the factor graph to add the nodes to.                                *)
-(* - nt::nts (aka. node types), a list of booleans, where the ith element is  *)
-(*   T if we need to add a function node and F if we need to add a variable   *)
-(*   node.                                                                    *)
-(* -------------------------------------------------------------------------- *)
-Theorem fg_add_variable_and_function_nodes:
-  fg_add_variable_and_function_nodes fg [] = fg ∧
-  fg_add_variable_and_function_nodes fg nt::nts =
-  let
-    recursive_call = fg_add_variable_and_function_nodes fg nts
-  in
-    if nt
-    then
-      fg_add_function_node      
-    else
-Proof
-QED
-
+val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
