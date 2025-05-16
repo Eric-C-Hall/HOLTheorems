@@ -1348,20 +1348,25 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Whether or not a particular node is a leaf                                 *)
 (* -------------------------------------------------------------------------- *)
-Overload is_leaf = “λn g. degree n g = 1”;
+Overload is_leaf = “λg n. degree g n = 1”;
 
 (* -------------------------------------------------------------------------- *)
 (* The set of all leaves of a graph                                           *)
 (* -------------------------------------------------------------------------- *)
-Overload leaves = “λg. {n | n ∈ nodes g ∧ is_leaf n g}”;
-                   
+Overload leaves = “λg. {n | n ∈ nodes g ∧ is_leaf g n}”;
+
+(* -------------------------------------------------------------------------- *)
+(* The set of all nodes that are adjacent to a given one.                     *)
+(* -------------------------------------------------------------------------- *)
+Overload adjacent_set = “λg n. {m | adjacent g n m}”
+
 (* -------------------------------------------------------------------------- *)
 (* Calculate messages to be initially sent from the leaf nodes of the graph   *)
 (*                                                                            *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Definition calculate_leaf_messages_def:
-  calculate_leaf_messages fg =
+  calculate_leaf_messages fg = leaves 
 
 End
 
