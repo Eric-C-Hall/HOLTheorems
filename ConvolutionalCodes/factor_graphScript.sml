@@ -112,6 +112,9 @@ End
 (* - the set of function nodes should be a subset of the nodes                *)
 (* - the outputs of each function should be probabilities, and thus between   *)
 (*   0 and 1                                                                  *)
+(*   TODO: we currently don't require that the probabilities for all possible *)
+(*         inputs add to 1. However, there is also currently no need to know  *)
+(*         this.                                                              *)
 (* - the variables used as input to each function must be valid nodes and     *)
 (*   they should be variable nodes, and one variable should not be used more  *)
 (*   than once                                                                *)
@@ -1325,57 +1328,14 @@ val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 (* The following example factor graph is based on Example 2.2.                *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_example_factor_graph_def:
-  fg_example_factor_graph = fg_add_variable_node ∘ fg_add_variable_node ∘ fg_add_function_node ∘ fg_add_variable_node fg_empty
-End
-
-Definition fg_example_functions_def:
-  fg_example_functions =
-  λf. if f = 1 then
-        ([0, 2, 3], λxs. ARB)
-      else if f = 4 then
-        ([0, 5, 9], λxs. ARB)
-      else if f = 6 then
-        ([5], λxs. ARB)
-      else if f = 7 then
-        ([5, 8], λxs. ARB)
-      else ARB
-End
-
-Definition fg_example_def:
-  fg_example =
-  <|
-    functions := [ARB; ARB; ARB];
-    num_variables := 6;
-    edges := [
-        (0, 0);
-        (0, 1);
-        (0, 2);
-        (1, 0);
-        (1, 3);
-        (1, 5);
-        (2, 3);
-        (3, 3);
-        (3, 4);
-      ];
-  |>
-End
-
-(* -------------------------------------------------------------------------- *)
-(* The following is a manually designed example graph based on Example 2.2    *)
-(* -------------------------------------------------------------------------- *)
-Definition helloworld_graph_def:
-  helloworld_graph : fsgraph =
-  fsgAddEdges {
-              {INR 0; INR 1;};
-           {INR 1; INR 2;};
-           {INR 1; INR 3;};
-           {INR 0; INR 4;};
-           {INR 4; INR 5;};
-           {INR 5; INR 6;};
-           {INR 5; INR 7;};
-           {INR 7; INR 8;};
-           {INR 4; INR 9;};
-           } (fsgAddNodes {INR x | x ∈ count 10} emptyG)
+  fg_example_factor_graph
+  = ((fg_add_n_variable_nodes 6)
+     ∘ (fg_add_function_node ([INR 0n; INR 1n; INR 2n], λbs. Normal (1 / 8)))
+     ∘ (fg_add_function_node ([INR 0n; INR 3n; INR 5n], λbs. Normal (1 / 8)))
+     ∘ (fg_add_function_node ([INR 3n], λbs. Normal (1 / 2)))
+     ∘ (fg_add_function_node ([INR 3n; INR 4n], λbs. Normal (1 / 4)))
+    )
+    fg_empty
 End
 
 (* -------------------------------------------------------------------------- *)
