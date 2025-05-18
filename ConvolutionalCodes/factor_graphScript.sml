@@ -10,6 +10,7 @@ open pred_setTheory;
 open finite_mapTheory;
 open listTheory;
 open transcTheory;
+open prim_recTheory;
 
 open partite_eaTheory;
 
@@ -1549,12 +1550,9 @@ End
 
 (* Theorem for showing equivalence of finite maps: fmap_EQ_THM *)
 
-(* -------------------------------------------------------------------------- *)
-(* Calculate all messages that can be calculated based on the messages that   *)
-(* have been sent so far.                                                     *)
-(* -------------------------------------------------------------------------- *)
-Definition calculate_messages_step_def:
-  calculate_messages_step fg msgs =
+
+Definition added_msgs_def:
+  added_msgs fg msgs =
   let
     calculated_messages =
     FUN_FMAP (λ(org, dst). calculate_message fg org dst msgs)
@@ -1563,13 +1561,78 @@ Definition calculate_messages_step_def:
                            adjacent fg.underlying_graph org dst };
     restricted_messages = RRESTRICT calculated_messages {SOME x | T};
     update_messages = FMAP_MAP2 (THE ∘ SND) restricted_messages;
-    new_msgs = msgs ⊌ update_messages;
   in
-    if new_msgs = msgs
-    then
-      msgs
-    else
-      calculate_messages_step fg new_msgs
+    
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Perform a single step of calculating the messages that can be calculated   *)
+(* based on the messages from the previous step                               *)
+(* -------------------------------------------------------------------------- *)
+Definition new_msgs_def:
+  new_msgs fg msgs = msgs ⊌ update_messages
+End
+
+
+Theorem card_new_msgs:
+  ∀fg msgs.
+    CARD (FDOM msgs) < CARD (FDOM (new_msgs fg msgs))
+Proof
+  rpt strip_tac
+  >> gvs[new_msgs_def]
+  >> gvs[CARD_UNION_EQN]
+  >> qmatch_goalsub_abbrev_tac ‘_ ∩ update_messages’
+  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
+  >> conj_tac
+  >- metis_tac[CARD_INTER_LESS_EQ, INTER_COMM, FDOM_FINITE]
+  >> irule LESS_ADD_NONZERO
+  >> CCONTR_TAC >> gvs[]
+  >> 
+                      
+  >> gvs[CARD_INTER_LESS_EQ]
+
+        unabbrev_all_tac >> )
+  >> irule LESS_ADD_NONZERO
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Calculate all messages that can be calculated based on the messages that   *)
+(* have been sent so far.                                                     *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_messages_step_def:
+  calculate_messages_step fg msgs =
+  if new_msgs fg msgs = msgs
+  then
+    msgs
+  else
+    calculate_messages_step fg (new_msgs fg msgs)
+Termination
+  (* At each stage, either a message is added, or we terminate because no
+     message was added. Thus, if we count the number of edges without messages,
+     this will strictly decrease in each recursive call, proving eventual
+     termination.
+
+     We use prim_recTheory.measure to turn this natural number into a
+     well-founded relation.
+
+     For simplicity, we don't count the exact number of edges, but simply
+     observe that it is at most order * order. Then we subtract the size of the
+     domain of the map of messages.
+   *)
+  qexists ‘measure (λ(fg, msgs). order fg.underlying_graph * order fg.underlying_graph - CARD (FDOM msgs))’
+  >> rpt strip_tac
+  >- gvs[WF_measure]
+  >> rw[]
+  >- (sg ‘CARD (FDOM msgs) < CARD (FDOM (new_msgs fg msgs))’
+      >- (
+       >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_LE]
+         )
+      >>rw[]
+      >> PURE_ONCE_REWRITE_TAC[ADD_SYM]
+      >> 
+      >> DEP_PURE_ONCE_REWRITE_TAC[SUB_ADD]
+      >> gvs[]
+     )
 End
 
 (* -------------------------------------------------------------------------- *)

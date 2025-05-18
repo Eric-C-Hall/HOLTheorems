@@ -4,6 +4,8 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* avoid donotexpand_tac *)
+
 (* I am currently formalizing the log likelihood ratio version of the
    message passing algorithm, rather than the generalized version. *)
 
@@ -11,7 +13,9 @@ val _ = new_theory "relevant";
    However, this may *)
 
 (* What definitions do I need to lift to the abstract layer, and what
-   definitions should I leave in the representation layer? *)
+   definitions should I leave in the representation layer? I find that there
+   are a large number of definitions from the representation layer relating
+   to fsgraphs which I don't want to re-implement in the abstraction layer. *)
 
 (* Could the name underlying_graph_abs be improved? *)
 

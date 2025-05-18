@@ -305,3 +305,5 @@ Definition calculate_message_passing_def:
 
 
 End
+
+Message names: calculate_messages >> new_msgs >> update_messages >> restricted_messages >> calculated_messages
