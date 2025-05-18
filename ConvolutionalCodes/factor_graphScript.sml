@@ -1306,7 +1306,7 @@ QED
 
 val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 
-(* -------------------------------------------------------------------------- *)
+(*(* -------------------------------------------------------------------------- *)
 (* If the factor graphs are equivalent then their underlying graphs are the   *)
 (* same                                                                       *)
 (* -------------------------------------------------------------------------- *)
@@ -1318,7 +1318,7 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val _ = liftdef underlying_graph_respects "underlying_graph_abs"
+val _ = liftdef underlying_graph_respects "underlying_graph_abs"*)
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
@@ -1530,25 +1530,21 @@ Definition calculate_message_def:
   let
     incoming_msg_edges = {(n, origin) | n ∈ nodes fg.underlying_graph ∧
                                         adjacent fg.underlying_graph n origin ∧
-                                        n ≠ dst }
-  in 
-    if origin ∈ fg.function_nodes
-    then
-      ARB
-      (*SOME (2 * extarctanh (product for all input messages of (archtanh (input message) / 2)))*)
+                                        n ≠ dst };
+  in
+    if ¬(incoming_msg_edges ⊆ FDOM msgs) then
+      NONE
     else
-      ARB
-      (*     SOME (sum of all input messages)*)
-End
-
-Definition calculate_message_def:
-  calculate_message (fg : factor_graph) (org : unit + num) (dst : unit + num) (msgs : (unit + num) # (unit + num) |-> extreal) =
-  let
-    incoming_msg_edges = {(n, origin) | n ∈ nodes (underlying_graph_abs fg) ∧
-                                        adjacent (underlying_graph_abs fg) n origin ∧
-                                        n ≠ dst }
-  in 
-    ARB incoming_msg_edges
+      if org ∈ fg.function_nodes
+      then
+        SOME (2 * extarctanh (∏
+                              (λmsg_edge. exttanh ((msgs ' msg_edge) / 2))
+                              incoming_msg_edges
+                             )
+             )
+      else
+        (* sum of all input messages *)
+        SOME (∑ ($' msgs) incoming_msg_edges)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1562,8 +1558,19 @@ End
 (* Given a node and                                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition calculate_messages_step_def:
-  calculate_messages_step fg msg =
-  msg ⊌ FUN_FMAP (get_outgoing_message_value origin destination all_alternative_destinations) (origin and destination)
+  calculate_messages_step fg msgs =
+  let
+    new_msgs = 
+  in
+    if msgs = new_msgs
+    then
+      msgs
+    else
+      
+
+      
+      msg ⊌
+      FUN_FMAP (get_outgoing_message_value origin destination all_alternative_destinations) (origin and destination)
 
 
   

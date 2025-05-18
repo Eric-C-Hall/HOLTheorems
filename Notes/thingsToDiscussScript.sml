@@ -4,6 +4,8 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* What definitions do I need to lift to the abstract layer, and what definitions should I leave in the representation layer? *)
+
 (* Could the name underlying_graph_abs be improved? *)
 
 (* extarctanh_def: *)
