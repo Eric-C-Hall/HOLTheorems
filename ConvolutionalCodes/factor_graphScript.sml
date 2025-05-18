@@ -1547,52 +1547,43 @@ Definition calculate_message_def:
         SOME (∑ ($' msgs) incoming_msg_edges)
 End
 
+(* Theorem for showing equivalence of finite maps: fmap_EQ_THM *)
+
 (* -------------------------------------------------------------------------- *)
 (* Calculate all messages that can be calculated based on the messages that   *)
 (* have been sent so far.                                                     *)
-(*                                                                            *)
-(* For every node in the graph, for every choice of adjacent node which does  *)
-(* not have an outgoing message, if all other adjacent nodes have an input    *)
-(* message, then calculate the outgoing message.                              *)
-(*                                                                            *)
-(* Given a node and                                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition calculate_messages_step_def:
   calculate_messages_step fg msgs =
   let
-    new_msgs = 
+    calculated_messages =
+    FUN_FMAP (λ(org, dst). calculate_message fg org dst msgs)
+             {(org, dst) | org ∈ nodes fg.underlying_graph ∧
+                           dst ∈ nodes fg.underlying_graph ∧
+                           adjacent fg.underlying_graph org dst };
+    restricted_messages = RRESTRICT calculated_messages {SOME x | T};
+    update_messages = FMAP_MAP2 (THE ∘ SND) restricted_messages;
+    new_msgs = msgs ⊌ update_messages;
   in
-    if msgs = new_msgs
+    if new_msgs = msgs
     then
       msgs
     else
-      
-
-      
-      msg ⊌
-      FUN_FMAP (get_outgoing_message_value origin destination all_alternative_destinations) (origin and destination)
-
-
-  
-      {n | n ∈ nodes fg.underlying_graph ∧
-           (∃m. adjacent fg.underlying_graph n m ∧
-                (∀p. p ≠ m ∧
-                     adjacent fg.underlying_graph n p ⇒
-                     
-                )
-           )}
+      calculate_messages_step fg new_msgs
 End
 
-
 (* -------------------------------------------------------------------------- *)
-(* Calculate messages                                                         *)
+(* Calculate messages over the factor graph                                   *)
 (*                                                                            *)
 (* 1. Send a message from each leaf node                                      *)
-(* 2. When a node has received incoming messages from all but one of its      *)
-(* connected edges, we may send an outgoing message over the remaining edge   *)
+(* 2. Repeatedly determine what messages we can send, and send them.          *)
+(*    When a node has received incoming messages from all but one of its      *)
+(*    connected edges, we may send an outgoing message over the remaining     *)
+(*    edge.                                                                   *)
 (* -------------------------------------------------------------------------- *)
 Definition calculate_messages_def:
-
+  calculate_messages fg =
+  calculate_messages_step fg (calculate_leaf_messages fg)
 End
 
 

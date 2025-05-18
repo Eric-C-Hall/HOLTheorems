@@ -4,7 +4,14 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
-(* What definitions do I need to lift to the abstract layer, and what definitions should I leave in the representation layer? *)
+(* I am currently formalizing the log likelihood ratio version of the
+   message passing algorithm, rather than the generalized version. *)
+
+(* Maybe I should avoid dealing with INR i and instead deal with i itself.
+   However, this may *)
+
+(* What definitions do I need to lift to the abstract layer, and what
+   definitions should I leave in the representation layer? *)
 
 (* Could the name underlying_graph_abs be improved? *)
 
