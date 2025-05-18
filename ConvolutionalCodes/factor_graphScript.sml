@@ -1516,13 +1516,25 @@ Definition calculate_message_def:
   let
     incoming_msg_edges = {(n, origin) | n ∈ nodes fg.underlying_graph ∧
                                         adjacent fg.underlying_graph n origin ∧
-                                        }
+                                        n ≠ dst }
   in 
     if origin ∈ fg.function_nodes
     then
-    SOME (2 * extarctanh (product for all input messages of (archtanh (input message) / 2)))
-  else
-    SOME (sum of all input messages)
+      ARB
+      (*SOME (2 * extarctanh (product for all input messages of (archtanh (input message) / 2)))*)
+    else
+      ARB
+      (*     SOME (sum of all input messages)*)
+End
+
+Definition calculate_message_def:
+  calculate_message (fg : factor_graph) (org : unit + num) (dst : unit + num) (msgs : (unit + num) # (unit + num) |-> extreal) =
+  let
+    incoming_msg_edges = {(n, origin) | n ∈ nodes fg.underlying_graph ∧
+                                        adjacent fg.underlying_graph n origin ∧
+                                        n ≠ dst }
+  in 
+    ARB incoming_msg_edges
 End
 
 (* -------------------------------------------------------------------------- *)
