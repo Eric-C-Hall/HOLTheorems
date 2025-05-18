@@ -1307,6 +1307,20 @@ QED
 val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 
 (* -------------------------------------------------------------------------- *)
+(* If the factor graphs are equivalent then their underlying graphs are the   *)
+(* same                                                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem underlying_graph_respects:
+  ∀fg.
+    (fgequiv ===> (=)) (λfg. fg.underlying_graph) (λfg. fg.underlying_graph)
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef underlying_graph_respects "underlying_graph_abs"
+
+(* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
 (*                                                                            *)
 (* f(x_1, x_2, x_3, x_4, x_5, x_6) = f_1(x_1, x_2, x_3) f_2(x_1, x_4, x_6)    *)
@@ -1530,8 +1544,8 @@ End
 Definition calculate_message_def:
   calculate_message (fg : factor_graph) (org : unit + num) (dst : unit + num) (msgs : (unit + num) # (unit + num) |-> extreal) =
   let
-    incoming_msg_edges = {(n, origin) | n ∈ nodes fg.underlying_graph ∧
-                                        adjacent fg.underlying_graph n origin ∧
+    incoming_msg_edges = {(n, origin) | n ∈ nodes (underlying_graph_abs fg) ∧
+                                        adjacent (underlying_graph_abs fg) n origin ∧
                                         n ≠ dst }
   in 
     ARB incoming_msg_edges
