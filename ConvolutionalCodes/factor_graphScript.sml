@@ -9,6 +9,7 @@ open genericGraphTheory;
 open pred_setTheory;
 open finite_mapTheory;
 open listTheory;
+open transcTheory;
 
 open partite_eaTheory;
 
@@ -115,6 +116,9 @@ End
 (*   TODO: we currently don't require that the probabilities for all possible *)
 (*         inputs add to 1. However, there is also currently no need to know  *)
 (*         this.                                                              *)
+(*   TODO: I think there was a misunderstanding: the outputs of each function *)
+(*         don't all need to be between 0 and 1, merely the product of all    *)
+(*         the functions is typically a probability distribution (maybe)      *)
 (* - the variables used as input to each function must be valid nodes and     *)
 (*   they should be variable nodes, and one variable should not be used more  *)
 (*   than once                                                                *)
@@ -1092,7 +1096,7 @@ Proof
   (* Bipartiteness is retained *)
   >- (drule (cj 1 (iffLR wffactor_graph_def)) >> disch_tac
       >> simp[fg_add_function_node0_def]
-      (* Is there a nicer way to do this? Key: 842859 *)
+      (* TODO: use new tactic that Michael wrote for me here *)
       >> Cases_on ‘(INR (CARD (nodes (fsgAddNode (INR (CARD (nodes fg.underlying_graph))) fg.underlying_graph)) − 1) ∈ INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes ∧ ∀x. MEM x (FST fn) ⇒ x ∈ nodes (fsgAddNode (INR (CARD (nodes fg.underlying_graph))) fg.underlying_graph) ∧ x ∉ INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes)’
       >- (DEP_PURE_ONCE_REWRITE_TAC[gen_partite_ea_fg_add_edges_for_function_node0]
           >> (conj_tac >- gvs[]) >> pop_assum kall_tac
@@ -1325,7 +1329,7 @@ val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 (*                                    x_5                                     *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-(* The following example factor graph is based on Example 2.2.                *)
+(* This example factor graphtor graph is based on Example 2.2.                *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_example_factor_graph_def:
   fg_example_factor_graph
@@ -1358,16 +1362,192 @@ Overload leaves = “λg. {n | n ∈ nodes g ∧ is_leaf g n}”;
 (* -------------------------------------------------------------------------- *)
 (* The set of all nodes that are adjacent to a given one.                     *)
 (* -------------------------------------------------------------------------- *)
-Overload adjacent_set = “λg n. {m | adjacent g n m}”
+Overload adjacent_set = “λ(g : fsgraph) n. {m | adjacent g n m}”
 
 (* -------------------------------------------------------------------------- *)
-(* Calculate messages to be initially sent from the leaf nodes of the graph   *)
+(* Calculate messages to be initially sent from the variable leaf nodes of    *)
+(* the factor graph                                                           *)
 (*                                                                            *)
+(* When sending messages in the form of the log likelihood ratio between      *)
+(* f(1) and f(-1), the message sent from each variable leaf node needs to be  *)
+(* 0, which differs from what needs to be sent when the messages take the     *)
+(* form of a function, where the message that is sent needs to be the         *)
+(* constant function 1.                                                       *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_variable_leaf_messages_def:
+  calculate_variable_leaf_messages fg =
+  FUN_FMAP (λ_. Normal 0)
+           {(l, k) | l ∈ leaves fg.underlying_graph ∧
+                     l ∉ fg.function_nodes ∧
+                     adjacent fg.underlying_graph l k}          
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Calculate messages to be initially sent from the function leaf nodes of    *)
+(* the factor graph.                                                          *)
 (*                                                                            *)
+(* If messages were being sent in the form of a function, the function that   *)
+(* would need to be sent as a message would be the function contained in the  *)
+(* function node.                                                             *)
+(*                                                                            *)
+(* Thus, in terms of the log likelihood ratio, this is equal to               *)
+(* ln(f(T) / f(F))                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_function_leaf_messages_def:
+  calculate_function_leaf_messages fg =
+  FUN_FMAP (λ(l, k).
+              let
+                (f_args, f_func) = fg.function_map ' l
+              in
+                ln (f_func [T] / f_func [F])
+           )
+           {(l, k) | l ∈ leaves fg.underlying_graph ∧
+                     l ∈ fg.function_nodes ∧
+                     adjacent fg.underlying_graph l k
+           }
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Combine function leaf messages and variable leaf messages                  *)
 (* -------------------------------------------------------------------------- *)
 Definition calculate_leaf_messages_def:
-  calculate_leaf_messages fg = leaves 
+  calculate_leaf_messages fg =
+  calculate_function_leaf_messages fg ⊌ calculate_variable_leaf_messages fg
+End
 
+(* -------------------------------------------------------------------------- *)
+(* Euler's number                                                             *)
+(* a.k.a. e                                                                   *)
+(* i.e. the base of the natural logarithm.                                    *)
+(*                                                                            *)
+(* This may already be defined somewhere                                      *)
+(* -------------------------------------------------------------------------- *)
+Definition eulers_number_def:
+  eulers_number = exp(1) : real
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Sinh for reals                                                             *)
+(* -------------------------------------------------------------------------- *)
+Definition sinh_def:
+  sinh (r : real) = (eulers_number powr r - eulers_number powr (-r)) / 2
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Sinh for extreals                                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition extsinh_def:
+  extsinh (x : extreal) = case x of
+                            +∞ => +∞
+                          | −∞ => −∞
+                          | Normal r => Normal (sinh r)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Cosh for reals                                                             *)
+(* -------------------------------------------------------------------------- *)
+Definition cosh_def:
+  cosh (r : real) = (eulers_number powr r + eulers_number powr (-r)) / 2
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Cosh for extreals                                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition extcosh_def:
+  extcosh (x : extreal) = case x of
+                            +∞ => +∞
+                          | −∞ => +∞
+                          | Normal r => Normal (cosh r)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Tanh for reals                                                             *)
+(* -------------------------------------------------------------------------- *)
+Definition tanh_def:
+  tanh (r : real) = sinh r / cosh r
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Tanh for extreals                                                          *)
+(*                                                                            *)
+(* mlNeuralNetwork has a function called "tanh", but this is a function which *)
+(* is written in ML and can be applied to values in the ML environment, but   *)
+(* is not a HOL4 definition and thus cannot be used in HOL4 itself as an      *)
+(* element of proofs and stuff. Furthermore, this definition of "tanh" is     *)
+(* written for reals, and not for extreals.                                   *)
+(* -------------------------------------------------------------------------- *)
+Definition exttanh_def:
+  exttanh (x : extreal) = extsinh x / extcosh x
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Arctanh for reals                                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition arctanh_def:
+  arctanh (r : real) = (ln ((1 + r) / (1 - r))) / 2
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Arctanh for extreals                                                       *)
+(* -------------------------------------------------------------------------- *)
+Definition extarctanh_def:
+  extarctanh (x : extreal) = case x of
+                               +∞ => ARB (* TODO: how should I handle
+                                            undefined cases? *)
+                             | −∞ => ARB 
+                             | Normal r => Normal (arctanh r)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Calculate the message for a particular origin and destination, if possible *)
+(*                                                                            *)
+(* fg: factor graph                                                           *)
+(* org: origin node for message                                               *)
+(* dsf: destination node for message                                          *)
+(* msgs: all previous messages that have been calculated                      *)
+(*                                                                            *)
+(* Output:                                                                    *)
+(* - NONE     | if we haven't received incoming messages from all other nodes *)
+(*              and thus we cannot calculate the message                      *)
+(* - SOME msg | otherwise                                                     *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_message_def:
+  calculate_message fg org dst msgs =
+  let
+    incoming_msg_edges = {(n, origin) | n ∈ nodes fg.underlying_graph ∧
+                                        adjacent fg.underlying_graph n origin ∧
+                                        }
+  in 
+    if origin ∈ fg.function_nodes
+    then
+    SOME (2 * extarctanh (product for all input messages of (archtanh (input message) / 2)))
+  else
+    SOME (sum of all input messages)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Calculate all messages that can be calculated based on the messages that   *)
+(* have been sent so far.                                                     *)
+(*                                                                            *)
+(* For every node in the graph, for every choice of adjacent node which does  *)
+(* not have an outgoing message, if all other adjacent nodes have an input    *)
+(* message, then calculate the outgoing message.                              *)
+(*                                                                            *)
+(* Given a node and                                                           *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_messages_step_def:
+  calculate_messages_step fg msg =
+  msg ⊌ FUN_FMAP (get_outgoing_message_value origin destination all_alternative_destinations) (origin and destination)
+
+
+  
+      {n | n ∈ nodes fg.underlying_graph ∧
+           (∃m. adjacent fg.underlying_graph n m ∧
+                (∀p. p ≠ m ∧
+                     adjacent fg.underlying_graph n p ⇒
+                     
+                )
+           )}
 End
 
 
