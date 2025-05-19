@@ -27,6 +27,8 @@ open liftLib liftingTheory transferLib transferTheory;
 
 val _ = new_theory "factor_graphs";
 
+val _ = hide "S";
+
 (* -------------------------------------------------------------------------- *)
 (* This file defines factor graphs, which are used to efficiently calculate   *)
 (* marginal probabilities.                                                    *)
@@ -1307,6 +1309,8 @@ QED
 
 val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 
+Theorem FDOM_FMAP_MAP2[simp] = GEN_ALL (cj 1 FMAP_MAP2_THM);
+                
 (*(* -------------------------------------------------------------------------- *)
 (* If the factor graphs are equivalent then their underlying graphs are the   *)
 (* same                                                                       *)
@@ -1396,7 +1400,7 @@ Definition calculate_variable_leaf_messages_def:
                      l ∉ fg.function_nodes ∧
                      adjacent fg.underlying_graph l k}          
 End
-
+]
 (* -------------------------------------------------------------------------- *)
 (* Calculate messages to be initially sent from the function leaf nodes of    *)
 (* the factor graph.                                                          *)
@@ -1429,6 +1433,42 @@ Definition calculate_leaf_messages_def:
   calculate_leaf_messages fg =
   calculate_function_leaf_messages fg ⊌ calculate_variable_leaf_messages fg
 End
+
+(* -------------------------------------------------------------------------- *)
+(* The domain on which messages are sent. That is, all possible node pairs    *)
+(* where one node pair is sending a message and one node is receiving the     *)
+(* message.                                                                   *)
+(*                                                                            *)
+(* This overload is useful for my purposes, but it may overlap with the more  *)
+(* general concept of "the set of all pairs of adjacent nodes" in a scenario  *)
+(* where we aren't working with the message passing algorithm, so I hide it   *)
+(* before exporting the theory.                                               *)
+(* -------------------------------------------------------------------------- *)
+Overload message_domain = “λfg. {(n,m) | n ∈ nodes fg.underlying_graph ∧
+                                         m ∈ nodes fg.underlying_graph ∧
+                                         adjacent fg.underlying_graph n m
+                          }”;
+
+(* -------------------------------------------------------------------------- *)
+(* The domain of possible messages is finite                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem finite_message_domain[simp]:
+  ∀fg.
+    FINITE (message_domain fg)
+Proof
+  rw[]
+  >> qsuff_tac ‘FINITE {(n, m) | n ∈ nodes fg.underlying_graph ∧
+                                 m ∈ nodes fg.underlying_graph}’
+  >- (rw[]
+      >> irule SUBSET_FINITE
+      >> qmatch_asmsub_abbrev_tac ‘FINITE S’
+      >> qexists ‘S’
+      >> gvs[]
+      >> unabbrev_all_tac
+      >> ASM_SET_TAC[]
+     )
+  >> gvs[FINITE_PRODUCT]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Euler's number                                                             *)
@@ -1550,36 +1590,32 @@ End
 
 (* Theorem for showing equivalence of finite maps: fmap_EQ_THM *)
 
-
-Definition added_msgs_def:
-  added_msgs fg msgs =
+(* -------------------------------------------------------------------------- *)
+(* A map consisting of all messages that can be calculated based on the       *)
+(* current messages (this may not include some of the provided messages if    *)
+(* they cannot be calculated based on other provided messages)                *)
+(*                                                                            *)
+(* We expect FDOM msgs ⊆ message_domain fg                                   *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_messages_step_def:
+  calculate_messages_step fg msgs =
   let
     calculated_messages =
     FUN_FMAP (λ(org, dst). calculate_message fg org dst msgs)
-             {(org, dst) | org ∈ nodes fg.underlying_graph ∧
-                           dst ∈ nodes fg.underlying_graph ∧
-                           adjacent fg.underlying_graph org dst };
+             (message_domain fg);
     restricted_messages = RRESTRICT calculated_messages {SOME x | T};
-    update_messages = FMAP_MAP2 (THE ∘ SND) restricted_messages;
   in
-    
+    (* Change from option type into the underlying message type *)
+    FMAP_MAP2 (THE ∘ SND) restricted_messages
 End
 
-(* -------------------------------------------------------------------------- *)
-(* Perform a single step of calculating the messages that can be calculated   *)
-(* based on the messages from the previous step                               *)
-(* -------------------------------------------------------------------------- *)
-Definition new_msgs_def:
-  new_msgs fg msgs = msgs ⊌ update_messages
-End
-
-
-Theorem card_new_msgs:
+(*
+Theorem card_calculate_messages_step:
   ∀fg msgs.
-    CARD (FDOM msgs) < CARD (FDOM (new_msgs fg msgs))
+    CARD (FDOM msgs) < CARD (FDOM (calculate_messages_step fg msgs))
 Proof
   rpt strip_tac
-  >> gvs[new_msgs_def]
+  >> gvs[calculate_messages_step_def]
   >> gvs[CARD_UNION_EQN]
   >> qmatch_goalsub_abbrev_tac ‘_ ∩ update_messages’
   >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
@@ -1594,44 +1630,128 @@ Proof
         unabbrev_all_tac >> )
   >> irule LESS_ADD_NONZERO
 QED
+ *)
+
+(* -------------------------------------------------------------------------- *)
+(* Restricting a domain gives you a domain which is a subset of the initial   *)
+(* domain                                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem FDOM_RRESTRICT_SUBSET:
+  FDOM (RRESTRICT f r) ⊆ FDOM f
+Proof
+  gvs[RRESTRICT_DEF]
+  >> ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If the domain of a finite map is a subset of S, then the domain of its     *)
+(* restriction is also a subset of S                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem FDOM_RRESTRICT_SUBSET_IMPLIES:
+  ∀f r S.
+    FDOM f ⊆ S ⇒
+    FDOM (RRESTRICT f r) ⊆ S
+Proof
+  rw[]
+  >> irule SUBSET_TRANS
+  >> metis_tac[FDOM_RRESTRICT_SUBSET]
+QED
+
+Theorem factor_graphs_FDOM_FMAP[simp] = FDOM_FMAP;
+
+Theorem calculate_messages_step_in_message_domain:
+  ∀fg msg.
+    FDOM msg ⊆ message_domain fg ⇒ 
+    FDOM (calculate_messages_step fg msg) ⊆ message_domain fg
+Proof
+  rw[calculate_messages_step_def]
+  >> irule FDOM_RRESTRICT_SUBSET_IMPLIES
+  >> gvs[RRESTRICT_DEF]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If our finite map already has a domain within the domain we are            *)
+(* restricting to, then restricting does nothing.                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem FDOM_SUBSET_DRESTRICT:
+  ∀f r.
+    FDOM f ⊆ r ⇒
+    DRESTRICT f r = f
+Proof
+  rw[]
+  >> rw[GSYM fmap_EQ_THM]
+  >- (rw[DRESTRICT_DEF]
+      >> ASM_SET_TAC[]
+     )
+  >> gvs[DRESTRICT_DEF]
+QED
+
+Theorem drestrict_calculate_messages_step_drestrict[simp]:
+  ∀fg msgs.
+    DRESTRICT (calculate_messages_step fg (DRESTRICT msgs (message_domain fg)))
+              (message_domain fg) =
+    calculate_messages_step fg (DRESTRICT msgs (message_domain fg))
+Proof
+  metis_tac[FDOM_SUBSET_DRESTRICT, calculate_messages_step_in_message_domain,
+            FDOM_DRESTRICT, INTER_SUBSET]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Calculate all messages that can be calculated based on the messages that   *)
 (* have been sent so far.                                                     *)
 (* -------------------------------------------------------------------------- *)
-Definition calculate_messages_step_def:
-  calculate_messages_step fg msgs =
-  if new_msgs fg msgs = msgs
-  then
-    msgs
-  else
-    calculate_messages_step fg (new_msgs fg msgs)
+Definition calculate_messages_loop_def:
+  calculate_messages_loop fg msgs =
+  let
+    valid_msgs = DRESTRICT msgs (message_domain fg);
+    new_msgs = valid_msgs ⊌ (calculate_messages_step fg valid_msgs)
+  in
+    if new_msgs = valid_msgs
+    then
+      msgs
+    else
+      calculate_messages_loop fg (new_msgs)
+End
 Termination
   (* At each stage, either a message is added, or we terminate because no
      message was added. Thus, if we count the number of edges without messages,
      this will strictly decrease in each recursive call, proving eventual
      termination.
 
+     This is calculated as CARD (message_domain fg) - CARD (FDOM msgs).
+     We add 1 to the first CARD in order to ensure that it is strictly greater
+     than the second CARD, and not simply greater than or equal to it. This
+     simplifies the working.
+     
      We use prim_recTheory.measure to turn this natural number into a
      well-founded relation.
-
-     For simplicity, we don't count the exact number of edges, but simply
-     observe that it is at most order * order. Then we subtract the size of the
-     domain of the map of messages.
    *)
-  qexists ‘measure (λ(fg, msgs). order fg.underlying_graph * order fg.underlying_graph - CARD (FDOM msgs))’
+  qexists ‘measure (λ(fg, msgs).
+                      (CARD (message_domain fg)) + 1 -
+                      CARD (FDOM (DRESTRICT msgs (message_domain fg)))
+                   )’
   >> rpt strip_tac
   >- gvs[WF_measure]
   >> rw[]
-  >- (sg ‘CARD (FDOM msgs) < CARD (FDOM (new_msgs fg msgs))’
-      >- (
-       >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_LE]
-         )
-      >>rw[]
-      >> PURE_ONCE_REWRITE_TAC[ADD_SYM]
+  >- (
+  gvs[DRESTRICTED_FUNION]
+  >> unabbrev_all_tac >> gvs[]
+  >> SET_ALL_TAC
+     gvs[CARD_UNION_EQN]
+
+
+
+     qmatch_goalsub_abbrev_tac ‘_ < card1 + (_ - card2)’
+  >> sg ‘card2 < card1’
+  >- (unabbrev_all_tac
+      >> gvs[CARD_UNION_EQN]
       >> 
-      >> DEP_PURE_ONCE_REWRITE_TAC[SUB_ADD]
-      >> gvs[]
+     )
+  >>rw[]
+  >> PURE_ONCE_REWRITE_TAC[ADD_SYM]
+  >> 
+  >> DEP_PURE_ONCE_REWRITE_TAC[SUB_ADD]
+  >> gvs[]
      )
 End
 
@@ -1646,9 +1766,16 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition calculate_messages_def:
   calculate_messages fg =
-  calculate_messages_step fg (calculate_leaf_messages fg)
+  calculate_messages_loop fg (calculate_leaf_messages fg)
 End
 
 
+(* -------------------------------------------------------------------------- *)
+(* This overload is useful for my purposes, but it may overlap with the more  *)
+(* general concept of "the set of all pairs of adjacent nodes" in a scenario  *)
+(* where we aren't working with the message passing algorithm, so I hide it   *)
+(* before exporting the theory.                                               *)
+(* -------------------------------------------------------------------------- *)
+val _ = hide "message_domain"
 
 val _ = export_theory();
