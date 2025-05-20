@@ -1785,7 +1785,6 @@ Definition calculate_messages_loop_def:
       msgs
     else
       calculate_messages_loop fg (new_msgs)
-End
 Termination
   (* At each stage, either a message is added, or we terminate because no
      message was added. Thus, if we count the number of edges without messages,
@@ -1834,18 +1833,14 @@ Termination
   >> DEP_PURE_ONCE_REWRITE_TAC[CARD_INTER_CARD_DIFF]
   >> conj_tac >- gvs[]
   >> qmatch_goalsub_abbrev_tac ‘n - at_least_one’
-  >> gvs[Excl "CARD_DIFF"] 
+  >> gvs[Excl "CARD_DIFF"]
   (* Both of these conjuncts follow from the statement that there exists at
      least one message which is in the domain of the new messages but not the
      domain of the old messages *)
-  (*>> sg ‘∃x.
-                  x ∈ FDOM
-             (calculate_messages_step fg (DRESTRICT msgs (message_domain fg)) ∧
-              x ∉ FDOM (DRESTRICT msgs (message_domain fg))
-             )’*)
-  >> conj_tac
+  >> sg ‘∃x. x ∈ FDOM (calculate_messages_step
+                       fg (DRESTRICT msgs (message_domain fg))) ∧
+             x ∉ FDOM (DRESTRICT msgs (message_domain fg))’
   >- (unabbrev_all_tac
-      >> gvs[Excl "CARD_DIFF", ZERO_LESS_CARD]
       >> gvs[GSYM fmap_EQ_THM]
       >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
       >> Cases_on ‘prem’ >> gvs[]
@@ -1878,16 +1873,14 @@ Termination
       (* x ∈ old domain but x ∉ new domain*)
       >> gvs[]
      )
+  >> conj_tac
+  >- (unabbrev_all_tac
+      >> gvs[Excl "CARD_DIFF", ZERO_LESS_CARD]
+      >> metis_tac[]
+     )
   >> unabbrev_all_tac
   >> gvs[ZERO_LESS_CARD]
-  (* WTP: There is at least one message in the new messages, given that
-   the new messages unioned with the old messages are not the same as the old
-   messages *)
-  >> gvs[GSYM fmap_EQ_THM]
-  >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
-  >> Cases_on ‘prem’ >> gvs[]
-  >- (
-  )
+  >> metis_tac[]
 End
 
 (* -------------------------------------------------------------------------- *)
