@@ -1610,29 +1610,6 @@ Definition calculate_messages_step_def:
     FMAP_MAP2 (THE ∘ SND) restricted_messages
 End
 
-(*
-Theorem card_calculate_messages_step:
-  ∀fg msgs.
-    CARD (FDOM msgs) < CARD (FDOM (calculate_messages_step fg msgs))
-Proof
-  rpt strip_tac
-  >> gvs[calculate_messages_step_def]
-  >> gvs[CARD_UNION_EQN]
-  >> qmatch_goalsub_abbrev_tac ‘_ ∩ update_messages’
-  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
-  >> conj_tac
-  >- metis_tac[CARD_INTER_LESS_EQ, INTER_COMM, FDOM_FINITE]
-  >> irule LESS_ADD_NONZERO
-  >> CCONTR_TAC >> gvs[]
-  >> 
-                      
-  >> gvs[CARD_INTER_LESS_EQ]
-
-        unabbrev_all_tac >> )
-  >> irule LESS_ADD_NONZERO
-QED
- *)
-
 (* -------------------------------------------------------------------------- *)
 (* Restricting a domain gives you a domain which is a subset of the initial   *)
 (* domain                                                                     *)
@@ -1896,6 +1873,26 @@ Definition calculate_messages_def:
   calculate_messages fg =
   calculate_messages_loop fg (calculate_leaf_messages fg)
 End
+
+
+Definition parity_equation_recursive_def:
+End
+
+Definition parallel_convolutional_code_def:
+End
+
+Definition sequential_convolutional_code_def:
+End
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition recursive_convolutional_code_def
+End
+
+
 
 
 (* -------------------------------------------------------------------------- *)
