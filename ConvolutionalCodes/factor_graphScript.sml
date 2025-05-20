@@ -11,6 +11,7 @@ open finite_mapTheory;
 open listTheory;
 open transcTheory;
 open prim_recTheory;
+open integerTheory;
 
 open partite_eaTheory;
 
@@ -1400,7 +1401,7 @@ Definition calculate_variable_leaf_messages_def:
                      l ∉ fg.function_nodes ∧
                      adjacent fg.underlying_graph l k}          
 End
-]
+
 (* -------------------------------------------------------------------------- *)
 (* Calculate messages to be initially sent from the function leaf nodes of    *)
 (* the factor graph.                                                          *)
@@ -1697,6 +1698,79 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Restricting the domain causes the cardinality of the domain to be bounded  *)
+(* above by the cardinality of the set you restricted the domain to.          *)
+(* -------------------------------------------------------------------------- *)
+Theorem CARD_FDOM_DRESTRICT_LEQ:
+  ∀f r.
+    FINITE r ⇒
+    CARD (FDOM (DRESTRICT f r)) ≤ CARD r
+Proof
+  rw[]
+  >> gvs[FDOM_DRESTRICT]
+  >> metis_tac[CARD_INTER_LESS_EQ, INTER_COMM]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A simpler version of DRESTRICTED_FUNION that is more symmetrical           *)
+(* -------------------------------------------------------------------------- *)
+Theorem DRESTRICTED_FUNION_ALT:
+  ∀f1 f2 s.
+    DRESTRICT (f1 ⊌ f2) s =
+    DRESTRICT f1 s ⊌ DRESTRICT f2 s
+Proof
+  rw[GSYM fmap_EQ_THM]
+  >- (gvs[DRESTRICT_DEF]
+      >> ASM_SET_TAC[]
+     )
+  >> gvs[DRESTRICT_DEF]
+  >> (gvs[FUNION_DEF]
+      >> rw[]
+      >> gvs[DRESTRICT_DEF]
+     )
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* An expression of the cardinality of the intersection given in terms of the *)
+(* cardinality of one of the sets and the cardinality of the difference.      *)
+(*                                                                            *)
+(* A rewriting of CARD_DIFF_EQN.                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem CARD_INTER_CARD_DIFF:
+  ∀s t.
+    FINITE s ⇒
+    CARD (s ∩ t) = CARD s - CARD (s DIFF t)
+Proof
+  rw[CARD_DIFF_EQN, SUB_SUB]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The cardinality of a set is nonzero if and only if there is an element of  *)
+(* the set (we require our set to be finite so that the cardinality is        *)
+(* defined according to the definition we use)                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem ZERO_LESS_CARD:
+  ∀S.
+    FINITE S ⇒
+    (0 < CARD S ⇔ ∃s. s ∈ S)
+Proof
+  rw[]
+  >> Cases_on ‘S’ >> gvs[]
+  >> qexists ‘x’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The union has no effect if and only if the added set is a subset of the    *)
+(* original set                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem UNION_EQ_FIRST:
+  ∀s t.
+    s ∪ t = s ⇔ t ⊆ s
+Proof
+  ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Calculate all messages that can be calculated based on the messages that   *)
 (* have been sent so far.                                                     *)
 (* -------------------------------------------------------------------------- *)
@@ -1717,12 +1791,12 @@ Termination
      message was added. Thus, if we count the number of edges without messages,
      this will strictly decrease in each recursive call, proving eventual
      termination.
-
+.
      This is calculated as CARD (message_domain fg) - CARD (FDOM msgs).
      We add 1 to the first CARD in order to ensure that it is strictly greater
      than the second CARD, and not simply greater than or equal to it. This
      simplifies the working.
-     
+.     
      We use prim_recTheory.measure to turn this natural number into a
      well-founded relation.
    *)
@@ -1732,27 +1806,88 @@ Termination
                    )’
   >> rpt strip_tac
   >- gvs[WF_measure]
-  >> rw[]
-  >- (
-  gvs[DRESTRICTED_FUNION]
-  >> unabbrev_all_tac >> gvs[]
-  >> SET_ALL_TAC
-     gvs[CARD_UNION_EQN]
-
-
-
-     qmatch_goalsub_abbrev_tac ‘_ < card1 + (_ - card2)’
-  >> sg ‘card2 < card1’
+  >> REVERSE $ rw[]
+  >- (gvs[GSYM SUB_LESS_0]
+      >> gvs[GSYM LE_LT1]
+      >> gvs[CARD_FDOM_DRESTRICT_LEQ]
+     )
+  >> gvs[DRESTRICTED_FUNION_ALT]
+  >> qmatch_goalsub_abbrev_tac ‘upper_limit < new_card + (_ - old_card)’
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM LESS_EQ_ADD_SUB]
+  >> REVERSE $ Cases_on ‘old_card ≤ upper_limit’ >> gvs[]
+  >- (pop_assum mp_tac >> gvs[]
+      >> unabbrev_all_tac
+      >> metis_tac[CARD_FDOM_DRESTRICT_LEQ, LESS_EQ_SUC_REFL, ADD1, LE_TRANS,
+                   finite_message_domain]
+     )
+  >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
+  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
+  >> gvs[GSYM SUB_LESS_0]
+  >> qsuff_tac ‘old_card < new_card’ >> gvs[]
+  >> unabbrev_all_tac
+  >> gvs[CARD_UNION_EQN]
+  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
+  >> conj_tac
+  >- metis_tac[CARD_INTER_LESS_EQ, INTER_COMM, FDOM_FINITE]
+  >> gvs[GSYM SUB_LESS_0]
+  >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+  >> DEP_PURE_ONCE_REWRITE_TAC[CARD_INTER_CARD_DIFF]
+  >> conj_tac >- gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘n - at_least_one’
+  >> gvs[Excl "CARD_DIFF"] 
+  (* Both of these conjuncts follow from the statement that there exists at
+     least one message which is in the domain of the new messages but not the
+     domain of the old messages *)
+  (*>> sg ‘∃x.
+                  x ∈ FDOM
+             (calculate_messages_step fg (DRESTRICT msgs (message_domain fg)) ∧
+              x ∉ FDOM (DRESTRICT msgs (message_domain fg))
+             )’*)
+  >> conj_tac
   >- (unabbrev_all_tac
-      >> gvs[CARD_UNION_EQN]
-      >> 
+      >> gvs[Excl "CARD_DIFF", ZERO_LESS_CARD]
+      >> gvs[GSYM fmap_EQ_THM]
+      >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
+      >> Cases_on ‘prem’ >> gvs[]
+      (* We have an x which is in the old messages, for which the value it is
+         assigned in the new messages is different to the value it is assigned
+         in the old messages. *)
+      >- gvs[FUNION_DEF]
+      (* We have an x which is in the new messages, for which the value it is
+         assigned in the new messages is different to the value it is assigned
+         in the old messages. *)
+      >- (gvs[FUNION_DEF]
+          >> rpt $ pop_assum mp_tac >> rw[] >> rpt strip_tac
+          (* x is in the new messages, but not in the old messages, and the
+             union of the domain of the new messasges with the domain of the
+             old messages is equal to the domain of the old messages
+              (contradiction) *)
+          >> gvs[UNION_EQ_FIRST]
+          >> ASM_SET_TAC[]
+         )
+      >> unabbrev_all_tac
+      (* The union of the old messages with the new messages is not equal
+         to the old messages, and we want to show that there exists a message
+         in the new messages but not the old messages *)
+      >> gvs[cj 1 $ GSYM FUNION_DEF, Excl "FDOM_FUNION"]
+      >> gvs[EXTENSION, Excl "FDOM_FUNION"]
+      >> qmatch_asmsub_abbrev_tac ‘b1 ⇔ b2’
+      >> REVERSE $ Cases_on ‘b2’ >> gvs[Excl "FDOM_FUNION"]
+      (* x ∈ new ∧ x ∉ old *)
+      >- (qexists ‘x’ >> gvs[])
+      (* x ∈ old domain but x ∉ new domain*)
+      >> gvs[]
      )
-  >>rw[]
-  >> PURE_ONCE_REWRITE_TAC[ADD_SYM]
-  >> 
-  >> DEP_PURE_ONCE_REWRITE_TAC[SUB_ADD]
-  >> gvs[]
-     )
+  >> unabbrev_all_tac
+  >> gvs[ZERO_LESS_CARD]
+  (* WTP: There is at least one message in the new messages, given that
+   the new messages unioned with the old messages are not the same as the old
+   messages *)
+  >> gvs[GSYM fmap_EQ_THM]
+  >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
+  >> Cases_on ‘prem’ >> gvs[]
+  >- (
+  )
 End
 
 (* -------------------------------------------------------------------------- *)
