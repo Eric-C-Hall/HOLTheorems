@@ -89,8 +89,7 @@ val _ = hide "S";
 (* function_map maps a function node to its function, as described in the     *)
 (* "Function representation" section above.                                   *)
 (*                                                                            *)
-(* We restrict our attention to factor graphs which have binary inputs and    *)
-(* have outputs that represent probabilities (probabilities are extreals).    *)
+(* We restrict our attention to factor graphs which have binary inputs.       *)
 (*                                                                            *)
 (* We expect the nodes of the factor graph to be consecutive natural numbers  *)
 (* starting from 0.                                                           *)
@@ -100,7 +99,7 @@ Datatype:
   <|
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
-    function_map : (unit + num) |-> (unit + num) list # (bool list -> extreal);
+    function_map : (unit + num) |-> (unit + num) list # (bool list -> α);
   |>
 End
 
@@ -112,17 +111,8 @@ End
 (* which satisfies the well-formedness properties.                            *)
 (*                                                                            *)
 (* - the underlying graph should be bipartite with respect to the function    *)
-(*   nodes and variable nodes, assuming we have function nodes at all         *)
+(*   nodes and variable nodes                                                 *)
 (* - the domain of function_map should be the set of function nodes           *)
-(* - the set of function nodes should be a subset of the nodes                *)
-(* - the outputs of each function should be probabilities, and thus between   *)
-(*   0 and 1                                                                  *)
-(*   TODO: we currently don't require that the probabilities for all possible *)
-(*         inputs add to 1. However, there is also currently no need to know  *)
-(*         this.                                                              *)
-(*   TODO: I think there was a misunderstanding: the outputs of each function *)
-(*         don't all need to be between 0 and 1, merely the product of all    *)
-(*         the functions is typically a probability distribution (maybe)      *)
 (* - the variables used as input to each function must be valid nodes and     *)
 (*   they should be variable nodes, and one variable should not be used more  *)
 (*   than once                                                                *)
@@ -131,17 +121,9 @@ End
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
-  wffactor_graph (fg : factor_graph_rep) ⇔
+  wffactor_graph (fg : α factor_graph_rep) ⇔
     (gen_bipartite_ea fg.underlying_graph fg.function_nodes) ∧
     FDOM fg.function_map = fg.function_nodes ∧
-    (∀f bs.
-       f ∈ fg.function_nodes ⇒ 
-       let
-         (f_args, f_func) = fg.function_map ' f
-       in
-         LENGTH bs = LENGTH f_args ⇒
-         0 ≤ f_func bs ∧ f_func bs ≤ 1
-    ) ∧
     (∀f.
        f ∈ fg.function_nodes ⇒
        (let
@@ -176,32 +158,12 @@ Proof
   >> gvs[]
 QED
 
-(*(* -------------------------------------------------------------------------- *)
-(* Suppose we have an updated is_function_node map, as a result of adding a   *)
-(* new node to the graph (and hence the new node has the specific value which *)
-(* is 1 more than any previous node). Then applying the updated map to a      *)
-(* value in the old graph is equivalent to applying the old map to that value *)
 (* -------------------------------------------------------------------------- *)
-Theorem fupdate_function_nodes_node[simp]:
-  ∀fg f x.
-    wffactor_graph fg ∧
-    f ∈ nodes fg.underlying_graph ⇒
-    (fg.function_nodes
-
-       (INR (CARD (nodes fg.underlying_graph)), x)) ' f =
-    fg.is_function_node ' f
-Proof
-  rw[]
-  >> irule NOT_EQ_FAPPLY
-  >> rpt strip_tac
-  >> gvs[]
-  >> gvs[inr_in_nodes_underlying_graph]
-QED*)
-
+(* Applying an updated version of function_map to a function from the         *)
+(* unupdated version of function_map will provide the same result as applying *)
+(* the unupdated version                                                      *)
 (* -------------------------------------------------------------------------- *)
-(* Similar to fupdate_is_function_node, but for function_map instead          *)
-(* -------------------------------------------------------------------------- *)
-Theorem fupdate_is_function_node[simp]:
+Theorem fupdate_function_map[simp]:
   ∀fg f x.
     wffactor_graph fg ∧
     f ∈ nodes fg.underlying_graph ⇒
@@ -296,7 +258,7 @@ QED
 (* The empty factor_graph_rep object.                                         *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_empty0_def:
-  fg_empty0 : factor_graph_rep =
+  fg_empty0 : α factor_graph_rep =
   <|
     underlying_graph := emptyG;
     function_nodes := ∅;
@@ -520,7 +482,7 @@ Theorem inr_card_not_in_mem_function_map[simp]:
     ¬MEM (INR (CARD (nodes fg.underlying_graph))) (FST (fg.function_map ' f))
 Proof
   rpt strip_tac
-  >> drule (cj 4 (iffLR wffactor_graph_def)) >> disch_tac
+  >> drule (cj 3 (iffLR wffactor_graph_def)) >> disch_tac
   >> pop_assum drule >> disch_tac
   >> gvs[]
   >> pop_assum drule >> disch_tac
@@ -540,21 +502,23 @@ Proof
   >> simp[wffactor_graph_def, fg_add_variable_node0_def]
   (* Prove each property of well-formedness one at a time *)
   >> rpt conj_tac
+  (* Bipartite *)
   >- (gvs[gen_bipartite_ea_fsgAddNode]
       >> rw[inr_in_nodes_underlying_graph]
       >> metis_tac[DELETE_NON_ELEMENT_RWT,
                    inr_card_not_in_function_nodes,
                    wffactor_graph_def]
-              )
+     )
+  (* Valid domain of function map *)
   >- gvs[wffactor_graph_def]
-  >- (drule (cj 3 (iffLR wffactor_graph_def)) >> rw[]
-      >> gvs[SUBSET_DEF])
-  >- (drule (cj 4 (iffLR wffactor_graph_def)) >> disch_tac
+  (* Inputs to all functions are valid variable nodes *)
+  >- (drule (cj 3 (iffLR wffactor_graph_def)) >> disch_tac
       >> strip_tac >> strip_tac
       >> first_x_assum drule >> strip_tac
       >> gvs[]
      )
-  >- (drule (cj 5 (iffLR wffactor_graph_def)) >> disch_tac
+  (* Edges correspond to which variables are used as input to which functions *)
+  >- (drule (cj 4 (iffLR wffactor_graph_def)) >> disch_tac
       >> gvs[]
       >> pop_assum kall_tac
       >> rw[]
@@ -567,7 +531,9 @@ Proof
           >- (qexistsl [‘f’, ‘v’] >> gvs[])
          )
      )
-  >- (drule (cj 6 (iffLR wffactor_graph_def)) >> disch_tac
+  (* The set of nodes is the set of consecutive natural numbers starting from
+     zero. *)
+  >- (drule (cj 5 (iffLR wffactor_graph_def)) >> disch_tac
       >> qmatch_goalsub_abbrev_tac ‘S1 INSERT _ = S2’
       >> simp[]
       >> unabbrev_all_tac
@@ -634,10 +600,7 @@ End
 (* Determine if a function is invalid with respect to a factor graph          *)
 (* -------------------------------------------------------------------------- *)
 Definition wf_fg_fn_def:
-  wf_fg_fn fn fg ⇔ (∀bs. LENGTH bs = LENGTH (FST fn) ⇒
-                         0 ≤ (SND fn) bs ∧
-                         (SND fn) bs ≤ 1 : extreal) ∧
-                   (∀x. MEM x (FST fn) ⇒
+  wf_fg_fn fn fg ⇔ (∀x. MEM x (FST fn) ⇒
                         x ∈ nodes fg.underlying_graph ∧
                         x ∉ fg.function_nodes ∧
                         UNIQUE x (FST fn)
@@ -854,8 +817,7 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* An alternative, weaker expression for the new set of edges after adding    *)
-(* edges to the                                                               *)
-(*                                                                            *)
+(* edges for the function node to the factor graph                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem fsgedges_fg_add_edges_for_function_node0_wffactor_graph:
   ∀fg fn.
@@ -871,7 +833,7 @@ Proof
   >- gvs[wffactor_graph_def]
   >> irule fsgedges_fg_add_edges_for_function_node0
   >> rpt conj_tac
-  >- (drule (cj 4 (iffLR wffactor_graph_def)) >> strip_tac
+  >- (drule (cj 3 (iffLR wffactor_graph_def)) >> strip_tac
       >> pop_assum drule >> strip_tac
       >> gvs[]
       >> CCONTR_TAC
@@ -1062,7 +1024,7 @@ Theorem wffactor_graph_edges_in_not_in:
         (a ∈ fg.function_nodes ⇔ b ∉ fg.function_nodes)
 Proof
   rpt strip_tac
-  >> drule (cj 5 (iffLR wffactor_graph_def)) >> strip_tac
+  >> drule (cj 4 (iffLR wffactor_graph_def)) >> strip_tac
   >> pop_assum (fn th => drule (iffLR th)) >> strip_tac
   >> gvs[INSERT2_lemma]
 QED
@@ -1150,24 +1112,6 @@ Proof
      )
   (* Domain of function map is correct *)
   >- (gvs[wffactor_graph_def, fg_add_function_node0_def])
-  (* All the functions are probability functions*)
-  >- (rpt strip_tac
-      >> Cases_on ‘f ∈ fg.function_nodes’
-      >- (gvs[fg_add_function_node0_function_nodes,
-              fg_add_function_node0_function_map]
-          >> DEP_PURE_ONCE_REWRITE_TAC[NOT_EQ_FAPPLY]
-          >> drule (cj 3 (iffLR wffactor_graph_def)) >> strip_tac
-          >> gvs[]
-          >> CCONTR_TAC
-          >> gvs[]
-         )
-      >- (gvs[fg_add_function_node0_function_nodes,
-              fg_add_function_node0_function_map]
-          >> gvs[wf_fg_fn_def]
-          >> namedCases_on ‘fn’ ["f_args f_func"]
-          >> gvs[]
-         )
-     )
   (* All the functions have only variable nodes as inputs *)
   >- (gen_tac >> disch_tac >> gen_tac >> disch_tac
       >> gvs[fg_add_function_node0_def, wf_fg_fn_def]
@@ -1184,7 +1128,7 @@ Proof
           >> DEP_PURE_ONCE_REWRITE_TAC[NOT_EQ_FAPPLY]
           >> conj_tac
           >- (CCONTR_TAC >> gvs[])
-          >> drule (cj 4 (iffLR wffactor_graph_def)) >> strip_tac
+          >> drule (cj 3 (iffLR wffactor_graph_def)) >> strip_tac
           >> pop_assum drule >> strip_tac
           >> gvs[]
           >> rw[]
@@ -1217,7 +1161,7 @@ Proof
           >> conj_tac >- gvs[inr_in_nodes_underlying_graph]
           >> strip_tac
           >> gvs[]
-          >> drule (cj 5 (iffLR wffactor_graph_def)) >> strip_tac
+          >> drule (cj 4 (iffLR wffactor_graph_def)) >> strip_tac
           >> metis_tac[]
          )
       (* Prove that if we have an edge in the new graph, then f and v are
@@ -1250,7 +1194,7 @@ Proof
               >- (CCONTR_TAC >> gvs[]
                   >> gvs[inr_in_nodes_underlying_graph]
                  )
-              >> gvs[cj 5 (iffLR wffactor_graph_def)]
+              >> gvs[cj 4 (iffLR wffactor_graph_def)]
               >> gvs[INSERT2_lemma]
              )
           (* The edge is newly added *)
@@ -1271,7 +1215,7 @@ Proof
      )
   (* The nodes of our new graph are of the correct form. *)
   >- (gvs[fg_add_function_node0_def]
-      >> drule (cj 6 (iffLR wffactor_graph_def)) >> strip_tac
+      >> drule (cj 5 (iffLR wffactor_graph_def)) >> strip_tac
       >> gvs[order_fsgAddNode]
       >> gvs[EXTENSION] >> rw[]
       >> Cases_on ‘x’ >> gvs[]
