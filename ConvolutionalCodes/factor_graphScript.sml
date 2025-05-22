@@ -1763,6 +1763,11 @@ Proof
   SET_TAC[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Taking the intersection of a set B with a set A will decrease the          *)
+(* cardinality if and only if there is an element in the difference of the    *)
+(* two sets                                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem card_inter_lemma:
   FINITE B ⇒
   (CARD (A ∩ B) < CARD B ⇔ B DIFF A ≠ ∅)
@@ -1787,7 +1792,19 @@ Proof
         ASM_SET_TAC[]) >>
   ASM_SET_TAC[]
 QED
-  
+
+Theorem fdom_calculate_messages_step_in_message_domain:
+  ∀msgs fg step_msg.
+    FDOM msgs ⊆ message_domain fg ⇒
+    step_msg ∈ FDOM (calculate_messages_step fg msgs) ⇒
+    step_msg ∈ message_domain fg
+Proof
+  rw[]
+  >> qspecl_then [‘fg’, ‘msgs’] assume_tac
+                 calculate_messages_step_in_message_domain
+  >> gvs[]
+  >> gvs[SUBSET_DEF]
+QED
 
 Definition calculate_messages_loop_def:
   calculate_messages_loop fg msgs =
@@ -1817,12 +1834,95 @@ Termination
   WF_REL_TAC ‘measure (λ(fg, msgs).
                          (CARD (message_domain fg)) + 1 -
                          CARD (FDOM (DRESTRICT msgs (message_domain fg)))
-                   )’
-  >> reverse $ rpt strip_tac
+             )’
+  >> REVERSE $ rw[]
   >- (gvs[GSYM SUB_LESS_0]
       >> gvs[GSYM LE_LT1]
       >> gvs[CARD_FDOM_DRESTRICT_LEQ]
      )
+  >> gvs[DRESTRICTED_FUNION_ALT]
+  >> qmatch_goalsub_abbrev_tac ‘upper_limit < new_card + (_ - old_card)’
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM LESS_EQ_ADD_SUB]
+  >> REVERSE $ Cases_on ‘old_card ≤ upper_limit’ >> gvs[]
+  >- (pop_assum mp_tac >> gvs[]
+      >> unabbrev_all_tac
+      >> metis_tac[CARD_FDOM_DRESTRICT_LEQ, LESS_EQ_SUC_REFL, ADD1, LE_TRANS,
+                   finite_message_domain]
+     )
+  >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
+  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
+  >> gvs[GSYM SUB_LESS_0]
+  >> qsuff_tac ‘old_card < new_card’ >> gvs[]
+  >> unabbrev_all_tac
+  >> gvs[CARD_UNION_EQN]
+  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
+  >> conj_tac
+  >- metis_tac[CARD_INTER_LESS_EQ, INTER_COMM, FDOM_FINITE]
+  >> gvs[GSYM SUB_LESS_0]
+  >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+  >> DEP_PURE_ONCE_REWRITE_TAC[CARD_INTER_CARD_DIFF]
+  >> conj_tac >- gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘n - at_least_one’
+  >> gvs[Excl "CARD_DIFF"]
+  (* Both of these conjuncts follow from the statement that there exists at
+     least one message which is in the domain of the new messages but not the
+     domain of the old messages *)
+  >> sg ‘∃x. x ∈ FDOM (calculate_messages_step
+                       fg (DRESTRICT msgs (message_domain fg))) ∧
+             x ∉ FDOM (DRESTRICT msgs (message_domain fg))’
+  >- (unabbrev_all_tac
+      >> gvs[GSYM fmap_EQ_THM]
+      >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
+      >> Cases_on ‘prem’ >> gvs[]
+      (* We have an x which is in the old messages, for which the value it is
+         assigned in the new messages is different to the value it is assigned
+         in the old messages. *)
+      >- gvs[FUNION_DEF]
+      (* We have an x which is in the new messages, for which the value it is
+         assigned in the new messages is different to the value it is assigned
+         in the old messages. *)
+      >- (gvs[FUNION_DEF]
+          >> rpt $ pop_assum mp_tac >> rw[] >> rpt strip_tac
+          (* x is in the new messages, but not in the old messages, and the
+             union of the domain of the new messasges with the domain of the
+             old messages is equal to the domain of the old messages
+              (contradiction) *)
+          >> gvs[UNION_EQ_FIRST]
+          >> ASM_SET_TAC[]
+         )
+      >> unabbrev_all_tac
+      (* The union of the old messages with the new messages is not equal
+         to the old messages, and we want to show that there exists a message
+         in the new messages but not the old messages *)
+      >> gvs[cj 1 $ GSYM FUNION_DEF, Excl "FDOM_FUNION"]
+      >> gvs[EXTENSION, Excl "FDOM_FUNION"]
+      >> qmatch_asmsub_abbrev_tac ‘b1 ⇔ b2’
+      >> REVERSE $ Cases_on ‘b2’ >> gvs[Excl "FDOM_FUNION"]
+      (* x ∈ new ∧ x ∉ old *)
+      >- (qexists ‘x’ >> gvs[])
+      (* x ∈ old domain but x ∉ new domain*)
+      >> gvs[]
+     )
+  >> conj_tac
+  >- (unabbrev_all_tac
+      >> gvs[Excl "CARD_DIFF", ZERO_LESS_CARD]
+      >> metis_tac[]
+     )
+  >> unabbrev_all_tac
+  >> gvs[ZERO_LESS_CARD]
+  >> metis_tac[]
+(* -----------------------------------------------------
+     Here is an unfinished alternative termination proof.
+     ----------------------------------------------------- *)
+(*WF_REL_TAC ‘measure (λ(fg, msgs).
+                                     (CARD (message_domain fg)) + 1 -
+                                     CARD (FDOM (DRESTRICT msgs (message_domain fg)))
+                                  )’
+    >> reverse $ rpt strip_tac
+    >- (gvs[GSYM SUB_LESS_0]
+    >> gvs[GSYM LE_LT1]
+    >> gvs[CARD_FDOM_DRESTRICT_LEQ]
+   )
   >> qmatch_abbrev_tac ‘X + 1n < Y + (X + 1 - Z)’
   >> ‘Z ≤ X + 1’
     by (simp[Abbr‘X’, Abbr‘Z’, FDOM_DRESTRICT] >>
@@ -1837,18 +1937,20 @@ Termination
   >> qmatch_abbrev_tac ‘CARD (_ ∩ (_ ∩ FDOM XX)) < CARD (_ ∩ FDOM XX)’
   >> simp[GSYM INTER_ASSOC, card_inter_lemma] 
   >> simp[EXTENSION, PULL_EXISTS]
-  >> drule FUNION_NEQ_lemma 
+  >> drule FUNION_NEQ_lemma
   >> simp[FDOM_DRESTRICT, PULL_EXISTS]
   >> qx_gen_tac ‘k’ >> Cases_on ‘k ∈ FDOM msgs’
   >> simp[]
   >- (Cases_on ‘k’ >> simp[] >> strip_tac
-      >- (* contradiction as edge isn't in graph *) cheat
+      >- ((* contradiction as edge isn't in graph *) cheat
+         (*unabbrev_all_tac
+           >> drule fdom_calculate_messages_step_in_message_domain >> strip_tac*)
+         )
       >- (* contradiction as edge isn't in graph *) cheat
       >- (* contradiction as edge isn't in adjacency relation *) cheat) >>
   strip_tac >> Cases_on ‘k’ >> simp[] >>
   (* have witness; need to know that calculate_messages_step only returns
      finite map with keys being edges actually in graph *)
-  
   >> gvs[DRESTRICTED_FUNION_ALT]
   >> qmatch_goalsub_abbrev_tac ‘upper_limit < new_card + (_ - old_card)’
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM LESS_EQ_ADD_SUB]
@@ -1861,65 +1963,7 @@ Termination
   >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
   >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
   >> gvs[GSYM SUB_LESS_0]
-  >> qsuff_tac ‘old_card < new_card’ >> gvs[]
-                          >> unabbrev_all_tac
-                          >> gvs[CARD_UNION_EQN]
-                          >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
-                          >> conj_tac
-                          >- metis_tac[CARD_INTER_LESS_EQ, INTER_COMM, FDOM_FINITE]
-                          >> gvs[GSYM SUB_LESS_0]
-                          >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
-                          >> DEP_PURE_ONCE_REWRITE_TAC[CARD_INTER_CARD_DIFF]
-                          >> conj_tac >- gvs[]
-                          >> qmatch_goalsub_abbrev_tac ‘n - at_least_one’
-                          >> gvs[Excl "CARD_DIFF"]
-                          (* Both of these conjuncts follow from the statement that there exists at
-     least one message which is in the domain of the new messages but not the
-     domain of the old messages *)
-                          >> sg ‘∃x. x ∈ FDOM (calculate_messages_step
-                                               fg (DRESTRICT msgs (message_domain fg))) ∧
-                                     x ∉ FDOM (DRESTRICT msgs (message_domain fg))’
-                          >- (unabbrev_all_tac
-                              >> gvs[GSYM fmap_EQ_THM]
-                              >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
-                              >> Cases_on ‘prem’ >> gvs[]
-                              (* We have an x which is in the old messages, for which the value it is
-         assigned in the new messages is different to the value it is assigned
-         in the old messages. *)
-                              >- gvs[FUNION_DEF]
-                              (* We have an x which is in the new messages, for which the value it is
-         assigned in the new messages is different to the value it is assigned
-         in the old messages. *)
-                              >- (gvs[FUNION_DEF]
-                                  >> rpt $ pop_assum mp_tac >> rw[] >> rpt strip_tac
-                                  (* x is in the new messages, but not in the old messages, and the
-             union of the domain of the new messasges with the domain of the
-             old messages is equal to the domain of the old messages
-              (contradiction) *)
-                                  >> gvs[UNION_EQ_FIRST]
-                                  >> ASM_SET_TAC[]
-                                 )
-                              >> unabbrev_all_tac
-                              (* The union of the old messages with the new messages is not equal
-         to the old messages, and we want to show that there exists a message
-         in the new messages but not the old messages *)
-                              >> gvs[cj 1 $ GSYM FUNION_DEF, Excl "FDOM_FUNION"]
-                              >> gvs[EXTENSION, Excl "FDOM_FUNION"]
-                              >> qmatch_asmsub_abbrev_tac ‘b1 ⇔ b2’
-                              >> REVERSE $ Cases_on ‘b2’ >> gvs[Excl "FDOM_FUNION"]
-                              (* x ∈ new ∧ x ∉ old *)
-                              >- (qexists ‘x’ >> gvs[])
-                              (* x ∈ old domain but x ∉ new domain*)
-                              >> gvs[]
-                             )
-                          >> conj_tac
-                          >- (unabbrev_all_tac
-                              >> gvs[Excl "CARD_DIFF", ZERO_LESS_CARD]
-                              >> metis_tac[]
-                             )
-                          >> unabbrev_all_tac
-                          >> gvs[ZERO_LESS_CARD]
-      >> metis_tac[]
+  >> qsuff_tac ‘old_card < new_card’ >> gvs[]*)
 End
 
 (* -------------------------------------------------------------------------- *)
