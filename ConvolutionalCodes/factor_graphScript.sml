@@ -1310,12 +1310,4 @@ Definition fg_example_factor_graph_def:
     fg_empty
 End
 
-(* -------------------------------------------------------------------------- *)
-(* This overload is useful for my purposes, but it may overlap with the more  *)
-(* general concept of "the set of all pairs of adjacent nodes" in a scenario  *)
-(* where we aren't working with the message passing algorithm, so I hide it   *)
-(* before exporting the theory.                                               *)
-(* -------------------------------------------------------------------------- *)
-val _ = hide "message_domain"
-
 val _ = export_theory();
