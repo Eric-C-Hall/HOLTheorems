@@ -2,6 +2,7 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "hyperbolic_functions";
 
+open extrealTheory;
 
 (* -------------------------------------------------------------------------- *)
 (* Euler's number                                                             *)
@@ -87,6 +88,5 @@ Definition extarctanh_def:
                              | −∞ => ARB 
                              | Normal r => Normal (arctanh r)
 End
-
 
 val _ = export_theory();
