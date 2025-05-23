@@ -140,13 +140,15 @@ Definition sp_calculate_message_def:
     else
       if org ∈ fg.function_nodes
       then
-        (* Take the sum over all possible combinations of incoming edge values
-           of the kernal multiplied by the incoming messages *)
-         SOME (iterate
-               (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
-               ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
-               (sp_partially_apply_function (fg.function_map ' org) dst)
-           )
+        (* Take the sum over all possible combinations of incoming edge
+            values of the kernal multiplied by the incoming messages.
+            Note that this works even in the case of a leaf node, as partially
+            applying all other variables will partially apply nothing. *)
+        SOME (iterate
+              (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
+              ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
+              (sp_partially_apply_function (fg.function_map ' org) dst)
+             )
       else
         (* Multiply each message together pointwise.
            If there are no messages, returns (1, 1) *)
@@ -162,20 +164,25 @@ Definition sp_calculate_message_def:
              )
 End
 
-(* Theorem for showing equivalence of finite maps: fmap_EQ_THM *)
+(* Theorem for showing equivalence of finite maps: fmap_EQ_THM.
+   We also have fmap_EXT, which I think is better. *)
 
 (* -------------------------------------------------------------------------- *)
-(* A map consisting of all messages that can be calculated based on the       *)
-(* current messages (this may not include some of the provided messages if    *)
-(* they cannot be calculated based on other provided messages)                *)
+(* Using the sum-product message-passing algorithm, calculate all messages    *)
+(* that can be calculated using the currently available messages (including   *)
+(* those from leaf nodes)                                                     *)
 (*                                                                            *)
-(* We expect FDOM msgs ⊆ message_domain fg                                   *)
+(* fg: the factor graph                                                       *)
+(* msgs: the map containing all messages that have been calculated so far     *)
+(*                                                                            *)
+(* Output: the map containing all messages that can be directly calculated    *)
+(*         from the messages that have been calculated so far.                *)
 (* -------------------------------------------------------------------------- *)
-Definition calculate_messages_step_def:
-  calculate_messages_step fg msgs =
+Definition sp_calculate_messages_step_def:
+  sp_calculate_messages_step fg msgs =
   let
     calculated_messages =
-    FUN_FMAP (λ(org, dst). calculate_message fg org dst msgs)
+    FUN_FMAP (λ(org, dst). sp_calculate_message fg org dst msgs)
              (message_domain fg);
     restricted_messages = RRESTRICT calculated_messages {SOME x | T};
   in
