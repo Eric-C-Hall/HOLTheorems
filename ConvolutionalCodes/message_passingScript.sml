@@ -218,9 +218,8 @@ QED
 
 Theorem factor_graphs_FDOM_FMAP[simp] = FDOM_FMAP;
 
-Theorem sp_calculate_messages_step_in_message_domain:
+Theorem sp_calculate_messages_step_in_message_domain[simp]:
   ∀fg msg.
-    FDOM msg ⊆ message_domain fg ⇒ 
     FDOM (sp_calculate_messages_step fg msg) ⊆ message_domain fg
 Proof
   rw[sp_calculate_messages_step_def]
@@ -247,14 +246,10 @@ QED
 
 Theorem drestrict_sp_calculate_messages_step_drestrict[simp]:
   ∀fg msgs.
-    DRESTRICT (sp_calculate_messages_step
-               fg
-               (DRESTRICT msgs (message_domain fg))
-              )
-              (message_domain fg) =
-    sp_calculate_messages_step fg (DRESTRICT msgs (message_domain fg))
+    DRESTRICT (sp_calculate_messages_step fg msgs) (message_domain fg) =
+    sp_calculate_messages_step fg msgs
 Proof
-  metis_tac[FDOM_SUBSET_DRESTRICT, calculate_messages_step_in_message_domain,
+  metis_tac[FDOM_SUBSET_DRESTRICT, sp_calculate_messages_step_in_message_domain,
             FDOM_DRESTRICT, INTER_SUBSET]
 QED
 
@@ -377,189 +372,103 @@ QED
 
 Theorem fdom_sp_calculate_messages_step_in_message_domain:
   ∀msgs fg step_msg.
-    FDOM msgs ⊆ message_domain fg ⇒
     step_msg ∈ FDOM (sp_calculate_messages_step fg msgs) ⇒
     step_msg ∈ message_domain fg
 Proof
   rw[]
   >> qspecl_then [‘fg’, ‘msgs’] assume_tac
                  sp_calculate_messages_step_in_message_domain
-  >> gvs[]
-  >> gvs[SUBSET_DEF]
+  >> ASM_SET_TAC[]
 QED
 
-Definition calculate_messages_loop_def:
-  calculate_messages_loop fg msgs =
+(* -------------------------------------------------------------------------- *)
+(* Uses the sum-product algorithm to calculate all messages in the factor     *)
+(* graph, starting from a set of messages that have already been calculated.  *)
+(*                                                                            *)
+(* fg: the factor graph                                                       *)
+(* msgs: the messages that have already been calculated. If no messages have  *)
+(*       been calculated yet, then set this to the empty map.                 *)
+(*                                                                            *)
+(* Output: all messages on the factor graph as calculated by the sum-product  *)
+(*         algorithm                                                          *)
+(*                                                                            *)
+(* We usually expect that msgs is of the form                                 *)
+(* FUNPOW (sp_calculate_messages_step fg) n FEMPTY, for some n.               *)
+(*                                                                            *)
+(* A strictly weaker assumption that is also expected is that msgs is a       *)
+(* subset of message_domain fg                                                *)
+(*                                                                            *)
+(* Note: I tried removing the FUNION, but this interferes with termination.   *)
+(* Consider a factor graph consisting of a single loop of nodes, where a      *)
+(* single message is sent from one of the nodes. This message will loop       *)
+(* around the nodes forever, never terminating.                               *)
+(*                                                                            *)
+(* Termination is also harder to prove if we only terminate when the messages *)
+(* themselves dont change, rather than when the domain of the messages        *)
+(* doesn't change, because we may have a change in messages propogating       *)
+(* around a circle in a never-ending cycle. In a previous iteration of this   *)
+(* definition, I did manage to prove termination when defining termination in *)
+(* this way, but that may be due to other differences in the definition       *)
+(* (although to be honest I'm not sure what that might have been)             *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_calculate_messages_def:
+  sp_calculate_messages fg msgs =
   let
-    valid_msgs = DRESTRICT msgs (message_domain fg);
-    new_msgs = valid_msgs ⊌ (calculate_messages_step fg valid_msgs)
+    new_msgs = sp_calculate_messages_step fg msgs ⊌ msgs
   in
-    if new_msgs = valid_msgs
+    if FDOM new_msgs = FDOM msgs
     then
       msgs
     else
-      calculate_messages_loop fg (new_msgs)
+      sp_calculate_messages fg (new_msgs)
 Termination
-  (* At each stage, either a message is added, or we terminate because no
-     message was added. Thus, if we count the number of edges without messages,
-     this will strictly decrease in each recursive call, proving eventual
-     termination.
+  (* We expect that at least one message will be added in each step. The number
+     of possible messages is limited above by the (finite) number of pairs of
+     nodes in the (finite) factor graph. Thus, this process will eventually end
+     and we will terminate. We ignore any messages that happen to be in msgs
+     but are not in message_domain fg.
 .
-     This is calculated as CARD (message_domain fg) - CARD (FDOM msgs).
-     We add 1 to the first CARD in order to ensure that it is strictly greater
-     than the second CARD, and not simply greater than or equal to it. This
-     simplifies the working.
+     Thus, we expect CARD (message_domain fg) - CARD (FDOM msgs) to decrease
+     by at least 1 in each step. We use this as the basis for our termination
+     measure.
+.    
+     In practice, adding 1 to this value simplifies the proof process.
+.
+     Similarly, we have to take care of the special case in which the set of
+     msgs is not 
 .     
-     We use prim_recTheory.measure to turn this natural number into a
+     We use prim_recTheory.measure to turn our termination measure into a
      well-founded relation.
    *)
   WF_REL_TAC ‘measure (λ(fg, msgs).
-                         (CARD (message_domain fg)) + 1 -
+                         (CARD (message_domain fg) + 1) -
                          CARD (FDOM (DRESTRICT msgs (message_domain fg)))
-             )’
+                      )’
   >> REVERSE $ rw[]
   >- (gvs[GSYM SUB_LESS_0]
       >> gvs[GSYM LE_LT1]
       >> gvs[CARD_FDOM_DRESTRICT_LEQ]
      )
-  >> gvs[DRESTRICTED_FUNION_ALT]
-  >> qmatch_goalsub_abbrev_tac ‘upper_limit < new_card + (_ - old_card)’
-  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM LESS_EQ_ADD_SUB]
-  >> REVERSE $ Cases_on ‘old_card ≤ upper_limit’ >> gvs[]
-  >- (pop_assum mp_tac >> gvs[]
-      >> unabbrev_all_tac
-      >> metis_tac[CARD_FDOM_DRESTRICT_LEQ, LESS_EQ_SUC_REFL, ADD1, LE_TRANS,
+  >> qmatch_goalsub_abbrev_tac ‘const < new_num_messages + (const - old_num_messages)’
+  >> sg ‘old_num_messages ≤ const’
+  >- (unabbrev_all_tac
+      >> gvs[FDOM_DRESTRICT]
+      >> metis_tac[CARD_INTER_LESS_EQ, LE, ADD1, INTER_COMM,
                    finite_message_domain]
      )
-  >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
-  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
-  >> gvs[GSYM SUB_LESS_0]
-  >> qsuff_tac ‘old_card < new_card’ >> gvs[]
+  >> gvs[]
+  >> qsuff_tac ‘old_num_messages < new_num_messages’
+  >- gvs[]
+  >> pop_assum kall_tac
   >> unabbrev_all_tac
-  >> gvs[CARD_UNION_EQN]
-  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
-  >> conj_tac
-  >- metis_tac[CARD_INTER_LESS_EQ, INTER_COMM, FDOM_FINITE]
-  >> gvs[GSYM SUB_LESS_0]
-  >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
-  >> DEP_PURE_ONCE_REWRITE_TAC[CARD_INTER_CARD_DIFF]
-  >> conj_tac >- gvs[]
-  >> qmatch_goalsub_abbrev_tac ‘n - at_least_one’
-  >> gvs[Excl "CARD_DIFF"]
-  (* Both of these conjuncts follow from the statement that there exists at
-     least one message which is in the domain of the new messages but not the
-     domain of the old messages *)
-  >> sg ‘∃x. x ∈ FDOM (calculate_messages_step
-                       fg (DRESTRICT msgs (message_domain fg))) ∧
-             x ∉ FDOM (DRESTRICT msgs (message_domain fg))’
-  >- (unabbrev_all_tac
-      >> gvs[GSYM fmap_EQ_THM]
-      >> qmatch_asmsub_abbrev_tac ‘prem ⇒ concl’
-      >> Cases_on ‘prem’ >> gvs[]
-      (* We have an x which is in the old messages, for which the value it is
-         assigned in the new messages is different to the value it is assigned
-         in the old messages. *)
-      >- gvs[FUNION_DEF]
-      (* We have an x which is in the new messages, for which the value it is
-         assigned in the new messages is different to the value it is assigned
-         in the old messages. *)
-      >- (gvs[FUNION_DEF]
-          >> rpt $ pop_assum mp_tac >> rw[] >> rpt strip_tac
-          (* x is in the new messages, but not in the old messages, and the
-             union of the domain of the new messasges with the domain of the
-             old messages is equal to the domain of the old messages
-              (contradiction) *)
-          >> gvs[UNION_EQ_FIRST]
-          >> ASM_SET_TAC[]
-         )
-      >> unabbrev_all_tac
-      (* The union of the old messages with the new messages is not equal
-         to the old messages, and we want to show that there exists a message
-         in the new messages but not the old messages *)
-      >> gvs[cj 1 $ GSYM FUNION_DEF, Excl "FDOM_FUNION"]
-      >> gvs[EXTENSION, Excl "FDOM_FUNION"]
-      >> qmatch_asmsub_abbrev_tac ‘b1 ⇔ b2’
-      >> REVERSE $ Cases_on ‘b2’ >> gvs[Excl "FDOM_FUNION"]
-      (* x ∈ new ∧ x ∉ old *)
-      >- (qexists ‘x’ >> gvs[])
-      (* x ∈ old domain but x ∉ new domain*)
-      >> gvs[]
-     )
-  >> conj_tac
-  >- (unabbrev_all_tac
-      >> gvs[Excl "CARD_DIFF", ZERO_LESS_CARD]
-      >> metis_tac[]
-     )
-  >> unabbrev_all_tac
-  >> gvs[ZERO_LESS_CARD]
-  >> metis_tac[]
-(* -----------------------------------------------------
-     Here is an unfinished alternative termination proof.
-     ----------------------------------------------------- *)
-(*WF_REL_TAC ‘measure (λ(fg, msgs).
-                                     (CARD (message_domain fg)) + 1 -
-                                     CARD (FDOM (DRESTRICT msgs (message_domain fg)))
-                                  )’
-    >> reverse $ rpt strip_tac
-    >- (gvs[GSYM SUB_LESS_0]
-    >> gvs[GSYM LE_LT1]
-    >> gvs[CARD_FDOM_DRESTRICT_LEQ]
-   )
-  >> qmatch_abbrev_tac ‘X + 1n < Y + (X + 1 - Z)’
-  >> ‘Z ≤ X + 1’
-    by (simp[Abbr‘X’, Abbr‘Z’, FDOM_DRESTRICT] >>
-        irule LE_TRANS >> ONCE_REWRITE_TAC[INTER_COMM] >>
-        irule_at Any CARD_INTER_LESS_EQ >> simp[])
-  >> ‘Z < Y’ suffices_by simp[]
-  >> simp[Abbr‘Z’, Abbr‘Y’]
-  >> simp[FDOM_DRESTRICT, ONCE_REWRITE_RULE[INTER_COMM] UNION_OVER_INTER]
-  >> simp[Once INTER_ASSOC]
-  >> simp[CARD_UNION_EQN, AC INTER_COMM INTER_ASSOC, inter_lemma,
-          SF numSimps.ARITH_NORM_ss]
-  >> qmatch_abbrev_tac ‘CARD (_ ∩ (_ ∩ FDOM XX)) < CARD (_ ∩ FDOM XX)’
-  >> simp[GSYM INTER_ASSOC, card_inter_lemma] 
-  >> simp[EXTENSION, PULL_EXISTS]
-  >> drule FUNION_NEQ_lemma
-  >> simp[FDOM_DRESTRICT, PULL_EXISTS]
-  >> qx_gen_tac ‘k’ >> Cases_on ‘k ∈ FDOM msgs’
-  >> simp[]
-  >- (Cases_on ‘k’ >> simp[] >> strip_tac
-      >- ((* contradiction as edge isn't in graph *) cheat
-         (*unabbrev_all_tac
-           >> drule fdom_calculate_messages_step_in_message_domain >> strip_tac*)
-         )
-      >- (* contradiction as edge isn't in graph *) cheat
-      >- (* contradiction as edge isn't in adjacency relation *) cheat) >>
-  strip_tac >> Cases_on ‘k’ >> simp[] >>
-  (* have witness; need to know that calculate_messages_step only returns
-     finite map with keys being edges actually in graph *)
+  >> irule CARD_PSUBSET
+  >> gvs[]
+  >> gvs[PSUBSET_MEMBER]
   >> gvs[DRESTRICTED_FUNION_ALT]
-  >> qmatch_goalsub_abbrev_tac ‘upper_limit < new_card + (_ - old_card)’
-  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM LESS_EQ_ADD_SUB]
-  >> REVERSE $ Cases_on ‘old_card ≤ upper_limit’ >> gvs[]
-  >- (pop_assum mp_tac >> gvs[]
-      >> unabbrev_all_tac
-      >> metis_tac[CARD_FDOM_DRESTRICT_LEQ, LESS_EQ_SUC_REFL, ADD1, LE_TRANS,
-                   finite_message_domain]
-     )
-  >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
-  >> DEP_PURE_ONCE_REWRITE_TAC[LESS_EQ_ADD_SUB]
-  >> gvs[GSYM SUB_LESS_0]
-  >> qsuff_tac ‘old_card < new_card’ >> gvs[]*)
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Calculate messages over the factor graph                                   *)
-(*                                                                            *)
-(* 1. Send a message from each leaf node                                      *)
-(* 2. Repeatedly determine what messages we can send, and send them.          *)
-(*    When a node has received incoming messages from all but one of its      *)
-(*    connected edges, we may send an outgoing message over the remaining     *)
-(*    edge.                                                                   *)
-(* -------------------------------------------------------------------------- *)
-Definition calculate_messages_def:
-  calculate_messages fg =
-  calculate_messages_loop fg (calculate_leaf_messages fg)
+  >> gvs[EXTENSION]
+  >> Cases_on ‘x ∈ FDOM msgs’ >> gvs[]
+  >> qexists ‘x’
+  >> gvs[FDOM_DRESTRICT]
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -568,7 +477,7 @@ End
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Definition parity_equation_recursive_def:
-
+  parity_equation_recursive
 End
 
 Definition parallel_convolutional_code_encode_def:
