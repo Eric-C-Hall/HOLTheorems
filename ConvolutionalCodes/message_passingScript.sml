@@ -148,11 +148,17 @@ Definition sp_calculate_message_def:
                (sp_partially_apply_function (fg.function_map ' org) dst)
            )
       else
-        (* Multiply each message together pointwise *)
-        SOME (iterate
-              (λ(m1,m2) (n1,n2). (m1 * n1 : extreal, m2 * n2 : extreal))
+        (* Multiply each message together pointwise.
+           If there are no messages, returns (1, 1) *)
+        SOME (ITSET
+              (λmsg_edge (n1,n2).
+                 let
+                   (m1, m2) = msgs ' msg_edge
+                 in
+                   (m1 * n1 : extreal, m2 * n2 : extreal)
+              )
               incoming_msg_edges
-              ($' msgs)
+              (1, 1)
              )
 End
 
