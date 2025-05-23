@@ -195,7 +195,8 @@ End
 (* domain                                                                     *)
 (* -------------------------------------------------------------------------- *)
 Theorem FDOM_RRESTRICT_SUBSET:
-  FDOM (RRESTRICT f r) ⊆ FDOM f
+  ∀f r.
+    FDOM (RRESTRICT f r) ⊆ FDOM f
 Proof
   gvs[RRESTRICT_DEF]
   >> ASM_SET_TAC[]
@@ -217,12 +218,12 @@ QED
 
 Theorem factor_graphs_FDOM_FMAP[simp] = FDOM_FMAP;
 
-Theorem calculate_messages_step_in_message_domain:
+Theorem sp_calculate_messages_step_in_message_domain:
   ∀fg msg.
     FDOM msg ⊆ message_domain fg ⇒ 
-    FDOM (calculate_messages_step fg msg) ⊆ message_domain fg
+    FDOM (sp_calculate_messages_step fg msg) ⊆ message_domain fg
 Proof
-  rw[calculate_messages_step_def]
+  rw[sp_calculate_messages_step_def]
   >> irule FDOM_RRESTRICT_SUBSET_IMPLIES
   >> gvs[RRESTRICT_DEF]
 QED
@@ -244,11 +245,14 @@ Proof
   >> gvs[DRESTRICT_DEF]
 QED
 
-Theorem drestrict_calculate_messages_step_drestrict[simp]:
+Theorem drestrict_sp_calculate_messages_step_drestrict[simp]:
   ∀fg msgs.
-    DRESTRICT (calculate_messages_step fg (DRESTRICT msgs (message_domain fg)))
+    DRESTRICT (sp_calculate_messages_step
+               fg
+               (DRESTRICT msgs (message_domain fg))
+              )
               (message_domain fg) =
-    calculate_messages_step fg (DRESTRICT msgs (message_domain fg))
+    sp_calculate_messages_step fg (DRESTRICT msgs (message_domain fg))
 Proof
   metis_tac[FDOM_SUBSET_DRESTRICT, calculate_messages_step_in_message_domain,
             FDOM_DRESTRICT, INTER_SUBSET]
@@ -332,7 +336,8 @@ QED
 (* have been sent so far.                                                     *)
 (* -------------------------------------------------------------------------- *)
 Theorem inter_lemma:
-  x ∩ (x ∩ y) = x ∩ y
+  ∀x y.
+    x ∩ (x ∩ y) = x ∩ y
 Proof
   SET_TAC[]
 QED
@@ -343,8 +348,9 @@ QED
 (* two sets                                                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem card_inter_lemma:
-  FINITE B ⇒
-  (CARD (A ∩ B) < CARD B ⇔ B DIFF A ≠ ∅)
+  ∀A B.
+    FINITE B ⇒
+    (CARD (A ∩ B) < CARD B ⇔ B DIFF A ≠ ∅)
 Proof
   rw[EQ_IMP_THM]
   >- (strip_tac>>
@@ -356,10 +362,12 @@ Proof
 QED
 
 Theorem FUNION_NEQ_lemma:
-  FUNION fm1 fm2 ≠ fm1 ⇒
-  ∃k. k ∉ FDOM fm1 ∧ k ∈ FDOM fm2
+  ∀fm1 fm2.
+    FUNION fm1 fm2 ≠ fm1 ⇒
+    ∃k. k ∉ FDOM fm1 ∧ k ∈ FDOM fm2
 Proof
-  simp[fmap_EXT, FUNION_DEF, AllCaseEqs()] >>
+  rpt gen_tac
+  >> simp[fmap_EXT, FUNION_DEF, AllCaseEqs()] >>
   simp[SF CONJ_ss] >> strip_tac >>
   ‘FDOM fm1 ∪ FDOM fm2 ≠ FDOM fm1’
     by (strip_tac >> gvs[]>> pop_assum mp_tac>>
@@ -367,15 +375,15 @@ Proof
   ASM_SET_TAC[]
 QED
 
-Theorem fdom_calculate_messages_step_in_message_domain:
+Theorem fdom_sp_calculate_messages_step_in_message_domain:
   ∀msgs fg step_msg.
     FDOM msgs ⊆ message_domain fg ⇒
-    step_msg ∈ FDOM (calculate_messages_step fg msgs) ⇒
+    step_msg ∈ FDOM (sp_calculate_messages_step fg msgs) ⇒
     step_msg ∈ message_domain fg
 Proof
   rw[]
   >> qspecl_then [‘fg’, ‘msgs’] assume_tac
-                 calculate_messages_step_in_message_domain
+                 sp_calculate_messages_step_in_message_domain
   >> gvs[]
   >> gvs[SUBSET_DEF]
 QED
