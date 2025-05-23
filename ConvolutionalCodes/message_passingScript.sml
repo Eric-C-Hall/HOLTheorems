@@ -142,15 +142,14 @@ Definition sp_calculate_message_def:
       then
         (* Take the sum over all possible combinations of incoming edge values
            of the kernal multiplied by the incoming messages *)
-      (*SOME (iterate
-              (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
-              ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
-              (sp_apply_function (fg.function_map ' org) dst)
-             )*)
-        ARB
+         SOME (iterate
+               (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
+               ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
+               (sp_partially_apply_function (fg.function_map ' org) dst)
+           )
       else
         (* Multiply each message together pointwise *)
-        SOME (ITSET
+        SOME (iterate
               (λ(m1,m2) (n1,n2). (m1 * n1 : extreal, m2 * n2 : extreal))
               incoming_msg_edges
               ($' msgs)
