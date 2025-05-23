@@ -35,4 +35,42 @@ Definition convolve_recursive_parity_equation_def:
   (apply_parity_equation qs (b::bs))
 End
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Encode the recursive parity equation in a way which is sensible, in  *)
+(* particular with regards to the ininitialization and termination schemes    *)
+(* -------------------------------------------------------------------------- *)
+Definition encode_recursive_parity_equation_def:
+  encode_recursive_parity_equation rs bs =
+  convolve_recursive_parity_equation 
+End
+
+
+
+Definition decode_recursive_parity_equation_def:
+  decode_recursive_parity_equation rs bs = 
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Encoding and decoding a recursive parity equation using the BCJR algorithm *)
+(* will return the original data again                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem encode_decode_recursive_parity_equation:
+  (encode_recursive_parity_equation rs) ∘
+  (decode_recursive_parity_equation rs) = I
+Proof
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* Ensure that the decoding procedure for a recursive parity equation encoder *)
+(* implements an a posteriori encoder (TODO: check that I have my terminology *)
+(* correct)                                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem decode_recursive_parity_equation_a_posteriori:
+  (decode_recursive_parity_equation rs)
+Proof
+QED
+
 val _ = export_theory();
