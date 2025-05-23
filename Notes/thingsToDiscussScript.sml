@@ -4,6 +4,8 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* Is there a set folding kind of function? *)
+
 (* What definitions do I need to lift to the abstract layer, and what
    definitions should I leave in the representation layer? I find that there
    are a large number of definitions from the representation layer relating

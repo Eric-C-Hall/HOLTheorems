@@ -34,16 +34,77 @@ val _ = new_theory "message_passing";
 val _ = hide "S";
 
 (* -------------------------------------------------------------------------- *)
+(* TODO: this contains many duplicate functions that are also contained in    *)
+(* message_passingScript                                                      *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* Message passing algorithm:                                                 *)
 (*                                                                            *)
 (* Messages are represented as follows:                                       *)
-(* message_map : (unit + num) # (unit + num) |-> extreal # extreal            *)
-(*                                                                            *)
-(* This represents a function on binary values, where the first element       *)
-(* represents the output when provided with the binary input true, and the    *)
-(* second element represents the output when provided with the binary input   *)
-(* false.                                                                     *)
+(* message_map : (unit + num) # (unit + num) |-> extreal                      *)
 (* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Whether or not a particular node is a leaf                                 *)
+(* -------------------------------------------------------------------------- *)
+Overload is_leaf = “λg n. degree g n = 1”;
+
+(* -------------------------------------------------------------------------- *)
+(* The set of all leaves of a graph                                           *)
+(* -------------------------------------------------------------------------- *)
+Overload leaves = “λg. {n | n ∈ nodes g ∧ is_leaf g n}”;
+
+(* -------------------------------------------------------------------------- *)
+(* Calculate messages to be initially sent from the variable leaf nodes of    *)
+(* the factor graph                                                           *)
+(*                                                                            *)
+(* When sending messages in the form of the log likelihood ratio between      *)
+(* f(1) and f(-1), the message sent from each variable leaf node needs to be  *)
+(* 0, which differs from what needs to be sent when the messages take the     *)
+(* form of a function, where the message that is sent needs to be the         *)
+(* constant function 1.                                                       *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_variable_leaf_messages_def:
+  calculate_variable_leaf_messages fg =
+  FUN_FMAP (λ_. Normal 0)
+           {(l, k) | l ∈ leaves fg.underlying_graph ∧
+                     l ∉ fg.function_nodes ∧
+                     adjacent fg.underlying_graph l k}          
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Calculate messages to be initially sent from the function leaf nodes of    *)
+(* the factor graph.                                                          *)
+(*                                                                            *)
+(* If messages were being sent in the form of a function, the function that   *)
+(* would need to be sent as a message would be the function contained in the  *)
+(* function node.                                                             *)
+(*                                                                            *)
+(* Thus, in terms of the log likelihood ratio, this is equal to               *)
+(* ln(f(T) / f(F))                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_function_leaf_messages_def:
+  calculate_function_leaf_messages fg =
+  FUN_FMAP (λ(l, k).
+              let
+                (f_args, f_func) = fg.function_map ' l
+              in
+                ln (f_func [T] / f_func [F])
+           )
+           {(l, k) | l ∈ leaves fg.underlying_graph ∧
+                     l ∈ fg.function_nodes ∧
+                     adjacent fg.underlying_graph l k
+           }
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Combine function leaf messages and variable leaf messages                  *)
+(* -------------------------------------------------------------------------- *)
+Definition calculate_leaf_messages_def:
+  calculate_leaf_messages fg =
+  calculate_function_leaf_messages fg ⊌ calculate_variable_leaf_messages fg
+End
 
 (* -------------------------------------------------------------------------- *)
 (* The domain on which messages are sent. That is, all possible node pairs    *)
@@ -82,45 +143,11 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Partially applies a function to all variables other than a specified one,  *)
-(* using a provided set of values                                             *)
-(*                                                                            *)
-(* Undefined behaviour if the specified variable is not in the input          *)
-(* variables to the function                                                  *)
-(*                                                                            *)
-(* f: the function which is being partially applied                           *)
-(* vs: the variables that are input to the function                           *)
-(* dst: the variable which is not being set to a value                        *)
-(* bs: the values that each of the remaining variables are set to             *)
-(*                                                                            *)
-(* Output: The new function after having partially applied all variables      *)
-(*         other than dst in f, represented as a binary tuple, where the      *)
-(*         first element represents the output of the function when dst is    *)
-(*         true, and the second element represents the output when dst is     *)
-(*         false.                                                             *)
-(* -------------------------------------------------------------------------- *)
-Definition sp_partially_apply_function_def:
-  sp_partially_apply_function (vs, f) dst bs =
-  let
-    dst_index = INDEX_OF dst vs;
-    (bs1, bs2) = (TAKE (THE dst_index) bs, DROP (THE dst_index) bs);
-  in
-    (f (bs1 ⧺ [T] ⧺ bs2), f (bs1 ⧺ [F] ⧺ bs2))
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Sum-product message calculation:                                           *)
-(*                                                                            *)
-(* Attempts to calculate the value of a single message on the factor graph    *)
-(* using sum-product message passing.                                         *)
-(*                                                                            *)
-(* Calculates values for both function and variable nodes, and for both leaf  *)
-(* and non-leaf nodes (outgoing messages from leaf nodes have                 *)
-(* incoming_msg_edges = {}, so this function always returns a value for them) *)
+(* Calculate the message for a particular origin and destination, if possible *)
 (*                                                                            *)
 (* fg: factor graph                                                           *)
 (* org: origin node for message                                               *)
-(* dst: destination node for message                                          *)
+(* dsf: destination node for message                                          *)
 (* msgs: all previous messages that have been calculated                      *)
 (*                                                                            *)
 (* Output:                                                                    *)
@@ -128,8 +155,8 @@ End
 (*              and thus we cannot calculate the message                      *)
 (* - SOME msg | otherwise                                                     *)
 (* -------------------------------------------------------------------------- *)
-Definition sp_calculate_message_def:
-  sp_calculate_message fg org dst msgs =
+Definition calculate_message_def:
+  calculate_message fg org dst msgs =
   let
     incoming_msg_edges = {(n, org) | n | n ∈ nodes fg.underlying_graph ∧
                                          adjacent fg.underlying_graph n org ∧
@@ -140,21 +167,14 @@ Definition sp_calculate_message_def:
     else
       if org ∈ fg.function_nodes
       then
-        (* Take the sum over all possible combinations of incoming edge values
-           of the kernal multiplied by the incoming messages *)
-      (*SOME (iterate
-              (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
-              ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
-              (sp_apply_function (fg.function_map ' org) dst)
-             )*)
-        ARB
-      else
-        (* Multiply each message together pointwise *)
-        SOME (ITSET
-              (λ(m1,m2) (n1,n2). (m1 * n1 : extreal, m2 * n2 : extreal))
-              incoming_msg_edges
-              ($' msgs)
+        SOME (2 * extarctanh (∏
+                              (λmsg_edge. exttanh ((msgs ' msg_edge) / 2))
+                              incoming_msg_edges
+                             )
              )
+      else
+        (* sum of all input messages *)
+        SOME (∑ ($' msgs) incoming_msg_edges)
 End
 
 (* Theorem for showing equivalence of finite maps: fmap_EQ_THM *)

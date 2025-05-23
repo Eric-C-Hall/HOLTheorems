@@ -27,7 +27,7 @@ open simpLib;
 (* Lifting and transfer libraries *)
 open liftLib liftingTheory transferLib transferTheory;
 
-val _ = new_theory "factor_graphs";
+val _ = new_theory "factor_graph";
 
 val _ = hide "S";
 
