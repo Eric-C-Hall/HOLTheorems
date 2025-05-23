@@ -5,9 +5,17 @@ open parity_equationsTheory;
 val _ = new_theory "recursive_parity_equations";
 
 (* -------------------------------------------------------------------------- *)
-(* Convolve .                                                                *)
+(* Convolve a recursive parity equation over some input.                      *)
 (*                                                                            *)
-(* The termination method used by this                                        *)
+(* Starts by applying the numerator parity equation to the first n elements   *)
+(* of the input. Combines the result with the provided feedback. Then         *)
+(* applies the denominator to the first n elements and uses the resulting     *)
+(* feedback to perform the next step along the input string.                  *)
+(*                                                                            *)
+(* The termination method used by this function is to treat any input beyond  *)
+(* the end of the string as if it were zero, and to stop outputting bits when *)
+(* there are no longer any input bits in the string. This reduces             *)
+(* implementation complexity, but may not be the best termination method.     *)
 (*                                                                            *)
 (* (ps, qs): the recursive parity equation to convolve (ps is the numerator   *)
 (* and qs is the denominator. That is, ps represents the effect that the      *)
@@ -21,12 +29,10 @@ val _ = new_theory "recursive_parity_equations";
 (* -------------------------------------------------------------------------- *)
 Definition convolve_recursive_parity_equation_def:
   convolve_recursive_parity_equation _ [] _ = [] ∧
-  convolve_recursive_parity_equation (ps, qs) bs f =
-  ((apply_parity_equation ps bs) ⇎ f)
-  :: convolve_recursive_parity_equation (ps, qs)
-  
+  convolve_recursive_parity_equation (ps, qs) (b::bs) f =
+  ((apply_parity_equation ps (b::bs)) ⇎ f)
+  :: convolve_recursive_parity_equation (ps, qs) bs
+  (apply_parity_equation qs (b::bs))
 End
-
-
 
 val _ = export_theory();

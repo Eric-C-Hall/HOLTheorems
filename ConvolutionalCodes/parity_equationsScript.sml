@@ -81,10 +81,14 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Convolves a list of parity equations over an input bitstring.              *)
 (*                                                                            *)
-(* Pads the input bitstring to the right with zeroes so that the parity       *)
-(* equations can be applied with the left of the window starting at each      *)
-(* element. This simplifies the implementation, and it is always possible to  *)
-(* drop the last elements that were generated later.                          *)
+(* The parity equation is first applied to the first n elements of the input, *)
+(* rather than padding to the left with zeroes.                               *)
+(*                                                                            *)
+(* Treats the input as though it had been padded to the right with zeroes.    *)
+(* This simplifies the implementation, because it allows us to terminate      *)
+(* when we completely run out of inputs and are left with the empty input,    *)
+(* rather than having to use an if-statement or something to terminate early  *)
+(* when there aren't enough inputs left to fill an entire window.             *)
 (* -------------------------------------------------------------------------- *)
 Definition convolve_parity_equations_def:
   convolve_parity_equations ps [] = [] ∧
