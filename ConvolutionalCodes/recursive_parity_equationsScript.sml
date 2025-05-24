@@ -4,6 +4,11 @@ open parity_equationsTheory;
 
 val _ = new_theory "recursive_parity_equations";
 
+Definition run_recursive_parity_equation_def:
+  run_recursive_parity_equation
+End
+
+
 (* -------------------------------------------------------------------------- *)
 (* Convolve a recursive parity equation over some input.                      *)
 (*                                                                            *)
@@ -43,7 +48,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition encode_recursive_parity_equation_def:
   encode_recursive_parity_equation rs bs =
-  convolve_recursive_parity_equation 
+  convolve_recursive_parity_equation TODO
 End
 
 
@@ -69,8 +74,42 @@ QED
 (* correct)                                                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem decode_recursive_parity_equation_a_posteriori:
-  (decode_recursive_parity_equation rs)
+  (decode_recursive_parity_equation rs) = 
 Proof
 QED
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* Unit tests                                                                 *)
+(* -------------------------------------------------------------------------- *)
+
+
+Theorem convolve_recursive_parity_equation_unit_test:
+  convolve_recursive_parity_equation ([1, 1, 0, 1], [1, 0, 0, 1]) _ F =
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Test convolve_recursive_parity_equation when the first parity equation is  *)
+(* longer than the second one                                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem convolve_recursive_parity_equation_unit_test_first_long:
+
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Test convolve_recursive_parity_equation when the second parity equation is *)
+(* longer than the first one                                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem convolve_recursive_parity_equation_unit_test_second_long:
+
+Proof
+QED
+
+
+
+
 
 val _ = export_theory();
