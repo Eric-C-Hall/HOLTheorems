@@ -34,6 +34,11 @@ val _ = new_theory "message_passing";
 val _ = hide "S";
 
 (* -------------------------------------------------------------------------- *)
+(* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
+(* Rüdiger Urbanke.                                                           *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* Message passing algorithm:                                                 *)
 (*                                                                            *)
 (* Messages are represented as follows:                                       *)

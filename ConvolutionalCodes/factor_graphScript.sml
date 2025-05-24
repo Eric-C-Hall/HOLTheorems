@@ -44,7 +44,7 @@ val _ = hide "S";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* This is largely based on modern coding theory by Tom Richardson and        *)
+(* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
 (* Rüdiger Urbanke.                                                           *)
 (* -------------------------------------------------------------------------- *)
 

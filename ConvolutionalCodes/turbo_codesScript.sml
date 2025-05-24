@@ -5,6 +5,11 @@ open recursive_parity_equationsTheory;
 val _ = new_theory "turbo_codesScript";
 
 (* -------------------------------------------------------------------------- *)
+(* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
+(* Rüdiger Urbanke.                                                           *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* An implementation of parallel turbo codes                                  *)
 (*                                                                            *)
 (*                                                                            *)

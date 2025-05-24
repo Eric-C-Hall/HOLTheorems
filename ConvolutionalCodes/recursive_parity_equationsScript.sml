@@ -4,8 +4,55 @@ open parity_equationsTheory;
 
 val _ = new_theory "recursive_parity_equations";
 
+(* -------------------------------------------------------------------------- *)
+(* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
+(* Rüdiger Urbanke.                                                           *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Run a recursive parity equation on some input. Does not output the         *)
+(* systematic bits.                                                           *)
+(*                                                                            *)
+(* 1. Read the next input bit.                                                *)
+(* 2. Calculate the feedback by applying the denominator parity equation to   *)
+(*    the current state                                                       *)
+(* 3. Add the feedback to the current input bit. Use this to update the       *)
+(*    current state.                                                          *)
+(* 4. Calculate the output in this step by applying the numerator parity      *)
+(*    equation to the updated state.                                          *)
+(* 5. Drop the oldest bit from the current state to ensure it retains its     *)
+(*    original length                                                         *)
+(* 6. Start again from step 1.                                                *)
+(*                                                                            *)
+(* Termination is simply handled by performing no additional output when      *)
+(* there is no further input.                                                 *)
+(*                                                                            *)
+(* (ps, qs): the recursive parity equations to convolve (ps is the numerator  *)
+(* and qs is the denominator).                                                *)
+(* - The order of the booleans in each parity equation is the same as the     *)
+(*   order of the corresponding booleans in the input. That is, the rightmost *)
+(*   bit in the parity equation corresponds to the most recently read bit.    *)
+(* - The last bit of qs is ignored and assumed to be 1. This is because we    *)
+(*   always use the input as a part of the "feedback" to determine the        *)
+(*   modified input at a given point in time, otherwise, the input would have *)
+(*   no effect on computation. Nevertheless, we do expect this 1-bit to be    *)
+(*   present.                                                                 *)
+(* - We expect the length of each parity equation to be equal to the length   *)
+(*   of the current state. If not, then we assume that the parity equations   *)
+(*   are padded with sufficiently many zeroes to ensure that they are of the  *)
+(*   correct length (the padding occuring before the final 1-bit in the case  *)
+(*   of the denominator)                                                      *)
+(*                                                                            *)
+(* ts: the current state of the parity equation. This is a list of booleans,  *)
+(*     so that the order of the booleans in the list is the same as the order *)
+(*     that the corresponding booleans were in in the initial input. That is, *)
+(*     the rightmost bit is the most recently read bit.                       *)
+(*                                                                            *)
+(* bs: the input bits                                                         *)
+(* -------------------------------------------------------------------------- *)
 Definition run_recursive_parity_equation_def:
-  run_recursive_parity_equation
+  run_recursive_parity_equation _ _ [] = [] ∧
+  run_recursive_parity_equation 
 End
 
 
