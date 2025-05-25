@@ -57,45 +57,13 @@ Definition run_recursive_parity_equation_def:
   run_recursive_parity_equation (ps, qs) ts (b::bs) =
   let
     feedback = apply_parity_equation (FRONT qs) ts;
-    new_input = feedback ⇎ b;
-    new_ts = ts ⧺ [new_input];
-    current_output = apply_parity_equation ps new_ts
+    new_input = (feedback ⇎ b);
+    state_and_input = ts ⧺ [new_input];
+    current_output = apply_parity_equation ps state_and_input;
+    next_ts = TL state_and_input;
   in
+    [current_output] ⧺ run_recursive_parity_equation (ps, qs) next_ts bs
 End
-
-
-(* -------------------------------------------------------------------------- *)
-(* Convolve a recursive parity equation over some input.                      *)
-(*                                                                            *)
-(* Starts by applying the numerator parity equation to the first n elements   *)
-(* of the input. Combines the result with the provided feedback. Then         *)
-(* applies the denominator to the first n elements and uses the resulting     *)
-(* feedback to perform the next step along the input string.                  *)
-(*                                                                            *)
-(* The termination method used by this function is to treat any input beyond  *)
-(* the end of the string as if it were zero, and to stop outputting bits when *)
-(* there are no longer any input bits in the string. This reduces             *)
-(* implementation complexity, but may not be the best termination method.     *)
-(*                                                                            *)
-(* (ps, qs): the recursive parity equation to convolve (ps is the numerator   *)
-(* and qs is the denominator. That is, ps represents the effect that the      *)
-(* current input will have on the output, and qs represents the effect that   *)
-(* the current input will have on the feedback for the next iteration).       *)
-(*                                                                            *)
-(* bs: the input to the convolution                                           *)
-(*                                                                            *)
-(* f: the feedback from the previous step of the convolution (if no feedback  *)
-(*    is available, you should probably set this to F)                        *)
-(* -------------------------------------------------------------------------- *)
-Definition convolve_recursive_parity_equation_def:
-  convolve_recursive_parity_equation _ [] _ = [] ∧
-  convolve_recursive_parity_equation (ps, qs) (b::bs) f =
-  ((apply_parity_equation ps (b::bs)) ⇎ f)
-  :: convolve_recursive_parity_equation (ps, qs) bs
-  (apply_parity_equation qs (b::bs))
-End
-
-
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: Encode the recursive parity equation in a way which is sensible, in  *)
