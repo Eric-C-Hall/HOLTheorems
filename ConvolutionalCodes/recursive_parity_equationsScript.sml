@@ -1,5 +1,7 @@
 open HolKernel Parse boolLib bossLib;
 
+open rich_listTheory;
+
 open parity_equationsTheory;
 
 val _ = new_theory "recursive_parity_equations";
@@ -66,6 +68,21 @@ Definition run_recursive_parity_equation_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* A well-formed recursive convolutional code always has a "1" in the         *)
+(* denominator in the bit which corresponds to the current input, because the *)
+(* current input + feedback always has to take into account the current input.*)
+(* As such, in this implementation, the last bit of the denominator is        *)
+(* ignored and assumed to be 1.                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem denominator_last_one_equiv[simp]:
+  ∀ps qs ts bs.
+    run_recursive_parity_equation (ps, qs ⧺ [F]) ts bs =
+    run_recursive_parity_equation (ps, qs ⧺ [T]) ts bs
+Proof
+  Induct_on ‘bs’ >> rw[run_recursive_parity_equation_def, FRONT_APPEND]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* TODO: Encode the recursive parity equation in a way which is sensible, in  *)
 (* particular with regards to the ininitialization and termination schemes    *)
 (* -------------------------------------------------------------------------- *)
@@ -107,9 +124,30 @@ QED
 (* Unit tests                                                                 *)
 (* -------------------------------------------------------------------------- *)
 
-Theorem convolve_recursive_parity_equation_unit_test:
-  convolve_recursive_parity_equation ([1, 1, 0, 1], [1, 0, 0, 1]) _ F =
+(* -------------------------------------------------------------------------- *)
+(* Numerator: [T,T,F,T]                                                       *)
+(* Denominator: [T,F,F,T]                                                     *)
+(* Initial state: [F,F,F]                                                     *)
+(* Input: [T,T,T,T,F,F,F,F,T,F]                                               *)
+(*                                                                            *)
+(* State     | State with feedback | Output                                   *)
+(* [F,F,F,T] | [F,F,F,T]           | T                                        *)
+(* [F,F,T,T] | [F,F,T,T]           | T                                        *)
+(* [F,T,T,T] | [F,T,T,T]           | F                                        *)
+(* [T,T,T,T] | [T,T,T,F]           | F                                        *)
+(* [T,T,F,F] | [T,T,F,T]           | T                                        *)
+(* [T,F,T,F] | [T,F,T,T]           | F                                        *)
+(* [F,T,T,F] | [F,T,T,F]           | T                                        *)
+(* [T,T,F,F] | [T,T,F,T]           | T                                        *)
+(* [T,F,T,T] | [T,F,T,F]           | T                                        *)
+(* [F,T,F,F] | [F,T,F,F]           | T                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem fun_recursive_parity_equation_unit_test:
+  run_recursive_parity_equation
+  ([T;T;F;T], [T;F;F;T]) [F;F;F] [T;T;T;T;F;F;F;F;T;F] =
+  [T;T;F;F;T;F;T;T;T;T]
 Proof
+  gvs[run_recursive_parity_equation_def, apply_parity_equation_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
