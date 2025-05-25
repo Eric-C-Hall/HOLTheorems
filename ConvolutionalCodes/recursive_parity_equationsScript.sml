@@ -37,11 +37,13 @@ val _ = new_theory "recursive_parity_equations";
 (*   modified input at a given point in time, otherwise, the input would have *)
 (*   no effect on computation. Nevertheless, we do expect this 1-bit to be    *)
 (*   present.                                                                 *)
-(* - We expect the length of each parity equation to be equal to the length   *)
-(*   of the current state. If not, then we assume that the parity equations   *)
-(*   are padded with sufficiently many zeroes to ensure that they are of the  *)
-(*   correct length (the padding occuring before the final 1-bit in the case  *)
-(*   of the denominator)                                                      *)
+(* - We expect the length of each parity equation to be one more than the     *)
+(*   length of the current state. If they are shorter, then we treat them as  *)
+(*   if they were padded with sufficiently many zeroes to bring them up to    *)
+(*   the correct length (the padding occuring before the final 1-bit in the   *)
+(*   case of the denominator). If they are longer, than we treat the state as *)
+(*   if it were padded with sufficiently many zeroes to bring it up to the    *)
+(*   correct length.                                                          *)
 (*                                                                            *)
 (* ts: the current state of the parity equation. This is a list of booleans,  *)
 (*     so that the order of the booleans in the list is the same as the order *)
@@ -52,7 +54,13 @@ val _ = new_theory "recursive_parity_equations";
 (* -------------------------------------------------------------------------- *)
 Definition run_recursive_parity_equation_def:
   run_recursive_parity_equation _ _ [] = [] ∧
-  run_recursive_parity_equation 
+  run_recursive_parity_equation (ps, qs) ts (b::bs) =
+  let
+    feedback = apply_parity_equation (FRONT qs) ts;
+    new_input = feedback ⇎ b;
+    new_ts = ts ⧺ [new_input];
+    current_output = apply_parity_equation ps new_ts
+  in
 End
 
 
@@ -131,31 +139,17 @@ QED
 (* Unit tests                                                                 *)
 (* -------------------------------------------------------------------------- *)
 
-
 Theorem convolve_recursive_parity_equation_unit_test:
   convolve_recursive_parity_equation ([1, 1, 0, 1], [1, 0, 0, 1]) _ F =
 Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Test convolve_recursive_parity_equation when the first parity equation is  *)
-(* longer than the second one                                                 *)
+(* Note for testing: we expect that the parity equations and state are of     *)
+(* the same length to each other, so there is no need to test situations in   *)
+(* which this assumption does not hold, because they are outside the scope of *)
+(* what the function needs to satisfy.                                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem convolve_recursive_parity_equation_unit_test_first_long:
-
-Proof
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Test convolve_recursive_parity_equation when the second parity equation is *)
-(* longer than the first one                                                  *)
-(* -------------------------------------------------------------------------- *)
-Theorem convolve_recursive_parity_equation_unit_test_second_long:
-
-Proof
-QED
-
-
 
 
 
