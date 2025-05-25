@@ -1,8 +1,12 @@
 open HolKernel Parse boolLib bossLib;
 
+(* HOL4 theories *)
 open rich_listTheory;
+open bitstringTheory;
 
+(* My theories *)
 open parity_equationsTheory;
+open state_machineTheory;
 
 val _ = new_theory "recursive_parity_equations";
 
@@ -68,6 +72,60 @@ Definition run_recursive_parity_equation_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* The state that run_recursive_parity_equation ends in after applying a      *)
+(* given set of parity equations to a given input starting from a given state *)
+(* -------------------------------------------------------------------------- *)
+Definition run_recursive_parity_equation_state_def:
+  run_recursive_parity_equation_state _ ts _ = ts ∧
+  run_recursive_parity_equation_state (ps, qs) ts (b::bs) =
+  let
+    feedback = apply_parity_equation (FRONT qs) ts;
+    new_input = (feedback ⇎ b);
+    state_and_input = ts ⧺ [new_input];
+    next_ts = TL state_and_input;
+  in
+    run_recursive_parity_equation (ps, qs) next_ts bs  
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Convert parity-equation expression of recursive convolutional codes into   *)
+(* a state-machine format.                                                    *)
+(*                                                                            *)
+(* Includes the systematic bits.                                              *)
+(* -------------------------------------------------------------------------- *)
+Definition recursive_parity_equations_to_state_machine_def:
+  recursive_parity_equations_to_state_machine (ps, qs) =
+  let
+    state_length = (MAX (LENGTH ps) (LENGTH qs)) - 1;
+  in
+    <|
+      num_states := 2 ** state_length;
+      transition_fn :=
+      λ(s, b).
+        let
+          s_vec = zero_extend state_length (n2v s);
+          feedback = apply_parity_equation (FRONT qs) s_vec;
+          new_input = (feedback ⇎ b);
+          window = s_vec ⧺ [new_input];
+          new_vec = TL (window);
+        in
+          (v2n new_vec, apply_parity_equations ps window)
+      ;
+      output_length := 2;
+    |>
+End
+
+(* -------------------------------------------------------------------------- *)
+(* A version of a recursive convolutional code which uses a more sensible     *)
+(* termination scheme                                                         *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition run_recursive_parity_equation_with_termination_def:
+  run_recursive_parity_equation _ _ _ = 
+End
+
+
+(* -------------------------------------------------------------------------- *)
 (* A well-formed recursive convolutional code always has a "1" in the         *)
 (* denominator in the bit which corresponds to the current input, because the *)
 (* current input + feedback always has to take into account the current input.*)
@@ -90,6 +148,8 @@ Definition encode_recursive_parity_equation_def:
   encode_recursive_parity_equation rs bs =
   convolve_recursive_parity_equation TODO
 End
+
+
 
 
 
