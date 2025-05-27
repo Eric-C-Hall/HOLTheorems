@@ -2,7 +2,7 @@
 
 open HolKernel Parse boolLib bossLib;
 
-open factor_graphScript;
+open factor_graphTheory;
 
 val _ = new_theory "bcjr";
 
@@ -42,8 +42,8 @@ val _ = new_theory "bcjr";
 (* recursive convolutional codes.                                             *)
 (*                                                                            *)
 (* Number of variable nodes in this state machine:                            *)
-(*                                                                            *)
-(*                                                                            *)
+(* - We start in state 0, and each input bit updates the state by 1, so we    *)
+(*   have n+1 state variable nodes                                            *)
 (*                                                                            *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
