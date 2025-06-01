@@ -1,7 +1,7 @@
 open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "gen_convolutional_codes";
-
+  
 (* -------------------------------------------------------------------------- *)
 (* Note: This code is outdated. It is designed for a more general definition  *)
 (* of a state machine where states can be any type, not just natural numbers, *)
