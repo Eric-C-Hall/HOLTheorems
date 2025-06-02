@@ -37,7 +37,7 @@ val _ = new_theory "bcjr";
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
-(*            ∝ Σ P(y|x) P(σ_0) Π P(x_(i+1),σ_(i+1)|x_i,σ_i)                 *)
+(*            ∝ Σ P(y|x) P(σ_0) Π P(x_(i+1),σ_(i+1)|x_i,σ_i) P(x_(i+1)       *)
 (*                                                                           *)
 (*                                                                            *)
 (*      Note that each upwards branch is actually several different           *)

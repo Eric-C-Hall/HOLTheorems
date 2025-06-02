@@ -17,6 +17,7 @@ open partite_eaTheory;
 open hyperbolic_functionsTheory;
 
 open donotexpandLib;
+open wordsLib;
 
 (* I find DEP_PURE_ONCE_REWRITE_TAC, etc to be very helpful *)
 open dep_rewrite;
@@ -100,7 +101,7 @@ Datatype:
   <|
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
-    function_map : (unit + num) |-> (unit + num) list # (bool list -> α);
+    function_map : (unit + num) |-> (unit + num) list # (β word list -> α);
   |>
 End
 

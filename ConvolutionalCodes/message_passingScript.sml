@@ -60,9 +60,7 @@ val _ = hide "S";
 (* where we aren't working with the message passing algorithm, so I hide it   *)
 (* before exporting the theory.                                               *)
 (* -------------------------------------------------------------------------- *)
-Overload message_domain = “λfg. {(n,m) | n ∈ nodes fg.underlying_graph ∧
-                                         m ∈ nodes fg.underlying_graph ∧
-                                         adjacent fg.underlying_graph n m
+Overload message_domain = “λfg. {(n,m) | {m;n} ∈ fsgEdges fg.underlying_graph
                           }”;
 
 (* -------------------------------------------------------------------------- *)

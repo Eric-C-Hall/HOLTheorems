@@ -11,8 +11,6 @@ val _ = new_theory "turbo_codesScript";
 
 (* -------------------------------------------------------------------------- *)
 (* An implementation of parallel turbo codes                                  *)
-(*                                                                            *)
-(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -20,8 +18,13 @@ val _ = new_theory "turbo_codesScript";
 (* particular with regards to the ininitialization and termination schemes    *)
 (* -------------------------------------------------------------------------- *)
 Definition encode_parallel_turbo_code_def:
-  encode_recursive_parity_equation rs bs =
-  convolve_recursive_parity_equation 
+  encode_parallel_turbo_code (ps1, qs1) (ps2, qs2) bs =
+  let
+    state_length =
+    MAX (MAX (LENGTH ps1) (LENGTH qs1)) (MAX (LENGTH ps2) (LENGTH qs2));
+    initial_state = replicate 
+  in
+    run_recursive_parity_equation (ps1, qs1) bs
 End
 
 
