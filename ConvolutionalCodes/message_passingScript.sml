@@ -60,8 +60,7 @@ val _ = hide "S";
 (* where we aren't working with the message passing algorithm, so I hide it   *)
 (* before exporting the theory.                                               *)
 (* -------------------------------------------------------------------------- *)
-Overload message_domain = “λfg. {(n,m) | {m;n} ∈ fsgEdges fg.underlying_graph
-                          }”;
+Overload message_domain = “λfg. {(n,m) | {m;n} ∈ fsgEdges fg.underlying_graph}”;
 
 (* -------------------------------------------------------------------------- *)
 (* The domain of possible messages is finite                                  *)

@@ -3,8 +3,35 @@
 open HolKernel Parse boolLib bossLib;
 
 open factor_graphTheory;
+open extrealTheory;
+open probabilityTheory;
 
 val _ = new_theory "bcjr";
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* For state machines                                                         *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition bcjr_forward_metric_def:
+  bcjr_forward_metric m 0 0 = Normal 1 ∧
+  bcjr_forward_metric m 0 (SUC s) = Normal 0 ∧
+  bcjr_forward_metric m (SUC t) s =
+  ∑ (λprev_state.
+       let
+       in
+         (bcjr_forward_metric m t prev_state) *
+         (if ∃b. FST (m.transition_fn (prev_state,b)) = s then 1 else 0) *
+         ()
+    )
+     (count m.num_states)
+End
+
+Definition bcjr_backward_metric_def:
+  
+End
 
 (* -------------------------------------------------------------------------- *)
 (* We formalize the BCJR algorithm for state machines                         *)

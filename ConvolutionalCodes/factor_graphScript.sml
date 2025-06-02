@@ -123,7 +123,7 @@ End
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
-  wffactor_graph (fg : α factor_graph_rep) ⇔
+  wffactor_graph (fg : (α, β) factor_graph_rep) ⇔
     (gen_bipartite_ea fg.underlying_graph fg.function_nodes) ∧
     FDOM fg.function_map = fg.function_nodes ∧
     (∀f.
