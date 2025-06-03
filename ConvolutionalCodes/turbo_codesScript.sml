@@ -24,34 +24,37 @@ Definition encode_parallel_turbo_code_def:
     MAX (MAX (LENGTH ps1) (LENGTH qs1)) (MAX (LENGTH ps2) (LENGTH qs2));
     initial_state = replicate 
   in
-    run_recursive_parity_equation (ps1, qs1) bs
+    (* TODO: This definition is not complete *)
+    ARB run_recursive_parity_equation (ps1, qs1) bs
 End
 
-
-
-Definition decode_recursive_parity_equation_def:
-  decode_recursive_parity_equation rs bs = 
+(* TODO: define this*)
+Definition decode_parallel_turbo_code_def:
+  decode_parallel_turbo_code rs bs = ARB
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Encoding and decoding a recursive parity equation using the BCJR algorithm *)
 (* will return the original data again                                        *)
+(*                                                                            *)
+(* TODO: complete this                                                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem encode_decode_recursive_parity_equation:
-  (encode_recursive_parity_equation rs) ∘
-  (decode_recursive_parity_equation rs) = I
+(*Theorem encode_decode_parallel_turbo_code:
+  (encode_parallel_turbo_code rs) ∘
+  (decode_parallel_turbo_code rs) = I
 Proof
-QED
-
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the decoding procedure for a recursive parity equation encoder *)
 (* implements an a posteriori encoder (TODO: check that I have my terminology *)
 (* correct)                                                                   *)
+(*                                                                            *)
+(* TODO: complete this                                                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem decode_recursive_parity_equation_a_posteriori:
-  (decode_recursive_parity_equation rs)
+(*Theorem decode_parallel_turbo_code_a_posteriori:
+  (decode_parallel_turbo_code rs)
 Proof
-QED
+QED*)
 
 val _ = export_theory();
