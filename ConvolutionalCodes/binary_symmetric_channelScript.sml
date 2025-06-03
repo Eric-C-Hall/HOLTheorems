@@ -19,21 +19,30 @@ val _ = new_theory "binary_symmetric_channel";
 (* Applies a binary symmetric channel to a given input.                       *)
 (*                                                                            *)
 (* p: the probability of an error                                             *)
-(* bs: the input, as a list of extreals, where a given extreal represents the *)
+(* qs: the input, as a list of extreals, where a given extreal represents the *)
 (*     probability that the current bit has a value of 1.                     *)
 (*                                                                            *)
 (* Output: a list of extreals, representing the probability that the each bit *)
 (*         has a value of 1 after applying the binary symmetric channel       *)
 (* -------------------------------------------------------------------------- *)
 Definition bsc_apply_def:
-  bsc_apply (p : extreal) bs =
-  MAP (λb. (Normal 1 - p) * b + p * (Normal 1 - b)) bs
+  bsc_apply (p : extreal) qs =
+  MAP (λq. (Normal 1 - p) * q + p * (Normal 1 - q)) qs
 End
-
-Theorem extreal_add_eq_simp[simp] = extreal_add_eq;
-Theorem extreal_sub_eq_simp[simp] = extreal_sub_eq;
-Theorem extreal_mul_eq_simp[simp] = extreal_mul_eq;
-Theorem extreal_div_eq_simp[simp] = extreal_div_eq;
+           
+(* -------------------------------------------------------------------------- *)
+(* Determines the probability of changing the bitstring bs to the bitstring   *)
+(* cs in a binary symmetric channel.                                          *)
+(*                                                                            *)
+(* In the case where bs and cs are of different sizes, we simply truncate     *)
+(* the longer string so that it is of equal length to the shorter one.        *)
+(* -------------------------------------------------------------------------- *)
+Definition bsc_probability_def:
+  bsc_probability p [] cs = Normal 1 ∧
+  bsc_probability p (b::bs) [] = Normal 1 ∧
+  bsc_probability (p : extreal) (b::bs) (c::cs) =
+  (if b = c then Normal 1 - p else p) * bsc_probability p bs cs
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
@@ -44,7 +53,11 @@ Theorem bsc_apply_unit_test[local]:
   = [Normal 0.75; Normal 0.25; Normal 0.75; Normal 0.25;
      Normal 0.5; Normal (3/8); Normal (5/8); Normal (5/12)]
 Proof
-  gvs[bsc_apply_def]
+  gvs[extreal_add_eq,
+      extreal_sub_eq,
+      extreal_mul_eq,
+      extreal_div_eq,
+      bsc_apply_def]
 QED
 
 val _ = export_theory();
