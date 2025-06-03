@@ -96,12 +96,16 @@ val _ = hide "S";
 (* We expect the nodes of the factor graph to be consecutive natural numbers  *)
 (* starting from 0.                                                           *)
 (* -------------------------------------------------------------------------- *)
+(* TODO: change function_map inputs from bool to β word, or otherwise ensure  *)
+(*       that variables are allowed to be a range of types required by the    *)
+(*       factor graph interpretation of the BCJR algorithm                    *)
+(* -------------------------------------------------------------------------- *)
 Datatype:
   factor_graph_rep =
   <|
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
-    function_map : (unit + num) |-> (unit + num) list # (β word list -> α);
+    function_map : (unit + num) |-> (unit + num) list # (bool list -> α);
   |>
 End
 
@@ -123,7 +127,7 @@ End
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
-  wffactor_graph (fg : (α, β) factor_graph_rep) ⇔
+  wffactor_graph (fg : α factor_graph_rep) ⇔
     (gen_bipartite_ea fg.underlying_graph fg.function_nodes) ∧
     FDOM fg.function_map = fg.function_nodes ∧
     (∀f.
