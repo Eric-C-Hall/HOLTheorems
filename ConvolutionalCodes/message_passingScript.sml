@@ -60,7 +60,7 @@ val _ = hide "S";
 (* where we aren't working with the message passing algorithm, so I hide it   *)
 (* before exporting the theory.                                               *)
 (* -------------------------------------------------------------------------- *)
-Overload message_domain = “λfg. {(n,m) | {m;n} ∈ fsgEdges fg.underlying_graph}”;
+Overload message_domain = “λfg. {(n,m) | {m;n} ∈ fsgedges fg.underlying_graph}”;
 
 (* -------------------------------------------------------------------------- *)
 (* The domain of possible messages is finite                                  *)
@@ -70,6 +70,27 @@ Theorem finite_message_domain[simp]:
     FINITE (message_domain fg)
 Proof
   rw[]
+  >> qmatch_goalsub_abbrev_tac ‘_ ∈ E’
+  >> sg ‘FINITE E’ >- gvs[FINITE_fsgedges, Abbr ‘E’]
+  >> sg ‘∀e. e ∈ E ⇒ (∃a b. e={a;b} ∧ a ≠ b)’
+  >- (unabbrev_all_tac >> metis_tac[alledges_valid])
+  >> last_x_assum kall_tac
+  >> Induct_on ‘E’
+  >> rw[]
+  >> qmatch_goalsub_abbrev_tac ‘FINITE S’
+  >> sg ‘S = {(n,m) | {m;n} = e} ∪ {(n,m) | {m;n} ∈ E}’
+  >- (NTAC 4 (last_x_assum kall_tac) >> unabbrev_all_tac >> ASM_SET_TAC[])
+  >> qpat_x_assum ‘Abbrev _’ kall_tac
+  >> gvs[]
+  >> pop_assum $ qspec_then ‘e’ assume_tac
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘FINITE S’
+  >> sg ‘S = {(a,b); (b,a)}’
+  >- (unabbrev_all_tac >> ASM_SET_TAC[])
+  >> qpat_x_assum ‘Abbrev _’ kall_tac
+  >> gvs[]
+(* Old proof for old definition
+  rw[]    
   >> qsuff_tac ‘FINITE {(n, m) | n ∈ nodes fg.underlying_graph ∧
                                  m ∈ nodes fg.underlying_graph}’
   >- (rw[]
@@ -80,7 +101,7 @@ Proof
       >> unabbrev_all_tac
       >> ASM_SET_TAC[]
      )
-  >> gvs[FINITE_PRODUCT]
+  >> gvs[FINITE_PRODUCT]*)
 QED
 
 (* -------------------------------------------------------------------------- *)
