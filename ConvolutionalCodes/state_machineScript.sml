@@ -183,7 +183,7 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Returns a list of transitions that lead to the given state, as well as the *)
 (* input which leads to them. Each element of the list is a                   *)
-(* transition                                                          *)
+(* transition                                                                 *)
 (* -------------------------------------------------------------------------- *)
 Definition transition_inverse_def:
   transition_inverse (m : state_machine) dest =

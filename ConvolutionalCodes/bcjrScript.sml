@@ -6,27 +6,27 @@ open factor_graphTheory;
 open extrealTheory;
 open probabilityTheory;
 
+open state_machineTheory;
+
 val _ = new_theory "bcjr";
 
-
-
 (* -------------------------------------------------------------------------- *)
-(* For state machines                                                         *)
-(*                                                                            *)
+(* An implementation of the forward metric for the BCJR algorithm for         *)
+(* well-formed state machines                                                 *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition bcjr_forward_metric_def:
+Definition wfm_bcjr_forward_metric_def:
   bcjr_forward_metric m 0 0 = Normal 1 ∧
   bcjr_forward_metric m 0 (SUC s) = Normal 0 ∧
   bcjr_forward_metric m (SUC t) s =
   ∑ (λprev_state.
-       let
-       in
-         (bcjr_forward_metric m t prev_state) *
-         (if ∃b. FST (m.transition_fn (prev_state,b)) = s then 1 else 0) *
-         ()
+       (bcjr_forward_metric m t prev_state) *
+       (if ∃b. (prev_state, b) ∈ (wfm_transition_inverse m s) then 1 else 0) *
+       (SND (wfm_transition_fn
+             (prev_state, (@b. (prev_state,b) ∈ (wfm_transition_inverse)))
+             ))
     )
-     (count m.num_states)
+    (count m.num_states)
 End
 
 Definition bcjr_backward_metric_def:

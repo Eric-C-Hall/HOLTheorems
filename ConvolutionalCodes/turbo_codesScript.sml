@@ -2,7 +2,7 @@ open HolKernel Parse boolLib bossLib;
 
 open recursive_parity_equationsTheory;
 
-val _ = new_theory "turbo_codesScript";
+val _ = new_theory "turbo_codes";
 
 (* -------------------------------------------------------------------------- *)
 (* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)

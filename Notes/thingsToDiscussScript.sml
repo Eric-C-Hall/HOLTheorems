@@ -6,6 +6,9 @@ val _ = new_theory "relevant";
 
 (* I would like to discuss with Reynald Affeldt . I also think it would be a good idea to have someone on my supervisory panel who is an expert in the error-correcting codes side of things. *)
 
+(* Is it possible to define wfm_transition_fn in a better way which uses the
+   lifting functionality to directly lift transition_fn? *)
+
 (* Turns out I need to have more general variables in my factor graph? We should work out how we are going to do this. *)
 
 (* What definitions do I need to lift to the abstract layer, and what

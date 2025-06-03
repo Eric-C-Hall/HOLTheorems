@@ -29,7 +29,7 @@ open simpLib;
 (* Lifting and transfer libraries *)
 open liftLib liftingTheory transferLib transferTheory;
 
-val _ = new_theory "message_passing";
+val _ = new_theory "message_passing_log_likelihood";
 
 val _ = hide "S";
 
