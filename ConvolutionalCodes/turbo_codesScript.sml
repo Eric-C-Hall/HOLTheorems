@@ -28,6 +28,19 @@ Definition encode_parallel_turbo_code_def:
     ARB run_recursive_parity_equation (ps1, qs1) bs
 End
 
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Is this at all helpful in defining the above or completely unhelpful?*)
+(* -------------------------------------------------------------------------- *)
+(*Definition parallel_convolutional_code_encode_def:
+  parallel_convolutional_code_encode
+  (ps1, qs1) (ps2, qs2) bs =
+  (bs,
+   convolve_recursive_parity_equation code1 bs,
+   convolve_recursive_parity equation code2 bs)
+End
+ *)
+
 (* TODO: define this*)
 Definition decode_parallel_turbo_code_def:
   decode_parallel_turbo_code rs bs = ARB
@@ -56,5 +69,6 @@ QED*)
   (decode_parallel_turbo_code rs)
 Proof
 QED*)
+
 
 val _ = export_theory();

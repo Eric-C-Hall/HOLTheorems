@@ -120,6 +120,9 @@ End
 (* general concept of "the set of all pairs of adjacent nodes" in a scenario  *)
 (* where we aren't working with the message passing algorithm, so I hide it   *)
 (* before exporting the theory.                                               *)
+(*                                                                            *)
+(* TODO: update this in the same way as it has been updated in                *)
+(* message_passingScript                                                      *)
 (* -------------------------------------------------------------------------- *)
 Overload message_domain = “λfg. {(n,m) | n ∈ nodes fg.underlying_graph ∧
                                          m ∈ nodes fg.underlying_graph ∧
@@ -566,35 +569,6 @@ Definition calculate_messages_def:
   calculate_messages fg =
   calculate_messages_loop fg (calculate_leaf_messages fg)
 End
-
-(* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-Definition parity_equation_recursive_def:
-
-End
-
-Definition parallel_convolutional_code_encode_def:
-  parallel_convolutional_code_encode
-  (ps1, qs1) (ps2, qs2) bs =
-  (bs,
-   convolve_recursive_parity_equation code1 bs,
-   convolve__recursive_parity equation code2 bs)
-End
-
-
-(* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-Definition recursive_convolutional_code_def
-End
-
-
-
 
 (* -------------------------------------------------------------------------- *)
 (* This overload is useful for my purposes, but it may overlap with the more  *)
