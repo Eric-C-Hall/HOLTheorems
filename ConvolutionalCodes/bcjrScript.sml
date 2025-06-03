@@ -14,8 +14,9 @@ val _ = new_theory "bcjr";
 (* An implementation of the forward metric for the BCJR algorithm for         *)
 (* well-formed state machines                                                 *)
 (*                                                                            *)
+(* TODO: complete this                                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition wfm_bcjr_forward_metric_def:
+(*Definition wfm_bcjr_forward_metric_def:
   bcjr_forward_metric m 0 0 = Normal 1 ∧
   bcjr_forward_metric m 0 (SUC s) = Normal 0 ∧
   bcjr_forward_metric m (SUC t) s =
@@ -27,10 +28,13 @@ Definition wfm_bcjr_forward_metric_def:
              ))
     )
     (count m.num_states)
-End
+End*)
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: complete this                                                        *)
+(* -------------------------------------------------------------------------- *)
 Definition bcjr_backward_metric_def:
-  
+  bchr_backward_metric m t s = ARB
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -106,11 +110,12 @@ End
 (* that BCJR works for a general state machine. Then try to formalize the     *)
 (* turbo code BCJR to use this.                                               *)
 (*                                                                            *)
+(*                                                                            *)
+(* TODO: implement this                                                       *)
 (* -------------------------------------------------------------------------- *)
-Definition state_machine_factor_graph_def:
+(*Definition state_machine_factor_graph_def:
   state_machine_factor_graph m = fg_add_n_variable_nodes () fg_empty
-End
-  
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Decode assuming transmission over a binary symmetric channel               *)
@@ -120,11 +125,11 @@ End
 (*     represents the decoded message)                                        *)
 (* p: the probability of an error when a bit is sent over the binary          *)
 (*    symmetric channel.                                                      *)
+(*                                                                            *)
+(* TODO: implement this                                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition BCJR_decode_def:
-  BCJR_decode m cs p = 
+  BCJR_decode m cs p = ARB
 End
-
-
 
 val _ = export_theory();
