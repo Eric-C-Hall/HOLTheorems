@@ -119,11 +119,11 @@ End
 (* A version of a recursive convolutional code which uses a more sensible     *)
 (* termination scheme                                                         *)
 (*                                                                            *)
+(* TODO: complete this                                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition run_recursive_parity_equation_with_termination_def:
+(* Definition run_recursive_parity_equation_with_termination_def:
   run_recursive_parity_equation _ _ _ = 
-End
-
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* A well-formed recursive convolutional code always has a "1" in the         *)
@@ -143,42 +143,46 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: Encode the recursive parity equation in a way which is sensible, in  *)
 (* particular with regards to the ininitialization and termination schemes    *)
+(*                                                                            *)
+(* TODO: In particular, this should be the counterpart to                     *)
+(* decode_recursive_parity_equation                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition encode_recursive_parity_equation_def:
   encode_recursive_parity_equation rs bs =
-  convolve_recursive_parity_equation TODO
+  convolve_recursive_parity_equation ARB
 End
 
-
-
-
-
+(* -------------------------------------------------------------------------- *)
+(* TODO: Decode a recursive parity equation encoded by                        *)
+(* encode_recursive_parity_equation                                           *)
+(* -------------------------------------------------------------------------- *)
 Definition decode_recursive_parity_equation_def:
-  decode_recursive_parity_equation rs bs = 
+  decode_recursive_parity_equation rs bs = ARB
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Encoding and decoding a recursive parity equation using the BCJR algorithm *)
 (* will return the original data again                                        *)
+(*                                                                            *)
+(* TODO: Main encoding/decoding theorom for recursive parity equations        *)
 (* -------------------------------------------------------------------------- *)
-Theorem encode_decode_recursive_parity_equation:
+(*Theorem encode_decode_recursive_parity_equation:
   (encode_recursive_parity_equation rs) ∘
   (decode_recursive_parity_equation rs) = I
 Proof
-QED
-
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the decoding procedure for a recursive parity equation encoder *)
 (* implements an a posteriori encoder (TODO: check that I have my terminology *)
 (* correct)                                                                   *)
+(*                                                                            *)
+(* TODO: implement this                                                       *)
 (* -------------------------------------------------------------------------- *)
-Theorem decode_recursive_parity_equation_a_posteriori:
+(*Theorem decode_recursive_parity_equation_a_posteriori:
   (decode_recursive_parity_equation rs) = 
 Proof
-QED
-
-
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
@@ -216,7 +220,5 @@ QED
 (* which this assumption does not hold, because they are outside the scope of *)
 (* what the function needs to satisfy.                                        *)
 (* -------------------------------------------------------------------------- *)
-
-
 
 val _ = export_theory();
