@@ -111,6 +111,13 @@ Definition wfm_transition_fn_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Get the output length associated with the underlying representation        *)
+(* -------------------------------------------------------------------------- *)
+Definition wfm_output_length_def:
+  wfm_output_length m = (wf_state_machine_REP m).output_length
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Find the state/input pairs that lead directly to a particular state        *)
 (* -------------------------------------------------------------------------- *)
 Definition wfm_transition_inverse_def:
