@@ -147,10 +147,10 @@ QED
 (* TODO: In particular, this should be the counterpart to                     *)
 (* decode_recursive_parity_equation                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition encode_recursive_parity_equation_def:
+(*Definition encode_recursive_parity_equation_def:
   encode_recursive_parity_equation rs bs =
   convolve_recursive_parity_equation ARB
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: Decode a recursive parity equation encoded by                        *)
