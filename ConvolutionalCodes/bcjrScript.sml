@@ -7,6 +7,7 @@ open extrealTheory;
 open probabilityTheory;
 
 open state_machineTheory;
+open wf_state_machineTheory;
 
 val _ = new_theory "bcjr";
 
@@ -16,19 +17,28 @@ val _ = new_theory "bcjr";
 (*                                                                            *)
 (* TODO: complete this                                                        *)
 (* -------------------------------------------------------------------------- *)
-(*Definition wfm_bcjr_forward_metric_def:
-  bcjr_forward_metric m 0 0 = Normal 1 ∧
-  bcjr_forward_metric m 0 (SUC s) = Normal 0 ∧
-  bcjr_forward_metric m (SUC t) s =
+Definition wfm_bcjr_forward_metric_def:
+  bcjr_forward_metric m p rs 0 0 = Normal 1 ∧
+  bcjr_forward_metric m p rs 0 (SUC s) = Normal 0 ∧
+  bcjr_forward_metric m p (rs : bool list) (SUC t) s =
   ∑ (λprev_state.
        (bcjr_forward_metric m t prev_state) *
        (if ∃b. (prev_state, b) ∈ (wfm_transition_inverse m s) then 1 else 0) *
-       (SND (wfm_transition_fn
-             (prev_state, (@b. (prev_state,b) ∈ (wfm_transition_inverse)))
-             ))
+       (let
+          produced_bitstring =
+          SND (wfm_transition_fn
+               (prev_state,
+                (@b. (prev_state,b) ∈ (wfm_transition_inverse))
+               )
+              );
+          expected_bitstring =
+          DROP (t * wfm_output_length m) (TAKE (wfm_output_length m) rs);
+        in
+          bsc_probability p produced_bitstring expected_bitstring
+       )
     )
     (count m.num_states)
-End*)
+End
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: complete this                                                        *)
