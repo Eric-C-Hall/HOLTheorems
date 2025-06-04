@@ -8,6 +8,7 @@ open probabilityTheory;
 
 open state_machineTheory;
 open wf_state_machineTheory;
+open binary_symmetric_channelTheory;
 
 val _ = new_theory "bcjr";
 
@@ -15,30 +16,59 @@ val _ = new_theory "bcjr";
 (* An implementation of the forward metric for the BCJR algorithm for         *)
 (* well-formed state machines                                                 *)
 (*                                                                            *)
-(* TODO: complete this                                                        *)
+(* For every possible state and timestep, this represents the probability of  *)
+(* having taken a path which arrives at this state and timestep while         *)
+(* simultaneously observing the bits which were observed, up until that       *)
+(* point.                                                                     *)
+(*                                                                            *)
+(* m: the well-formed state machine (abstract type)                           *)
+(* p: the probability defining the binary symmetric channel                   *)
+(* rs: the ultimately received data, after encoding and noise                 *)
+(* t: the time-step in the trellis to calculate the forward metric at         *)
+(* s: the state in the trellis to calculate the forward metric at             *)
+(*                                                                            *)
+(* At time 0:                                                                 *)
+(* - At state 0: forward metric is 1 (we start in state 0 with 100% prob)     *)
+(* - Otherwise: foward metric is 0 (we start in another state with 0% prob)   *)
+(*                                                                            *)
+(* At time t + 1:                                                             *)
+(* - We want to calculate the probability of arriving at the current state    *)
+(*   and timestep while observing the appropriate data.                       *)
+(*                                                                            *)
+(*   We do this by taking the sum over each possible predecessor state of the *)
+(*   probability of arriving at that predecessor state while observing the    *)
+(*   appropriate data, and then taking the transition to the current state    *)
+(*   while observing the appropriate data.                                    *)
+(*                                                                            *)
+(*   In other words, each term in this sum is equal to the forward metric     *)
+(*   for the predecessor state multiplied by the probability of taking the    *)
+(*   appropriate transition from the predecessor state multiplied by the      *)
+(*   probability of receiving the appropriate bits given that the bits        *)
+(*   corresponding to this transition were sent.                              *)
 (* -------------------------------------------------------------------------- *)
-Definition wfm_bcjr_forward_metric_def:
-  bcjr_forward_metric m p rs 0 0 = Normal 1 ∧
-  bcjr_forward_metric m p rs 0 (SUC s) = Normal 0 ∧
-  bcjr_forward_metric m p (rs : bool list) (SUC t) s =
-  ∑ (λprev_state.
-       (bcjr_forward_metric m t prev_state) *
-       (if ∃b. (prev_state, b) ∈ (wfm_transition_inverse m s) then 1 else 0) *
+Definition bcjr_forward_metric_wfm_def:
+  bcjr_forward_metric_wfm m p rs 0 0 = Normal 1 ∧
+  bcjr_forward_metric_wfm m p rs 0 (SUC s) = Normal 0 ∧
+  bcjr_forward_metric_wfm m p rs (SUC t) s =
+  ∑ (λ(prev_state, b).
+       (bcjr_forward_metric_wfm m p rs t prev_state) *
+       (Normal 1 / Normal 2) *
        (let
-          produced_bitstring =
-          SND (wfm_transition_fn
-               (prev_state,
-                (@b. (prev_state,b) ∈ (wfm_transition_inverse))
-               )
-              );
+          produced_bitstring = SND (wfm_transition_fn m (prev_state, b));
           expected_bitstring =
-          DROP (t * wfm_output_length m) (TAKE (wfm_output_length m) rs);
+          TAKE (wfm_output_length m)
+               (DROP (t * wfm_output_length m) rs);
         in
           bsc_probability p produced_bitstring expected_bitstring
        )
     )
-    (count m.num_states)
+  {(prev_state, b) | FST (wfm_transition_fn m (prev_state, b)) = s ∧
+                     prev_state < wfm_num_states m ∧
+                     (b ∨ ¬b)}
 End
+
+
+
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: complete this                                                        *)

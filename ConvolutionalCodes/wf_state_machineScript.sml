@@ -118,14 +118,25 @@ Definition wfm_output_length_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Find the state/input pairs that lead directly to a particular state        *)
+(* Get the number of states associated with the underlying representation     *)
 (* -------------------------------------------------------------------------- *)
-Definition wfm_transition_inverse_def:
-  wfm_transition_inverse m s =
-  {(s', b) | FST ((wfm_transition_fn m) (s', b)) = s}
+Definition wfm_num_states_def:
+  wfm_num_states m = (wf_state_machine_REP m).num_states
 End
 
-
-
+(* -------------------------------------------------------------------------- *)
+(* Find the state/input pairs that lead directly to a particular state        *)
+(*                                                                            *)
+(* Avoid using this: by prioritising using wfm_transition_fn directly, we     *)
+(* ensure that we have a canonical form for our expressions, written as an    *)
+(* expression in wfm_transition_fn, which makes simplifying easier because    *)
+(* we never have to expand out our definitions, and don't, for example, have  *)
+(* to write duplicate theorems regarding both the situation in which we use   *)
+(* the definition and the situation in which we don't use the definition.     *)
+(* -------------------------------------------------------------------------- *)
+(*Definition wfm_transition_inverse_def:
+  wfm_transition_inverse m s =
+  {(s', b) | FST ((wfm_transition_fn m) (s', b)) = s}
+End*)
 
 val _ = export_theory();
