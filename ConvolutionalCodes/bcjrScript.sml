@@ -84,8 +84,8 @@ End
 (* m: the well-formed state machine (abstract type)                           *)
 (* p: the probability defining the binary symmetric channel                   *)
 (* rs: the ultimately received data, after encoding and noise                 *)
-(* t: the time-step in the trellis to calculate the forward metric at         *)
-(* s: the state in the trellis to calculate the forward metric at             *)
+(* t: the time-step in the trellis to calculate the backward metric at        *)
+(* s: the state in the trellis to calculate the backward metric at            *)
 (*                                                                            *)
 (* At the final timestep:                                                     *)
 (* - At state 0: backward metric is 1 (there is a 100% chance of ending in    *)
@@ -139,11 +139,55 @@ Termination
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Calculate gamma_t from the BCJR algorithm.                                 *)
 (*                                                                            *)
+(* This is the probability that we take a path through the trellis, and that  *)
+(* we then observe the appropriate observed bits, and the path we took had    *)
+(* the t-th input bit set to 0.                                               *)
 (*                                                                            *)
+(* m: the well-formed state machine (abstract type)                           *)
+(* p: the probability defining the binary symmetric channel                   *)
+(* qs: the prior probabilities of the sent bits, as an extreal list           *)
+(* rs: the ultimately received data, after encoding and noise                 *)
+(* t: the time-step in the trellis which is having the input set to 0         *)
 (*                                                                            *)
+(* We sum over the probabilities of all possible starting/ending states for   *)
+(* the t-th transition. We only sum over a starting state and ending state if *)
+(* the transition corresponding to the input 0 arrives at the appropriate     *)
+(* ending state, because we are requiring the t-th input bit to be 0.         *)
+(*                                                                            *)
+(* We use the forward metric to calculate the probability of observing the    *)
+(* appropriate bits up to the current step (i.e. with the same t).            *)
+(*                                                                            *)
+(* We use the backward metric to calculate the probability of observing the   *)
+(* appropriate bits from the next step onwards (i.e. with the subsequent t)   *)
+(*                                                                            *)
+(* To calculate the probability relating to the current transition, which has *)
+(* the input bit set to 0, we take the probability of receving the            *)
+(* appropriate information given that we produced the output corresponding to *)
+(* the transition, multiply it by the probability of taking this transition   *)
+(* given that the current bit was zero, and multiply this by the prior        *)
+(* probability of the current bit being zero.                                 *)
 (* -------------------------------------------------------------------------- *)
-Definition
+Definition bcjr_gamma_t_wfm_def:
+  bcjr_gamma_t_wfm m p qs rs t s =
+  ∑ (λ(s1, s2).
+       bcjr_forward_metric_wfm m p rs t s1 *
+       (let
+          produced_bitstring = SND (wfm_transition_fn m (s1, F));
+          expected_bitstring =
+          TAKE (wfm_output_length m)
+               (DROP (t * wfm_output_length m) rs);
+        in
+          bsc_probability p produced_bitstring expected_bitstring            
+       ) *
+       (EL t qs) *
+       bcjr_backward_metric_wfm m p rs (SUC t) s2)
+    {(s1, s2) | FST (wfm_transition_fn m (s1, F)) = s2 ∧
+                s1 < wfm_num_states m ∧
+                s2 < wfm_num_states m }
 End
+
+
 
 val _ = export_theory();
