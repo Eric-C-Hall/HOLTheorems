@@ -116,14 +116,19 @@ Definition recursive_parity_equations_to_state_machine_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* A version of a recursive convolutional code which uses a more sensible     *)
-(* termination scheme                                                         *)
+(* Encodes a recursive parity equation using zero-tail termination.           *)
 (*                                                                            *)
-(* TODO: complete this                                                        *)
+(* First, encodes as usual up until the end of the input string.              *)
+(*                                                                            *)
+(* Then, applies encoding without feedback on the state resulting from this   *)
+(* encoding.                                                                  *)
 (* -------------------------------------------------------------------------- *)
-(* Definition encode_recursive_parity_equation_with_termination_def:
-  encode_recursive_parity_equation _ _ _ = 
-End*)
+Definition encode_recursive_parity_equation_zero_tailed_def:
+  encode_recursive_parity_equation_zero_tailed (ps, qs) ts bs =
+  encode_recursive_parity_equation (ps, qs) ts bs ++
+  convolve_parity_equations
+  [ps] (encode_recursive_parity_equation_state (ps, qs) ts bs)
+End
 
 (* -------------------------------------------------------------------------- *)
 (* A well-formed recursive convolutional code always has a "1" in the         *)
@@ -156,9 +161,9 @@ End*)
 (* TODO: Decode a recursive parity equation encoded by                        *)
 (* encode_recursive_parity_equation                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition decode_recursive_parity_equation_def:
+(*Definition decode_recursive_parity_equation_def:
   decode_recursive_parity_equation rs bs = ARB
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Encoding and decoding a recursive parity equation using the BCJR algorithm *)
