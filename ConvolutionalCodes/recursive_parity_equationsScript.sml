@@ -58,9 +58,9 @@ val _ = new_theory "recursive_parity_equations";
 (*                                                                            *)
 (* bs: the input bits                                                         *)
 (* -------------------------------------------------------------------------- *)
-Definition run_recursive_parity_equation_def:
-  run_recursive_parity_equation _ _ [] = [] ∧
-  run_recursive_parity_equation (ps, qs) ts (b::bs) =
+Definition encode_recursive_parity_equation_def:
+  encode_recursive_parity_equation _ _ [] = [] ∧
+  encode_recursive_parity_equation (ps, qs) ts (b::bs) =
   let
     feedback = apply_parity_equation (FRONT qs) ts;
     new_input = (feedback ⇎ b);
@@ -68,23 +68,23 @@ Definition run_recursive_parity_equation_def:
     current_output = apply_parity_equation ps state_and_input;
     next_ts = TL state_and_input;
   in
-    [current_output] ⧺ run_recursive_parity_equation (ps, qs) next_ts bs
+    [current_output] ⧺ encode_recursive_parity_equation (ps, qs) next_ts bs
 End
 
 (* -------------------------------------------------------------------------- *)
-(* The state that run_recursive_parity_equation ends in after applying a      *)
+(* The state that encode_recursive_parity_equation ends in after applying a   *)
 (* given set of parity equations to a given input starting from a given state *)
 (* -------------------------------------------------------------------------- *)
-Definition run_recursive_parity_equation_state_def:
-  run_recursive_parity_equation_state _ ts _ = ts ∧
-  run_recursive_parity_equation_state (ps, qs) ts (b::bs) =
+Definition encode_recursive_parity_equation_state_def:
+  encode_recursive_parity_equation_state _ ts _ = ts ∧
+  encode_recursive_parity_equation_state (ps, qs) ts (b::bs) =
   let
     feedback = apply_parity_equation (FRONT qs) ts;
     new_input = (feedback ⇎ b);
     state_and_input = ts ⧺ [new_input];
     next_ts = TL state_and_input;
   in
-    run_recursive_parity_equation (ps, qs) next_ts bs  
+    encode_recursive_parity_equation (ps, qs) next_ts bs  
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -121,8 +121,8 @@ End
 (*                                                                            *)
 (* TODO: complete this                                                        *)
 (* -------------------------------------------------------------------------- *)
-(* Definition run_recursive_parity_equation_with_termination_def:
-  run_recursive_parity_equation _ _ _ = 
+(* Definition encode_recursive_parity_equation_with_termination_def:
+  encode_recursive_parity_equation _ _ _ = 
 End*)
 
 (* -------------------------------------------------------------------------- *)
@@ -134,10 +134,10 @@ End*)
 (* -------------------------------------------------------------------------- *)
 Theorem denominator_last_one_equiv[simp]:
   ∀ps qs ts bs.
-    run_recursive_parity_equation (ps, qs ⧺ [F]) ts bs =
-    run_recursive_parity_equation (ps, qs ⧺ [T]) ts bs
+    encode_recursive_parity_equation (ps, qs ⧺ [F]) ts bs =
+    encode_recursive_parity_equation (ps, qs ⧺ [T]) ts bs
 Proof
-  Induct_on ‘bs’ >> rw[run_recursive_parity_equation_def, FRONT_APPEND]
+  Induct_on ‘bs’ >> rw[encode_recursive_parity_equation_def, FRONT_APPEND]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -207,11 +207,11 @@ QED*)
 (* [F,T,F,F] | [F,T,F,F]           | T                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem fun_recursive_parity_equation_unit_test:
-  run_recursive_parity_equation
+  encode_recursive_parity_equation
   ([T;T;F;T], [T;F;F;T]) [F;F;F] [T;T;T;T;F;F;F;F;T;F] =
   [T;T;F;F;T;F;T;T;T;T]
 Proof
-  gvs[run_recursive_parity_equation_def, apply_parity_equation_def]
+  gvs[encode_recursive_parity_equation_def, apply_parity_equation_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
