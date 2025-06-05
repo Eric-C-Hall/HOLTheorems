@@ -52,22 +52,24 @@ Definition encode_parallel_turbo_code_def:
     ]
 End
 
-
 (* -------------------------------------------------------------------------- *)
-(* TODO: Is this at all helpful in defining the above or completely unhelpful?*)
+(* Decodes a parallel turbo code                                              *)
+(*                                                                            *)
+(* Stops after i turbo iterations.                                            *)
+(*                                                                            *)
+(* In one turbo iteration, we apply the BCJR algorithm to the first turbo     *)
+(* to update the a posteriori probabilities, and then apply it to the second  *)
+(* turbo code to update the a posteriori probabilities again.                 *)
+(*                                                                            *)
+(* (ps, qs): The numerator and denominator parity equations                   *)
+(* perm: The permutation used as part of the encoding process                 *)
+(* p: the probability of error in the                                         *)
+(* qs: The a priori probabilities that a given input is 1.                    *)
+(* rs: The received bitstring                                                 *)
+(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-(*Definition parallel_convolutional_code_encode_def:
-  parallel_convolutional_code_encode
-  (ps1, qs1) (ps2, qs2) bs =
-  (bs,
-   convolve_recursive_parity_equation code1 bs,
-   convolve_recursive_parity equation code2 bs)
-End
- *)
-
-(* TODO: define this*)
 Definition decode_parallel_turbo_code_def:
-  decode_parallel_turbo_code rs bs = ARB
+  decode_parallel_turbo_code rs bs = 
 End
 
 (* -------------------------------------------------------------------------- *)
