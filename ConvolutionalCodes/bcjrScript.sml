@@ -189,4 +189,26 @@ Definition bcjr_gamma_t_wfm_def:
                 s2 < wfm_num_states m }
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Return the probability of a particular bit being equal to 1 given that     *)
+(* the received data was originally encoded using a recursive convolutional   *)
+(* code.                                                                      *)
+(*                                                                            *)
+(* m: the well-formed state machine (abstract type)                           *)
+(* p: the probability defining the binary symmetric channel                   *)
+(* qs: the prior probabilities that each of the sent bits are equal to 1, as  *)
+(*     an extreal list                                                        *)
+(* rs: the ultimately received data, after encoding and noise                 *)
+(* t: the time-step we are finding the a posteriori probability for           *)
+(*                                                                            *)
+(* TODO: Ensure that this correctly handles decoding of zero-tailed sequences.*)
+(* -------------------------------------------------------------------------- *)
+Definition bcjr_prob_wfm_def:
+  bcjr_prob_wfm m p qs rs t s =
+  let
+    last_t = LENGTH rs
+  in
+    bcjr_gamma_t_wfm m p qs rs t s / bcjr_forward_metric_wfm m p rs last_t 0
+End
+
 val _ = export_theory();

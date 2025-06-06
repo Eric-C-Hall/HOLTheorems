@@ -71,6 +71,10 @@ End
 (*                                                                            *)
 (* Output: the a posteriori probabilities that a given input is 1.            *)
 (* -------------------------------------------------------------------------- *)
+(* TODO: is the intrinsic information defined correctly?                      *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
 Definition parallel_turbo_code_a_posteriori_def:
   parallel_turbo_code_a_posteriori (ps, qs) perm p priors rs 0 = qs ∧
   parallel_turbo_code_a_posteriori (ps, qs) perm p priors rs (SUC i) =
@@ -81,8 +85,12 @@ Definition parallel_turbo_code_a_posteriori_def:
     intermediate_probs = decode_parallel_turbo_code
                          (ps, qs) perm p priors rs i;
     intrinsic_information = MAP (log_likelihood) priors;
-    
+    decode_1_probs = 
+    ;
+    decode_2_probs = ;
+                     
   in
+    decode 
 End
 
 (* -------------------------------------------------------------------------- *)
