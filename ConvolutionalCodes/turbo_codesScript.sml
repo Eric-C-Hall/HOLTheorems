@@ -53,6 +53,39 @@ Definition encode_parallel_turbo_code_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* This is largely based on Fundamentals of Convolutional Coding by           *)
+(* Rolf Johannesson and Kamil Sh. Zigangirov                                  *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Calculates the a posteriori probabilities through the turbo process.       *)
+(*                                                                            *)
+(* Stops after i turbo iterations.                                            *)
+(*                                                                            *)
+(* (ps, qs): The numerator and denominator parity equations                   *)
+(* perm: The permutation used as part of the encoding process                 *)
+(* p: the probability of error in the binary symmetric channel                *)
+(* priors: The a priori probabilities that a given input is 1.                *)
+(* rs: The received bitstring                                                 *)
+(* i: The number of iterations to perform                                     *)
+(*                                                                            *)
+(* Output: the a posteriori probabilities that a given input is 1.            *)
+(* -------------------------------------------------------------------------- *)
+Definition parallel_turbo_code_a_posteriori_def:
+  parallel_turbo_code_a_posteriori (ps, qs) perm p priors rs 0 = qs ∧
+  parallel_turbo_code_a_posteriori (ps, qs) perm p priors rs (SUC i) =
+  let
+    rs_s = EL 0 (deinterleave 3 rs);
+    rs_1 = EL 1 (deinterleave 3 rs);
+    rs_2 = EL 2 (deinterleave 3 rs);
+    intermediate_probs = decode_parallel_turbo_code
+                         (ps, qs) perm p priors rs i;
+    intrinsic_information = MAP (log_likelihood) priors;
+    
+  in
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Decodes a parallel turbo code                                              *)
 (*                                                                            *)
 (* Stops after i turbo iterations.                                            *)
@@ -63,13 +96,20 @@ End
 (*                                                                            *)
 (* (ps, qs): The numerator and denominator parity equations                   *)
 (* perm: The permutation used as part of the encoding process                 *)
-(* p: the probability of error in the                                         *)
-(* qs: The a priori probabilities that a given input is 1.                    *)
+(* p: the probability of error in the binary symmetric channel                *)
+(* priors: The a priori probabilities that a given input is 1.                *)
 (* rs: The received bitstring                                                 *)
+(* i: The number of iterations to perform                                     *)
 (*                                                                            *)
+(* Output: the decoded bitstring                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition decode_parallel_turbo_code_def:
-  decode_parallel_turbo_code rs bs = 
+  decode_parallel_turbo_code (ps, qs) perm p priors rs i =
+  let
+    a_posteriori_probs = parallel_turbo_code_a_posteriori
+                         (ps, qs) perm p priors rs i;
+  in
+    MAP (λx. if 0.5 ≤ x then T else F) a_posteriori_probs
 End
 
 (* -------------------------------------------------------------------------- *)
