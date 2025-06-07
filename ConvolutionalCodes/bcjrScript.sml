@@ -147,8 +147,8 @@ End
 (*                                                                            *)
 (* m: the well-formed state machine (abstract type)                           *)
 (* p: the probability defining the binary symmetric channel                   *)
-(* qs: the prior probabilities that each of the sent bits are equal to 1, as  *)
-(*     an extreal list                                                        *)
+(* priors: the prior probabilities that each of the sent bits are equal to 1, *)
+(*         as an extreal list                                                 *)
 (* rs: the ultimately received data, after encoding and noise                 *)
 (* t: the time-step in the trellis which is having the input set to 1         *)
 (*                                                                            *)
@@ -171,7 +171,7 @@ End
 (* probability of the current bit being 1.                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition bcjr_gamma_t_wfm_def:
-  bcjr_gamma_t_wfm m p qs rs t s =
+  bcjr_gamma_t_wfm m p priors rs t s =
   ∑ (λ(s1, s2).
        bcjr_forward_metric_wfm m p rs t s1 *
        (let
@@ -182,7 +182,7 @@ Definition bcjr_gamma_t_wfm_def:
         in
           bsc_probability p produced_bitstring expected_bitstring            
        ) *
-       (EL t qs) *
+       (EL t priors) *
        bcjr_backward_metric_wfm m p rs (SUC t) s2)
     {(s1, s2) | FST (wfm_transition_fn m (s1, T)) = s2 ∧
                 s1 < wfm_num_states m ∧
@@ -196,7 +196,7 @@ End
 (*                                                                            *)
 (* m: the well-formed state machine (abstract type)                           *)
 (* p: the probability defining the binary symmetric channel                   *)
-(* qs: the prior probabilities that each of the sent bits are equal to 1, as  *)
+(* priors: the prior probabilities that each of the sent bits are equal to 1, as  *)
 (*     an extreal list                                                        *)
 (* rs: the ultimately received data, after encoding and noise                 *)
 (* t: the time-step we are finding the a posteriori probability for           *)
@@ -204,11 +204,11 @@ End
 (* TODO: Ensure that this correctly handles decoding of zero-tailed sequences.*)
 (* -------------------------------------------------------------------------- *)
 Definition bcjr_prob_wfm_def:
-  bcjr_prob_wfm m p qs rs t s =
+  bcjr_prob_wfm m p priors rs t s =
   let
     last_t = LENGTH rs
   in
-    bcjr_gamma_t_wfm m p qs rs t s / bcjr_forward_metric_wfm m p rs last_t 0
+    bcjr_gamma_t_wfm m p priors rs t s / bcjr_forward_metric_wfm m p rs last_t 0
 End
 
 val _ = export_theory();

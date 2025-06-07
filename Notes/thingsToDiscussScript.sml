@@ -4,12 +4,26 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
-(* I would like to discuss with Reynald Affeldt . I also think it would be a good idea to have someone on my supervisory panel who is an expert in the error-correcting codes side of things. *)
+(* There absolutely seems to be room for probability formalism here, in order
+   to support my proofs and stuff.
+
+   I get the feeling that all this probability formalism isn't completely
+   explicit. Some things are commonly skimmed over, it's not always clear
+   what the probability space is*)
+
+(* Reliability: Turbo codes generally don't have the best reliability because
+   the turbo decoding algorithm is heuristic in nature. Also, the choice of
+   parity equations is typically done through computer search to find a good
+   choice of parity equations rather than a principled and analytic approach,
+   and the approach to Shannon's Limit is only what I believe to be an
+   experimentally observed approach to within 0.7dB. *)
+
+(* I would like to discuss with Reynald Affeldt . I also think it would be a
+   good idea to have someone on my supervisory panel who is an expert in the
+   error-correcting codes side of things. *)
 
 (* Is it possible to define wfm_transition_fn in a better way which uses the
    lifting functionality to directly lift transition_fn? *)
-
-(* Turns out I need to have more general variables in my factor graph? We should work out how we are going to do this. *)
 
 (* What definitions do I need to lift to the abstract layer, and what
    definitions should I leave in the representation layer? I find that there

@@ -58,6 +58,11 @@ End
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
+(* Also based on Turbo Coding, Turbo Equalisation and Space-Time Coding,      *)
+(* Chapter 4 - Turbo Convolution Coding by J. P. Woodard and L. Hanzo         *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* Calculates the a posteriori probabilities through the turbo process.       *)
 (*                                                                            *)
 (* Stops after i turbo iterations.                                            *)
@@ -72,8 +77,6 @@ End
 (* Output: the a posteriori probabilities that a given input is 1.            *)
 (* -------------------------------------------------------------------------- *)
 (* TODO: is the intrinsic information defined correctly?                      *)
-(*                                                                            *)
-(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Definition parallel_turbo_code_a_posteriori_def:
   parallel_turbo_code_a_posteriori (ps, qs) perm p priors rs 0 = qs ∧
@@ -82,15 +85,16 @@ Definition parallel_turbo_code_a_posteriori_def:
     rs_s = EL 0 (deinterleave 3 rs);
     rs_1 = EL 1 (deinterleave 3 rs);
     rs_2 = EL 2 (deinterleave 3 rs);
-    intermediate_probs = decode_parallel_turbo_code
-                         (ps, qs) perm p priors rs i;
-    intrinsic_information = MAP (log_likelihood) priors;
-    decode_1_probs = 
-    ;
-    decode_2_probs = ;
-                     
+    intermediate_probs = decode_parallel_turbo_code (ps, qs) perm p priors rs i;
+    intrinsic_information = MAP (log_likelihood) TODO_INVOLVING_rs_s;
+    m = recursive_parity_equations_to_state_machine (ps, qs);
+    num_t = LENGTH rs;
+    decode_1_probs = MAP (bcjr_prob_wfm m p intermediate_probs rs_1)
+                         (COUNT_LIST num_t);
+    decode_2_probs = MAP (bcjr_prob_wfm m p (perm decode_1_probs) rs_2)
+                         (COUNT_LIST num_t);
   in
-    decode 
+    perm_inverse decode_2_probs
 End
 
 (* -------------------------------------------------------------------------- *)
