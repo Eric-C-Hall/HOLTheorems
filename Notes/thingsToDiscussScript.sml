@@ -16,7 +16,10 @@ val _ = new_theory "relevant";
    parity equations is typically done through computer search to find a good
    choice of parity equations rather than a principled and analytic approach,
    and the approach to Shannon's Limit is only what I believe to be an
-   experimentally observed approach to within 0.7dB. *)
+   experimentally observed approach to within 0.7dB.
+
+   I think it's good because it means that this isn't straightforward to
+   formalise, giving rise to new novelty. *)
 
 (* I would like to discuss with Reynald Affeldt . I also think it would be a
    good idea to have someone on my supervisory panel who is an expert in the
