@@ -86,6 +86,8 @@ End
 (*                                                                            *)
 (* m: the well-formed state machine (abstract type)                           *)
 (* p: the probability defining the binary symmetric channel                   *)
+(* priors: the prior probabilities that each of the sent bits are equal to 1, *)
+(*         as an extreal list                                                 *)
 (* rs: the ultimately received data, after encoding and noise                 *)
 (* t: the time-step in the trellis to calculate the backward metric at        *)
 (* s: the state in the trellis to calculate the backward metric at            *)
@@ -108,11 +110,13 @@ End
 (*                                                                            *)
 (*   In other words, each term in this sum is equal to the backward metric    *)
 (*   for the appropriate state multiplied by the probability of taking the    *)
-(*   transition to that state multiplied by the probability of receiving the  *)
-(*   appropriate bits relating to this transition that was taken.             *)
+(*   transition to that state (which depends on the prior probability of      *)
+(*   receiving the associated input) multiplied by the probability of         *)
+(*   receiving the appropriate bits relating to this transition that was      *)
+(*   taken.                                                                   *)
 (* -------------------------------------------------------------------------- *)
 Definition bcjr_backward_metric_wfm_def:
-  bcjr_backward_metric_wfm m p rs t s =
+  bcjr_backward_metric_wfm m p priors rs t s =
   let
     max_timestep = LENGTH rs DIV wfm_output_length m
   in
@@ -123,8 +127,8 @@ Definition bcjr_backward_metric_wfm_def:
       else Normal 0
     else
       ∑ (λ(next_state, b).
-           (bcjr_backward_metric_wfm m p rs (t + 1) next_state) *
-           (Normal 1 / Normal 2) *
+           (bcjr_backward_metric_wfm m p priors rs (t + 1) next_state) *
+           (if b then EL t priors else 1 - EL t priors) *
            (let
               produced_bitstring = SND (wfm_transition_fn m (s, b));
               expected_bitstring =
@@ -138,7 +142,7 @@ Definition bcjr_backward_metric_wfm_def:
                            next_state < wfm_num_states m ∧
                            (b ∨ ¬b)}
 Termination
-  WF_REL_TAC ‘measure (λ(m,p,rs,t,s).(LENGTH rs DIV wfm_output_length m) - t)’
+  WF_REL_TAC ‘measure (λ(m,p,priors,rs,t,s).(LENGTH rs DIV wfm_output_length m) - t)’
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -176,7 +180,7 @@ End
 Definition bcjr_gamma_t_wfm_def:
   bcjr_gamma_t_wfm m p priors rs t s =
   ∑ (λ(s1, s2).
-       bcjr_forward_metric_wfm m p rs t s1 *
+       bcjr_forward_metric_wfm m p priors rs t s1 *
        (let
           produced_bitstring = SND (wfm_transition_fn m (s1, T));
           expected_bitstring =
@@ -186,7 +190,7 @@ Definition bcjr_gamma_t_wfm_def:
           bsc_probability p produced_bitstring expected_bitstring            
        ) *
        (EL t priors) *
-       bcjr_backward_metric_wfm m p rs (SUC t) s2)
+       bcjr_backward_metric_wfm m p priors rs (SUC t) s2)
     {(s1, s2) | FST (wfm_transition_fn m (s1, T)) = s2 ∧
                 s1 < wfm_num_states m ∧
                 s2 < wfm_num_states m }
@@ -211,7 +215,8 @@ Definition bcjr_prob_wfm_def:
   let
     last_t = LENGTH rs
   in
-    bcjr_gamma_t_wfm m p priors rs t s / bcjr_forward_metric_wfm m p rs last_t 0
+    bcjr_gamma_t_wfm m p priors rs t s /
+                     bcjr_forward_metric_wfm m p priors rs last_t 0
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -228,7 +233,7 @@ End
 Definition bcjr_gamma_t_wfm_excluce_current_def:
   bcjr_gamma_t_wfm m p priors rs t s =
   ∑ (λ(s1, s2).
-       bcjr_forward_metric_wfm m p rs t s1 *
+       bcjr_forward_metric_wfm m p priors rs t s1 *
        (let
           produced_bitstring = SND (wfm_transition_fn m (s1, T));
           expected_bitstring =
@@ -238,7 +243,7 @@ Definition bcjr_gamma_t_wfm_excluce_current_def:
           bsc_probability p produced_bitstring expected_bitstring            
        ) *
        (EL t priors) *
-       bcjr_backward_metric_wfm m p rs (SUC t) s2)
+       bcjr_backward_metric_wfm m p priors rs (SUC t) s2)
     {(s1, s2) | FST (wfm_transition_fn m (s1, T)) = s2 ∧
                 s1 < wfm_num_states m ∧
                 s2 < wfm_num_states m }
