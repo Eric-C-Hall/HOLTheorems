@@ -28,6 +28,8 @@ val _ = new_theory "bcjr";
 (*                                                                            *)
 (* m: the well-formed state machine (abstract type)                           *)
 (* p: the probability defining the binary symmetric channel                   *)
+(* priors: the prior probabilities that each of the sent bits are equal to 1, *)
+(*         as an extreal list                                                 *)
 (* rs: the ultimately received data, after encoding and noise                 *)
 (* t: the time-step in the trellis to calculate the forward metric at         *)
 (* s: the state in the trellis to calculate the forward metric at             *)
@@ -47,17 +49,18 @@ val _ = new_theory "bcjr";
 (*                                                                            *)
 (*   In other words, each term in this sum is equal to the forward metric     *)
 (*   for the predecessor state multiplied by the probability of taking the    *)
-(*   appropriate transition from the predecessor state multiplied by the      *)
-(*   probability of receiving the appropriate bits given that the bits        *)
+(*   appropriate transition from the predecessor state (which is dependent on *)
+(*   the prior probability of the relevant input bit being read) multiplied   *)
+(*   by the probability of receiving the appropriate bits given that the bits *)
 (*   corresponding to this transition were sent.                              *)
 (* -------------------------------------------------------------------------- *)
 Definition bcjr_forward_metric_wfm_def:
-  bcjr_forward_metric_wfm m p rs 0 0 = Normal 1 ∧
-  bcjr_forward_metric_wfm m p rs 0 (SUC s) = Normal 0 ∧
-  bcjr_forward_metric_wfm m p rs (SUC t) s =
+  bcjr_forward_metric_wfm m p priors rs 0 0 = Normal 1 ∧
+  bcjr_forward_metric_wfm m p priors rs 0 (SUC s) = Normal 0 ∧
+  bcjr_forward_metric_wfm m p priors rs (SUC t) s =
   ∑ (λ(prev_state, b).
        (bcjr_forward_metric_wfm m p rs t prev_state) *
-       (Normal 1 / Normal 2) *
+       (if b then priors t else 1 - priors t) *
        (let
           produced_bitstring = SND (wfm_transition_fn m (prev_state, b));
           expected_bitstring =
@@ -210,5 +213,38 @@ Definition bcjr_prob_wfm_def:
   in
     bcjr_gamma_t_wfm m p priors rs t s / bcjr_forward_metric_wfm m p rs last_t 0
 End
+
+(* -------------------------------------------------------------------------- *)
+(* A version of bcjr_gamma_t_wfm which does not use the systematic data from  *)
+(* the current step.                                                          *)
+(*                                                                            *)
+(* Thus, it provides only the extrinsic data, and not the intrinsic data      *)
+(*                                                                            *)
+(*                                                                            *)
+(* We assume that the systematic component is the first component.            *)
+(*                                                                            *)
+(* TODO: complete this, as it isn't currently complete                        *)
+(* -------------------------------------------------------------------------- *)
+Definition bcjr_gamma_t_wfm_excluce_current_def:
+  bcjr_gamma_t_wfm m p priors rs t s =
+  ∑ (λ(s1, s2).
+       bcjr_forward_metric_wfm m p rs t s1 *
+       (let
+          produced_bitstring = SND (wfm_transition_fn m (s1, T));
+          expected_bitstring =
+          TAKE (wfm_output_length m)
+               (DROP (t * wfm_output_length m) rs);
+        in
+          bsc_probability p produced_bitstring expected_bitstring            
+       ) *
+       (EL t priors) *
+       bcjr_backward_metric_wfm m p rs (SUC t) s2)
+    {(s1, s2) | FST (wfm_transition_fn m (s1, T)) = s2 ∧
+                s1 < wfm_num_states m ∧
+                s2 < wfm_num_states m }
+End
+
+
+
 
 val _ = export_theory();
