@@ -59,8 +59,8 @@ Definition bcjr_forward_metric_wfm_def:
   bcjr_forward_metric_wfm m p priors rs 0 (SUC s) = Normal 0 ∧
   bcjr_forward_metric_wfm m p priors rs (SUC t) s =
   ∑ (λ(prev_state, b).
-       (bcjr_forward_metric_wfm m p rs t prev_state) *
-       (if b then priors t else 1 - priors t) *
+       (bcjr_forward_metric_wfm m p priors rs t prev_state) *
+       (if b then EL t priors else 1 - EL t priors) *
        (let
           produced_bitstring = SND (wfm_transition_fn m (prev_state, b));
           expected_bitstring =
