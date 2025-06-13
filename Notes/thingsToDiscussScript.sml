@@ -5,8 +5,11 @@ open HolKernel Parse boolLib bossLib;
 val _ = new_theory "relevant";
 
 (* I am somewhat unclear on what theorems to prove for turbo codes.
-   Proving that BCJR is an a posteriori decoder seems to be good for the
-   
+   Proving that BCJR is an a posteriori decoder seems to be a good start.
+   It is probably also a good idea to show that if the factor graph could be
+   solved optimally instead of approximately, that would give us an a posteriori
+   decoder for turbo codes. We could also show a correspondence between the
+   factor graph interpreatation and the alternative interpretation.
  *)
 
 (* There absolutely seems to be room for probability formalism here, in order

@@ -225,12 +225,9 @@ End
 (*                                                                            *)
 (* Thus, it provides only the extrinsic data, and not the intrinsic data      *)
 (*                                                                            *)
-(*                                                                            *)
 (* We assume that the systematic component is the first component.            *)
-(*                                                                            *)
-(* TODO: complete this, as it isn't currently complete                        *)
 (* -------------------------------------------------------------------------- *)
-Definition bcjr_gamma_t_wfm_excluce_current_def:
+Definition bcjr_gamma_t_wfm_exclude_current_def:
   bcjr_gamma_t_wfm m p priors rs t s =
   ∑ (λ(s1, s2).
        bcjr_forward_metric_wfm m p priors rs t s1 *
@@ -239,8 +236,10 @@ Definition bcjr_gamma_t_wfm_excluce_current_def:
           expected_bitstring =
           TAKE (wfm_output_length m)
                (DROP (t * wfm_output_length m) rs);
+          produced_bitstring_no_sys = TL produced_bitstring;
+          expected_bitstring_no_sys = TL expected_bitstring;
         in
-          bsc_probability p produced_bitstring expected_bitstring            
+          bsc_probability p produced_bitstring_no_sys expected_bitstring_no_sys
        ) *
        (EL t priors) *
        bcjr_backward_metric_wfm m p priors rs (SUC t) s2)
@@ -248,8 +247,5 @@ Definition bcjr_gamma_t_wfm_excluce_current_def:
                 s1 < wfm_num_states m ∧
                 s2 < wfm_num_states m }
 End
-
-
-
 
 val _ = export_theory();
