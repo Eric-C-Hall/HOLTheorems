@@ -6,6 +6,9 @@ open ecc_prob_spaceTheory;
 open argmin_extrealTheory;
 open bitstringTheory;
 open probabilityTheory;
+open ConseqConv;
+
+open iterateTheory;
 
 val _ = new_theory "map_decoder";
 
@@ -42,5 +45,39 @@ Definition map_decoder_bitwise_def:
   )
   (COUNT_LIST n)
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Finding the bits that maximize the probability of receiving that bit,      *)
+(* given that we received a particular message, is equivalent to finding the  *)
+(* bits that maximize the probably that we both received that bit and         *)
+(* received that message.                                                     *)
+(*                                                                            *)
+(* In more generality, if we are finding an argmax over a conditional         *)
+(* probability where only the first event depends on the variable we are      *)
+(* applying the argmax to, then the conditional probability can be reduced    *)
+(* to an interesection.                                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem argmax_cond_prob:
+  ∀p_space P e s.
+    s ≠ ∅ ∧ FINITE s ⇒
+    argmax (λx. cond_prob p_space (P x) e) s =
+    argmax (λx. prob p_space ((P x) ∩ e)) s
+Proof
+  rw[]
+  >> last_x_assum mp_tac
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘s’
+  >> rw[]
+  >> Cases_on ‘s’
+  >- (gvs[]
+     )
+  >- (gvs[argmax_def]
+      >> gvs[argmin_def]
+      >> gvs[iterateTheory.iterate]
+      >> gvs[FINITE_SUPPORT]
+      >> gvs[SUPPORT_CLAUSES]
+     )
+QED
+
 
 val _ = export_theory();
