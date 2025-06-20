@@ -2,6 +2,7 @@ open HolKernel Parse boolLib bossLib;
 
 open recursive_parity_equationsTheory;
 open interleaveTheory;
+open bcjrTheory;
 
 val _ = new_theory "turbo_codes";
 
@@ -87,7 +88,7 @@ Definition parallel_turbo_code_a_posteriori_def:
     rs_2 = EL 2 (deinterleave 3 rs);
     intermediate_probs = parallel_turbo_code_a_posteriori
                          (ps, qs) perm p priors rs i;
-    intrinsic_information = MAP (log_likelihood) TODO_INVOLVING_rs_s;
+    intrinsic_information = MAP (log_likelihood) (ARB (*TODO_INVOLVING_rs_s*));
     m = recursive_parity_equations_to_state_machine (ps, qs);
     num_t = LENGTH rs;
     decode_1_probs = MAP (bcjr_prob_wfm m p intermediate_probs rs_1)
