@@ -53,7 +53,6 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Would it be better for this to return an option type?                      *)
 (* -------------------------------------------------------------------------- *)
-
 Definition argmin_def:
   argmin f (x::xs) = if (xs = [])
                        then x

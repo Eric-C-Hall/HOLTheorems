@@ -83,8 +83,8 @@ End
 (* m: the length of the message sent across the binary symmetric channel      *)
 (* p: the probability of an error in a given bit                              *)
 (* -------------------------------------------------------------------------- *)
-Definition ecc_prob_space_def:
-  ecc_prob_space n m p =
+Definition ecc_bsc_prob_space_def:
+  ecc_bsc_prob_space n m p =
   ((binary_string_uniform_prob_space n) × (sym_noise_prob_space m p))
 End
 
