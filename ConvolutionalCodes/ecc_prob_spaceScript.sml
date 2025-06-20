@@ -24,8 +24,8 @@ Overload length_n_codes = “λn. {c : bool list | LENGTH c = n}”;
 (*                                                                            *)
 (* n: the length of the binary string                                         *)
 (* -------------------------------------------------------------------------- *)
-Definition uniform_binary_string_prob_space_def:
-  uniform_binary_string_prob_space (n : num) =
+Definition binary_string_uniform_prob_space_def:
+  binary_string_uniform_prob_space (n : num) =
   let s = length_n_codes n in
     let a = POW s in
       let p = uniform_distribution (s, a) in
@@ -64,7 +64,7 @@ End
 (* symmetric channel.                                                         *)
 (*                                                                            *)
 (* n: the length of the error pattern                                         *)
-(* p: the probability of an error                                             *)
+(* p: the probability of an error in a given bit                              *)
 (* -------------------------------------------------------------------------- *)
 Definition sym_noise_prob_space_def:
   sym_noise_prob_space (n : num) (p : extreal)  =
@@ -74,6 +74,18 @@ Definition sym_noise_prob_space_def:
         (sample_space, event_space, prob_dist)
 End
 
-
+(* -------------------------------------------------------------------------- *)
+(* The probability space of an n-bit message that is encoded to become an     *)
+(* m-bit message and then sent across a binary symmetric channel with error   *)
+(* probability p.                                                             *)
+(*                                                                            *)
+(* n: the length of the initial message                                       *)
+(* m: the length of the message sent across the binary symmetric channel      *)
+(* p: the probability of an error in a given bit                              *)
+(* -------------------------------------------------------------------------- *)
+Definition ecc_prob_space_def:
+  ecc_prob_space n m p =
+  ((binary_string_uniform_prob_space n) × (sym_noise_prob_space m p))
+End
 
 val _ = export_theory();
