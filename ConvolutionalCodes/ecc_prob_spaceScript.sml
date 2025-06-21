@@ -3,6 +3,13 @@
 open HolKernel Parse boolLib bossLib;
 
 open probabilityTheory;
+open measureTheory;
+open extrealTheory;
+open realTheory;
+open cardinalTheory;
+open pred_setTheory;
+
+open realLib;
 
 val _ = new_theory "ecc_prob_space";
 
@@ -87,5 +94,71 @@ Definition ecc_bsc_prob_space_def:
   ecc_bsc_prob_space n m p =
   ((binary_string_uniform_prob_space n) × (sym_noise_prob_space m p))
 End
+
+Theorem FINITE_IN_POW:
+  ∀s : α -> bool.
+    ∀ s' : α -> bool.
+      FINITE s ∧
+      s' ∈ POW s ⇒
+      FINITE s'
+Proof
+  rpt strip_tac
+  >> gvs[POW_DEF]
+  >> drule SUBSET_FINITE
+  >> gvs[]
+QED
+
+Theorem uniform_distribution_finite_prob_space:
+  ∀s : α -> bool.
+    FINITE s ⇒
+    CARD s ≠ 0 ⇒
+    prob_space (s, POW s, uniform_distribution (s, POW s))
+Proof
+  rpt strip_tac
+  >> irule $ iffRL prob_on_finite_set
+  >> rpt strip_tac >> gvs[]
+  >- (gvs[additive_def]
+      >> rpt strip_tac
+      >> gvs[uniform_distribution_def]
+      >> qsuff_tac `&CARD (s' ∪ t) : extreal = &CARD(s') + &CARD(t)`
+      >- (rpt strip_tac
+          >> irule EQ_SYM
+          >> pop_assum (fn th => PURE_REWRITE_TAC [th])
+          >> irule div_add
+          >> gvs[extreal_of_num_def])
+      >> qspecl_then [`s'`, `t`] assume_tac CARD_DISJOINT_UNION
+      >> drule FINITE_IN_POW >> strip_tac
+      >> gvs[DISJOINT_DEF, FINITE_IN_POW]
+      >> pop_assum kall_tac >> pop_assum kall_tac
+      >> gvs[REAL_ADD, extreal_of_num_def, extreal_add_eq])
+  >- (gvs[positive_def]
+      >> conj_tac >> gvs[uniform_distribution_def]
+      >- gvs[REAL_DIV_LZERO, extreal_of_num_def, extreal_div_eq]
+      >> rpt strip_tac
+      >> gvs[REAL_LE_DIV, extreal_of_num_def, extreal_div_eq])
+  >> gvs[prob_def, p_space_def]
+  >> gvs[uniform_distribution_def]
+  >> gvs[extreal_of_num_def, extreal_div_eq, REAL_DIV_REFL]
+QED
+
+(* ------------------------------------------------------- *)
+(* Potentially useful here:                                *)
+(* prob_on_finite_set                                      *)
+(* uniform_distribution_prob_space                         *)
+(* ------------------------------------------------------- *)
+Theorem binary_string_uniform_prob_space_is_prob_space:
+  ∀n : num.
+    prob_space (binary_string_uniform_prob_space n)
+Proof
+  rpt strip_tac
+  >> gvs[binary_string_uniform_prob_space_def]
+  >> irule uniform_distribution_finite_prob_space
+  >> gvs[]
+  >> qspecl_then [`n`] assume_tac length_n_codes_finite
+  >> qspecl_then [`n`] assume_tac length_n_codes_cardinality
+  >> qspecl_then [`n`, `1`] assume_tac ZERO_LESS_EXP
+  >> asm_simp_tac arith_ss []
+QED
+
 
 val _ = export_theory();
