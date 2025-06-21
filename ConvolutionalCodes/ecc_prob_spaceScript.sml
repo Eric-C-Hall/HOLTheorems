@@ -33,64 +33,24 @@ open bitTheory;
 open RealArith;
 
 open jared_yeager_prob_space_product_spaceTheory;
-open WFTheoremsTheory;
+(*open WFTheoremsTheory;*)
 
 open dep_rewrite;
 open simpLib;
 
-use "donotexpandScript.sml";
+Overload length_n_codes = “λn. {c : bool list | LENGTH c = n}”;
 
 (* -------------------------------------------------------------------------- *)
-(* Notes on relevant theorems, etc                                            *)
+(* A uniform distribution on the possible binary strings of length n.         *)
 (*                                                                            *)
-(* UNIV_SIGMA_ALGEBRA, sigma_algebra, 𝕌                                      *)
+(* We expect the initial message that was sent to have this kind of           *)
+(* distribution. If this were not the case, then we would be able to compress *)
+(* the message further using the patterns in the data, until eventually we    *)
+(* get to a point where the only information remaining is a series of         *)
+(* completely random bits.                                                    *)
 (*                                                                            *)
-(* uniform_distribution, distribution, conditional_distribution               *)
-(*                                                                            *)
-(* algebra                                                                    *)
-(*                                                                            *)
-(* subsets, space                                                             *)
+(* n: the length of the binary string                                         *)
 (* -------------------------------------------------------------------------- *)
-
-Definition hamming_distance_def:
-  hamming_distance (l1 : α list) (l2 : α list) = FOLDR ($+) 0n (MAP (λpair. if (FST pair = SND pair) then 0n else 1n) (ZIP (l1, l2)))
-End
-
-Definition hamming_distance_alt_def[simp]:
-  hamming_distance_alt [] (l2 : α list) = 0 ∧
-  hamming_distance_alt (h1::t1 : α list) (h2::t2 : α list) = (if (h1 = h2) then 0n else 1n) + hamming_distance_alt t1 t2
-End
-
-Theorem hamming_distance_empty[simp]:
-  ∀cs. hamming_distance [] [] = 0
-Proof
-  gvs[hamming_distance_def]
-QED
-
-Theorem hamming_distance_cons[simp]:
-  ∀b bs c cs.
-    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
-Proof
-  rpt strip_tac
-  >> gvs[hamming_distance_def]
-QED
-
-Theorem hamming_distance_alt_equivalent:
-  ∀bs cs.
-    LENGTH bs = LENGTH cs ⇒
-    hamming_distance bs cs = hamming_distance_alt bs cs
-Proof
-  strip_tac
-  >> Induct_on ‘bs’ >> gvs[]
-  >> rpt strip_tac
-  >> Cases_on ‘cs’  >> gvs[]
-QED
-
-(* The set of all codes of length n *)
-Definition length_n_codes_def:
-  length_n_codes n = {c : bool list | LENGTH c = n}
-End
-
 Definition length_n_codes_uniform_prob_space_def:
   length_n_codes_uniform_prob_space (n : num) =
   let s = length_n_codes n in
@@ -98,19 +58,6 @@ Definition length_n_codes_uniform_prob_space_def:
       let p = uniform_distribution (s, a) in
         (s, a, p)
 End
-
-Theorem FINITE_IN_POW:
-  ∀s : α -> bool.
-    ∀ s' : α -> bool.
-      FINITE s ∧
-      s' ∈ POW s ⇒
-      FINITE s'
-Proof
-  rpt strip_tac
-  >> gvs[POW_DEF]
-  >> drule SUBSET_FINITE
-  >> gvs[]
-QED
 
 Theorem uniform_distribution_finite_prob_space:
   ∀s : α -> bool.
@@ -143,6 +90,88 @@ Proof
   >> gvs[prob_def, p_space_def]
   >> gvs[uniform_distribution_def]
   >> gvs[extreal_of_num_def, extreal_div_eq, REAL_DIV_REFL]
+QED
+
+
+
+
+
+
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* Things below this line are somewhat outdated, but may be useful at some    *)
+(* point                                                                      *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Notes on relevant theorems, etc                                            *)
+(*                                                                            *)
+(* UNIV_SIGMA_ALGEBRA, sigma_algebra, 𝕌                                      *)
+(*                                                                            *)
+(* uniform_distribution, distribution, conditional_distribution               *)
+(*                                                                            *)
+(* algebra                                                                    *)
+(*                                                                            *)
+(* subsets, space                                                             *)
+(* -------------------------------------------------------------------------- *)
+
+Definition hamming_distance_def:
+  hamming_distance (l1 : α list) (l2 : α list) = FOLDR ($+) 0n (MAP (λpair. if (FST pair = SND pair) then 0n else 1n) (ZIP (l1, l2)))
+End
+
+Definition hamming_distance_alt_def[simp]:
+  hamming_distance_alt [] (l2 : α list) = 0 ∧
+  hamming_distance_alt (h1::t1 : α list) (h2::t2 : α list) =
+  (if (h1 = h2) then 0n else 1n) + hamming_distance_alt t1 t2
+End
+
+Theorem hamming_distance_empty[simp]:
+  ∀cs. hamming_distance [] [] = 0
+Proof
+  gvs[hamming_distance_def]
+QED
+
+Theorem hamming_distance_cons[simp]:
+  ∀b bs c cs.
+    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
+Proof
+  rpt strip_tac
+  >> gvs[hamming_distance_def]
+QED
+
+Theorem hamming_distance_alt_equivalent:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    hamming_distance bs cs = hamming_distance_alt bs cs
+Proof
+  strip_tac
+  >> Induct_on ‘bs’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘cs’  >> gvs[]
+QED
+
+
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(* FAZ                                                                        *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+
+Theorem FINITE_IN_POW:
+  ∀s : α -> bool.
+    ∀ s' : α -> bool.
+      FINITE s ∧
+      s' ∈ POW s ⇒
+      FINITE s'
+Proof
+  rpt strip_tac
+  >> gvs[POW_DEF]
+  >> drule SUBSET_FINITE
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
