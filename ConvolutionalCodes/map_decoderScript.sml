@@ -2,37 +2,22 @@
 
 open HolKernel Parse boolLib bossLib;
 
+(* My theories *)
 open ecc_prob_spaceTheory;
 open argmin_extrealTheory;
+
+(* Standard theories *)
 open bitstringTheory;
 open probabilityTheory;
+open extrealTheory;
+open realTheory;
+
+(* Standard libraries *)
+open realLib;
+open dep_rewrite;
 open ConseqConv;
 
-open iterateTheory;
-
 val _ = new_theory "map_decoder";
-
-(* -------------------------------------------------------------------------- *)
-(* The probability that a particular bit has a particular value, given the    *)
-(* message that was received.                                                 *)
-(*                                                                            *)
-(* enc: the encoding function                                                 *)
-(* n: the length of the initial message                                       *)
-(* m: the length of the encoded message                                       *)
-(* p: the probability of bit error in our binary symmetric channel            *)
-(* ds: the string that we wish to decode                                      *)
-(* i: the index of the bit we are finding the probability for                 *)
-(* x: the value we are finding the probability of                             *)
-(* -------------------------------------------------------------------------- *)
-Definition map_decoder_bit_prob_def:
-  map_decoder_bit_prob enc n m p ds i x = cond_prob (ecc_bsc_prob_space n m p)
-                                                    (λ(bs, ns).
-                                                       EL i bs = x 
-                                                    )
-                                                    (λ(bs, ns).
-                                                       bxor (enc bs) ns = ds
-                                                    )
-End
 
 (* -------------------------------------------------------------------------- *)
 (* The bitwise MAP decoder chooses each returned bit such that it has maximal *)
@@ -45,7 +30,7 @@ End
 (* Since P(x_i), and since the denominator is the same positive value         *)
 (* regardless                                                                 *)
 (*                                                                            *)
-(* This implementation breaks ties by assuming a bit has the value F in the   *)
+(* This implementation breaks ties by assuming a bit has the value T in the   *)
 (* case of a tie.                                                             *)
 (*                                                                            *)
 (* enc: the encoding function                                                 *)
@@ -56,19 +41,61 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition map_decoder_bitwise_def:
   map_decoder_bitwise enc n m p ds =
-  MAP
-  (λi. let
-         prob_T = map_decoder_bit_prob enc n m p ds i T;
-         prob_F = map_decoder_bit_prob enc n m p ds i F;
-       in
-         if prob_T ≤ prob_F
-         then
-           F
-         else
-           T
-  )
-  (COUNT_LIST n)
+  let
+    map_decoder_bit_prob =
+    λi x. cond_prob (ecc_bsc_prob_space n m p)
+                    (λ(bs, ns). EL i bs = x)
+                    (λ(bs, ns). bxor (enc bs) ns = ds);
+  in
+    MAP (λi. map_decoder_bit_prob i F ≤ map_decoder_bit_prob i T)
+        (COUNT_LIST n)
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Similar to ldiv_le_imp                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem ldiv_le_iff:
+  ∀x y z.
+    0 < z ∧ z ≠ +∞ ⇒
+    (x / z ≤ y / z : extreal ⇔ x ≤ y)
+Proof
+  rw[]
+  >> REVERSE EQ_TAC >- metis_tac[ldiv_le_imp]
+  >> Cases_on ‘x’ >> Cases_on ‘y’ >> Cases_on ‘z’
+  >> gvs[infty_div, le_infty, extreal_div_eq, REAL_POS_NZ]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Finding the bits that maximize the probability of receiving that bit,      *)
+(* given that we received a particular message, is equivalent to finding the  *)
+(* bits that maximize the probably that we both received that bit and         *)
+(* received that message.                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem map_decoder_bitwise_joint:
+  ∀enc n m p ds.
+    map_decoder_bitwise enc n m p ds =
+    let
+      map_decoder_bit_prob_joint =
+      λi x.
+        prob (ecc_bsc_prob_space n m p)
+             ((λ(bs, ns). EL i bs = x) ∩ (λ(bs, ns). bxor (enc bs) ns = ds));
+    in
+      MAP (λi. map_decoder_bit_prob_joint i F ≤ map_decoder_bit_prob_joint i T)
+          (COUNT_LIST n)
+Proof
+  rw[]
+  >> gvs[map_decoder_bitwise_def]
+  >> AP_THM_TAC
+  >> AP_TERM_TAC
+  >> gvs[FUN_EQ_THM]
+  >> gen_tac
+  >> gvs[cond_prob_def]
+  >> qmatch_goalsub_abbrev_tac ‘_ ⇔ prob1 ≤ prob2’
+  >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_le_iff]
+  >> conj_tac
+  >- (gvs[PROB_FINITE]
+     )
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
