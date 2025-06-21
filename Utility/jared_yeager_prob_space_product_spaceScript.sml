@@ -23,7 +23,6 @@ open transcTheory;
 open real_sigmaTheory;
 open binary_ieeeTheory;
 open extrealTheory;
-open util_probTheory;
 open sigma_algebraTheory;
 open measureTheory;
 open borelTheory;
