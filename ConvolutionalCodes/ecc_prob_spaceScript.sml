@@ -115,7 +115,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition ecc_bsc_prob_space_def:
   ecc_bsc_prob_space n m p =
-  ((binary_string_uniform_prob_space n) × (sym_noise_prob_space m p))
+  ((length_n_codes_uniform_prob_space n) × (sym_noise_prob_space m p))
 End
 
 Theorem FINITE_IN_POW:
@@ -531,7 +531,7 @@ Proof
   >> first_x_assum $ qspec_then ‘x’ assume_tac
   >> gvs[]
 QED
-        
+
 Theorem sym_noise_mass_func_not_neginf:
   ∀p x. 0 ≤ p ∧ p ≤ 1 ⇒
         sym_noise_mass_func p x ≠ −∞
@@ -763,6 +763,18 @@ Proof
   (* The probability of the two bitstrings [0, 1, 0] and [1, 1, 0]
      corresponds to the probability of the bitstring [1, 0], for example *)
   >> gvs[sym_noise_dist_suc]
+QED
+
+Theorem sym_noise_prob_space_is_prob_space:
+  ∀n m p.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    prob_space (ecc_bsc_prob_space n m p)
+Proof
+  rw[]
+  >> gvs[ecc_bsc_prob_space_def]
+  >> irule prob_space_product_space
+  >> gvs[length_n_codes_uniform_prob_space_is_prob_space,
+         sym_noise_prob_space_is_prob_space]
 QED
 
 (* -------------------------------------------------------------------------- *)
