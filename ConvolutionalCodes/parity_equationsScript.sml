@@ -223,11 +223,14 @@ Proof
   >> gvs[boolify_def]
   >> qspec_then ‘[n MOD 2 ≠ 0]’ assume_tac boolify_acc
   >> gvs[]
-  >> Cases_on ‘n MOD 2’ >> gvs[]
-  >> Cases_on ‘n'’ >> gvs[]
-  >> gvs[ADD1]
-  >> ‘n MOD 2 < 2’ by gvs[]
-  >> ‘n'' + 2 < 2’ by gvs[]
+  >> Cases_on ‘n MOD 2’ >> gvs[SNOC_APPEND]
+  >> qpat_x_assum ‘_ = boolify _ _’ kall_tac
+  >> qpat_x_assum ‘∀v._’ kall_tac
+  >> qpat_x_assum ‘¬(n < 2)’ kall_tac
+  >> sg ‘n MOD 2 = 0 ∨ n MOD 2 = 1’
+  >- (‘n MOD 2 < 2’ by gvs[]
+      >> Cases_on ‘n MOD 2’ >> gvs[]
+     )
   >> gvs[]
 QED
 
@@ -472,6 +475,7 @@ Proof
   >> PURE_REWRITE_TAC[GSYM LENGTH_EQ_0]
   >> rpt strip_tac
   >> gvs[Excl "LENGTH_NIL"]
+  >> metis_tac[wfmachine_transition_fn_output_length, LENGTH]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -904,12 +908,11 @@ Proof
   >> gvs[n2v_def]
   >> pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
   >> conj_tac
-  >- (AP_TERM_TAC
-      >> gvs[DIV_MULT]
-      >> Cases_on ‘j’ >> gvs[]
-      >> Cases_on ‘n’ >> gvs[]
-     )
-  >> gvs[MOD_MULT]
+  >- gvs[MOD_MULT]
+  >> AP_TERM_TAC
+  >> gvs[DIV_MULT]
+  >> Cases_on ‘j’ >> gvs[]
+  >> Cases_on ‘n’ >> gvs[]
 QED
 
 Theorem bitstring_n2v_n2v:
@@ -980,7 +983,7 @@ Theorem zero_extend_n2v_v2n[simp]:
     l = LENGTH bs ⇒
     zero_extend l (n2v (v2n bs)) = bs
 Proof
-  Induct_on ‘bs’ using SNOC_INDUCT >> gvs[] >> rpt strip_tac
+  Induct_on ‘bs’ using SNOC_INDUCT >> gvs[SNOC_APPEND] >> rpt strip_tac
   >> Cases_on ‘LENGTH bs’ >> gvs[]
   >- (Cases_on ‘x’ >> EVAL_TAC)
   >> PURE_REWRITE_TAC[GSYM SNOC_APPEND, v2n_snoc]
@@ -992,7 +995,7 @@ Proof
       >> PURE_REWRITE_TAC[ADD1]
       >> gvs[])
   >> DEP_PURE_ONCE_REWRITE_TAC[n2v_snoc]
-  >> gvs[]
+  >> gvs[SNOC_APPEND]
   >> gvs[zero_extend_append]
   >> Cases_on ‘x’ >> gvs[]
 QED
@@ -1076,6 +1079,10 @@ Proof
   >> gvs[zero_extend_suc]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: currrently broken. Possibly due to removal of SNOC_APPEND from the   *)
+(* simpset.                                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem vd_encode_state_parity_equations_to_state_machine:
   ∀ps bs i.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧

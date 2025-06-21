@@ -950,6 +950,7 @@ Theorem vd_decode_to_state_def_slow:
 Proof
   rpt strip_tac >> gvs[vd_decode_to_state_def, pairTheory.UNCURRY]
   >> gvs[best_origin_slow_best_origin]
+  >> gvs[SNOC_APPEND]
 QED
 
 (* -------------------------------------------------------------------------- *)
