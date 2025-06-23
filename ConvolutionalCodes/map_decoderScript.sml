@@ -11,6 +11,8 @@ open bitstringTheory;
 open probabilityTheory;
 open extrealTheory;
 open realTheory;
+open sigma_algebraTheory;
+open martingaleTheory;
 
 (* Standard libraries *)
 open realLib;
@@ -44,8 +46,9 @@ Definition map_decoder_bitwise_def:
   let
     map_decoder_bit_prob =
     λi x. cond_prob (ecc_bsc_prob_space n m p)
-                    (λ(bs, ns). EL i bs = x)
-                    (λ(bs, ns). bxor (enc bs) ns = ds);
+                    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = x)
+                    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧
+                                bxor (enc bs) ns = ds);
   in
     MAP (λi. map_decoder_bit_prob i F ≤ map_decoder_bit_prob i T)
         (COUNT_LIST n)
@@ -73,28 +76,56 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_joint:
   ∀enc n m p ds.
+    0 ≤ p ∧ p ≤ 1 ⇒
     map_decoder_bitwise enc n m p ds =
     let
       map_decoder_bit_prob_joint =
       λi x.
         prob (ecc_bsc_prob_space n m p)
-             ((λ(bs, ns). EL i bs = x) ∩ (λ(bs, ns). bxor (enc bs) ns = ds));
+             ((λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = x)
+              ∩ (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧
+                            bxor (enc bs) ns = ds));
     in
       MAP (λi. map_decoder_bit_prob_joint i F ≤ map_decoder_bit_prob_joint i T)
           (COUNT_LIST n)
 Proof
   rw[]
+  (* It's helpful to know that we have a prob space *)
+  >> qspecl_then [‘n’, ‘m’, ‘p’] assume_tac ecc_bsc_prob_space_is_prob_space
+  >> gvs[]
+  (* The inner lambda function is equivalent, so focus on that *)
   >> gvs[map_decoder_bitwise_def]
   >> AP_THM_TAC
   >> AP_TERM_TAC
   >> gvs[FUN_EQ_THM]
   >> gen_tac
+  (* Decompose conditional probability into its component probabilities *)
   >> gvs[cond_prob_def]
   >> qmatch_goalsub_abbrev_tac ‘_ ⇔ prob1 ≤ prob2’
+  (* We expect to be able to cancel out this bottom term, we just need to
+     ensure that it is strictly positive and not infinity *)
   >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_le_iff]
-  >> conj_tac
-  >- (gvs[PROB_FINITE]
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘0 < prob _ e’
+  (* We are taking the probability with respect to a valid event: all events
+     are valid in this probabiltiy space. *)
+  >> sg ‘e ∈ events (ecc_bsc_prob_space n m p)’
+  >- (gvs[ecc_bsc_prob_space_def]
+      >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
+      >> gvs[events_def]
+      >> gvs[prod_measure_space_def]
+      >> gvs[prod_sigma_def]
+      >> gvs[sigma_def]
+      >> rw[]
+
+           gvs[ecc_bsc_prob_space_def, martingaleTheory.prod_measure_space_def,
+               length_n_codes_uniform_prob_space_def,
+               events_def, sym_noise_prob_space_def,
+               subsets_def, prod_sigma_def]
      )
+
+     gvs[PROB_FINITE, PROB_POSITIVE]
+  )
 QED
 
 (* -------------------------------------------------------------------------- *)

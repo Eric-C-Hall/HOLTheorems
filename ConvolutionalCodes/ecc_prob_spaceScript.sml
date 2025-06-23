@@ -779,6 +779,75 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* It isn't true that the setwise product of two power sets is the power set  *)
+(* of the products, but it is true that the sigma-product of two power sets   *)
+(* is the power set of the products, where the sigma-product is the sigma     *)
+(* closure of the setwise product.                                            *)
+(*                                                                            *)
+(* I'm not sure if this holds in the non-finite case. I prove it only in the  *)
+(* finite case. Furthermore, the sigma-product of two Borel                   *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem sigma_prod_sets_pow:
+  ∀s t.
+    sigma (s × t) (prod_sets (POW s) (POW t)) = (s × t, POW (s × t))
+Proof
+  gvs[prod_sets_def]
+  >> gvs[sigma_def]
+  >> rw[]
+  >> gvs[GSYM SUBSET_ANTISYM_EQ]
+  >> conj_tac
+  >- (irule BIGINTER_SUBSET
+      >> qexists ‘POW (s × t)’
+      >> gvs[]
+      >> conj_tac
+      >- (gvs[SUBSET_DEF]
+          >> rw[]
+          >> gvs[CROSS_DEF, POW_DEF, SUBSET_DEF]
+         )
+      >> gvs[POW_SIGMA_ALGEBRA]
+     )
+  >> gvs[Once SUBSET_DEF]
+  >> rw[]
+  >> gvs[Once POW_DEF]
+  >> gvs[sigma_algebra_def]
+  >> 
+QED
+
+Theorem prod_sigma_pow:
+  ∀s t.
+    (s, POW s) × (t, POW t) = (s × t, POW (s × t))
+Proof
+  rw[]
+  >> gvs[prod_sigma_def]
+  
+        rw[]
+  >> gvs[prod_sets_def]
+  >> gvs[EXTENSION]
+  >> rw[]
+  >> EQ_TAC >> rw[]
+  >- gvs[POW_DEF, CROSS_DEF, SUBSET_DEF]
+  >> gvs[POW_DEF, SUBSET_DEF]
+  >> qexistsl [‘x ∩ s’, ‘x ∩ t’]
+  >> rw[]
+  >> EQ_TAC >> gvs[]
+  >> rw[]*)
+QED
+
+
+Theorem events_ecc_bsc_prob_space[simp]:
+  ∀n m p.
+    events (ecc_bsc_prob_space n m p) = ARB
+Proof
+  rw[]
+  >> gvs[ecc_bsc_prob_space_def]
+  >> gvs[prod_measure_space_def]
+  >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
+  >> gvs[prod_sigma_def]
+  >> gvs[prod_sets_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Things below this line are somewhat outdated, but may be useful at some    *)
 (* point                                                                      *)
 (* -------------------------------------------------------------------------- *)
