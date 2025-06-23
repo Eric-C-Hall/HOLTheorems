@@ -1613,7 +1613,7 @@ Theorem convolve_parity_equations_snoc:
          convolve_parity_equations ps [b]
 Proof
   rpt strip_tac
-  >> gvs[convolve_parity_equations_append]
+  >> gvs[convolve_parity_equations_append, SNOC_APPEND]
   >> gvs[APPEND_DONOTEXPAND_DEF]
   >> Induct_on ‘LENGTH bs’ >> gvs[] >> rpt strip_tac
   >> Cases_on ‘bs’ >> gvs[]
