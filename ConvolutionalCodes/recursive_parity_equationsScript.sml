@@ -7,6 +7,7 @@ open bitstringTheory;
 (* My theories *)
 open parity_equationsTheory;
 open state_machineTheory;
+open wf_state_machineTheory;
 
 val _ = new_theory "recursive_parity_equations";
 
@@ -95,24 +96,24 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition recursive_parity_equations_to_state_machine_def:
   recursive_parity_equations_to_state_machine (ps, qs) =
-  let
-    state_length = (MAX (LENGTH ps) (LENGTH qs)) - 1;
-  in
-    <|
-      num_states := 2 ** state_length;
-      transition_fn :=
-      λ(s, b).
-        let
-          s_vec = zero_extend state_length (n2v s);
-          feedback = apply_parity_equation (FRONT qs) s_vec;
-          new_input = (feedback ⇎ b);
-          window = s_vec ⧺ [new_input];
-          new_vec = TL (window);
-        in
-          (v2n new_vec, apply_parity_equations ps window)
-      ;
-      output_length := 2;
-    |>
+   let
+     state_length = (MAX (LENGTH ps) (LENGTH qs)) - 1;
+   in
+     wf_state_machine_ABS <|
+       num_states := 2 ** state_length;
+       transition_fn :=
+       λ(s, b).
+         let
+           s_vec = zero_extend state_length (n2v s);
+           feedback = apply_parity_equation (FRONT qs) s_vec;
+           new_input = (feedback ⇎ b);
+           window = s_vec ⧺ [new_input];
+           new_vec = TL (window);
+         in
+           (v2n new_vec, apply_parity_equations ps window)
+       ;
+       output_length := 2;
+     |>
 End
 
 (* -------------------------------------------------------------------------- *)
