@@ -766,7 +766,7 @@ Proof
   >> gvs[sym_noise_dist_suc]
 QED
 
-Theorem sym_noise_prob_space_is_prob_space:
+Theorem ecc_bsc_prob_space_is_prob_space:
   ∀n m p.
     0 ≤ p ∧ p ≤ 1 ⇒
     prob_space (ecc_bsc_prob_space n m p)
