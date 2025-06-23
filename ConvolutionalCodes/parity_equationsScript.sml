@@ -747,7 +747,6 @@ QED
 (* Step 3: Combine these steps to show that a particular window is equal to   *)
 (* the output which corresponds to the relevant bits in the bitstring.        *)
 (* -------------------------------------------------------------------------- *)
-
 Theorem ith_output_window_vd_encode_vd_encode_state:
   ∀i ps bs.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
@@ -977,7 +976,16 @@ Proof
   >> gvs[SUB]
   >> gvs[zero_extend_suc]
 QED
-        
+
+Theorem zero_extend_append_b:
+  ∀n bs cs.
+    zero_extend n bs ⧺ cs = zero_extend (n + LENGTH cs) (bs ⧺ cs)
+Proof
+  rw[]
+  >> qspecl_then [‘n + LENGTH cs’, ‘bs’, ‘cs’] assume_tac zero_extend_append
+  >> gvs[]
+QED
+
 Theorem zero_extend_n2v_v2n[simp]:
   ∀l bs.
     l = LENGTH bs ⇒
@@ -1079,9 +1087,71 @@ Proof
   >> gvs[zero_extend_suc]
 QED
 
+Theorem LASTN_APPEND1b:
+  ∀l1 l2 n.
+    (LASTN n l1) ++ l2 = LASTN (n + LENGTH l2) (l1 ++ l2) 
+Proof
+  rw[]
+  >> qspecl_then [‘l2’, ‘n + LENGTH l2’] assume_tac LASTN_APPEND1
+  >> gvs[]
+QED
+
+Theorem LASTN_LENGTH_MINUS_ONE:
+  ∀bs.
+    LASTN (LENGTH bs - 1) bs = TL bs
+Proof
+  rw[]
+  >> Induct_on ‘bs’ >> gvs[LASTN_CONS]
+QED
+
+Theorem tl_lastn_zero_extend:
+  ∀n bs.
+    TL (LASTN n (zero_extend n bs)) = LASTN (n - 1) (zero_extend (n - 1) bs)
+Proof
+  rw[]
+  >> Cases_on ‘n ≤ LENGTH bs’
+  >- (gvs[zero_extend_length_leq]
+      >> Cases_on ‘n’ >> gvs[]
+      >> gvs[TL_LASTN]
+     )
+  >> gvs[NOT_LE]
+  >> Cases_on ‘n’ >> gvs[]
+  >> gvs[tl_zero_extend]
+QED
+
 (* -------------------------------------------------------------------------- *)
-(* TODO: currrently broken. Possibly due to removal of SNOC_APPEND from the   *)
-(* simpset.                                                                   *)
+(* If we are in the state corresponding to the vector bs and we apply a       *)
+(* transition to this state, then the resulting state will simply be the      *)
+(* vector bs with the input to the transition postpended                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem fst_parity_equations_to_state_machine_transition_fn_v2n_lastn_zero_extend:
+  ∀ps bs b.
+    FST (((parity_equations_to_state_machine ps).transition_fn)
+         ((v2n (LASTN (window_length ps - 1)
+                      (zero_extend (window_length ps - 1) bs)
+               )
+          ), b)) = v2n (LASTN (window_length ps − 1)
+                              (zero_extend (window_length ps − 1) (bs ⧺ [b])))
+Proof
+  rw[]
+  >> gvs[parity_equations_to_state_machine_def]
+  >> gvs[LASTN_APPEND1b]
+  >> gvs[zero_extend_append_b]
+  >> gvs[tl_lastn_zero_extend]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The state we end up in after applying the state machine to an input bs,    *)
+(* starting from an initial state i, is equivalent to taking the initial      *)
+(* state i, converting it into the vector of the most recently seen bits,     *)
+(* appending the string bs to reflect the fact that these are now the most    *)
+(* recently seen bits, restricting to the correct size, and converting back   *)
+(* into the state's natural number representation.                            *)
+(*                                                                            *)
+(* We require that the window length is greater than 1, so that we have a     *)
+(* nonzero number of information bits in the state.                           *)
+(*                                                                            *)
+(* We also require that the state is valid (within the appropriate range)     *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_state_parity_equations_to_state_machine:
   ∀ps bs i.
@@ -1091,6 +1161,8 @@ Theorem vd_encode_state_parity_equations_to_state_machine:
     v2n (LASTN (MAX_LIST (MAP LENGTH ps) - 1)
                (zero_extend (MAX_LIST (MAP LENGTH ps) - 1) (n2v i ⧺ bs)))
 Proof
+  (* Induct on the input bitstring. We use SNOC_INDUCT because we want to make
+     sure that the most recently added element is at the end. *)
   Induct_on ‘bs’ using SNOC_INDUCT >> gvs[]
   >- (rpt strip_tac
       >> PURE_REWRITE_TAC[Once zero_extend_lastn_swap]
@@ -1099,27 +1171,10 @@ Proof
                                             be in the simp set *)
      )
   >> rpt strip_tac
-  >> gvs[vd_encode_state_snoc, parity_equations_to_state_machine_def]
-  >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
-  (*  *)
-  >> qmatch_goalsub_abbrev_tac ‘v2n (TL (SNOC _ (LASTN l (zero_extend _ (cs)))))’
-  >> Cases_on ‘l ≤ LENGTH cs’
-  >- (gvs[]
-      >> DEP_PURE_ONCE_REWRITE_TAC[zero_extend_length_leq]
-      >> conj_tac
-      >- (gvs[Abbr ‘l’]
-          >> gvs[Abbr ‘cs’]
-         )
-      >> gvs[]
-      >> gvs[GSYM $ cj 2 LASTN]
-      >> gvs[TL_LASTN]
-      >> gvs[Abbr ‘cs’]
-      >> gvs[GSYM APPEND_SNOC]
-     )
-  >> sg ‘LENGTH cs < l’ >> gvs[]
-  >> gvs[Abbr ‘cs’]
-  >> gvs[snoc_zero_extend]
-  >> gvs[tl_zero_extend]
+  >> gvs[vd_encode_state_snoc]
+  >> last_x_assum kall_tac (* The inductive hypothesis has been used, and we
+                              don't need it any more *)
+  >> gvs[fst_parity_equations_to_state_machine_transition_fn_v2n_lastn_zero_extend]
   >> gvs[SNOC_APPEND]
 QED
 
@@ -1202,7 +1257,7 @@ Proof
   >> gvs[parity_equations_to_state_machine_def]
   >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]                     
   >> Cases_on ‘MAX_LIST (MAP LENGTH ps) - 1 ≤ i’
-  >- (gvs[]
+  >- (gvs[SNOC_APPEND]
       >> gvs[LASTN_TAKE]
       >> gvs[DROP_APPEND]
       >> Cases_on ‘MAX_LIST (MAP LENGTH ps) = i + 1’
