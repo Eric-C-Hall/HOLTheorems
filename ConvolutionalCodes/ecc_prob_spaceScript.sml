@@ -1004,33 +1004,196 @@ Proof
      )
 QED*)
 
+Theorem prob_insert:
+  ∀p x xs.
+    prob_space p ∧
+    {x} ∈ events p ∧
+    xs ∈ events p ∧
+    x ∉ xs ⇒
+    prob p (x INSERT xs) = prob p {x} + prob p xs
+Proof
+  rw[]
+  >> irule PROB_ADDITIVE
+  >> gvs[]
+  >> gvs[INSERT_UNION]
+QED
+
+Theorem extreal_pos_add_zero:
+  ∀x1 x2 : extreal.
+    0 ≤ x1 ∧
+    0 ≤ x2 ⇒
+    (x1 + x2 = 0 ⇔ x1 = 0 ∧ x2 = 0)
+Proof
+  rw[]
+  >> Cases_on ‘x1’ >> Cases_on ‘x2’ >> gvs[extreal_add_def]
+  >> gvs[REAL_LNEG_UNIQ]
+  >> EQ_TAC >> gvs[]
+  >> rw[]
+  >> gvs[]
+  >> metis_tac[REAL_LE_ANTISYM]
+QED
+
+Theorem prob_add_zero:
+  ∀p e1 e2.
+    prob_space p ∧
+    e1 ∈ events p ∧
+    e2 ∈ events p ⇒
+    (prob p e1 + prob p e2 = 0 ⇔ prob p e1 = 0 ∧ prob p e2 = 0)
+Proof
+  rw[]
+  >> EQ_TAC >> gvs[]
+  >> rw[]
+  >> (sg ‘0 ≤ prob p e2’ >- gvs[PROB_POSITIVE]
+      >> sg ‘0 ≤ prob p e1’ >- gvs[PROB_POSITIVE]
+      >> gvs[extreal_pos_add_zero])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The product measure of a singleton set is equal to the product of the two  *)
+(* measures applied to the projections of that set.                           *)
+(*                                                                            *)
+(* This is a special case of martingaleTheory.PROD_MEASURE_CROSS, although    *)
+(* I didn't realise this before proving it.                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem prod_measure_sing:
+  ∀m1 m2 x.
+    measure_space m1 ∧
+    measure_space m2 ∧
+    {FST x} ∈ measurable_sets m1 ∧
+    {SND x} ∈ measurable_sets m2 ⇒
+    prod_measure m1 m2 {x} = measure$measure m1 {FST x} *
+                             measure$measure m2 {SND x}
+Proof
+  rw[]
+  >> gvs[prod_measure_def]
+  >> sg ‘∀y. ∫⁺ m1 (λx'. 𝟙 {x} (x',y)) =
+             (if y = SND x then measure$measure m1 {FST x} else 0)’
+  >- (rw[]
+      >- (sg ‘(λx'. 𝟙 {x} (x',SND x)) = 𝟙 {FST x}’
+          >- (gvs[FUN_EQ_THM]
+              >> rw[]
+              >> Cases_on ‘x’ >> gvs[]
+              >> gvs[indicator_fn_def]
+             )
+          >> gvs[pos_fn_integral_indicator]
+         )
+      >> gvs[indicator_fn_def]
+      >> Cases_on ‘x’ >> gvs[]
+      >> gvs[pos_fn_integral_zero]
+     )
+  >> gvs[] >> pop_assum kall_tac
+  >> sg ‘(λy. if y = SND x then measure m1 {FST x} else 0) =
+         (λy. measure m1 {FST x} * 𝟙 {SND x} y)’
+  >- (gvs[FUN_EQ_THM] >> rw[]
+      >> gvs[indicator_fn_def]
+     )
+  >> gvs[] >> pop_assum kall_tac
+  >> Cases_on ‘measure m1 {FST x}’
+  >- (qspecl_then [‘m1’, ‘{FST x}’] assume_tac MEASURE_POSITIVE
+      >> gvs[]
+     )
+  >- gvs[pos_fn_integral_cmul_infty]
+  >> DEP_PURE_ONCE_REWRITE_TAC[pos_fn_integral_cmul_indicator]
+  >> gvs[]
+  >> qspecl_then [‘m1’, ‘{FST x}’] assume_tac MEASURE_POSITIVE
+  >> gvs[]
+QED
+
+Theorem uniform_distribution_nonzero:
+  ∀f s.
+    FINITE (space f) ∧ CARD (space f) ≠ 0 ∧ s ⊆ space f ⇒
+    (uniform_distribution f s = 0 ⇔ s = ∅)
+Proof
+  rw[]
+  >> gvs[uniform_distribution_def]
+  >> gvs[extreal_of_num_def]
+  >> gvs[extreal_div_eq]
+  >> sg ‘FINITE s’ >- metis_tac[SUBSET_FINITE]
+  >> Cases_on ‘s’ >> gvs[]
+QED
+
+Theorem length_n_codes_empty[simp]:
+  ∀n : num. length_n_codes n ≠ ∅
+Proof
+  rpt strip_tac
+  >> gvs[EXTENSION]
+  >> pop_assum $ qspec_then ‘zero_extend n []’ assume_tac
+  >> gvs[length_zero_extend]
+QED
+
+Theorem sym_noise_mass_func_neq_zero:
+  ∀p bs.
+    (sym_noise_mass_func p bs = 0) ⇔
+      (p = 0 ∧ MEM T bs) ∨ ((1 - p) = 0 ∧ MEM F bs)
+Proof
+  rw[]
+  >> EQ_TAC >> gvs[]
+  >- (rw[]
+      >> Induct_on ‘bs’ >> gvs[sym_noise_mass_func_def]
+      >> rw[] >> gvs[])
+  >> rw[]
+  >> (Induct_on ‘bs’ >> gvs[sym_noise_mass_func_def]
+      >> rw[])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* An event in ecc_bsc_prob_space has probability zero if and only if it is   *)
+(* the empty event, assuming that we aren't in the special case where our     *)
+(* binary symmetric channel has probability 0 or 1.                           *)
+(* -------------------------------------------------------------------------- *)
 Theorem prob_ecc_bsc_prob_space_zero:
   ∀n m p e.
-    0 ≤ p ∧ p ≤ 1 ∧
+    0 < p ∧ p < 1 ∧
     e ∈ events (ecc_bsc_prob_space n m p) ⇒
     (prob (ecc_bsc_prob_space n m p) e = 0 ⇔ e = ∅)
 Proof
   rw[]
-  >> rw[ecc_bsc_prob_space_def, length_n_codes_uniform_prob_space_def,
-        sym_noise_prob_space_def, prob_space_def]
-  >> gvs[prob_def, prod_measure_space_def]
-  >> gvs[prod_measure_def]
+  (* The reverse implication follows directly from the definition of
+     probabilities, so prove that first *)
   >> REVERSE EQ_TAC
-  >- (qspecl_then [‘n’] assume_tac
-                  length_n_codes_uniform_prob_space_is_prob_space
-      >> qspecl_then [‘m’, ‘p’] assume_tac sym_noise_prob_space_is_prob_space
-      >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def,
-             prob_space_def]
-      >> rw[] >> gvs[pos_fn_integral_zero])
+  >- gvs[PROB_EMPTY, ecc_bsc_prob_space_is_prob_space, le_lt]
   >> rw[]
-  >> sg ‘FINITE e’
-  >- (gvs[events_ecc_bsc_prob_space, POW_DEF]
-      >> metis_tac[SUBSET_FINITE, length_n_codes_finite, FINITE_CROSS]
+  (* If e is nonempty, it has at least one element. Reduce to the case in which
+     we have only one element, since the probability of the entire set is
+     certainly at least as great as the probability of one of its elements *)
+  >> Cases_on ‘e’ >> gvs[]
+  >> sg ‘{x} ∈ events (ecc_bsc_prob_space n m p)’
+  >- gvs[events_ecc_bsc_prob_space, POW_DEF]
+  >> sg ‘t ∈ events (ecc_bsc_prob_space n m p)’
+  >- gvs[events_ecc_bsc_prob_space, POW_DEF]
+  (* Note: I regularly use le_lt to ensure that
+     ecc_bsc_prob_space_is_prob_space is applicable *)
+  >> gvs[prob_insert, ecc_bsc_prob_space_is_prob_space, le_lt]
+  >> gvs[prob_add_zero, ecc_bsc_prob_space_is_prob_space, le_lt]
+  >> qpat_x_assum ‘t ∈ _’ kall_tac
+  >> qpat_x_assum ‘x ∉ t’ kall_tac
+  >> qpat_x_assum ‘x INSERT t ∈ _’ kall_tac
+  >> qpat_x_assum ‘prob _ t = 0’ kall_tac
+  (* Now we prove that no singleton event has 0 probability in
+     ecc_bsc_prob_space *)
+  >> gvs[events_ecc_bsc_prob_space]
+  >> gvs[ecc_bsc_prob_space_def]
+  >> gvs[prod_measure_space_def]
+  >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
+  >> gvs[prob_def]
+  >> qpat_x_assum ‘prod_measure _ _ _ = 0’ mp_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[prod_measure_sing]
+  >> gvs[]
+  >> rw[]
+  >- (qspecl_then [‘n’] assume_tac length_n_codes_uniform_prob_space_is_prob_space
+      >> gvs[prob_space_def, length_n_codes_uniform_prob_space_def])
+  >- (qspecl_then [‘m’, ‘p’] assume_tac sym_noise_prob_space_is_prob_space
+      >> gvs[prob_space_def, sym_noise_prob_space_def, le_lt])
+  >- gvs[POW_DEF]
+  >- gvs[POW_DEF]
+  >- (DEP_PURE_ONCE_REWRITE_TAC[uniform_distribution_nonzero]
+      >> gvs[]
+      >> gvs[POW_DEF]
      )
-  >> NTAC 4 $ last_x_assum mp_tac
-  >> Induct_on ‘e’ >> rw[] >> gvs[]
-  >> CCONTR_TAC >> gvs[]
-  >> 
+  >> gvs[sym_noise_dist_def, sym_noise_mass_func_neq_zero]
+  >> rw[] >> gvs[]
+  >> drule sub_0
+  >> rw[] >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1616,17 +1779,6 @@ QED
    Still, under certain circumstances, maybe it'll be useful to discuss
    countably additive functions which are not strictly positive?
  *)
-
-Theorem length_n_codes_empty:
-  ∀n : num. ¬(length_n_codes n = ∅)
-Proof
-  rpt strip_tac
-  >> gvs[]
-  >> drule $ iffLR EXTENSION >> pop_assum kall_tac >> strip_tac
-  >> gvs[]
-  >> pop_assum $ qspec_then ‘zero_extend n []’ assume_tac
-  >> gvs[length_zero_extend]
-QED
 
 Theorem INSERT_UNION_EQ2:
   ∀x : α.
