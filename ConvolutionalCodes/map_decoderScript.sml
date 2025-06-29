@@ -7,7 +7,9 @@ open ecc_prob_spaceTheory;
 open argmin_extrealTheory;
 
 (* Standard theories *)
+open arithmeticTheory;
 open bitstringTheory;
+open pred_setTheory;
 open probabilityTheory;
 open extrealTheory;
 open realTheory;
@@ -71,7 +73,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
 (* given that we received a particular message, is equivalent to finding the  *)
-(* bits that maximize the probably that we both received that bit and         *)
+(* bits that maximize the probability that we both received that bit and      *)
 (* received that message.                                                     *)
 (* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_joint:
@@ -110,22 +112,16 @@ Proof
   (* We are taking the probability with respect to a valid event: all events
      are valid in this probabiltiy space. *)
   >> sg ‘e ∈ events (ecc_bsc_prob_space n m p)’
-  >- (gvs[ecc_bsc_prob_space_def]
-      >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
-      >> gvs[events_def]
-      >> gvs[prod_measure_space_def]
-      >> gvs[prod_sigma_def]
-      >> gvs[sigma_def]
-      >> rw[]
-
-           gvs[ecc_bsc_prob_space_def, martingaleTheory.prod_measure_space_def,
-               length_n_codes_uniform_prob_space_def,
-               events_def, sym_noise_prob_space_def,
-               subsets_def, prod_sigma_def]
+  >- (gvs[events_ecc_bsc_prob_space]
+      >> unabbrev_all_tac
+      >> gvs[IN_DEF, SUBSET_DEF]
+      >> rw[] >> Cases_on ‘x’ >> gvs[]
      )
-
-     gvs[PROB_FINITE, PROB_POSITIVE]
-  )
+  >> gvs[PROB_FINITE]
+  >> REVERSE $ Cases_on ‘prob (ecc_bsc_prob_space n m p) e = 0’
+  >- gvs[lt_le, PROB_POSITIVE]
+  >> gvs[]
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)

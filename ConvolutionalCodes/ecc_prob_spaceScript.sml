@@ -31,6 +31,7 @@ open lebesgueTheory;
 open prim_recTheory;
 open dividesTheory;
 open bitTheory;
+
 open RealArith;
 
 open jared_yeager_prob_space_product_spaceTheory;
@@ -778,6 +779,18 @@ Proof
          sym_noise_prob_space_is_prob_space]
 QED
 
+Theorem sigma_algebra_union_split:
+  ∀s a s1 s2.
+    sigma_algebra (s, a) ∧
+    s1 ∈ a ∧
+    s2 ∈ a ⇒
+    s1 ∪ s2 ∈ a
+Proof
+  rw[]
+  >> qspecl_then [‘(s,a)’, ‘s1’, ‘s2’] assume_tac SIGMA_ALGEBRA_UNION
+  >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* It isn't true that the setwise product of two power sets is the power set  *)
 (* of the products, but it is true that the sigma-product of two power sets   *)
@@ -785,18 +798,30 @@ QED
 (* closure of the setwise product.                                            *)
 (*                                                                            *)
 (* I'm not sure if this holds in the non-finite case. I prove it only in the  *)
-(* finite case. Furthermore, the sigma-product of two Borel                   *)
-(*                                                                            *)
+(* finite case. I believe it should be relatively straightforward to prove in *)
+(* the countable case, because we can then use the fact that the union of     *)
+(* countably many elements of the set is in the set, and any subset of the    *)
+(* product set can be written as the union of countably many single elements, *)
+(* and each single element is directly in the product set. I think it's most  *)
+(* likely that this doesn't hold in the uncountable case, but I haven't       *)
+(* proved this. However, even in the uncountable case, the sigma-product of   *)
+(* two Borel sigma-algebras is the Borel sigma-algebra of the product of the  *)
+(* underlying sets.                                                           *)
 (* -------------------------------------------------------------------------- *)
-Theorem sigma_prod_sets_pow:
+Theorem finite_sigma_prod_sets_pow:
   ∀s t.
+    FINITE s ∧ FINITE t ⇒
     sigma (s × t) (prod_sets (POW s) (POW t)) = (s × t, POW (s × t))
 Proof
-  gvs[prod_sets_def]
+  (* Break down definitions of sigma and prod_sets *)
+  rw[]
+  >> gvs[prod_sets_def]
   >> gvs[sigma_def]
-  >> rw[]
+  (* Two sets are equal if each is a subset of the other*)
   >> gvs[GSYM SUBSET_ANTISYM_EQ]
   >> conj_tac
+  (* The power set is a sigma algebra, thus the intersection of all sigma
+     algebras is certainly a subset of the power set *)
   >- (irule BIGINTER_SUBSET
       >> qexists ‘POW (s × t)’
       >> gvs[]
@@ -807,44 +832,205 @@ Proof
          )
       >> gvs[POW_SIGMA_ALGEBRA]
      )
+  (* Break down some definitions *)
   >> gvs[Once SUBSET_DEF]
   >> rw[]
   >> gvs[Once POW_DEF]
-  >> gvs[sigma_algebra_def]
-  >> 
+  (* We have an arbitrary subset of the product set. This may not be an element
+     of the product of the two power sets. For example, {(a,b), (c,d)} is not
+     (for a ≠ c and b ≠ d), because we would expect this to be the product
+     of {a, c} and {b, d}, but in reality this product would be
+     {(a,b), (a,d), (c,b), (c,d)}. However, since we are dealing with countable
+     sets, it is the countable union of its individual elements, and each
+     individual element is in the product of the power sets. Thus, our subset
+     is contained in the sigma-closure of the product of the power sets.
+.
+     In order to take this countable union, it is convenient to perform
+     induction over the subset we are working with. So the first step is to
+     prove that the subset we are working with is finite *)
+  >> ‘FINITE x’ by metis_tac[CARD_MUL_FINITE, SUBSET_FINITE]
+  >> qpat_x_assum ‘FINITE s’ kall_tac >> qpat_x_assum ‘FINITE t’ kall_tac
+  >> NTAC 3 $ last_x_assum mp_tac
+  >> Induct_on ‘x’
+  >> rw[]
+  >- (gvs[SUBSET_DEF]
+      >> pop_assum irule
+      >> qexistsl [‘∅’, ‘∅’]
+      >> gvs[]
+     )
+  >> gvs[]
+  >> PURE_ONCE_REWRITE_TAC[INSERT_SING_UNION]
+  >> irule sigma_algebra_union_split
+  >> conj_tac >- metis_tac[]
+  >> Cases_on ‘e’ >> gvs[]
+  >> gvs[SUBSET_DEF]
+  >> last_x_assum irule
+  >> qexistsl [‘{q}’, ‘{r}’]
+  >> gvs[POW_DEF]
 QED
 
 Theorem prod_sigma_pow:
   ∀s t.
+    FINITE s ∧ FINITE t ⇒
     (s, POW s) × (t, POW t) = (s × t, POW (s × t))
 Proof
-  rw[]
-  >> gvs[prod_sigma_def]
-  
-        rw[]
-  >> gvs[prod_sets_def]
-  >> gvs[EXTENSION]
-  >> rw[]
-  >> EQ_TAC >> rw[]
-  >- gvs[POW_DEF, CROSS_DEF, SUBSET_DEF]
-  >> gvs[POW_DEF, SUBSET_DEF]
-  >> qexistsl [‘x ∩ s’, ‘x ∩ t’]
-  >> rw[]
-  >> EQ_TAC >> gvs[]
-  >> rw[]*)
+  rw[prod_sigma_def, finite_sigma_prod_sets_pow]
 QED
 
-
-Theorem events_ecc_bsc_prob_space[simp]:
+Theorem events_ecc_bsc_prob_space:
   ∀n m p.
-    events (ecc_bsc_prob_space n m p) = ARB
+    events (ecc_bsc_prob_space n m p) =
+    POW (length_n_codes n × length_n_codes m)
 Proof
   rw[]
   >> gvs[ecc_bsc_prob_space_def]
   >> gvs[prod_measure_space_def]
   >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
-  >> gvs[prod_sigma_def]
-  >> gvs[prod_sets_def]
+  >> gvs[prod_sigma_pow]        
+  >> gvs[events_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Induction rule over a set given that it is contained in a sigma-closure:   *)
+(* If a property is true of any element of the initial set, and it is true of *)
+(* any countable union of sets satisfying that property, and it is true of    *)
+(* any complement of a set satisfying that property, then it is true of all   *)
+(* sets in the sigma-closure.                                                 *)
+(*                                                                            *)
+(* We already have sigma_sets_ind, but this only works on sigma_sets, not on  *)
+(* sigma                                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem sigma_induct:
+  ∀P sp sts.
+    sts ⊆ POW sp ∧
+    P ∅ ∧
+    (∀s. s ∈ sts ⇒ P s) ∧
+    (∀s. P s ⇒ P (sp DIFF s)) ∧
+    (∀S. (∀s. s ∈ S ⇒ P s) ∧ countable S ⇒ P (BIGUNION S)) ⇒
+    (∀s. s ∈ subsets (sigma sp sts) ⇒ P s)
+Proof
+  (* In the intersection defined by sigma, use the sigma_algebra
+     sigma_sets sp sts, which is the sigma algebra generated from sts in an
+     upwards direction, whereas sigma generates it in a downwards direction *)
+  rw[]
+  >> gvs[sigma_def]
+  >> pop_assum $ qspec_then ‘sigma_sets sp sts’ assume_tac
+  >> gvs[sigma_algebra_sigma_sets]
+  >> gvs[sigma_sets_superset_generator]
+  (* Induct on sigma_sets *)
+  >> gvs[IN_DEF]
+  >> rpt $ last_x_assum mp_tac
+  >> Induct_on ‘sigma_sets’ using sigma_sets_ind
+  >> rw[] >> gvs[]
+  (* The necessary base/inductive steps were mostly proved automatically, but
+     it failed in the case of BIGUNION. Apply the BIGUNION inductive rule
+     manually *)
+  >> last_x_assum irule
+  >> rw[] >- metis_tac[]
+  (* All we need to do is to prove that this set is countable *)
+  >> gvs[COUNTABLE_AS_IMAGE_SUBSET_EQ]
+  >> qexists ‘A’
+  >> ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A stronger version of sigma_induct which only requires the inductive steps *)
+(* to hold when we are given sets in the space.                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem sigma_induct_in_space:
+  ∀P sp sts.
+    P ∅ ∧
+    (∀s. s ∈ sts ⇒ P s ∧ s ⊆ sp) ∧
+    (∀s. P s ∧ s ⊆ sp ⇒ P (sp DIFF s)) ∧
+    (∀S. (∀s. s ∈ S ⇒ P s ∧ s ⊆ sp) ∧ countable S ⇒ P (BIGUNION S)) ⇒
+    (∀s. s ∈ subsets (sigma sp sts) ⇒ P s)
+Proof
+  rw[]
+  >> qspecl_then [‘λs. P s ∧ s ⊆ sp’, ‘sp’, ‘sts’] assume_tac sigma_induct
+  >> gvs[]
+  >> qsuff_tac ‘P s ∧ s ⊆ sp’ >- gvs[]
+  >> pop_assum irule
+  >> REVERSE $ rw[]
+  >- ASM_SET_TAC[POW_DEF]
+  >> gvs[BIGUNION_SUBSET]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* I think this theorem is false. It is supposed to show that the projection  *)
+(* of a measurable set onto one of its components is measurable.              *)
+(* -------------------------------------------------------------------------- *)
+(*Theorem image_fst_measurable_sets:
+  ∀s m1 m2.
+    s ∈ measurable_sets (m1 × m2) ⇒
+    (IMAGE FST s ∈ measurable_sets m1 ∧
+     IMAGE SND s ∈ measurable_sets m2)
+Proof
+  rw[]
+  >- (gvs[prod_measure_space_def]
+      >> gvs[prod_sigma_def]
+      >> qspecl_then [‘λs. IMAGE FST s ∈ measurable_sets m1’,
+                      ‘m_space m1 × m_space m2’,
+                      ‘prod_sets (measurable_sets m1) (measurable_sets m2)’]
+                     assume_tac sigma_induct_in_space
+      >> gvs[]
+      >> pop_assum irule
+      >> rw[]
+     )
+QED*)
+
+(* -------------------------------------------------------------------------- *)
+(* I think this theorem is false. It is supposed to show that the product     *)
+(* measure on a set is zero if and only if one of its projections is zero.    *)
+(* I'm not sure if it's true or not.                                          *)
+(* -------------------------------------------------------------------------- *)
+(*Theorem prod_measure_zero:
+  ∀m1 m2 e.
+    measure_space m1 ∧
+    measure_space m2 ∧
+    e ∈ measurable_sets (m1 × m2) ⇒
+    (prod_measure m1 m2 e = 0 ⇔ measure$measure m1 (IMAGE FST e) = 0 ∨
+                                measure$measure m2 (IMAGE SND e) = 0)
+Proof
+  rw[]
+  >> REVERSE EQ_TAC
+  >- (rw[prod_measure_def]
+      >- (pop_assum mp_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[GSYM pos_fn_integral_indicator]
+          >> gvs[]
+          >> gvs[prod_measure_space_def]
+         )
+      >> gvs[Once pos_fn_integral_def]
+      >> gvs[psfis_def]
+     )
+QED*)
+
+Theorem prob_ecc_bsc_prob_space_zero:
+  ∀n m p e.
+    0 ≤ p ∧ p ≤ 1 ∧
+    e ∈ events (ecc_bsc_prob_space n m p) ⇒
+    (prob (ecc_bsc_prob_space n m p) e = 0 ⇔ e = ∅)
+Proof
+  rw[]
+  >> rw[ecc_bsc_prob_space_def, length_n_codes_uniform_prob_space_def,
+        sym_noise_prob_space_def, prob_space_def]
+  >> gvs[prob_def, prod_measure_space_def]
+  >> gvs[prod_measure_def]
+  >> REVERSE EQ_TAC
+  >- (qspecl_then [‘n’] assume_tac
+                  length_n_codes_uniform_prob_space_is_prob_space
+      >> qspecl_then [‘m’, ‘p’] assume_tac sym_noise_prob_space_is_prob_space
+      >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def,
+             prob_space_def]
+      >> rw[] >> gvs[pos_fn_integral_zero])
+  >> rw[]
+  >> sg ‘FINITE e’
+  >- (gvs[events_ecc_bsc_prob_space, POW_DEF]
+      >> metis_tac[SUBSET_FINITE, length_n_codes_finite, FINITE_CROSS]
+     )
+  >> NTAC 4 $ last_x_assum mp_tac
+  >> Induct_on ‘e’ >> rw[] >> gvs[]
+  >> CCONTR_TAC >> gvs[]
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)
