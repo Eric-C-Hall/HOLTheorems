@@ -6,6 +6,9 @@ open HolKernel Parse boolLib bossLib;
 open ecc_prob_spaceTheory;
 open argmin_extrealTheory;
 
+(* My libraries *)
+open donotexpandLib;
+
 (* Standard theories *)
 open arithmeticTheory;
 open bitstringTheory;
@@ -75,10 +78,26 @@ QED
 (* given that we received a particular message, is equivalent to finding the  *)
 (* bits that maximize the probability that we both received that bit and      *)
 (* received that message.                                                     *)
+(*                                                                            *)
+(* We require that our binary symmetric channel flips bits with a valid       *)
+(* probability (between 0 and 1), that the length of the received message     *)
+(* is the same as was expected, and that the encoder takes messages of the    *)
+(* expected length to messages of the expected length.                        *)
+(*                                                                            *)
+(* We ignore the special case in which p = 0 or p = 1. This is not a          *)
+(* particularly interesting case, because we have no noise in this case.      *)
+(* However, it is annoying for proof. In this case, it may not be possible    *)
+(* to receive the received message, because if the encoder does not allow us  *)
+(* to produce it directly, a noise probability of 0 will mean that we cannot  *)
+(* possibly recieve that message. This means that the probability we are      *)
+(* conditioning on becomes zero, meaning that the denominator becomes zero,   *)
+(* meaning that our conditional probability becomes undefined.                *)
 (* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_joint:
   ∀enc n m p ds.
-    0 ≤ p ∧ p ≤ 1 ⇒
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
     map_decoder_bitwise enc n m p ds =
     let
       map_decoder_bit_prob_joint =
@@ -91,7 +110,13 @@ Theorem map_decoder_bitwise_joint:
       MAP (λi. map_decoder_bit_prob_joint i F ≤ map_decoder_bit_prob_joint i T)
           (COUNT_LIST n)
 Proof
-  rw[]
+  rpt strip_tac
+  >> qpat_x_assum ‘LENGTH ds = m’ assume_tac
+  >> donotexpand_tac
+  >> rw[]
+  (* 0 ≤ p and p ≤ 1 is a more common representation for a probability than
+     0 < p and p < 1. *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
   (* It's helpful to know that we have a prob space *)
   >> qspecl_then [‘n’, ‘m’, ‘p’] assume_tac ecc_bsc_prob_space_is_prob_space
   >> gvs[]
@@ -117,11 +142,28 @@ Proof
       >> gvs[IN_DEF, SUBSET_DEF]
       >> rw[] >> Cases_on ‘x’ >> gvs[]
      )
+  (* A probability is never infinity. *)
   >> gvs[PROB_FINITE]
+  (* A probability is always nonnegative, so we can simplify to having to prove
+     that our probability is nonzero *)
   >> REVERSE $ Cases_on ‘prob (ecc_bsc_prob_space n m p) e = 0’
   >- gvs[lt_le, PROB_POSITIVE]
   >> gvs[]
-  >> 
+  (* Use lemma: in our probability space, a probability is zero if and only if
+     the event is the empty set. *)        
+  >> gvs[prob_ecc_bsc_prob_space_zero]
+  (* Simplify to needing to show that there is an element in the event. *)
+  >> gvs[events_ecc_bsc_prob_space]
+  >> gvs[EXTENSION]
+  >> qpat_x_assum ‘∀x. _’ mp_tac
+  >> gvs[]
+  (* There does exist such an element: simply send some initial message, and
+     then choose the noise in such a way that it perfectly ends up giving us
+     ds. *)
+  >> qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
+  >> gvs[bxor_length]
+  >> doexpand_tac >> gvs[]
+  >> gvs[bxor_inv]
 QED
 
 (* -------------------------------------------------------------------------- *)
