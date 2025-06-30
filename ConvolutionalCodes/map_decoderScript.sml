@@ -16,6 +16,7 @@ open pred_setTheory;
 open probabilityTheory;
 open extrealTheory;
 open realTheory;
+open rich_listTheory;
 open sigma_algebraTheory;
 open martingaleTheory;
 
@@ -164,6 +165,87 @@ Proof
   >> gvs[bxor_length]
   >> doexpand_tac >> gvs[]
   >> gvs[bxor_inv]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A version of map_decoder bitwise with Bayes' rule applied, so that we have *)
+(* reversed the events and multiplied by the probability of the new           *)
+(* denominator, cancelling out the common denominator.                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem map_decoder_bitwise_bayes:
+  ∀enc n m p ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+    map_decoder_bitwise enc n m p ds =
+    let
+      sp = ecc_bsc_prob_space n m p;
+      e1 = λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bxor (enc bs) ns = ds;
+      e2 = λi x. (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = x);
+      map_decoder_bit_prob_bayes = λi x. cond_prob sp e1 (e2 i x) *
+                                         prob sp (e2 i x);
+    in
+      MAP
+      (λi. map_decoder_bit_prob_bayes i F ≤ map_decoder_bit_prob_bayes i T)
+      (COUNT_LIST n)
+Proof
+  (* Look at the internals *)
+  rpt strip_tac
+  >> gvs[map_decoder_bitwise_def]
+  (* More common representation of probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
+  (* We have a prob space *)
+  >> qspecl_then [‘n’, ‘(LENGTH ds)’, ‘p’] assume_tac
+                 ecc_bsc_prob_space_is_prob_space
+  >> gvs[]
+  (* The inner bit is the bit we need to prove equivalence of. We only need
+     to prove equivalence for valid i, that is, i < n *)
+  >> qmatch_goalsub_abbrev_tac ‘MAP f1 (COUNT_LIST n) = MAP f2 (COUNT_LIST n)’
+  >> gvs[MAP_EQ_f]
+  >> rw[Abbr ‘f1’, Abbr ‘f2’]
+  >> gvs[MEM_COUNT_LIST]
+  (* Rename the events and prob space to something more manageable *)
+  >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 e3 ≤ cond_prob sp e2 e3’
+  (* Each of the events is a valid event *)
+  >> sg ‘e1 ∈ events sp ∧
+         e2 ∈ events sp ∧
+         e3 ∈ events sp’
+  >- (rw[]
+      >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
+          >> gvs[SUBSET_DEF] >> rw[] >> Cases_on ‘x’ >> ASM_SET_TAC[]
+         )
+     )
+  (* Each of the events has nonzero probability *)
+  >> sg ‘prob sp e1 ≠ 0 ∧
+         prob sp e2 ≠ 0 ∧
+         prob sp e3 ≠ 0’
+  >- (rw[] >> (unabbrev_all_tac >> gvs[prob_ecc_bsc_prob_space_zero]
+               >> gvs[FUN_EQ_THM] >> rw[])
+      >- (qexists ‘(REPLICATE n F, REPLICATE (LENGTH ds) F)’
+          >> gvs[EL_REPLICATE])
+      >- (qexists ‘(REPLICATE n T, REPLICATE (LENGTH ds) F)’
+          >> gvs[EL_REPLICATE])
+      >- (qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
+          >> gvs[bxor_length, bxor_inv]
+         )
+     )
+  (* Apply Bayes' rule*)
+  >> sg ‘cond_prob sp e1 e3
+         = cond_prob sp e3 e1 *
+           prob sp e1 /
+                prob sp e3’
+  >- metis_tac[BAYES_RULE]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> sg ‘cond_prob sp e2 e3
+         = cond_prob sp e3 e2 *
+           prob sp e2 /
+                prob sp e3’
+  >- metis_tac[BAYES_RULE]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  (* Cancel out the divisions *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_le_iff]
+  >> conj_tac >- (gvs[PROB_FINITE] >> metis_tac[PROB_POSITIVE, le_lt])
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
