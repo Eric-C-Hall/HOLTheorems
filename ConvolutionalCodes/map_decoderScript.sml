@@ -265,11 +265,16 @@ Theorem prob_additive_finite:
     prob p (BIGUNION (IMAGE A S)) = ∑ (λx. prob p (A x)) S
 Proof
   rw[]
+  (* This can be proved using induction based on ADDITIVE_PROB, which works
+     for two sets. There is also a version which works for a countable number
+     of sets, but it has a significantly different form. *)
   >> Induct_on ‘S’ >> gvs[PROB_EMPTY]
   >> rw[]
   >> DEP_PURE_ONCE_REWRITE_TAC[iffLR ADDITIVE_PROB]
   >> rw[]
+  (* Prove that the prob space is additive *)
   >- gvs[PROB_SPACE_ADDITIVE]
+  (* Prove that the smaller BIGUNION (with one fewer set) is a valid event *)
   >- (irule EVENTS_COUNTABLE_UNION
       >> rw[]
       >- (irule finite_countable
@@ -278,19 +283,25 @@ Proof
       >> rw[]
       >> metis_tac[]
      )
+  (* Prove that the newly added A e is disjoint from any other A x *)
   >- (last_assum irule
       >> gvs[]
       >> metis_tac[]
      )
+  (* Prove that the union of the newly added A e with the smaller BIGUNION
+     is a valid event *)
   >- (irule EVENTS_UNION
       >> gvs[]
       >> irule EVENTS_COUNTABLE_UNION
       >> gvs[finite_countable]
       >> gvs[SUBSET_DEF] >> rw[] >> metis_tac[]
      )
+  (* Prove that adding an element to a sum is equivalent to having a larger
+     sum *)
   >> gvs[]
   >> DEP_PURE_ONCE_REWRITE_TAC[cj 3 EXTREAL_SUM_IMAGE_THM]
   >> gvs[DELETE_NON_ELEMENT_RWT]
+  (* We need the probabilities we are adding to be finite *)
   >> disj1_tac >> rw[]
   >> (irule (cj 2 PROB_FINITE) >> gvs[])
 QED
@@ -358,7 +369,7 @@ Proof
           >> gvs[bxor_length, bxor_inv]
          )
      )
-  >>
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)
