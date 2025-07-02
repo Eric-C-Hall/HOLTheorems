@@ -19,6 +19,8 @@ open realTheory;
 open rich_listTheory;
 open sigma_algebraTheory;
 open martingaleTheory;
+open measureTheory;
+open topologyTheory;
 
 (* Standard libraries *)
 open realLib;
@@ -26,6 +28,8 @@ open dep_rewrite;
 open ConseqConv;
 
 val _ = new_theory "map_decoder";
+
+val _ = hide "S";
 
 (* -------------------------------------------------------------------------- *)
 (* The bitwise MAP decoder chooses each returned bit such that it has maximal *)
@@ -249,31 +253,48 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* An equivalent of PROB_EXTREAL_SUM_IMAGE, but for conditional probabilities *)
+(* The summation of the probabilities of finitely many disjoint events is the *)
+(* probability of the union of these events.                                  *)
 (* -------------------------------------------------------------------------- *)
-Theorem COND_PROB_EXTREAL_SUM_IMAGE:
-  ∀p A B.
+Theorem prob_additive_finite:
+  ∀p A x S.
     prob_space p ∧
-    e1 ∈ events p ∧
-    (∀x. x ∈ s ⇒ {x} ∈ events p) ∧
-    FINITE s ⇒
-    ∑ (λx. cond_prob p (A x) B) = cond_prob
+    FINITE S ∧
+    (∀x y. x ∈ S ∧ y ∈ S ∧ x ≠ y ⇒ DISJOINT (A x) (A y)) ∧
+    (∀x. x ∈ S ⇒ A x ∈ events p) ⇒
+    prob p (BIGUNION (IMAGE A S)) = ∑ (λx. prob p (A x)) S
 Proof
+  rw[]
+  >> Induct_on ‘S’ >> gvs[PROB_EMPTY]
+  >> rw[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[iffLR ADDITIVE_PROB]
+  >> rw[]
+  >- gvs[PROB_SPACE_ADDITIVE]
+  >- (irule EVENTS_COUNTABLE_UNION
+      >> rw[]
+      >- (irule finite_countable
+          >> gvs[])
+      >> gvs[SUBSET_DEF]
+      >> rw[]
+      >> metis_tac[]
+     )
+  >- (last_assum irule
+      >> gvs[]
+      >> metis_tac[]
+     )
+  >- (irule EVENTS_UNION
+      >> gvs[]
+      >> irule EVENTS_COUNTABLE_UNION
+      >> gvs[finite_countable]
+      >> gvs[SUBSET_DEF] >> rw[] >> metis_tac[]
+     )
+  >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[cj 3 EXTREAL_SUM_IMAGE_THM]
+  >> gvs[DELETE_NON_ELEMENT_RWT]
+  >> disj1_tac >> rw[]
+  >> (irule (cj 2 PROB_FINITE) >> gvs[])
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* The summation of the probabilities of countably many disjoint events is    *)
-(* the probability of the union of these events.                              *)
-(* -------------------------------------------------------------------------- *)
-Theorem prob_extreal_sum:
-  prob_space p ∧
-  
-  ∑ (λx. prob p (A x)) S = prob p (BIGUNION )
-Proof
-QED
-
-
-        
 (* -------------------------------------------------------------------------- *)
 (* A version of the MAP decoder which is represented as the sum over all      *)
 (* possible choices of input such that the ith element takes the appropriate  *)
