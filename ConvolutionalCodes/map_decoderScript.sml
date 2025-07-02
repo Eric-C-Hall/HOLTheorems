@@ -249,6 +249,98 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* An equivalent of PROB_EXTREAL_SUM_IMAGE, but for conditional probabilities *)
+(* -------------------------------------------------------------------------- *)
+Theorem COND_PROB_EXTREAL_SUM_IMAGE:
+  ∀p A B.
+    prob_space p ∧
+    e1 ∈ events p ∧
+    (∀x. x ∈ s ⇒ {x} ∈ events p) ∧
+    FINITE s ⇒
+    ∑ (λx. cond_prob p (A x) B) = cond_prob
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The summation of the probabilities of countably many disjoint events is    *)
+(* the probability of the union of these events.                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_extreal_sum:
+  prob_space p ∧
+  
+  ∑ (λx. prob p (A x)) S = prob p (BIGUNION )
+Proof
+QED
+
+
+        
+(* -------------------------------------------------------------------------- *)
+(* A version of the MAP decoder which is represented as the sum over all      *)
+(* possible choices of input such that the ith element takes the appropriate  *)
+(* value.                                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem map_decoder_bitwise_sum:
+  ∀enc n m p ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+    map_decoder_bitwise enc n m p ds =
+    let
+      map_decoder_bitstring_prob =
+      λxs. cond_prob (ecc_bsc_prob_space n m p)
+                     (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bs = xs)
+                     (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧
+                                 bxor (enc bs) ns = ds);
+      map_decoder_bit_prob =
+      λi x. ∑ map_decoder_bitstring_prob {bs | EL i bs = x};
+    in
+      (MAP (λi. map_decoder_bit_prob i F ≤ map_decoder_bit_prob i T)
+           (COUNT_LIST n))
+Proof
+  (* Look at the internals *)
+  rpt strip_tac
+  >> gvs[map_decoder_bitwise_def]
+  (* More common representation of probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
+  (* We have a prob space *)
+  >> qspecl_then [‘n’, ‘(LENGTH ds)’, ‘p’] assume_tac
+                 ecc_bsc_prob_space_is_prob_space
+  >> gvs[]
+  (* The inner bit is the bit we need to prove equivalence of. We only need
+     to prove equivalence for valid i, that is, i < n *)
+  >> qmatch_goalsub_abbrev_tac ‘MAP f1 (COUNT_LIST n) = MAP f2 (COUNT_LIST n)’
+  >> gvs[MAP_EQ_f]
+  >> rw[Abbr ‘f1’, Abbr ‘f2’]
+  >> gvs[MEM_COUNT_LIST]
+  (* Rename the events and prob space to something more manageable *)
+  >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 e3 ≤ cond_prob sp e2 e3’
+  (* Each of the events is a valid event *)
+  >> sg ‘e1 ∈ events sp ∧
+         e2 ∈ events sp ∧
+         e3 ∈ events sp’
+  >- (rw[]
+      >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
+          >> gvs[SUBSET_DEF] >> rw[] >> Cases_on ‘x’ >> ASM_SET_TAC[]
+         )
+     )
+  (* Each of the events has nonzero probability *)
+  >> sg ‘prob sp e1 ≠ 0 ∧
+         prob sp e2 ≠ 0 ∧
+         prob sp e3 ≠ 0’
+  >- (rw[] >> (unabbrev_all_tac >> gvs[prob_ecc_bsc_prob_space_zero]
+               >> gvs[FUN_EQ_THM] >> rw[])
+      >- (qexists ‘(REPLICATE n F, REPLICATE (LENGTH ds) F)’
+          >> gvs[EL_REPLICATE])
+      >- (qexists ‘(REPLICATE n T, REPLICATE (LENGTH ds) F)’
+          >> gvs[EL_REPLICATE])
+      >- (qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
+          >> gvs[bxor_length, bxor_inv]
+         )
+     )
+  >>
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
 (* given that we received a particular message, is equivalent to finding the  *)
 (* bits that maximize the probably that we both received that bit and         *)

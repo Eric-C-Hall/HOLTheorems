@@ -72,7 +72,7 @@ QED
 
 (* Copied from tutorial *)
 Theorem less_eq_mult:
-  ∀n:num. n <= n * n
+  ∀n : num. n <= n * n
 Proof
   Induct_on ‘n’ >> simp[]
 QED
@@ -93,7 +93,7 @@ QED
 
 (* Implication test *)
 Theorem implication_test:
-  ∀n:num. (n > 3 ⇒ n + 1 > 4)
+  ∀n : num. (n > 3 ⇒ n + 1 > 4)
 Proof
   simp[]
 QED
