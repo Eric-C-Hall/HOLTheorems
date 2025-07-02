@@ -332,7 +332,7 @@ Proof
      )
 QED
 
-Theorem EXTREAL_SUM_IMAGE_CANCEL_DIV:
+Theorem EXTREAL_SUM_IMAGE_DIV_RDISTRIB:
   ∀P y S.
     FINITE S ∧
     y ≠ 0 ∧
@@ -361,21 +361,47 @@ Proof
        )
 QED
 
+Theorem extreal_div_cancel:
+  ∀x y z.
+    z ≠ 0 ∧
+    z ≠ +∞ ∧
+    z ≠ −∞ ⇒
+    ((x / z = y / z) ⇔ x = y)
+Proof
+  rw[]
+  >> Cases_on ‘x’ >> Cases_on ‘y’ >> Cases_on ‘z’
+  >> (gvs[extreal_div_def,extreal_mul_def, GSYM normal_inv_eq]
+      >> rw[])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Conditional probabilities are finite additive (and countably additive, but *)
+(* this is not shown here.)                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem cond_prob_additive_finite:
   ∀p A x S B.
     prob_space p ∧
     FINITE S ∧
     (∀x y. x ∈ S ∧ y ∈ S ∧ x ≠ y ⇒ DISJOINT (A x) (A y)) ∧
     (∀x. x ∈ S ⇒ A x ∈ events p) ∧
+    B ∈ events p ∧
     prob p B ≠ 0 ⇒
     cond_prob p (BIGUNION (IMAGE A S)) B = ∑ (λx. cond_prob p (A x) B) S
 Proof
   rw[]
   >> gvs[cond_prob_def]
-  >> sg ‘∑ (λx. prob p (A x ∩ B) / prob p B) S =
-         ∑ (λx. prob p (A x ∩ B)) S / prob p B’
-  >- (
-  )
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DIV_RDISTRIB]
+  >> gvs[PROB_FINITE, EVENTS_INTER]
+  >> DEP_PURE_ONCE_REWRITE_TAC[extreal_div_cancel]
+  >> gvs[PROB_FINITE]
+  >> gvs[INTER_BIGUNION]
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM prob_additive_finite]
+  >> rw[]
+  >- gvs[DISJOINT_RESTRICT_L]
+  >- gvs[EVENTS_INTER]
+  >> gvs[INTER_BIGUNION]
+  >> NTAC 2 AP_TERM_TAC
+  >> ASM_SET_TAC[]
 QED
 
 (* -------------------------------------------------------------------------- *)
