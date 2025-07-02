@@ -306,6 +306,78 @@ Proof
   >> (irule (cj 2 PROB_FINITE) >> gvs[])
 QED
 
+Theorem real_reverse_trichotomy:
+  ∀r : real.
+    r ≤ 0 ∧
+    r ≠ 0 ∧
+    0 ≤ r ⇒ F
+Proof
+  gen_tac >> strip_tac
+  >> metis_tac[REAL_LT_LE, real_lte]
+QED
+
+Theorem div_not_infty_if_not_infty:
+  ∀x r.
+    (x ≠ +∞ ∧ 0 < r ⇒ x / Normal r ≠ +∞) ∧
+    (x ≠ −∞ ∧ 0 < r ⇒ x / Normal r ≠ −∞) ∧
+    (x ≠ +∞ ∧ r < 0 ⇒ x / Normal r ≠ −∞) ∧
+    (x ≠ −∞ ∧ r < 0 ⇒ x / Normal r ≠ +∞)
+Proof
+  rw[]
+  >> (gvs[REAL_LT_LE]
+      >> Cases_on ‘x’
+      >> gvs[extreal_div_def, GSYM normal_inv_eq, extreal_mul_def]
+      >> rw[]
+      >> gvs[REAL_LT_LE, real_reverse_trichotomy]
+     )
+QED
+
+Theorem EXTREAL_SUM_IMAGE_CANCEL_DIV:
+  ∀P y S.
+    FINITE S ∧
+    y ≠ 0 ∧
+    y ≠ +∞ ∧
+    y ≠ −∞ ∧
+    ((∀x. x ∈ S ⇒ P x ≠ +∞) ∨ (∀x. x ∈ S ⇒ P x ≠ −∞)) ⇒
+    ∑ (λx. P x / y) S = (∑ (λx. P x) S) / y : extreal
+Proof
+  rw[]
+  (* We have two cases depending on which side of the disjunction in the
+     assumptions we are in, but they generally have the same working. *)
+    >> (Cases_on ‘y’ >> gvs[]
+        >> Induct_on ‘S’ >> rw[zero_div]
+        >> gvs[]
+        >> DEP_PURE_REWRITE_TAC[cj 3 EXTREAL_SUM_IMAGE_THM]
+        >> rw[]
+        >- (Cases_on ‘0 ≤ r’
+            >> metis_tac[REAL_LT_LE, div_not_infty_if_not_infty, REAL_NOT_LE]
+           )
+        >- metis_tac[]
+        >> gvs[DELETE_NON_ELEMENT_RWT]
+        >> DEP_PURE_ONCE_REWRITE_TAC[div_add2]
+        >> REVERSE conj_tac >- gvs[]
+        >> REVERSE conj_tac >- gvs[]
+        >> gvs[EXTREAL_SUM_IMAGE_NOT_POSINF, EXTREAL_SUM_IMAGE_NOT_NEGINF]
+       )
+QED
+
+Theorem cond_prob_additive_finite:
+  ∀p A x S B.
+    prob_space p ∧
+    FINITE S ∧
+    (∀x y. x ∈ S ∧ y ∈ S ∧ x ≠ y ⇒ DISJOINT (A x) (A y)) ∧
+    (∀x. x ∈ S ⇒ A x ∈ events p) ∧
+    prob p B ≠ 0 ⇒
+    cond_prob p (BIGUNION (IMAGE A S)) B = ∑ (λx. cond_prob p (A x) B) S
+Proof
+  rw[]
+  >> gvs[cond_prob_def]
+  >> sg ‘∑ (λx. prob p (A x ∩ B) / prob p B) S =
+         ∑ (λx. prob p (A x ∩ B)) S / prob p B’
+  >- (
+  )
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A version of the MAP decoder which is represented as the sum over all      *)
 (* possible choices of input such that the ith element takes the appropriate  *)
@@ -369,7 +441,8 @@ Proof
           >> gvs[bxor_length, bxor_inv]
          )
      )
-  >> 
+  (* *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_additive_finite]
 QED
 
 (* -------------------------------------------------------------------------- *)
