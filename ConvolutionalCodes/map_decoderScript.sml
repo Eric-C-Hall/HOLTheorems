@@ -422,7 +422,7 @@ Theorem map_decoder_bitwise_sum:
                      (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧
                                  bxor (enc bs) ns = ds);
       map_decoder_bit_prob =
-      λi x. ∑ map_decoder_bitstring_prob {bs | EL i bs = x};
+      λi x. ∑ map_decoder_bitstring_prob {bs | LENGTH bs = n ∧ EL i bs = x};
     in
       (MAP (λi. map_decoder_bit_prob i F ≤ map_decoder_bit_prob i T)
            (COUNT_LIST n))
@@ -467,8 +467,40 @@ Proof
           >> gvs[bxor_length, bxor_inv]
          )
      )
-  (* *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[prob_additive_finite]
+  (* Rewrite the sets we are summing over in terms of an intersection with
+     length_n_codes *)
+  >> qmatch_goalsub_abbrev_tac ‘∑ _ S1 ≤ ∑ _ S2’
+  >> ‘S1 = length_n_codes n ∩ {bs | ¬EL e bs}’ by gvs[Abbr ‘S1’, INTER_DEF]
+  >> ‘S2 = length_n_codes n ∩ {bs | EL e bs}’ by gvs[Abbr ‘S2’, INTER_DEF]
+  >> gvs[]
+  >> NTAC 2 $ qpat_x_assum ‘_ = length_n_codes n ∩ _’ kall_tac
+  (* For any choice of xs, the event we are working with is a valid event *)
+  >> sg ‘∀xs.
+           xs ∈ length_n_codes n ⇒
+           (λ(bs,ns).
+              LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧ bs = xs) ∈ events sp’
+  >- (rw[]
+      >> unabbrev_all_tac
+      >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+      >> rw[] >> (Cases_on ‘x’ >> gvs[])
+     )
+  (* Bring the sum into the cond_prob, turning it into a union *)
+  >> DEP_PURE_REWRITE_TAC[GSYM cond_prob_additive_finite]
+  >> rw[]
+  >- (gvs[DISJOINT_DEF, EXTENSION] >> rw[] >> Cases_on ‘x’ >> gvs[])
+  >- (gvs[DISJOINT_DEF, EXTENSION] >> rw[] >> Cases_on ‘x’ >> gvs[])
+  (* Now it suffices to prove that the events in the cond_prob are equivalent *)
+  >> qmatch_goalsub_abbrev_tac ‘_ ⇔ cond_prob sp e4 e3 ≤ cond_prob sp e5 e3’
+  >> ‘e1 = e4 ∧ e2 = e5’ suffices_by gvs[]
+  >> unabbrev_all_tac
+  >> rw[]
+  (* These goals are very similar so we may as well solve each goal at the same
+     time *)
+  >> (gvs[BIGUNION_IMAGE]
+      >> gvs[EXTENSION] >> rw[]
+      >> Cases_on ‘x’ >> gvs[]
+      >> EQ_TAC >> gvs[]
+     )
 QED
 
 (* -------------------------------------------------------------------------- *)
