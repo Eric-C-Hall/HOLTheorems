@@ -503,6 +503,108 @@ Proof
      )
 QED
 
+Theorem EXTREAL_SUM_IMAGE_LEQ_MUL_CONST:
+  FINITE S1 ∧
+  FINITE S2 ∧
+  0 < c ∧
+  c ≠ +∞ ∧
+  (∀x. x ∈ S1 ⇒ f1 x = f2 x * c) ∧
+  (∀x. x ∈ S2 ⇒ f1 x = f2 x * c) ⇒
+  ∑ f1 S1 ≤ ∑ f1 S2 ⇔ ∑ f2 S1 ≤ ∑ f2 S2
+Proof
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* A version of the MAP decoder which has both been represented as the sum    *)
+(* over all possible choices of input and had Bayes' rule applied to it       *)
+(* -------------------------------------------------------------------------- *)
+Theorem map_decoder_bitwise_sum_bayes:
+  ∀enc n m p ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+    map_decoder_bitwise enc n m p ds =
+    let
+      map_decoder_bitstring_prob_bayes =
+      λxs. cond_prob (ecc_bsc_prob_space n m p)
+                     (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧
+                                 bxor (enc bs) ns = ds)
+                     (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bs = xs) *
+           prob (ecc_bsc_prob_space n m p)
+                (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bs = xs);
+      map_decoder_bit_prob =
+      λi x.
+        ∑ map_decoder_bitstring_prob_bayes {bs | LENGTH bs = n ∧ EL i bs = x};
+    in
+      (MAP (λi. map_decoder_bit_prob i F ≤ map_decoder_bit_prob i T)
+           (COUNT_LIST n))
+Proof
+  (* Convert to the sum version *)
+  rw[]
+  >> gvs[map_decoder_bitwise_sum]
+  (* More common representation of probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
+  (* We have a prob space *)
+  >> qspecl_then [‘n’, ‘(LENGTH ds)’, ‘p’] assume_tac
+                 ecc_bsc_prob_space_is_prob_space
+  >> gvs[]
+  (* The inner bit is the bit we need to prove equivalence of. We only need
+     to prove equivalence for valid i, that is, i < n *)
+  >> gvs[MAP_EQ_f]
+  >> rw[]
+  >> gvs[MEM_COUNT_LIST]
+  (* We need the prove the inequality for the further inner bit *)
+  >> qmatch_goalsub_abbrev_tac ‘∑ f1 S1 ≤ ∑ f1 S2 ⇔ ∑ f2 S1 ≤ ∑ f2 S2’
+  (* S1 and S2 are representable in terms of an intersection with
+         length_n_codes *)
+  >> ‘S1 = length_n_codes n ∩ {bs | ¬EL i bs}’ by ASM_SET_TAC[]
+  >> ‘S2 = length_n_codes n ∩ {bs | EL i bs}’ by ASM_SET_TAC[]
+  >> gvs[]
+  >> NTAC 2 $ qpat_x_assum ‘_ = length_n_codes n ∩ _’ kall_tac
+  >> qmatch_goalsub_abbrev_tac ‘∑ f1 S1 ≤ ∑ f1 S2 ⇔ ∑ f2 S1 ≤ ∑ f2 S2’
+  >> sg ‘∀xs. xs ∈ length_n_codes n ⇒
+              f2 xs = f1 xs * prob (ecc_bsc_prob_space n (LENGTH ds) p)
+                                   (λ(bs,ns).
+                                      LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧
+                                      bxor (enc bs) ns = ds)’
+  >- (rw[]
+      >> unabbrev_all_tac
+      >> gvs[FUN_EQ_THM] >> rw[]
+      (* Rename the events and prob space to something more manageable *)
+      >> qmatch_goalsub_abbrev_tac
+         ‘cond_prob sp e1 e2 * prob sp e2 = cond_prob sp e2 e1 * _’
+      (* Each of the events is a valid event *)
+      >> sg ‘e1 ∈ events sp ∧
+             e2 ∈ events sp’
+      >- (rw[]
+          >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
+              >> gvs[SUBSET_DEF] >> rw[] >> (Cases_on ‘x’ >> ASM_SET_TAC[])
+             )
+         )
+      (* Each of the events has nonzero probability *)
+      >> sg ‘prob sp e1 ≠ 0 ∧
+             prob sp e2 ≠ 0’
+      >- (rw[] >> (unabbrev_all_tac >> gvs[prob_ecc_bsc_prob_space_zero]
+                   >> gvs[FUN_EQ_THM] >> rw[])
+          >- (qexists ‘(REPLICATE (LENGTH xs) F,
+                        bxor (enc (REPLICATE (LENGTH xs) F)) ds)’
+              >> gvs[bxor_length, bxor_inv]
+             )
+          >- (qexists ‘(xs, REPLICATE (LENGTH ds) F)’
+              >> gvs[EL_REPLICATE])
+         )
+      >> gvs[cond_prob_def]
+      >> gvs[prob_div_mul_refl]
+      >> gvs[INTER_COMM]
+     )
+  >> 
+
+  
+QED
+
+
+
 (* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
 (* given that we received a particular message, is equivalent to finding the  *)
