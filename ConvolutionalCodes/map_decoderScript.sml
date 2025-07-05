@@ -665,37 +665,4 @@ Proof
   >> gvs[PROB_FINITE, lt_le, PROB_POSITIVE]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* Finding the bits that maximize the probability of receiving that bit,      *)
-(* given that we received a particular message, is equivalent to finding the  *)
-(* bits that maximize the probably that we both received that bit and         *)
-(* received that message.                                                     *)
-(*                                                                            *)
-(* In more generality, if we are finding an argmax over a conditional         *)
-(* probability where only the first event depends on the variable we are      *)
-(* applying the argmax to, then the conditional probability can be reduced    *)
-(* to an intersection.                                                        *)
-(*                                                                            *)
-(* This theorem fails, because what if both choices of bit have an equal      *)
-(* probability? Since a bit is being chosen arbitrarily, we don't know if the *)
-(* bit is equialent to the other bit chosen arbitrarily.                      *)
-(* -------------------------------------------------------------------------- *)
-(*Theorem argmax_cond_prob:
-  ∀p_space P e s.
-    s ≠ ∅ ∧ FINITE s ⇒
-    argmax (λx. cond_prob p_space (P x) e) s =
-    argmax (λx. prob p_space ((P x) ∩ e)) s
-Proof
-  rw[]
-  >> last_x_assum mp_tac
-  >> SPEC_ALL_TAC
-  >> Induct_on ‘s’
-  >> rw[]
-  >> Cases_on ‘s’
-  >- gvs[]
-  >> gvs[]
-  >> 
-QED*)
-
-
 val _ = export_theory();
