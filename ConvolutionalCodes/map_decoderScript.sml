@@ -503,18 +503,25 @@ Proof
      )
 QED
 
-Theorem EXTREAL_SUM_IMAGE_LEQ_MUL_CONST:
-  FINITE S1 ∧
-  FINITE S2 ∧
-  0 < c ∧
-  c ≠ +∞ ∧
-  (∀x. x ∈ S1 ⇒ f1 x = f2 x * c) ∧
-  (∀x. x ∈ S2 ⇒ f1 x = f2 x * c) ⇒
-  ∑ f1 S1 ≤ ∑ f1 S2 ⇔ ∑ f2 S1 ≤ ∑ f2 S2
+(* -------------------------------------------------------------------------- *)
+(* A version of EXTREAL_SUM_IMAGE_CMUL which has the constant on the other    *)
+(* side, and also doesn't assume that the constant takes the form Normal r    *)
+(* -------------------------------------------------------------------------- *)
+Theorem EXTREAL_SUM_IMAGE_CMUL_R_ALT:
+  ∀s. FINITE s ⇒
+      ∀f c.
+        c ≠ +∞ ∧ c ≠ −∞ ∧
+        ((∀x. x ∈ s ⇒ f x ≠ −∞) ∨ (∀x. x ∈ s ⇒ f x ≠ +∞)) ⇒
+        ∑ (λx. f x * c) s = c * ∑ f s
 Proof
+  rw[]
+  (* Both proofs are essentially the same *)
+  >> (PURE_ONCE_REWRITE_TAC[mul_comm]
+      >> Cases_on ‘c’ >> gvs[EXTREAL_SUM_IMAGE_CMUL]
+      >> metis_tac[mul_comm]
+     )
 QED
-
-
+        
 (* -------------------------------------------------------------------------- *)
 (* A version of the MAP decoder which has both been represented as the sum    *)
 (* over all possible choices of input and had Bayes' rule applied to it       *)
@@ -598,12 +605,65 @@ Proof
       >> gvs[prob_div_mul_refl]
       >> gvs[INTER_COMM]
      )
-  >> 
-
-  
+  (* Rewrite the sums according to the alternate expression for f2 in terms of
+     f1. *)
+  >> qmatch_asmsub_abbrev_tac ‘f2 _ = f1 _ * prob sp e1’
+  >> qspecl_then [‘f2’, ‘λxs. f1 xs * prob sp e1’, ‘S1’] assume_tac
+                 EXTREAL_SUM_IMAGE_EQ'
+  >> qspecl_then [‘f2’, ‘λxs. f1 xs * prob sp e1’, ‘S2’] assume_tac
+                 EXTREAL_SUM_IMAGE_EQ'
+  >> NTAC 2 $ pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+  >> rw[]
+  >- (unabbrev_all_tac >> gvs[])
+  >- (first_assum irule >> unabbrev_all_tac >> gvs[])
+  >- (unabbrev_all_tac >> gvs[])
+  >- (first_assum irule >> unabbrev_all_tac >> gvs[])
+  (* e1 is a valid event *)
+  >> sg ‘e1 ∈ events sp’
+  >- (rw[]
+      >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
+          >> gvs[SUBSET_DEF] >> rw[] >> (Cases_on ‘x’ >> ASM_SET_TAC[])
+         )
+     )
+  (* Every possible choice of event in the conditional probability which
+     defines f1 is a valid event *)
+  >> sg ‘∀xs.
+           (λ(bs,ns).
+              LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧ bs = xs) ∈ events sp’
+  >- (rw[Abbr ‘sp’]
+      >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+      >> rw[] >> (Cases_on ‘x’ >> gvs[])
+     )
+  (* e1 has nonzero probability *)
+  >> sg ‘prob sp e1 ≠ 0’
+  >- (gvs[Abbr ‘sp’]
+      >> gvs[prob_ecc_bsc_prob_space_zero]
+      >> gvs[EXTENSION, events_ecc_bsc_prob_space, Abbr ‘e1’] >> rw[]
+      >> qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
+      >> gvs[bxor_length, bxor_inv]
+     )
+  (* Every possible choice of event in the conditional probability which
+     defines f1 has nonzero probability *)
+  >> sg ‘∀xs.
+           xs ∈ length_n_codes n ⇒
+           prob sp (λ(bs,ns).
+                         LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧ bs = xs) ≠ 0’
+  >- (rw[Abbr ‘sp’]
+      >> gvs[prob_ecc_bsc_prob_space_zero]
+      >> gvs[EXTENSION]
+      >> qexists ‘(xs, REPLICATE (LENGTH ds) F)’
+      >> gvs[]
+     )
+  (* Move one constant out of the sum *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_CMUL_R_ALT]
+  >> conj_tac >- gvs[PROB_FINITE, Abbr ‘f1’, COND_PROB_FINITE, Abbr ‘S1’]
+  (* Move the other constant out of the sum *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_CMUL_R_ALT]
+  >> conj_tac >- gvs[PROB_FINITE, Abbr ‘f1’, COND_PROB_FINITE, Abbr ‘S2’]
+  (* Cancel out the multiplication *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[le_lmul]
+  >> gvs[PROB_FINITE, lt_le, PROB_POSITIVE]
 QED
-
-
 
 (* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
