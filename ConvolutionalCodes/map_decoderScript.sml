@@ -209,6 +209,45 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* event_single_input_takes_value has a nonzero probability                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_single_input_takes_value_nonzero_prob:
+  ∀n m i x p.
+    0 < p ∧
+    p < 1 ∧
+    i < n ⇒
+    prob (ecc_bsc_prob_space n m p)
+         (event_single_input_takes_value n m i x) ≠ 0
+Proof
+  rw[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+  >> gvs[event_single_input_takes_value_is_event]
+  >> gvs[EXTENSION] >> rw[event_single_input_takes_value_def]
+  >> qexists ‘(REPLICATE n x, REPLICATE m F)’
+  >> gvs[EL_REPLICATE]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* event_received_string_is_correct has a nonzero probability                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_received_string_is_correct_nonzero_prob:
+  ∀enc n m ds p.
+    0 < p ∧
+    p < 1 ∧
+    LENGTH ds = m ∧
+    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+    prob (ecc_bsc_prob_space n m p)
+         (event_received_string_is_correct enc n m ds) ≠ 0
+Proof
+  rw[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+  >> gvs[event_received_string_is_correct_is_event]
+  >> gvs[EXTENSION] >> rw[event_received_string_is_correct_def]
+  >> qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
+  >> gvs[bxor_length, bxor_inv]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
 (* given that we received a particular message, is equivalent to finding the  *)
 (* bits that maximize the probability that we both received that bit and      *)
@@ -243,11 +282,7 @@ Theorem map_decoder_bitwise_joint:
     in
       MAP (λi. argmax_bool (map_decoder_bit_prob_joint i)) (COUNT_LIST n)
 Proof
-  rpt strip_tac
-  (* Don't substitute LENGTH ds in for m *)
-  >> qpat_x_assum ‘LENGTH ds = m’ assume_tac
-  >> donotexpand_tac
-  >> rw[]
+  rw[]
   (* 0 ≤ p and p ≤ 1 is a more common representation for a probability than
      0 < p and p < 1. *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
@@ -255,47 +290,17 @@ Proof
   >> gvs[map_decoder_bitwise_def, MAP_EQ_f]
   >> rw[]
   >> gvs[MEM_COUNT_LIST]
-  (* *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[argmax_bool_cond_prob]
-  >> gvs[ecc_bsc_prob_space_is_prob_space]
-  (* Decompose conditional probability into its component probabilities *)
-  >> gvs[cond_prob_def]
-  >> qmatch_goalsub_abbrev_tac ‘_ ⇔ prob1 ≤ prob2’
-  (* We expect to be able to cancel out this bottom term, we just need to
-     ensure that it is strictly positive and not infinity *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_le_iff]
-  >> gvs[]
-  >> qmatch_goalsub_abbrev_tac ‘0 < prob _ e’
-  (* We are taking the probability with respect to a valid event: all events
-     are valid in this probabiltiy space. *)
-  >> sg ‘e ∈ events (ecc_bsc_prob_space n m p)’
-  >- (gvs[events_ecc_bsc_prob_space]
-      >> unabbrev_all_tac
-      >> gvs[IN_DEF, SUBSET_DEF]
-      >> rw[] >> Cases_on ‘x’ >> gvs[]
-     )
-  (* A probability is never infinity. *)
-  >> gvs[PROB_FINITE]
-  (* A probability is always nonnegative, so we can simplify to having to prove
-     that our probability is nonzero *)
-  >> REVERSE $ Cases_on ‘prob (ecc_bsc_prob_space n m p) e = 0’
-  >- gvs[lt_le, PROB_POSITIVE]
-  >> gvs[]
-  (* Use lemma: in our probability space, a probability is zero if and only if
-     the event is the empty set. *)        
-  >> gvs[prob_ecc_bsc_prob_space_zero]
-  (* Simplify to needing to show that there is an element in the event. *)
-  >> gvs[events_ecc_bsc_prob_space]
-  >> gvs[EXTENSION]
-      >> qpat_x_assum ‘∀x. _’ mp_tac
-      >> gvs[]
-      (* There does exist such an element: simply send some initial message, and
-     then choose the noise in such a way that it perfectly ends up giving us
-     ds. *)
-      >> qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
-      >> gvs[bxor_length]
-      >> doexpand_tac >> gvs[]
-      >> gvs[bxor_inv]
+  (* Use lemma which says that taking the argmax_bool of a condintional
+     probability is equivalent to taking the argmax_bool of a probability *)
+  >> irule argmax_bool_cond_prob
+  >> gvs[ecc_bsc_prob_space_is_prob_space,
+         event_received_string_is_correct_is_event,
+         event_received_string_is_correct_nonzero_prob]
+QED
+
+Theorem argmax_bool_bayes:
+
+Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -311,24 +316,18 @@ Theorem map_decoder_bitwise_bayes:
     map_decoder_bitwise enc n m p ds =
     let
       sp = ecc_bsc_prob_space n m p;
-      e1 = λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bxor (enc bs) ns = ds;
-      e2 = λi x. (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = x);
+      e1 = event_received_string_is_correct enc n m ds;
+      e2 = event_single_input_takes_value n m;
       map_decoder_bit_prob_bayes = λi x. cond_prob sp e1 (e2 i x) *
                                          prob sp (e2 i x);
     in
-      MAP
-      (λi. map_decoder_bit_prob_bayes i F ≤ map_decoder_bit_prob_bayes i T)
-      (COUNT_LIST n)
+      MAP (λi. argmax_bool (map_decoder_bit_prob_bayes i)) (COUNT_LIST n)
 Proof
   (* Look at the internals *)
   rpt strip_tac
   >> gvs[map_decoder_bitwise_def]
   (* More common representation of probabilities *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
-  (* We have a prob space *)
-  >> qspecl_then [‘n’, ‘(LENGTH ds)’, ‘p’] assume_tac
-                 ecc_bsc_prob_space_is_prob_space
-  >> gvs[]
   (* The inner bit is the bit we need to prove equivalence of. We only need
      to prove equivalence for valid i, that is, i < n *)
   >> qmatch_goalsub_abbrev_tac ‘MAP f1 (COUNT_LIST n) = MAP f2 (COUNT_LIST n)’
