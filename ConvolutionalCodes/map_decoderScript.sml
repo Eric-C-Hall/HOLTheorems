@@ -32,6 +32,78 @@ val _ = new_theory "map_decoder";
 val _ = hide "S";
 
 (* -------------------------------------------------------------------------- *)
+(* The main definition in this file is map_decoder_bitwise_def.               *)
+(* -------------------------------------------------------------------------- *)
+(* The probability space that we are working over is the one which consists   *)
+(* of choosing an input uniformly at random and then choosing a sequence of   *)
+(* random bit-flips to apply to the encoded string. Thus, an event in our     *)
+(* probability space consists of a set of the possible (input, noise) pairs   *)
+(* which satisfy that event.                                                  *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* The event where a single input takes a specific value                      *)
+(*                                                                            *)
+(* n: the length of the initial message                                       *)
+(* m: the length of the encoded message                                       *)
+(* i: the index of the bit which takes a specific value                       *)
+(* x: the specific value that that bit takes                                  *)
+(*                                                                            *)
+(* Output: the set of all possible choices of input and noise for which the   *)
+(*         chosen input bit takes the chosen value.                           *)
+(* -------------------------------------------------------------------------- *)
+Definition event_single_input_takes_value_def:
+  event_single_input_takes_value n m i x =
+  (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = x)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Convert several disparate events which are closely related to              *)
+(* event_single_input_takes_value into a form in terms of                     *)
+(* event_single_input_takes_value. This allows us to apply theorems proven    *)
+(* for event_single_input_takes_value to any of these events.                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem to_event_single_input_takes_value:
+  ∀n m i x.
+    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = x) =
+    event_single_input_takes_value n m i x ∧
+    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs ≠ x) =
+    event_single_input_takes_value n m i (¬x) ∧
+    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs) =
+    event_single_input_takes_value n m i T ∧
+    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ ¬(EL i bs)) =
+    event_single_input_takes_value n m i F
+Proof
+  rw[] >> gvs[event_single_input_takes_value_def]
+  >> Cases_on ‘x’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The event in which the initially sent string together with the added noise *)
+(* produce the bitstring which was observed.                                  *)
+(*                                                                            *)
+(* enc: the encoding function                                                 *)
+(* n: the length of the initial message                                       *)
+(* m: the length of the encoded message                                       *)
+(* ds: the bitstring which was received                                       *)
+(* -------------------------------------------------------------------------- *)
+Definition event_received_string_is_correct_def:
+  event_received_string_is_correct enc n m ds =
+  (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bxor (enc bs) ns = ds)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Choose the value of a bit which maximizes the value of an extreal-valued   *)
+(* function.                                                                  *)
+(*                                                                            *)
+(* f: the function to maximize (bool -> extreal)                              *)
+(* Output: the choice of bit which maximize that function                     *)
+(* -------------------------------------------------------------------------- *)
+Definition argmax_bool_def:
+  argmax_bool f = (f F ≤ f T : extreal)
+End
+
+(* -------------------------------------------------------------------------- *)
 (* The bitwise MAP decoder chooses each returned bit such that it has maximal *)
 (* probability given the received message.                                    *)
 (*                                                                            *)
@@ -56,12 +128,10 @@ Definition map_decoder_bitwise_def:
   let
     map_decoder_bit_prob =
     λi x. cond_prob (ecc_bsc_prob_space n m p)
-                    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = x)
-                    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧
-                                bxor (enc bs) ns = ds);
+                    (event_single_input_takes_value n m i x)
+                    (event_received_string_is_correct enc n m ds);
   in
-    MAP (λi. map_decoder_bit_prob i F ≤ map_decoder_bit_prob i T)
-        (COUNT_LIST n)
+    MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -76,6 +146,66 @@ Proof
   >> REVERSE EQ_TAC >- metis_tac[ldiv_le_imp]
   >> Cases_on ‘x’ >> Cases_on ‘y’ >> Cases_on ‘z’
   >> gvs[infty_div, le_infty, extreal_div_eq, REAL_POS_NZ]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A division by a constant within an argmax_bool can be cancelled out        *)
+(* -------------------------------------------------------------------------- *)
+Theorem argmax_bool_div:
+  ∀P c.
+    0 < c ∧
+    c ≠ +∞ ⇒
+    argmax_bool (λb. P b / c) = argmax_bool P
+Proof
+  rw[]
+  >> gvs[argmax_bool_def]
+  >> gvs[ldiv_le_iff]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A conditional probability within an argmax_bool can be converted into an   *)
+(* ordinary probability                                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem argmax_bool_cond_prob:
+  ∀sp P B.
+    prob_space sp ∧
+    B ∈ events sp ∧
+    prob sp B ≠ 0 ⇒
+    (argmax_bool (λb. cond_prob sp (P b) B) =
+     argmax_bool (λb. prob sp (P b ∩ B)))
+Proof
+  rw[]
+  (* Decompose conditional probability into its component probabilities *)
+  >> gvs[cond_prob_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[argmax_bool_div]
+  >> gvs[PROB_FINITE, lt_le, PROB_POSITIVE]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* event_single_input_takes_value is a valid event in the probability space   *)
+(* it is designed for                                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_single_input_takes_value_is_event:
+  ∀n m i x p.
+    event_single_input_takes_value n m i x ∈ events (ecc_bsc_prob_space n m p)
+Proof
+  rw[event_single_input_takes_value_def, events_ecc_bsc_prob_space,
+     POW_DEF, SUBSET_DEF]
+  >> (Cases_on ‘x'’ >> gvs[])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* event_received_string_is_correct is a valid event in the probability space *)
+(* it is designed for                                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_received_string_is_correct_is_event:
+  ∀enc n m ds p.
+    event_received_string_is_correct enc n m ds ∈
+                                     events (ecc_bsc_prob_space n m p)
+Proof
+  rw[event_received_string_is_correct_def, events_ecc_bsc_prob_space,
+     POW_DEF, SUBSET_DEF]
+  >> (Cases_on ‘x’ >> gvs[])
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -108,29 +238,26 @@ Theorem map_decoder_bitwise_joint:
       map_decoder_bit_prob_joint =
       λi x.
         prob (ecc_bsc_prob_space n m p)
-             ((λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = x)
-              ∩ (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧
-                            bxor (enc bs) ns = ds));
+             ((event_single_input_takes_value n m i x)
+              ∩ (event_received_string_is_correct enc n m ds));
     in
-      MAP (λi. map_decoder_bit_prob_joint i F ≤ map_decoder_bit_prob_joint i T)
-          (COUNT_LIST n)
+      MAP (λi. argmax_bool (map_decoder_bit_prob_joint i)) (COUNT_LIST n)
 Proof
   rpt strip_tac
+  (* Don't substitute LENGTH ds in for m *)
   >> qpat_x_assum ‘LENGTH ds = m’ assume_tac
   >> donotexpand_tac
   >> rw[]
   (* 0 ≤ p and p ≤ 1 is a more common representation for a probability than
      0 < p and p < 1. *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
-  (* It's helpful to know that we have a prob space *)
-  >> qspecl_then [‘n’, ‘m’, ‘p’] assume_tac ecc_bsc_prob_space_is_prob_space
-  >> gvs[]
-  (* The inner lambda function is equivalent, so focus on that *)
-  >> gvs[map_decoder_bitwise_def]
-  >> AP_THM_TAC
-  >> AP_TERM_TAC
-  >> gvs[FUN_EQ_THM]
-  >> gen_tac
+  (* We need to prove that the inside of the MAP is equivalent *)
+  >> gvs[map_decoder_bitwise_def, MAP_EQ_f]
+  >> rw[]
+  >> gvs[MEM_COUNT_LIST]
+  (* *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[argmax_bool_cond_prob]
+  >> gvs[ecc_bsc_prob_space_is_prob_space]
   (* Decompose conditional probability into its component probabilities *)
   >> gvs[cond_prob_def]
   >> qmatch_goalsub_abbrev_tac ‘_ ⇔ prob1 ≤ prob2’
@@ -160,15 +287,15 @@ Proof
   (* Simplify to needing to show that there is an element in the event. *)
   >> gvs[events_ecc_bsc_prob_space]
   >> gvs[EXTENSION]
-  >> qpat_x_assum ‘∀x. _’ mp_tac
-  >> gvs[]
-  (* There does exist such an element: simply send some initial message, and
+      >> qpat_x_assum ‘∀x. _’ mp_tac
+      >> gvs[]
+      (* There does exist such an element: simply send some initial message, and
      then choose the noise in such a way that it perfectly ends up giving us
      ds. *)
-  >> qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
-  >> gvs[bxor_length]
-  >> doexpand_tac >> gvs[]
-  >> gvs[bxor_inv]
+      >> qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
+      >> gvs[bxor_length]
+      >> doexpand_tac >> gvs[]
+      >> gvs[bxor_inv]
 QED
 
 (* -------------------------------------------------------------------------- *)

@@ -29,20 +29,29 @@ open realLib;
 open dep_rewrite;
 open ConseqConv;
 
-val _ = new_theory "map_decoder";
+val _ = new_theory "map_decoder_convolutional_code";
 
 val _ = hide "S";
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: simplify requirement on encoder outputting correct length for this   *)
+(* special case                                                               *)
+(* -------------------------------------------------------------------------- *)
 Theorem temporary_name:
   ∀ps qs ts n m p ds.
-    0 < p ∧ p < 1 ∧
-    LENGTH ds = m ∧
-    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
-    map_decoder_bitwise
-    (encode_recursive_parity_equation (ps, qs) ts) n m p ds =
-    ARB
+    let
+      enc = encode_recursive_parity_equation (ps, qs) ts;
+    in
+      0 < p ∧ p < 1 ∧
+      LENGTH ds = m ∧
+      (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+      map_decoder_bitwise enc n m p ds =
+      ARB
 Proof
   rw[]
+  >> gvs[map_decoder_bitwise_sum_bayes]
     
 QED
   

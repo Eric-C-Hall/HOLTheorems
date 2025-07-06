@@ -112,7 +112,7 @@ Definition recursive_parity_equations_to_state_machine_def:
          in
            (v2n new_vec, apply_parity_equations ps window)
        ;
-       output_length := 2;
+       output_length := 1;
      |>
 End
 
