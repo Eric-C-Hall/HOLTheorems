@@ -58,6 +58,21 @@ Definition event_single_input_takes_value_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* The event where the entire input takes a specific value                    *)
+(*                                                                            *)
+(* n: the length of the initial message                                       *)
+(* m: the length of the encoded message                                       *)
+(* xs: the value that the input takes.                                        *)
+(*                                                                            *)
+(* Output: the set of all possible choices of input and noise for which the   *)
+(*         input takes the chosen value.                                      *)
+(* -------------------------------------------------------------------------- *)
+Definition event_input_takes_value_def:
+  event_input_takes_value n m xs =
+  (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bs = xs)
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Convert several disparate events which are closely related to              *)
 (* event_single_input_takes_value into a form in terms of                     *)
 (* event_single_input_takes_value. This allows us to apply theorems proven    *)
@@ -195,6 +210,19 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* event_input_takes_value is a valid event in the probability space   *)
+(* it is designed for                                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_takes_value_is_event:
+  ∀n m xs p.
+    event_input_takes_value n m xs ∈ events (ecc_bsc_prob_space n m p)
+Proof
+  rw[event_input_takes_value_def, events_ecc_bsc_prob_space,
+     POW_DEF, SUBSET_DEF]
+  >> (Cases_on ‘x’ >> gvs[])
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* event_received_string_is_correct is a valid event in the probability space *)
 (* it is designed for                                                         *)
 (* -------------------------------------------------------------------------- *)
@@ -225,6 +253,25 @@ Proof
   >> gvs[EXTENSION] >> rw[event_single_input_takes_value_def]
   >> qexists ‘(REPLICATE n x, REPLICATE m F)’
   >> gvs[EL_REPLICATE]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* event_input_takes_value has a nonzero probability                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_takes_value_nonzero_prob:
+  ∀n m xs p.
+    0 < p ∧
+    p < 1 ∧
+    LENGTH xs = n ⇒
+    prob (ecc_bsc_prob_space n m p)
+         (event_input_takes_value n m xs) ≠ 0
+Proof
+  rw[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+  >> gvs[event_input_takes_value_is_event]
+  >> gvs[EXTENSION] >> rw[event_input_takes_value_def]
+  >> qexists ‘(xs, REPLICATE m F)’
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -298,9 +345,24 @@ Proof
          event_received_string_is_correct_nonzero_prob]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Apply Bayes' rule to the inside of an argmax_bool                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem argmax_bool_bayes:
-
+  ∀sp P B.
+    prob_space sp ∧
+    B ∈ events sp ∧
+    prob sp B ≠ 0 ∧
+    (∀b. P b ∈ events sp) ∧
+    (∀b. prob sp (P b) ≠ 0) ⇒
+    argmax_bool (λb. cond_prob sp (P b) B) =
+    argmax_bool (λb. cond_prob sp B (P b) * prob sp (P b))
 Proof
+  rw[]
+  >> gvs[argmax_bool_cond_prob]
+  >> gvs[cond_prob_def]
+  >> gvs[prob_div_mul_refl]
+  >> gvs[INTER_COMM]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -334,48 +396,13 @@ Proof
   >> gvs[MAP_EQ_f]
   >> rw[Abbr ‘f1’, Abbr ‘f2’]
   >> gvs[MEM_COUNT_LIST]
-  (* Rename the events and prob space to something more manageable *)
-  >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 e3 ≤ cond_prob sp e2 e3’
-  (* Each of the events is a valid event *)
-  >> sg ‘e1 ∈ events sp ∧
-         e2 ∈ events sp ∧
-         e3 ∈ events sp’
-  >- (rw[]
-      >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
-          >> gvs[SUBSET_DEF] >> rw[] >> Cases_on ‘x’ >> ASM_SET_TAC[]
-         )
-     )
-  (* Each of the events has nonzero probability *)
-  >> sg ‘prob sp e1 ≠ 0 ∧
-         prob sp e2 ≠ 0 ∧
-         prob sp e3 ≠ 0’
-  >- (rw[] >> (unabbrev_all_tac >> gvs[prob_ecc_bsc_prob_space_zero]
-               >> gvs[FUN_EQ_THM] >> rw[])
-      >- (qexists ‘(REPLICATE n F, REPLICATE (LENGTH ds) F)’
-          >> gvs[EL_REPLICATE])
-      >- (qexists ‘(REPLICATE n T, REPLICATE (LENGTH ds) F)’
-          >> gvs[EL_REPLICATE])
-      >- (qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
-          >> gvs[bxor_length, bxor_inv]
-         )
-     )
-  (* Apply Bayes' rule*)
-  >> sg ‘cond_prob sp e1 e3
-         = cond_prob sp e3 e1 *
-           prob sp e1 /
-                prob sp e3’
-  >- metis_tac[BAYES_RULE]
-  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >> sg ‘cond_prob sp e2 e3
-         = cond_prob sp e3 e2 *
-           prob sp e2 /
-                prob sp e3’
-  >- metis_tac[BAYES_RULE]
-  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
-  (* Cancel out the divisions *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_le_iff]
-  >> conj_tac >- (gvs[PROB_FINITE] >> metis_tac[PROB_POSITIVE, le_lt])
-  >> gvs[]
+  (* The result follows from a lemma *)
+  >> irule argmax_bool_bayes
+  >> gvs[ecc_bsc_prob_space_is_prob_space,
+         event_received_string_is_correct_is_event,
+         event_received_string_is_correct_nonzero_prob,
+         event_single_input_takes_value_is_event,
+         event_single_input_takes_value_nonzero_prob]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -530,6 +557,85 @@ Proof
   >> ASM_SET_TAC[]
 QED
 
+Theorem length_n_codes_single_input_takes_value_intersection:
+  ∀n i x.
+    {bs | LENGTH bs = n ∧ (EL i bs ⇔ x)} =
+                          length_n_codes n ∩ {bs | EL i bs ⇔ x}
+Proof
+  rw[]
+  >> gvs[INTER_DEF]
+QED
+
+Theorem event_input_takes_value_disjoint:
+  ∀n m xs xs'.
+    xs ≠ xs' ⇒
+    DISJOINT (event_input_takes_value n m xs) (event_input_takes_value n m xs')
+Proof
+  rw[DISJOINT_DEF, event_input_takes_value_def, INTER_DEF, EXTENSION]
+  >> Cases_on ‘x’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The event where a single input takes a value can be expressed as the       *)
+(* bigunion of several events where the entire input takes a specific value.  *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_takes_value_bigunion:
+  ∀n m i x.
+    event_single_input_takes_value n m i x =
+    BIGUNION (IMAGE (event_input_takes_value n m)
+                    (length_n_codes n ∩ {xs | EL i xs ⇔ x}))
+Proof
+  rw[]
+  >> gvs[BIGUNION_IMAGE, event_single_input_takes_value_def,
+         event_input_takes_value_def]
+  >> rw[EXTENSION]
+  >> EQ_TAC >> rw[]
+  >> (Cases_on ‘x'’ >> gvs[])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The conditional probability of a single input taking a certain value can   *)
+(* be expressed as the sum of the conditional probabilities of all possible   *)
+(* inputs such that the single input takes the correct value                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem cond_prob_event_input_takes_value_sum:
+  ∀enc n m p i x ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+    cond_prob
+    (ecc_bsc_prob_space n m p)
+    (event_single_input_takes_value n m i x)
+    (event_received_string_is_correct enc n m ds) =
+    ∑ (λxs.
+         cond_prob (ecc_bsc_prob_space n m p)
+                   (event_input_takes_value n m xs)
+                   (event_received_string_is_correct enc n m ds)
+      )
+      {xs | LENGTH xs = n ∧ (EL i xs = x)}
+Proof
+  rw[]
+  (* More common representation of probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
+  >> assume_tac ecc_bsc_prob_space_is_prob_space
+  >> assume_tac event_input_takes_value_is_event
+  >> assume_tac event_received_string_is_correct_is_event
+  >> assume_tac event_received_string_is_correct_nonzero_prob
+  (* Rewrite the set we are summing over in terms of an intersection with
+     length_n_codes *)
+  >> gvs[length_n_codes_single_input_takes_value_intersection]
+  (* Bring the sum into the cond_prob, turning it into a union *)
+  >> DEP_PURE_REWRITE_TAC[GSYM cond_prob_additive_finite]
+  >> rw[]
+  >- gvs[event_input_takes_value_disjoint]
+  (* Now it suffices to prove that the events in the cond_prob are equivalent *)
+  >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 e3 = cond_prob sp e2 e3’
+  >> ‘e1 = e2’ suffices_by gvs[]
+  >> unabbrev_all_tac
+  >> gvs[event_input_takes_value_bigunion]
+  >> metis_tac[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A version of the MAP decoder which is represented as the sum over all      *)
 (* possible choices of input such that the ith element takes the appropriate  *)
@@ -544,89 +650,26 @@ Theorem map_decoder_bitwise_sum:
     let
       map_decoder_bitstring_prob =
       λxs. cond_prob (ecc_bsc_prob_space n m p)
-                     (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bs = xs)
-                     (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧
-                                 bxor (enc bs) ns = ds);
+                     (event_input_takes_value n m xs)
+                     (event_received_string_is_correct enc n m ds);
       map_decoder_bit_prob =
       λi x. ∑ map_decoder_bitstring_prob {bs | LENGTH bs = n ∧ EL i bs = x};
     in
-      (MAP (λi. map_decoder_bit_prob i F ≤ map_decoder_bit_prob i T)
-           (COUNT_LIST n))
+      (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n))
 Proof
   (* Look at the internals *)
   rpt strip_tac
   >> gvs[map_decoder_bitwise_def]
   (* More common representation of probabilities *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
-  (* We have a prob space *)
-  >> qspecl_then [‘n’, ‘(LENGTH ds)’, ‘p’] assume_tac
-                 ecc_bsc_prob_space_is_prob_space
-  >> gvs[]
   (* The inner bit is the bit we need to prove equivalence of. We only need
      to prove equivalence for valid i, that is, i < n *)
   >> qmatch_goalsub_abbrev_tac ‘MAP f1 (COUNT_LIST n) = MAP f2 (COUNT_LIST n)’
   >> gvs[MAP_EQ_f]
   >> rw[Abbr ‘f1’, Abbr ‘f2’]
   >> gvs[MEM_COUNT_LIST]
-  (* Rename the events and prob space to something more manageable *)
-  >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 e3 ≤ cond_prob sp e2 e3’
-  (* Each of the events is a valid event *)
-  >> sg ‘e1 ∈ events sp ∧
-         e2 ∈ events sp ∧
-         e3 ∈ events sp’
-  >- (rw[]
-      >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
-          >> gvs[SUBSET_DEF] >> rw[] >> Cases_on ‘x’ >> ASM_SET_TAC[]
-         )
-     )
-  (* Each of the events has nonzero probability *)
-  >> sg ‘prob sp e1 ≠ 0 ∧
-         prob sp e2 ≠ 0 ∧
-         prob sp e3 ≠ 0’
-  >- (rw[] >> (unabbrev_all_tac >> gvs[prob_ecc_bsc_prob_space_zero]
-               >> gvs[FUN_EQ_THM] >> rw[])
-      >- (qexists ‘(REPLICATE n F, REPLICATE (LENGTH ds) F)’
-          >> gvs[EL_REPLICATE])
-      >- (qexists ‘(REPLICATE n T, REPLICATE (LENGTH ds) F)’
-          >> gvs[EL_REPLICATE])
-      >- (qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
-          >> gvs[bxor_length, bxor_inv]
-         )
-     )
-  (* Rewrite the sets we are summing over in terms of an intersection with
-     length_n_codes *)
-  >> qmatch_goalsub_abbrev_tac ‘∑ _ S1 ≤ ∑ _ S2’
-  >> ‘S1 = length_n_codes n ∩ {bs | ¬EL e bs}’ by gvs[Abbr ‘S1’, INTER_DEF]
-  >> ‘S2 = length_n_codes n ∩ {bs | EL e bs}’ by gvs[Abbr ‘S2’, INTER_DEF]
-  >> gvs[]
-  >> NTAC 2 $ qpat_x_assum ‘_ = length_n_codes n ∩ _’ kall_tac
-  (* For any choice of xs, the event we are working with is a valid event *)
-  >> sg ‘∀xs.
-           xs ∈ length_n_codes n ⇒
-           (λ(bs,ns).
-              LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧ bs = xs) ∈ events sp’
-  >- (rw[]
-      >> unabbrev_all_tac
-      >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-      >> rw[] >> (Cases_on ‘x’ >> gvs[])
-     )
-  (* Bring the sum into the cond_prob, turning it into a union *)
-  >> DEP_PURE_REWRITE_TAC[GSYM cond_prob_additive_finite]
-  >> rw[]
-  >- (gvs[DISJOINT_DEF, EXTENSION] >> rw[] >> Cases_on ‘x’ >> gvs[])
-  >- (gvs[DISJOINT_DEF, EXTENSION] >> rw[] >> Cases_on ‘x’ >> gvs[])
-  (* Now it suffices to prove that the events in the cond_prob are equivalent *)
-  >> qmatch_goalsub_abbrev_tac ‘_ ⇔ cond_prob sp e4 e3 ≤ cond_prob sp e5 e3’
-  >> ‘e1 = e4 ∧ e2 = e5’ suffices_by gvs[]
-  >> unabbrev_all_tac
-  >> rw[]
-  (* These goals are very similar so we may as well solve each goal at the same
-     time *)
-  >> (gvs[BIGUNION_IMAGE]
-      >> gvs[EXTENSION] >> rw[]
-      >> Cases_on ‘x’ >> gvs[]
-      >> EQ_TAC >> gvs[]
-     )
+  (* This follows from a lemma *)
+  >>  gvs[cond_prob_event_input_takes_value_sum]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -647,7 +690,19 @@ Proof
       >> metis_tac[mul_comm]
      )
 QED
-        
+
+Theorem argmax_bool_mul_const:
+  ∀f g c.
+    0 < c ∧
+    c ≠ +∞ ∧
+    (g = λx. c * f x)
+    ⇒ (argmax_bool f ⇔ argmax_bool g)
+Proof
+  rw[]
+  >> gvs[argmax_bool_def]
+  >> gvs[le_lmul]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A version of the MAP decoder which has both been represented as the sum    *)
 (* over all possible choices of input and had Bayes' rule applied to it       *)
@@ -661,107 +716,140 @@ Theorem map_decoder_bitwise_sum_bayes:
     let
       map_decoder_bitstring_prob_bayes =
       λxs. cond_prob (ecc_bsc_prob_space n m p)
-                     (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧
-                                 bxor (enc bs) ns = ds)
-                     (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bs = xs) *
+                     (event_received_string_is_correct enc n m ds)
+                     (event_input_takes_value n m xs) *
            prob (ecc_bsc_prob_space n m p)
-                (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bs = xs);
+                (event_input_takes_value n m xs);
       map_decoder_bit_prob =
       λi x.
         ∑ map_decoder_bitstring_prob_bayes {bs | LENGTH bs = n ∧ EL i bs = x};
     in
-      (MAP (λi. map_decoder_bit_prob i F ≤ map_decoder_bit_prob i T)
-           (COUNT_LIST n))
+      (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n))
 Proof
   (* Convert to the sum version *)
   rw[]
   >> gvs[map_decoder_bitwise_sum]
   (* More common representation of probabilities *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
-  (* We have a prob space *)
-  >> qspecl_then [‘n’, ‘(LENGTH ds)’, ‘p’] assume_tac
-                 ecc_bsc_prob_space_is_prob_space
-  >> gvs[]
+  (* Useful theorems *)
+  >> assume_tac ecc_bsc_prob_space_is_prob_space
+  >> assume_tac event_input_takes_value_is_event
+  >> assume_tac event_input_takes_value_nonzero_prob
+  >> assume_tac event_received_string_is_correct_is_event
+  >> assume_tac event_received_string_is_correct_nonzero_prob
   (* The inner bit is the bit we need to prove equivalence of. We only need
      to prove equivalence for valid i, that is, i < n *)
   >> gvs[MAP_EQ_f]
   >> rw[]
   >> gvs[MEM_COUNT_LIST]
-  (* We need the prove the inequality for the further inner bit *)
-  >> qmatch_goalsub_abbrev_tac ‘∑ f1 S1 ≤ ∑ f1 S2 ⇔ ∑ f2 S1 ≤ ∑ f2 S2’
-  (* S1 and S2 are representable in terms of an intersection with
-         length_n_codes *)
-  >> ‘S1 = length_n_codes n ∩ {bs | ¬EL i bs}’ by ASM_SET_TAC[]
-  >> ‘S2 = length_n_codes n ∩ {bs | EL i bs}’ by ASM_SET_TAC[]
-  >> gvs[]
-  >> NTAC 2 $ qpat_x_assum ‘_ = length_n_codes n ∩ _’ kall_tac
-  >> qmatch_goalsub_abbrev_tac ‘∑ f1 S1 ≤ ∑ f1 S2 ⇔ ∑ f2 S1 ≤ ∑ f2 S2’
-  >> sg ‘∀xs. xs ∈ length_n_codes n ⇒
-              f2 xs = f1 xs * prob (ecc_bsc_prob_space n (LENGTH ds) p)
-                                   (λ(bs,ns).
-                                      LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧
-                                      bxor (enc bs) ns = ds)’
-  >- (rw[]
-      >> unabbrev_all_tac
-      >> gvs[FUN_EQ_THM] >> rw[]
-      (* Rename the events and prob space to something more manageable *)
-      >> qmatch_goalsub_abbrev_tac
-         ‘cond_prob sp e1 e2 * prob sp e2 = cond_prob sp e2 e1 * _’
-      (* Each of the events is a valid event *)
-      >> sg ‘e1 ∈ events sp ∧
-             e2 ∈ events sp’
-      >- (rw[]
-          >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
-              >> gvs[SUBSET_DEF] >> rw[] >> (Cases_on ‘x’ >> ASM_SET_TAC[])
-             )
-         )
-      (* Each of the events has nonzero probability *)
-      >> sg ‘prob sp e1 ≠ 0 ∧
-             prob sp e2 ≠ 0’
-      >- (rw[] >> (unabbrev_all_tac >> gvs[prob_ecc_bsc_prob_space_zero]
-                   >> gvs[FUN_EQ_THM] >> rw[])
-          >- (qexists ‘(REPLICATE (LENGTH xs) F,
-                        bxor (enc (REPLICATE (LENGTH xs) F)) ds)’
-              >> gvs[bxor_length, bxor_inv]
-             )
-          >- (qexists ‘(xs, REPLICATE (LENGTH ds) F)’
-              >> gvs[EL_REPLICATE])
-         )
-      >> gvs[cond_prob_def]
-      >> gvs[prob_div_mul_refl]
-      >> gvs[INTER_COMM]
-     )
-  (* Rewrite the sums according to the alternate expression for f2 in terms of
-     f1. *)
-  >> qmatch_asmsub_abbrev_tac ‘f2 _ = f1 _ * prob sp e1’
-  >> qspecl_then [‘f2’, ‘λxs. f1 xs * prob sp e1’, ‘S1’] assume_tac
-                 EXTREAL_SUM_IMAGE_EQ'
-  >> qspecl_then [‘f2’, ‘λxs. f1 xs * prob sp e1’, ‘S2’] assume_tac
-                 EXTREAL_SUM_IMAGE_EQ'
-  >> NTAC 2 $ pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+  (* Rewrite cond_prob in terms of probabilities to make things more clear *)
+  >> gvs[cond_prob_def]
+  (* This follows from the fact that one of the inner bits is a nonnegative
+     finite multiple of the other *)
+  >> irule argmax_bool_mul_const
+  >> qexists ‘prob (ecc_bsc_prob_space n (LENGTH ds) p)
+              (event_received_string_is_correct enc n (LENGTH ds) ds)’
+  >> gvs[PROB_FINITE]
+  >> REVERSE conj_tac >- gvs[lt_le, PROB_POSITIVE]
+  (* Simplify *)
+  >> gvs[FUN_EQ_THM]
   >> rw[]
-  >- (unabbrev_all_tac >> gvs[])
-  >- (first_assum irule >> unabbrev_all_tac >> gvs[])
-  >- (unabbrev_all_tac >> gvs[])
-  >- (first_assum irule >> unabbrev_all_tac >> gvs[])
-  (* e1 is a valid event *)
-  >> sg ‘e1 ∈ events sp’
-  >- (rw[]
-      >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
-          >> gvs[SUBSET_DEF] >> rw[] >> (Cases_on ‘x’ >> ASM_SET_TAC[])
-         )
-     )
-  (* Every possible choice of event in the conditional probability which
-     defines f1 is a valid event *)
+  (* The function in the first sum can be simplified by cancelling the
+     division with the multiplication, but we need to know that the input
+     is in length_n_codes n. *)
+  >> qmatch_goalsub_abbrev_tac ‘∑ f _ = _ * _’
   >> sg ‘∀xs.
-           (λ(bs,ns).
-              LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧ bs = xs) ∈ events sp’
-  >- (rw[Abbr ‘sp’]
-      >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-      >> rw[] >> (Cases_on ‘x’ >> gvs[])
-     )
-  (* e1 has nonzero probability *)
-  >> sg ‘prob sp e1 ≠ 0’
+           xs ∈ length_n_codes n ⇒
+           f xs =
+           (λxs. prob (ecc_bsc_prob_space n (LENGTH ds) p)
+                      ((event_received_string_is_correct enc n (LENGTH ds) ds)
+                       ∩ event_input_takes_value n (LENGTH ds) xs))
+        ’
+  >- (rw[FUN_EQ_THM]
+
+       
+      (* Cancel out division followed by multiplication *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[prob_div_mul_refl]
+      >> conj_tac
+      >- irule event_input_takes_value_nonzero_prob
+      >> gvs[]
+      >> gvs[event_input_takes_value_nonzero_prob]
+      >> gvs[prob_div_mul_refl]
+            
+            
+      >> qmatch_goalsub_abbrev_tac ‘_ / den’
+                                   
+      >> DEP_PURE_ONCE_REWRITE_TAC[prob_div_mul_refl]
+      >> gvs[ecc_bsc_prob_space_is_prob_space,
+             event_input_takes_value_is_event,
+             event_input_takes_value_nonzero_prob]
+            
+      >> sg ‘∀xs. xs ∈ length_n_codes n ⇒
+                  f2 xs = f1 xs * prob (ecc_bsc_prob_space n (LENGTH ds) p)
+                                       (λ(bs,ns).
+                                          LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧
+                                          bxor (enc bs) ns = ds)’
+      >- (rw[]
+          >> unabbrev_all_tac
+          >> gvs[FUN_EQ_THM] >> rw[]
+          (* Rename the events and prob space to something more manageable *)
+          >> qmatch_goalsub_abbrev_tac
+             ‘cond_prob sp e1 e2 * prob sp e2 = cond_prob sp e2 e1 * _’
+          (* Each of the events is a valid event *)
+          >> sg ‘e1 ∈ events sp ∧
+                 e2 ∈ events sp’
+          >- (rw[]
+              >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
+                  >> gvs[SUBSET_DEF] >> rw[] >> (Cases_on ‘x’ >> ASM_SET_TAC[])
+                 )
+             )
+          (* Each of the events has nonzero probability *)
+          >> sg ‘prob sp e1 ≠ 0 ∧
+                 prob sp e2 ≠ 0’
+          >- (rw[] >> (unabbrev_all_tac >> gvs[prob_ecc_bsc_prob_space_zero]
+                       >> gvs[FUN_EQ_THM] >> rw[])
+              >- (qexists ‘(REPLICATE (LENGTH xs) F,
+                            bxor (enc (REPLICATE (LENGTH xs) F)) ds)’
+                  >> gvs[bxor_length, bxor_inv]
+                 )
+              >- (qexists ‘(xs, REPLICATE (LENGTH ds) F)’
+                  >> gvs[EL_REPLICATE])
+             )
+          >> gvs[cond_prob_def]
+          >> gvs[prob_div_mul_refl]
+          >> gvs[INTER_COMM]
+         )
+      (* Rewrite the sums according to the alternate expression for f2 in terms of
+     f1. *)
+      >> qmatch_asmsub_abbrev_tac ‘f2 _ = f1 _ * prob sp e1’
+      >> qspecl_then [‘f2’, ‘λxs. f1 xs * prob sp e1’, ‘S1’] assume_tac
+                     EXTREAL_SUM_IMAGE_EQ'
+      >> qspecl_then [‘f2’, ‘λxs. f1 xs * prob sp e1’, ‘S2’] assume_tac
+                     EXTREAL_SUM_IMAGE_EQ'
+      >> NTAC 2 $ pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC [th])
+      >> rw[]
+      >- (unabbrev_all_tac >> gvs[])
+      >- (first_assum irule >> unabbrev_all_tac >> gvs[])
+      >- (unabbrev_all_tac >> gvs[])
+      >- (first_assum irule >> unabbrev_all_tac >> gvs[])
+      (* e1 is a valid event *)
+         >> sg ‘e1 ∈ events sp’
+         >- (rw[]
+             >> (unabbrev_all_tac >> gvs[events_ecc_bsc_prob_space, POW_DEF]
+                 >> gvs[SUBSET_DEF] >> rw[] >> (Cases_on ‘x’ >> ASM_SET_TAC[])
+                )
+            )
+         (* Every possible choice of event in the conditional probability which
+     defines f1 is a valid event *)
+         >> sg ‘∀xs.
+                  (λ(bs,ns).
+                     LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧ bs = xs) ∈ events sp’
+         >- (rw[Abbr ‘sp’]
+             >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+             >> rw[] >> (Cases_on ‘x’ >> gvs[])
+            )
+         (* e1 has nonzero probability *)
+         >> sg ‘prob sp e1 ≠ 0’
   >- (gvs[Abbr ‘sp’]
       >> gvs[prob_ecc_bsc_prob_space_zero]
       >> gvs[EXTENSION, events_ecc_bsc_prob_space, Abbr ‘e1’] >> rw[]
@@ -773,7 +861,7 @@ Proof
   >> sg ‘∀xs.
            xs ∈ length_n_codes n ⇒
            prob sp (λ(bs,ns).
-                         LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧ bs = xs) ≠ 0’
+                      LENGTH bs = n ∧ LENGTH ns = LENGTH ds ∧ bs = xs) ≠ 0’
   >- (rw[Abbr ‘sp’]
       >> gvs[prob_ecc_bsc_prob_space_zero]
       >> gvs[EXTENSION]
@@ -786,9 +874,9 @@ Proof
   (* Move the other constant out of the sum *)
   >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_CMUL_R_ALT]
   >> conj_tac >- gvs[PROB_FINITE, Abbr ‘f1’, COND_PROB_FINITE, Abbr ‘S2’]
-  (* Cancel out the multiplication *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[le_lmul]
-  >> gvs[PROB_FINITE, lt_le, PROB_POSITIVE]
+      (* Cancel out the multiplication *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[le_lmul]
+      >> gvs[PROB_FINITE, lt_le, PROB_POSITIVE]
 QED
 
 val _ = export_theory();

@@ -4,6 +4,11 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* map_decoderScript has unnecessarily large subgoal in
+   map_decoder_bitwise_sum_bayes *)
+
+(* ----------------- *)
+
 (* I am somewhat unclear on what theorems to prove for turbo codes.
    Proving that BCJR is an a posteriori decoder seems to be a good start.
    It is probably also a good idea to show that if the factor graph could be
