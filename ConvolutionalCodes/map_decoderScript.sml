@@ -210,7 +210,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* event_input_takes_value is a valid event in the probability space   *)
+(* event_input_takes_value is a valid event in the probability space          *)
 (* it is designed for                                                         *)
 (* -------------------------------------------------------------------------- *)
 Theorem event_input_takes_value_is_event:
@@ -329,6 +329,22 @@ Proof
   >> qexists ‘(xs, bxor (enc xs) ds)’
   >> gvs[bxor_length, bxor_inv]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* The probability that the input is of a certain form                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_event_input_takes_value:
+  ∀n m xs p.
+    prob (ecc_bsc_prob_space n m p) (event_input_takes_value n m xs) = ARB
+Proof
+  rw[]
+  >> gvs[prob_def, event_input_takes_value_def,
+         ecc_bsc_prob_space_def, prod_measure_space_def]
+  >> gvs[prod_measure_def, length_n_codes_uniform_prob_space_def,
+         sym_noise_prob_space_def]
+  >>
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
@@ -839,5 +855,7 @@ Proof
   (* Intersection commutativity *)
   >> gvs[INTER_COMM]
 QED
+
+
 
 val _ = export_theory();

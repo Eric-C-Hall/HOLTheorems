@@ -33,8 +33,6 @@ val _ = new_theory "map_decoder_convolutional_code";
 
 val _ = hide "S";
 
-
-
 (* -------------------------------------------------------------------------- *)
 (* TODO: simplify requirement on encoder outputting correct length for this   *)
 (* special case                                                               *)
@@ -52,6 +50,7 @@ Theorem temporary_name:
 Proof
   rw[]
   >> gvs[map_decoder_bitwise_sum_bayes]
+  >> 
     
 QED
   

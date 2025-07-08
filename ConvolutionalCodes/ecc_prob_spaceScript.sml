@@ -43,6 +43,8 @@ open simpLib;
 
 open realLib;
 
+val _ = hide "S";
+
 Overload length_n_codes = “λn. {c : bool list | LENGTH c = n}”;
 
 (* -------------------------------------------------------------------------- *)
@@ -1194,6 +1196,136 @@ Proof
   >> rw[] >> gvs[]
   >> drule sub_0
   >> rw[] >> gvs[]
+QED
+
+Theorem extreal_of_num_suc:
+  ∀n : num.
+    &(SUC n) : extreal = (&n) + 1
+Proof
+  rw[]
+  >> gvs[extreal_of_num_def]
+  >> PURE_ONCE_REWRITE_TAC[GSYM REAL_OF_NUM_SUC]
+  >> metis_tac[extreal_add_eq]
+QED
+
+Theorem extreal_of_num_add:
+  ∀n m : num.
+    &(n + m) : extreal = (&n) + (&m)
+Proof
+  rpt strip_tac
+  >> Induct_on ‘n’
+  >- gvs[]
+  >> gvs[ADD]
+  >> gvs[extreal_of_num_suc]
+  >> Cases_on ‘&n : extreal’ >> Cases_on ‘&m : extreal’ >> gvs[]
+  >> rpt (pop_assum kall_tac)
+  >> ‘1 = Normal 1’ by gvs[]
+  >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+  >> PURE_REWRITE_TAC[extreal_add_eq]
+  >> gvs[extreal_11]
+  >> metis_tac[REAL_ADD_COMM, REAL_ADD_ASSOC]
+QED
+
+Theorem extreal_of_num_mul:
+  ∀n m : num.
+    &(n * m) : extreal = (&n) * (&m)
+Proof
+  rw[]
+  >> Induct_on ‘m’ >> gvs[]
+  >> gvs[MULT_SUC]
+  >> gvs[extreal_of_num_add]
+  >> pop_assum kall_tac
+  >> gvs[extreal_of_num_suc]
+  >> Cases_on ‘&n : extreal’ >> Cases_on ‘&m : extreal’ >> gvs[]
+  >> rpt (pop_assum kall_tac)
+  >> ‘1 = Normal 1’ by gvs[]
+  >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+  >> PURE_REWRITE_TAC[extreal_add_eq, extreal_mul_eq]
+  >> gvs[extreal_11]
+  >> gvs[REAL_LDISTRIB]
+  >> metis_tac[REAL_ADD_COMM] 
+QED
+
+Theorem extreal_of_num_exp:
+  ∀n m : num.
+    &(n ** m) : extreal = (&n) pow (&m)
+Proof
+  rw[]
+  >> Induct_on ‘m’ >> gvs[]
+  >> gvs[EXP]
+  >> gvs[extreal_of_num_mul]
+  >> pop_assum kall_tac
+  >> gvs[extreal_pow]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Since our prob space has a finite event space, we can calculate the        *)
+(* probability by simply summing over the probabilities of each individual    *)
+(* event                                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_ecc_bsc_prob_space:
+  ∀n m p S.
+    0 ≤ p ∧ p ≤ 1 ∧
+    S ∈ events (ecc_bsc_prob_space n m p) ⇒
+    prob (ecc_bsc_prob_space n m p) S =
+    ∑ (λx. 1 / 2 pow n * sym_noise_mass_func p (SND x)) S
+Proof
+  rw[]
+  (* Our event is finite because our space is finite *)
+  >> sg ‘FINITE S’
+  >- (gvs[events_ecc_bsc_prob_space, POW_DEF]
+      >> metis_tac[length_n_codes_finite, SUBSET_FINITE, FINITE_CROSS])
+  (* It is sometimes convenient to know that S is in the event space, and
+     sometimes convenient to know that each component of each element of S
+     has the correct length *)
+  >> sg ‘S ⊆ length_n_codes n × length_n_codes m’
+  >- (gvs[events_ecc_bsc_prob_space]
+      >> gvs[POW_DEF])
+  (* The probability of a finite set is equivalent to taking the sum over
+     the probabilities of each of the elements in the finite set *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[PROB_EXTREAL_SUM_IMAGE]
+  >> gvs[ecc_bsc_prob_space_is_prob_space]
+  >> conj_tac
+  >- (rw[]
+      >> gvs[events_ecc_bsc_prob_space]
+      >> gvs[POW_DEF]
+      >> ‘x ∈ length_n_codes n × length_n_codes m’ by ASM_SET_TAC[]
+      >> gvs[]
+     )
+  (* We can use prod_measure_sing to simplify the probability function, because
+     it is being applied to a single element. *)
+  >> simp[ecc_bsc_prob_space_def, prod_measure_space_def,
+          prob_def]
+  >> qspecl_then [‘λx. prod_measure (length_n_codes_uniform_prob_space n)
+                                    (sym_noise_prob_space m p) {x}’,
+                  ‘λx. (measure (length_n_codes_uniform_prob_space n) {FST x}) *
+                       (measure (sym_noise_prob_space m p) {SND x})’,
+                  ‘S’] assume_tac EXTREAL_SUM_IMAGE_EQ'
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> rw[]
+  (* Apply prod_measure_sing to simplify the product measure *)
+  >- (DEP_PURE_ONCE_REWRITE_TAC[prod_measure_sing]
+      >> gvs[length_n_codes_uniform_prob_space_is_prob_space,
+             sym_noise_prob_space_is_prob_space,
+             prob_space_def]
+      >> rw[]
+           >>~- ([‘measure_space _’] ,
+                 metis_tac[length_n_codes_uniform_prob_space_is_prob_space,
+                           sym_noise_prob_space_is_prob_space,
+                           prob_space_def])
+           >>~- ([‘_ ∈ measurable_sets _’],
+                 ‘x ∈ length_n_codes n × length_n_codes m’ by ASM_SET_TAC[]
+                 >> Cases_on ‘x’ >> gvs[]
+                 >> gvs[length_n_codes_uniform_prob_space_def,
+                        sym_noise_prob_space_def]
+                 >> gvs[POW_DEF, CROSS_DEF]
+                )
+     )
+  (* Simplify the expression within the sum *)
+  >> gvs[length_n_codes_uniform_prob_space_def, uniform_distribution_def]
+  >> gvs[extreal_of_num_exp]
+  >> gvs[sym_noise_prob_space_def]
+  >> gvs[sym_noise_dist_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
