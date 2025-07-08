@@ -335,16 +335,53 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem prob_event_input_takes_value:
   ∀n m xs p.
-    prob (ecc_bsc_prob_space n m p) (event_input_takes_value n m xs) = ARB
+    0 ≤ p ∧ p ≤ 1 ∧
+    LENGTH xs = n ⇒
+    prob (ecc_bsc_prob_space n m p) (event_input_takes_value n m xs) =
+    1 / (2 pow LENGTH xs)
 Proof
+  (* Use the expression for the probability in this probability space to
+     simplify. *)
   rw[]
-  >> gvs[prob_def, event_input_takes_value_def,
-         ecc_bsc_prob_space_def, prod_measure_space_def]
-  >> gvs[prod_measure_def, length_n_codes_uniform_prob_space_def,
-         sym_noise_prob_space_def]
-  >>
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space]
+  >> gvs[event_input_takes_value_is_event]
+  (* Expand out the definition of the event we are calculating the probability
+     of *)
+  >> gvs[event_input_takes_value_def]
+  (* Rewrite this in terms of sym_noise_dist by pushing the SND across to the
+     set we are summing over. This will allow us to prove that this sum is
+     equal to 1. *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_IMAGE]
+  >> rw[]
+  >- (qmatch_goalsub_abbrev_tac ‘FINITE S’
+      >> sg ‘S ⊆ length_n_codes (LENGTH xs) × length_n_codes m’
+      >- (unabbrev_all_tac >> gvs[SUBSET_DEF]
+          >> rw[] >> (Cases_on ‘x’ >> gvs[]))
+      >> metis_tac[length_n_codes_finite, FINITE_SUBSET, FINITE_CROSS]
+     )
+  >- (gvs[INJ_DEF]
+      >> rw[]
+      >> Cases_on ‘x’ >> Cases_on ‘y’ >> gvs[]
+     )
+  >- (disj1_tac
+      >> rw[]
+      >> gvs[sym_noise_mass_func_not_neginf]
+     )
+  >> gvs[GSYM sym_noise_dist_def]
+  (* The set we are taking the distribution over is the set of all possible
+     length m codes. *)
+  >> qmatch_goalsub_abbrev_tac ‘sym_noise_dist _ S’
+  >> sg ‘S = length_n_codes m’
+  >- (unabbrev_all_tac
+      >> gvs[EXTENSION] >> rw[]
+      >> EQ_TAC >> rw[]
+      >- (Cases_on ‘x'’ >> gvs[])
+      >> qexists ‘(xs, x)’
+      >> gvs[]
+     )
+  >> pop_assum (fn th => gvs[th])
+  >> gvs[sym_noise_dist_length_n_codes]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
@@ -722,25 +759,6 @@ Proof
   >> gvs[MEM_COUNT_LIST]
   (* This follows from a lemma *)
   >>  gvs[cond_prob_event_input_takes_value_sum]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* A version of EXTREAL_SUM_IMAGE_CMUL which has the constant on the other    *)
-(* side, and also doesn't assume that the constant takes the form Normal r    *)
-(* -------------------------------------------------------------------------- *)
-Theorem EXTREAL_SUM_IMAGE_CMUL_R_ALT:
-  ∀s. FINITE s ⇒
-      ∀f c.
-        c ≠ +∞ ∧ c ≠ −∞ ∧
-        ((∀x. x ∈ s ⇒ f x ≠ −∞) ∨ (∀x. x ∈ s ⇒ f x ≠ +∞)) ⇒
-        ∑ (λx. f x * c) s = c * ∑ f s
-Proof
-  rw[]
-  (* Both proofs are essentially the same *)
-  >> (PURE_ONCE_REWRITE_TAC[mul_comm]
-      >> Cases_on ‘c’ >> gvs[EXTREAL_SUM_IMAGE_CMUL]
-      >> metis_tac[mul_comm]
-     )
 QED
 
 Theorem argmax_bool_mul_const:

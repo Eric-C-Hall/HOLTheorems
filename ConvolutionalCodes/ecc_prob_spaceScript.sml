@@ -746,6 +746,21 @@ Proof
   >> gvs[]
 QED
 
+Theorem sym_noise_dist_length_n_codes:
+  ∀n p.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    sym_noise_dist p (length_n_codes n) = 1
+Proof
+  rw[]
+  >> Induct_on ‘n’
+  >- gvs[sym_noise_dist_def, sym_noise_mass_func_def]
+  >> drule EQ_SYM >> pop_assum kall_tac >> strip_tac
+  >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
+  (* The probability of the two bitstrings [0, 1, 0] and [1, 1, 0]
+     corresponds to the probability of the bitstring [1, 0], for example *)
+  >> gvs[sym_noise_dist_suc]
+QED
+
 Theorem sym_noise_prob_space_is_prob_space:
   ∀n p.
     0 ≤ p ∧ p ≤ 1 ⇒
@@ -760,13 +775,7 @@ Proof
   >> gvs[prob_space_def]
   >> gvs[sym_noise_prob_space_measure_space]
   >> gvs[sym_noise_prob_space_def]
-  >> Induct_on ‘n’
-  >- gvs[sym_noise_dist_def, sym_noise_mass_func_def]
-  >> drule EQ_SYM >> pop_assum kall_tac >> strip_tac
-  >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
-  (* The probability of the two bitstrings [0, 1, 0] and [1, 1, 0]
-     corresponds to the probability of the bitstring [1, 0], for example *)
-  >> gvs[sym_noise_dist_suc]
+  >> gvs[sym_noise_dist_length_n_codes]
 QED
 
 Theorem ecc_bsc_prob_space_is_prob_space:
@@ -1259,16 +1268,53 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* A version of EXTREAL_SUM_IMAGE_CMUL which has the constant on the other    *)
+(* side, and also doesn't assume that the constant takes the form Normal r    *)
+(* -------------------------------------------------------------------------- *)
+Theorem EXTREAL_SUM_IMAGE_CMUL_R_ALT:
+  ∀s. FINITE s ⇒
+      ∀f c.
+        c ≠ +∞ ∧ c ≠ −∞ ∧
+        ((∀x. x ∈ s ⇒ f x ≠ −∞) ∨ (∀x. x ∈ s ⇒ f x ≠ +∞)) ⇒
+        ∑ (λx. f x * c) s = c * ∑ f s
+Proof
+  rw[]
+  (* Both proofs are essentially the same *)
+  >> (PURE_ONCE_REWRITE_TAC[mul_comm]
+      >> Cases_on ‘c’ >> gvs[EXTREAL_SUM_IMAGE_CMUL]
+      >> metis_tac[mul_comm]
+     )
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A version of EXTREAL_SUM_IMAGE_CMUL which doesn't assume that the constant *)
+(* takes the form Normal r                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem EXTREAL_SUM_IMAGE_CMUL_L_ALT:
+  ∀s. FINITE s ⇒
+      ∀f c.
+        c ≠ +∞ ∧ c ≠ −∞ ∧
+        ((∀x. x ∈ s ⇒ f x ≠ −∞) ∨ (∀x. x ∈ s ⇒ f x ≠ +∞)) ⇒
+        ∑ (λx. c * f x) s = c * ∑ f s
+Proof
+  rw[]
+  >> Cases_on ‘c’ >> gvs[EXTREAL_SUM_IMAGE_CMUL]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Since our prob space has a finite event space, we can calculate the        *)
 (* probability by simply summing over the probabilities of each individual    *)
-(* event                                                                      *)
+(* event.                                                                     *)
+(*                                                                            *)
+(* Note that the sum makes this expression similar to sym_noise_dist, but not *)
+(* easily represented in terms of it.                                         *)
 (* -------------------------------------------------------------------------- *)
 Theorem prob_ecc_bsc_prob_space:
   ∀n m p S.
     0 ≤ p ∧ p ≤ 1 ∧
     S ∈ events (ecc_bsc_prob_space n m p) ⇒
     prob (ecc_bsc_prob_space n m p) S =
-    ∑ (λx. 1 / 2 pow n * sym_noise_mass_func p (SND x)) S
+    1 / 2 pow n * ∑ (sym_noise_mass_func p ∘ SND) S
 Proof
   rw[]
   (* Our event is finite because our space is finite *)
@@ -1326,6 +1372,29 @@ Proof
   >> gvs[extreal_of_num_exp]
   >> gvs[sym_noise_prob_space_def]
   >> gvs[sym_noise_dist_def]
+  (* Take the 1 / 2 out the front *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_CMUL_L_ALT]
+  >> rw[]
+  >- (Cases_on ‘1 : extreal’ >> gvs[]
+      >> irule (cj 1 div_not_infty)
+      >> CCONTR_TAC
+      >> gvs[]
+      >> drule pow_zero_imp
+      >> gvs[]
+     )
+  >- (Cases_on ‘1 : extreal’ >> gvs[]
+      >> irule (cj 2 div_not_infty)
+      >> CCONTR_TAC
+      >> gvs[]
+      >> drule pow_zero_imp
+      >> gvs[]
+     )
+  >- (disj1_tac
+      >> rw[]
+      >> gvs[sym_noise_mass_func_not_neginf]
+     )
+  (* Transform to composition *)
+  >> gvs[o_DEF]
 QED
 
 (* -------------------------------------------------------------------------- *)
