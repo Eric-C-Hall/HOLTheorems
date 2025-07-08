@@ -836,7 +836,6 @@ Proof
      )
   (* Cancel out the constant *)
   >> unabbrev_all_tac >> gvs[prob_div_mul_refl]
-  >> gvs[Abbr ‘c’, Abbr ‘g1’, Abbr ‘g3’, prob_div_mul_refl]
   (* Intersection commutativity *)
   >> gvs[INTER_COMM]
 QED
