@@ -111,9 +111,9 @@ End
 
 (* -------------------------------------------------------------------------- *)
 (* Convert several disparate events which are closely related to              *)
-(* event_input_bit_takes_value into a form in terms of                     *)
-(* event_input_bit_takes_value. This allows us to apply theorems proven    *)
-(* for event_input_bit_takes_value to any of these events.                 *)
+(* event_input_bit_takes_value into a form in terms of                        *)
+(* event_input_bit_takes_value. This allows us to apply theorems proven       *)
+(* for event_input_bit_takes_value to any of these events.                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem to_event_input_bit_takes_value:
   ∀n m i x.
@@ -180,7 +180,7 @@ End
 (* n: the length of the initial message                                       *)
 (* m: the length of the encoded message                                       *)
 (* i: the index of the bit which takes a specific value                       *)
-(* d: the specific value that the bit takes                                  *)
+(* d: the specific value that the bit takes                                   *)
 (* -------------------------------------------------------------------------- *)
 Definition event_sent_bit_takes_value_def:
   event_sent_bit_takes_value enc n m i d =
@@ -317,7 +317,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* event_input_bit_takes_value has a nonzero probability                   *)
+(* event_input_bit_takes_value has a nonzero probability                      *)
 (* -------------------------------------------------------------------------- *)
 Theorem event_input_bit_takes_value_nonzero_prob:
   ∀n m i b p.
@@ -355,7 +355,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* event_received_string_takes_value has a nonzero probability                 *)
+(* event_received_string_takes_value has a nonzero probability                *)
 (* -------------------------------------------------------------------------- *)
 Theorem event_received_string_takes_value_nonzero_prob:
   ∀enc n m ds p.
@@ -374,7 +374,7 @@ Proof
   >> gvs[bxor_length, bxor_inv]
 QED
 
-Theorem event_input_string_takes_value_and_received_string_is_correct_is_event:
+Theorem event_input_string_and_received_string_take_values_is_event:
   ∀enc n m bs ds p.
     ((event_input_string_takes_value n m bs)
      ∩ (event_received_string_takes_value enc n m ds))
@@ -385,7 +385,7 @@ Proof
   >> (Cases_on ‘x’ >> gvs[])
 QED
 
-Theorem event_input_string_takes_value_and_received_string_is_correct_nonzero_prob:
+Theorem event_input_string_and_received_string_take_values_nonzero_prob:
   ∀enc n m bs ds p.
     0 < p ∧
     p < 1 ∧
@@ -887,9 +887,8 @@ Proof
   >> assume_tac event_input_string_takes_value_nonzero_prob
   >> assume_tac event_received_string_takes_value_is_event
   >> assume_tac event_received_string_takes_value_nonzero_prob
-  >> assume_tac event_input_string_takes_value_and_received_string_is_correct_is_event
-  >> assume_tac
-     event_input_string_takes_value_and_received_string_is_correct_nonzero_prob
+  >> assume_tac event_input_string_and_received_string_take_values_is_event
+  >> assume_tac event_input_string_and_received_string_take_values_nonzero_prob
   (* The inner bit is the bit we need to prove equivalence of. We only need
      to prove equivalence for valid i, that is, i < n *)
   >> gvs[MAP_EQ_f]
