@@ -46,12 +46,23 @@ Theorem temporary_name:
       LENGTH ds = m ∧
       (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
       map_decoder_bitwise enc n m p ds =
-      ARB
+      MAP (λi. argmax_bool (λx. ARB))
+          (COUNT_LIST n)
 Proof
   rw[]
+  (* We start from the expression of MAP decoding which has had the sum and
+     bayes rule applied *)
   >> gvs[map_decoder_bitwise_sum_bayes]
+  (* The bitwise part is the part which is equivalent *)
+  >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 (e2 _)’
+  >> gvs[MAP_EQ_f]
+  >> rw[]
+  (* In this case, the inner functions are equivalent *)
+  >> AP_TERM_TAC
+  >> rw[FUN_EQ_THM]
+  (* The probability of the input taking a particular value is equal to the
+     probability of starting in the starting state *)
   >> 
-    
 QED
   
 
