@@ -954,22 +954,29 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Split the event of receiving a                                             *)
-(*                                                                            *)
-(*                                                                            *)
+(* Split the event of receiving a particular string given that the input      *)
+(* string takes a particular value into the product of the probabilities      *)
+(* that each individual bit is received given that the corresponding bit in   *)
+(* the encoded version of the input is sent.                                  *)
 (* -------------------------------------------------------------------------- *)
 Theorem cond_prob_string_given_input_prod:
-  cond_prob (ecc_bsc_prob_space n m p)
-  (event_received_string_takes_value enc n m ds)
-  (event_input_string_takes_value n m bs) =
-  let
-    cs = enc bs
-  in
-    ∏ (λi. cond_prob (ecc_bsc_prob_space n m p)
-                     (event_received_bit_takes_value enc n m i (EL i ds))
-                     (event_input_bit_takes_value n m i (EL i cs))
-      )
+  ∀enc n m p bs ds.
+    cond_prob (ecc_bsc_prob_space n m p)
+              (event_received_string_takes_value enc n m ds)
+              (event_input_string_takes_value n m bs) =
+    let
+      cs = enc bs
+    in
+      ∏ (λi. cond_prob (ecc_bsc_prob_space n m p)
+                       (event_received_bit_takes_value enc n m i (EL i ds))
+                       (event_sent_bit_takes_value enc n m i (EL i cs))
+        ) (count m)
 Proof
+  rw[]
+  (* *)
+  >> gvs[cond_prob_def]
+    
+        (* *)
 QED
 
 (* -------------------------------------------------------------------------- *)
