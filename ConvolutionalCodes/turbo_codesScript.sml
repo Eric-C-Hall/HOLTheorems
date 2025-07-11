@@ -7,6 +7,20 @@ open bcjrTheory;
 val _ = new_theory "turbo_codes";
 
 (* -------------------------------------------------------------------------- *)
+(* Idea: allow turbo codes to be defined in such a way that encoding and      *)
+(* decoding can be defined simultaneously, or the factor graph can be derived *)
+(* automatically based on the working that is being done.                     *)
+(*                                                                            *)
+(* The encoding algorithm takes an input and maps it to a codespace.          *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* Factor graph relates to the probability of                                 *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
 (* Rüdiger Urbanke.                                                           *)
 (* -------------------------------------------------------------------------- *)
