@@ -89,6 +89,8 @@ val _ = hide "S";
 (* Output: the set of all possible choices of input and noise for which the   *)
 (*         chosen input bit takes the chosen value.                           *)
 (* -------------------------------------------------------------------------- *)
+(* Possible improvement: perhaps these events should use set comprehensions?  *)
+(* -------------------------------------------------------------------------- *)
 Definition event_input_bit_takes_value_def:
   event_input_bit_takes_value n m i b =
   (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = b)
@@ -1006,6 +1008,17 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* An expression for the received string taking a value in the special case   *)
+(* where the output length is 0.                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_received_string_takes_value_empty_output:
+  ∀enc n m ds.
+    event_received_string_takes_value enc n m ds =
+    {(bs, ns) | }
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Since the noise applied to each bit is independent, the joint probability  *)
 (* of receiving a string and the input taking a value is equal to the product *)
 (* of probabilities of each individual bit being received and the input       *)
@@ -1013,6 +1026,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem joint_prob_string_and_input_prod:
   ∀enc n m p bs ds.
+    0 ≤ p ∧ p ≤ 1 ∧
     LENGTH bs = n ∧
     LENGTH ds = m ∧
     (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
@@ -1027,7 +1041,14 @@ Proof
   rw[]
   >> Induct_on ‘LENGTH ds’
   >- (rw[]
-      >> prob_ecc_bsc_prob_space_empty_output
+      >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_empty_output]
+      >> rw[]
+      >- (irule EVENTS_INTER
+          >> gvs[ecc_bsc_prob_space_is_prob_space,
+                 event_received_string_takes_value_is_event,
+                 event_input_string_takes_value_is_event]
+         )
+      >> gvs[event_received_string_takes_value_def]
         
       >> gvs[event_received_string_takes_value_def,
              event_input_string_takes_value_def,
