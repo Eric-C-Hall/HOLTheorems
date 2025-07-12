@@ -989,10 +989,27 @@ QED
 (* where the output length is 0.                                              *)
 (* -------------------------------------------------------------------------- *)
 Theorem event_received_string_takes_value_empty_output:
-  ∀enc n m ds.
-    event_received_string_takes_value enc n m ds =
-    {(bs, ns) | }
+  ∀enc n.
+    (∀xs. LENGTH xs = n ⇒ enc xs = []) ⇒
+    event_received_string_takes_value enc n 0 [] =
+    {(bs, []) | LENGTH bs = n}
 Proof
+  rw[event_received_string_takes_value_def]
+  >> rw[EXTENSION]
+  >> EQ_TAC >> rw[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* An expression for the event of the input string taking a value in the      *)
+(* special case where the output length is 0                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_string_takes_value_empty_output:
+  ∀n bs.
+    LENGTH bs = n ⇒
+    event_input_string_takes_value n 0 bs = {(bs', ns) | bs' = bs ∧ ns = []}
+Proof
+  rw[event_input_string_takes_value_def]
+  >> rw[EXTENSION]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1025,25 +1042,15 @@ Proof
                  event_received_string_takes_value_is_event,
                  event_input_string_takes_value_is_event]
          )
-      >> gvs[event_received_string_takes_value_def]
-        
-      >> gvs[event_received_string_takes_value_def,
-             event_input_string_takes_value_def,
-             INTER_DEF]
-      (* Simplify the set we are working on to {(bs, [])} *)
-      >> qmatch_goalsub_abbrev_tac ‘prob _ S’
-      >> sg ‘S = {(bs', ns) | bs' = bs ∧ ns = []}’
-      >- (unabbrev_all_tac
-          >> rw[EXTENSION]
-          >> Cases_on ‘x’ >> gvs[]
-          >> EQ_TAC >> rw[]
+      >> gvs[event_received_string_takes_value_empty_output]
+      >> gvs[event_input_string_takes_value_empty_output]
+      >> gvs[INTER_DEF]
+      >> qmatch_goalsub_abbrev_tac ‘CARD S’
+      >> sg ‘S = {(bs,[])}’
+      >- (rw[Abbr ‘S’, EXTENSION]
+          >> EQ_TAC >> gvs[]
          )
-      >> ‘S = {(bs,[])}’ by rw[EXTENSION]
-      >> pop_assum (fn th => PURE_REWRITE_TAC[th])
-      >> qpat_x_assum ‘S = _’ kall_tac
-      >> qpat_x_assum ‘Abbrev (S = _)’ kall_tac
-      >> 
-     )
+      >> gvs[]
      
 QED
 
