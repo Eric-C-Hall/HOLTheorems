@@ -902,6 +902,17 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Any event in our probability space is finite                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_ecc_bsc_prob_space_finite:
+  ∀n m p S.
+    S ∈ events (ecc_bsc_prob_space n m p) ⇒ FINITE S
+Proof
+  rw[events_ecc_bsc_prob_space, POW_DEF]
+  >> metis_tac[length_n_codes_finite, FINITE_CROSS, SUBSET_FINITE_I]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Induction rule over a set given that it is contained in a sigma-closure:   *)
 (* If a property is true of any element of the initial set, and it is true of *)
 (* any countable union of sets satisfying that property, and it is true of    *)

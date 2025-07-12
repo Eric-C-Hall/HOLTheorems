@@ -953,6 +953,121 @@ Proof
   >> gvs[INTER_COMM]
 QED
 
+Theorem in_lambda_conj:
+  ∀P Q s.
+    (s ∈ (λx. P x) ∧ s ∈ (λx. Q x)) ⇔ s ∈ (λx. P x ∧ Q x)
+Proof
+  rw[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we are summing a function over a set, and the function returns one for  *)
+(* every element in the set, then the sum of the function over the set is     *)
+(* simply the cardinality of the set                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem EXTREAL_SUM_IMAGE_FUN_EQ_ONE:
+  ∀f S.
+    FINITE S ∧
+    (∀x. x ∈ S ⇒ f x = 1) ⇒
+    ∑ f S = &CARD S : extreal
+Proof
+  rw[]
+  >> drule_then assume_tac EXTREAL_SUM_IMAGE_EQ_CARD
+  >> pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
+  >> irule EXTREAL_SUM_IMAGE_EQ'
+  >> rw[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* An expression for the probability in the main probability space we are     *)
+(* using for the special case where the output length is 0.                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_ecc_bsc_prob_space_empty_output:
+  ∀n p S.
+    0 ≤ p ∧ p ≤ 1 ∧
+    S ∈ events (ecc_bsc_prob_space n 0 p) ⇒
+    prob (ecc_bsc_prob_space n 0 p) S =
+    (1 / 2 pow n) * &CARD S
+Proof
+  rw[]
+  (* Use the expression we have for the probability in our prob space *)
+  >> gvs[prob_ecc_bsc_prob_space]
+  (* Our set is finite because it is a valid event of our finite prob space *)
+  >> ‘FINITE S’ by metis_tac[event_ecc_bsc_prob_space_finite]
+  (* Since our function always takes the value  on S, we can simplify the sum *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_FUN_EQ_ONE]
+  >> rw[]
+  (* Break down the expression stating that S is an event so that we can use
+     it to give us information about the elements of S, such as x *)
+  >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+  (* Use this information to arrive at our goal*)
+  >> first_x_assum $ drule_then assume_tac
+  >> gvs[sym_noise_mass_func_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Since the noise applied to each bit is independent, the joint probability  *)
+(* of receiving a string and the input taking a value is equal to the product *)
+(* of probabilities of each individual bit being received and the input       *)
+(* taking that value.                                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem joint_prob_string_and_input_prod:
+  ∀enc n m p bs ds.
+    LENGTH bs = n ∧
+    LENGTH ds = m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    prob (ecc_bsc_prob_space n m p)
+         ((event_received_string_takes_value enc n m ds)
+          ∩ (event_input_string_takes_value n m bs)) =
+    ∏ (λi. prob (ecc_bsc_prob_space n m p)
+                ((event_received_bit_takes_value enc n m i (EL i ds))
+                 ∩ (event_input_string_takes_value n m bs)))
+      (count m)
+Proof
+  rw[]
+  >> Induct_on ‘LENGTH ds’
+  >- (rw[]
+      >> prob_ecc_bsc_prob_space_empty_output
+        
+      >> gvs[event_received_string_takes_value_def,
+             event_input_string_takes_value_def,
+             INTER_DEF]
+      (* Simplify the set we are working on to {(bs, [])} *)
+      >> qmatch_goalsub_abbrev_tac ‘prob _ S’
+      >> sg ‘S = {(bs', ns) | bs' = bs ∧ ns = []}’
+      >- (unabbrev_all_tac
+          >> rw[EXTENSION]
+          >> Cases_on ‘x’ >> gvs[]
+          >> EQ_TAC >> rw[]
+         )
+      >> ‘S = {(bs,[])}’ by rw[EXTENSION]
+      >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+      >> qpat_x_assum ‘S = _’ kall_tac
+      >> qpat_x_assum ‘Abbrev (S = _)’ kall_tac
+      >> 
+     )
+     
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Since the noise applied to each bit is independent, the conditional        *)
+(* probability of the received string taking a value is equal to the product  *)
+(* of the conditional probabilities of each individual bit                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem cond_prob_string_given_input_prod_num:
+  ∀enc n m p bs ds.
+    cond_prob (ecc_bsc_prob_space n m p)
+              (event_received_string_takes_value enc n m ds)
+              (event_input_string_takes_value n m bs) =
+    ∏ (λi. cond_prob (ecc_bsc_prob_space n m p)
+                     (event_received_bit_takes_value enc n m i (EL i ds))
+                     (event_input_string_takes_value n m bs)
+      ) (count m)
+Proof
+  rw[]
+  >> gvs[cond_prob_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Split the event of receiving a particular string given that the input      *)
 (* string takes a particular value into the product of the probabilities      *)
@@ -973,8 +1088,10 @@ Theorem cond_prob_string_given_input_prod:
         ) (count m)
 Proof
   rw[]
-  (* *)
+  (* First, prove that  *)
   >> gvs[cond_prob_def]
+  >> gvs[event_received_string_takes_value_def, event_input_string_takes_value_def]
+  >> gvs[event_received_bit_takes_value_def, event_sent_bit_takes_value_def]
     
         (* *)
 QED
