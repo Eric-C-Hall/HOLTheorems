@@ -89,11 +89,9 @@ val _ = hide "S";
 (* Output: the set of all possible choices of input and noise for which the   *)
 (*         chosen input bit takes the chosen value.                           *)
 (* -------------------------------------------------------------------------- *)
-(* Possible improvement: perhaps these events should use set comprehensions?  *)
-(* -------------------------------------------------------------------------- *)
 Definition event_input_bit_takes_value_def:
   event_input_bit_takes_value n m i b =
-  (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = b)
+  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = b}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -108,29 +106,8 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition event_input_string_takes_value_def:
   event_input_string_takes_value n m bs' =
-  (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bs = bs')
+  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ bs = bs'}
 End
-
-(* -------------------------------------------------------------------------- *)
-(* Convert several disparate events which are closely related to              *)
-(* event_input_bit_takes_value into a form in terms of                        *)
-(* event_input_bit_takes_value. This allows us to apply theorems proven       *)
-(* for event_input_bit_takes_value to any of these events.                    *)
-(* -------------------------------------------------------------------------- *)
-Theorem to_event_input_bit_takes_value:
-  ∀n m i x.
-    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs = x) =
-    event_input_bit_takes_value n m i x ∧
-    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs ≠ x) =
-    event_input_bit_takes_value n m i (¬x) ∧
-    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i bs) =
-    event_input_bit_takes_value n m i T ∧
-    (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ ¬(EL i bs)) =
-    event_input_bit_takes_value n m i F
-Proof
-  rw[] >> gvs[event_input_bit_takes_value_def]
-  >> Cases_on ‘x’ >> gvs[]
-QED
 
 (* -------------------------------------------------------------------------- *)
 (* The event in which the initially sent string together with the added noise *)
@@ -143,7 +120,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Definition event_received_string_takes_value_def:
   event_received_string_takes_value enc n m ds =
-  (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ bxor (enc bs) ns = ds)
+  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ bxor (enc bs) ns = ds}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -158,7 +135,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition event_received_bit_takes_value_def:
   event_received_bit_takes_value enc n m i d =
-  (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i (bxor (enc bs) ns) = d)
+  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ EL i (bxor (enc bs) ns) = d}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -171,7 +148,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition event_sent_string_takes_value_def:
   event_sent_string_takes_value enc n m ds =
-  (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ enc bs = ds)
+  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ enc bs = ds}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -186,7 +163,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition event_sent_bit_takes_value_def:
   event_sent_bit_takes_value enc n m i d =
-  (λ(bs, ns). LENGTH bs = n ∧ LENGTH ns = m ∧ EL i (enc bs) = d)
+  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ EL i (enc bs) = d}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -288,7 +265,7 @@ Theorem event_input_bit_takes_value_is_event:
 Proof
   rw[event_input_bit_takes_value_def, events_ecc_bsc_prob_space,
      POW_DEF, SUBSET_DEF]
-  >> (Cases_on ‘x’ >> gvs[])
+  >> (gvs[])
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -301,7 +278,7 @@ Theorem event_input_string_takes_value_is_event:
 Proof
   rw[event_input_string_takes_value_def, events_ecc_bsc_prob_space,
      POW_DEF, SUBSET_DEF]
-  >> (Cases_on ‘x’ >> gvs[])
+  >> (gvs[])
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -315,7 +292,7 @@ Theorem event_received_string_takes_value_is_event:
 Proof
   rw[event_received_string_takes_value_def, events_ecc_bsc_prob_space,
      POW_DEF, SUBSET_DEF]
-  >> (Cases_on ‘x’ >> gvs[])
+  >> (gvs[])
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -333,7 +310,7 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
   >> gvs[event_input_bit_takes_value_is_event]
   >> gvs[EXTENSION] >> rw[event_input_bit_takes_value_def]
-  >> qexists ‘(REPLICATE n b, REPLICATE m F)’
+  >> qexistsl [‘REPLICATE n b’, ‘REPLICATE m F’]
   >> gvs[EL_REPLICATE]
 QED
 
@@ -352,7 +329,7 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
   >> gvs[event_input_string_takes_value_is_event]
   >> gvs[EXTENSION] >> rw[event_input_string_takes_value_def]
-  >> qexists ‘(bs, REPLICATE m F)’
+  >> qexists ‘REPLICATE m F’
   >> gvs[]
 QED
 
@@ -372,7 +349,7 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
   >> gvs[event_received_string_takes_value_is_event]
   >> gvs[EXTENSION] >> rw[event_received_string_takes_value_def]
-  >> qexists ‘(REPLICATE n F, bxor (enc (REPLICATE n F)) ds)’
+  >> qexistsl [‘REPLICATE n F’, ‘bxor (enc (REPLICATE n F)) ds’]
   >> gvs[bxor_length, bxor_inv]
 QED
 
@@ -384,7 +361,7 @@ Theorem event_input_string_and_received_string_take_values_is_event:
 Proof
   rw[event_received_string_takes_value_def, events_ecc_bsc_prob_space,
      POW_DEF, SUBSET_DEF]
-  >> (Cases_on ‘x’ >> gvs[])
+  >> (gvs[])
 QED
 
 Theorem event_input_string_and_received_string_take_values_nonzero_prob:
@@ -438,12 +415,12 @@ Proof
   >- (qmatch_goalsub_abbrev_tac ‘FINITE S’
       >> sg ‘S ⊆ length_n_codes (LENGTH bs) × length_n_codes m’
       >- (unabbrev_all_tac >> gvs[SUBSET_DEF]
-          >> rw[] >> (Cases_on ‘x’ >> gvs[]))
+          >> rw[] >> (gvs[]))
       >> metis_tac[length_n_codes_finite, FINITE_SUBSET, FINITE_CROSS]
      )
   >- (gvs[INJ_DEF]
       >> rw[]
-      >> Cases_on ‘x’ >> Cases_on ‘y’ >> gvs[]
+      >> gvs[]
      )
   >- (disj1_tac
       >> rw[]
@@ -457,7 +434,7 @@ Proof
   >- (unabbrev_all_tac
       >> gvs[EXTENSION] >> rw[]
       >> EQ_TAC >> rw[]
-      >- (Cases_on ‘x'’ >> gvs[])
+      >- (gvs[])
       >> qexists ‘(bs, x)’
       >> gvs[]
      )
