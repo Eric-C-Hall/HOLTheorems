@@ -8,6 +8,7 @@ open argmin_extrealTheory;
 
 (* My libraries *)
 open donotexpandLib;
+open useful_tacticsLib;
 
 (* Standard theories *)
 open arithmeticTheory;
@@ -147,8 +148,8 @@ End
 (* ds: the bitstring which was sent                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition event_sent_string_takes_value_def:
-  event_sent_string_takes_value enc n m ds =
-  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ enc bs = ds}
+  event_sent_string_takes_value enc n m cs =
+  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ enc bs = cs}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -162,8 +163,8 @@ End
 (* d: the specific value that the bit takes                                   *)
 (* -------------------------------------------------------------------------- *)
 Definition event_sent_bit_takes_value_def:
-  event_sent_bit_takes_value enc n m i d =
-  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ EL i (enc bs) = d}
+  event_sent_bit_takes_value enc n m i c =
+  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧ EL i (enc bs) = c}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1006,7 +1007,7 @@ QED
 Theorem event_input_string_takes_value_empty_output:
   ∀n bs.
     LENGTH bs = n ⇒
-    event_input_string_takes_value n 0 bs = {(bs', ns) | bs' = bs ∧ ns = []}
+    event_input_string_takes_value n 0 bs = {(bs, [])}
 Proof
   rw[event_input_string_takes_value_def]
   >> rw[EXTENSION]
@@ -1063,8 +1064,14 @@ QED
 (* probability of the received string taking a value is equal to the product  *)
 (* of the conditional probabilities of each individual bit                    *)
 (* -------------------------------------------------------------------------- *)
+(* I think I'll use a different approach to prove what I need to prove        *)
+(*
 Theorem cond_prob_string_given_input_prod_num:
   ∀enc n m p bs ds.
+    0 ≤ p ∧ p ≤ 1 ∧
+    LENGTH bs = n ∧
+    LENGTH ds = m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
     cond_prob (ecc_bsc_prob_space n m p)
               (event_received_string_takes_value enc n m ds)
               (event_input_string_takes_value n m bs) =
@@ -1073,8 +1080,50 @@ Theorem cond_prob_string_given_input_prod_num:
                      (event_input_string_takes_value n m bs)
       ) (count m)
 Proof
+  Induct_on ‘m’
+  >- (rw[]
+      >> gvs[event_received_string_takes_value_empty_output,
+             event_input_string_takes_value_empty_output]
+      >> gvs[cond_prob_def]
+      >> gvs[INTER_SING]
+      >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_empty_output]
+      >> rw[]
+      >- gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+      >> irule div_refl
+      >> rw[]
+      >- (‘(1 / 2) pow LENGTH bs ≠ −∞’ suffices_by gvs[pow_div]
+          >> gvs[pow_not_infty]
+         )
+      >- (‘(1 / 2) pow LENGTH bs ≠ +∞’ suffices_by gvs[pow_div]
+          >> gvs[pow_not_infty]
+         )
+      >> ‘(1 / 2) pow LENGTH bs ≠ 0’ suffices_by gvs[pow_div]
+      >> irule (GCONTRAPOS pow_zero_imp)
+      >> gvs[extreal_of_num_def]
+      >> gvs[extreal_div_eq]
+     )
+  >> rw[]
+  >> 
+QED
+*)
+
+(* -------------------------------------------------------------------------- *)
+(* If we have an encoding method which is injective, then the input string    *)
+(* takes a certain value if and only if the sent string takes the value of    *)
+(* the encoding of the input string                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_string_takes_value_event_sent_string_takes_value:
+  ∀(enc : bool list -> bool list) n m bs.
+    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
+    event_input_string_takes_value n m bs =
+    event_sent_string_takes_value enc n m (enc bs)
+Proof
   rw[]
-  >> gvs[cond_prob_def]
+  >> gvs[event_input_string_takes_value_def,
+         event_sent_string_takes_value_def]
+  >> rw[EXTENSION]
+  >> EQ_TAC >> rw[]
+  >> metis_tac[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1085,23 +1134,43 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem cond_prob_string_given_input_prod:
   ∀enc n m p bs ds.
+    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
     cond_prob (ecc_bsc_prob_space n m p)
               (event_received_string_takes_value enc n m ds)
               (event_input_string_takes_value n m bs) =
     let
       cs = enc bs
     in
-      ∏ (λi. cond_prob (ecc_bsc_prob_space n m p)
-                       (event_received_bit_takes_value enc n m i (EL i ds))
-                       (event_sent_bit_takes_value enc n m i (EL i cs))
-        ) (count m)
+      ∏ (λi. (if EL i ds = EL i cs then 1 - p else p))
+        (count m)
 Proof
   rw[]
-  (* First, prove that  *)
+  (* First, use the event that the sent string takes a particular value
+     rather than that the input string takes a particular value. *)
+  >> drule_then (fn th => gvs[th])
+                event_input_string_takes_value_event_sent_string_takes_value
+  (* The received string taking a value is the intersection of each individual
+     received bit taking a value *)
+  >>
+  (* The intersection of each individual received bit taking a value is the
+     product of the conditional probabilities of each individual bit taking
+     a value, because they are mutually independent events.
+   *)
+
+  
+  
+  (* Each individual received bit is conditionally independent of each other
+     received bit *)
+  >>
+  (*  *)
+  >> 
+  
+  >> gvs[]
+        
   >> gvs[cond_prob_def]
   >> gvs[event_received_string_takes_value_def, event_input_string_takes_value_def]
   >> gvs[event_received_bit_takes_value_def, event_sent_bit_takes_value_def]
-    
+        
         (* *)
 QED
 
@@ -1117,6 +1186,8 @@ Theorem map_decoder_bitwise_sum_bayes_prod:
     (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
     map_decoder_bitwise enc n m p ds =
     let
+      (TODO: Where's the prod)
+      
       map_decoder_bitstring_prob_bayes =
       λbs. cond_prob (ecc_bsc_prob_space n m p)
                      (event_received_string_takes_value enc n m ds)
