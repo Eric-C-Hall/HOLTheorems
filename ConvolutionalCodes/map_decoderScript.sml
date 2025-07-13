@@ -1018,6 +1018,10 @@ QED
 (* of probabilities of each individual bit being received and the input       *)
 (* taking that value.                                                         *)
 (* -------------------------------------------------------------------------- *)
+(* I no longer think that this theorem is true, because the probability of    *)
+(* the input string taking a value is being accounted for multiple times.     *)
+(* -------------------------------------------------------------------------- *)
+(*
 Theorem joint_prob_string_and_input_prod:
   ∀enc n m p bs ds.
     0 ≤ p ∧ p ≤ 1 ∧
@@ -1051,8 +1055,8 @@ Proof
           >> EQ_TAC >> gvs[]
          )
       >> gvs[]
-     
 QED
+ *)
 
 (* -------------------------------------------------------------------------- *)
 (* Since the noise applied to each bit is independent, the conditional        *)
