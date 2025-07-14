@@ -1013,6 +1013,18 @@ Proof
   >> rw[EXTENSION]
 QED
 
+
+Theorem event_sent_string_takes_value_empty_output:
+  ∀enc n.
+    (∀xs. LENGTH xs = n ⇒ enc xs = []) ⇒
+    event_sent_string_takes_value enc n 0 [] = {(bs, []) | bs | LENGTH bs = n}
+Proof
+  rw[]
+  >> gvs[event_sent_string_takes_value_def]
+  >> rw[EXTENSION]
+  >> EQ_TAC >> rw[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Since the noise applied to each bit is independent, the joint probability  *)
 (* of receiving a string and the input taking a value is equal to the product *)
@@ -1134,6 +1146,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem cond_prob_string_given_input_prod:
   ∀enc n m p bs ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH bs = n ∧
+    LENGTH ds = m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
     (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
     cond_prob (ecc_bsc_prob_space n m p)
               (event_received_string_takes_value enc n m ds)
@@ -1144,34 +1160,51 @@ Theorem cond_prob_string_given_input_prod:
       ∏ (λi. (if EL i ds = EL i cs then 1 - p else p))
         (count m)
 Proof
-  rw[]
+  rpt strip_tac
+  (* More common representation of probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
   (* First, use the event that the sent string takes a particular value
      rather than that the input string takes a particular value. *)
-  >> drule_then (fn th => gvs[th])
+  >> drule_then (fn th => PURE_REWRITE_TAC[th])
                 event_input_string_takes_value_event_sent_string_takes_value
-  (* The received string taking a value is the intersection of each individual
-     received bit taking a value *)
-  >>
-  (* The intersection of each individual received bit taking a value is the
-     product of the conditional probabilities of each individual bit taking
-     a value, because they are mutually independent events.
+  (* It would be nice if we knew that the values of the individual bits were
+     conditionally independent with respect to the event that the input string
+     takes a particular value. Then, since the received string is the
+     intersection of the individual bits, we would have made progress towards
+     our result. However, in order to prove conditional independence, we must
+     exactly prove the result that we want from conditional independence, so
+     it's not really very helpful.
+.
+     Instead, we work by induction on the length of the encoded string. *)
+  >> qpat_x_assum ‘LENGTH xs = m’ mp_tac
+  >> SPEC_ALL_TAC (* We want xs to be quantified over in our induction,
+                     because its length changes as m changes and we are
+                     inducting over m. *)
+  >> Induct_on ‘m’
+  (* The base case relies on lemmas about what these functions reutrn in
+     the case of a zero length output *)
+  >- (rw[]
+      >> gvs[event_received_string_takes_value_empty_output]
+      >> gvs[event_sent_string_takes_value_empty_output]
+      >> irule COND_PROB_ITSELF
+      >> gvs[ecc_bsc_prob_space_is_prob_space]
+      >> rw[]
+      >- (DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+          >> gvs[]
+          >> rw[]
+          >- (rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+              >> (gvs[]))
+          >> rw[EXTENSION]
+          >> qexists ‘bs’ >> gvs[]
+         )
+      >> rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+      >> (gvs[])
+     )
+  (* Inductive step. We want to drag out the suc on the left hand side.
+     This will hopefully give us an additional product term, and then we can
+     
    *)
-
-  
-  
-  (* Each individual received bit is conditionally independent of each other
-     received bit *)
-  >>
-  (*  *)
-  >> 
-  
-  >> gvs[]
-        
-  >> gvs[cond_prob_def]
-  >> gvs[event_received_string_takes_value_def, event_input_string_takes_value_def]
-  >> gvs[event_received_bit_takes_value_def, event_sent_bit_takes_value_def]
-        
-        (* *)
+  >> rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
