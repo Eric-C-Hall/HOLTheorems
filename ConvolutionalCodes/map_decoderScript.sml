@@ -1137,12 +1137,43 @@ Proof
   >> EQ_TAC >> rw[]
   >> metis_tac[]
 QED
+   
+Theorem lt_posinf_neq_posinf[simp]:
+  ∀a.
+    a < +∞ ⇔ a ≠ +∞
+Proof
+  Cases_on ‘a’ >> gvs[]
+QED
 
 (* -------------------------------------------------------------------------- *)
-(* Split the event of receiving a particular string given that the input      *)
-(* string takes a particular value into the product of the probabilities      *)
-(* that each individual bit is received given that the corresponding bit in   *)
-(* the encoded version of the input is sent.                                  *)
+(* An alternate version of lt_div which allows the denominator to be an       *)
+(* arbitrary extreal, as long as it satisfies appropriate conditions          *)
+(* -------------------------------------------------------------------------- *)
+Theorem lt_div_alt:
+  ∀y z.
+    0 < y ∧ 0 < z ∧ z ≠ +∞ ⇒ 0 < y / z
+Proof
+  Cases_on ‘z’ >> gvs[lt_div]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* An alternate version of lt_div which allows the denominator to be an       *)
+(* arbitrary extreal, as long as it satisfies appropriate conditions.         *)
+(* -------------------------------------------------------------------------- *)
+Theorem div_not_infty_if_not_infty_alt:
+  ∀x y.
+    (x ≠ +∞ ∧ 0 < y ∧ y ≠ +∞ ⇒ x / y ≠ +∞) ∧
+    (x ≠ −∞ ∧ 0 < y ∧ y ≠ +∞ ⇒ x / y ≠ −∞) ∧
+    (x ≠ +∞ ∧ y < 0 ∧ y ≠ −∞ ⇒ x / y ≠ −∞) ∧
+    (x ≠ −∞ ∧ y < 0 ∧ y ≠ −∞ ⇒ x / y ≠ +∞)
+Proof
+  Cases_on ‘x’ >> Cases_on ‘y’ >> gvs[div_not_infty_if_not_infty]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Simplify the conditional probability of receiving a particular string      *)
+(* given that the input string takes a particular value into the probability  *)
+(* of the corresponding noise being the noise which was added to the string   *)
 (* -------------------------------------------------------------------------- *)
 Theorem cond_prob_string_given_input_prod:
   ∀enc n m p bs ds.
@@ -1154,77 +1185,69 @@ Theorem cond_prob_string_given_input_prod:
     cond_prob (ecc_bsc_prob_space n m p)
               (event_received_string_takes_value enc n m ds)
               (event_input_string_takes_value n m bs) =
-    let
-      cs = enc bs
-    in
-      ∏ (λi. (if EL i ds = EL i cs then 1 - p else p))
-        (count m)
+    sym_noise_mass_func p (bxor (enc bs) ds)
 Proof
   rpt strip_tac
   (* More common representation of probabilities *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
-  (* First, use the event that the sent string takes a particular value
-     rather than that the input string takes a particular value. *)
+  (* Rewrite using the definition of conditional probabilities *)
+  >> gvs[cond_prob_def]
+  (* The probability of the denominator has a simple expression *)
+  >> gvs[prob_event_input_string_takes_value]
+  (* For the top event, it is more convenient to use the event that the sent
+     string takes a particular value than the event that the input string takes
+     a particular value *)
   >> drule_then (fn th => PURE_REWRITE_TAC[th])
                 event_input_string_takes_value_event_sent_string_takes_value
-  (* It would be nice if we knew that the values of the individual bits were
-     conditionally independent with respect to the event that the input string
-     takes a particular value. Then, since the received string is the
-     intersection of the individual bits, we would have made progress towards
-     our result. However, in order to prove conditional independence, we must
-     exactly prove the result that we want from conditional independence, so
-     it's not really very helpful.
-.
-     Instead, we work by induction on the length of the encoded string. *)
-  >> qpat_x_assum ‘LENGTH xs = m’ mp_tac
-  >> SPEC_ALL_TAC (* We want xs to be quantified over in our induction,
-                     because its length changes as m changes and we are
-                     inducting over m. *)
-  >> Induct_on ‘m’
-  (* The base case relies on lemmas about what these functions reutrn in
-     the case of a zero length output *)
-  >- (rw[]
-      >> gvs[event_received_string_takes_value_empty_output]
-      >> gvs[event_sent_string_takes_value_empty_output]
-      >> irule COND_PROB_ITSELF
-      >> gvs[ecc_bsc_prob_space_is_prob_space]
-      >> rw[]
-      >- (DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
-          >> gvs[]
-          >> rw[]
-          >- (rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-              >> (gvs[]))
-          >> rw[EXTENSION]
-          >> qexists ‘bs’ >> gvs[]
-         )
-      >> rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-      >> (gvs[])
+  (* Give nice names to the probability space and event*)
+  >> qmatch_abbrev_tac ‘prob sp e / _ = _’
+  (* There is only one element in the event in the numerator, because we
+     require a specific sent string, which fixes the input bitstring, and we
+     require a specific received string, which fixes the noise. *)
+  >> sg ‘e = {(bs, bxor (enc bs) ds)}’
+  >- (unabbrev_all_tac
+      >> gvs[event_received_string_takes_value_def,
+             event_sent_string_takes_value_def,
+             INTER_DEF]
+      >> rw[EXTENSION]
+      >> EQ_TAC >> (rw[] >> (gvs[bxor_inv] >> gvs[bxor_length]))
      )
-  (* Inductive step. We want to drag out the suc on the left hand side.
-     This will hopefully give us an additional product term, and then we can
-     
-   *)
+  >> qpat_x_assum ‘Abbrev (e1 = _ ∩ _)’ kall_tac
+  >> gvs[Abbr ‘sp’]
+  (* Use the expression for a probability in our probability space *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space]
   >> rw[]
+  >- gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF, bxor_length]
+  (* Move the division to the RHS *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_eq]
+  >> rw[]
+  >- (irule lt_div_alt
+      >> rw[pow_not_infty]
+      >> gvs[pow_pos_lt]
+     )
+  >- (gvs[lt_posinf_neq_posinf]
+      >> irule (cj 1 div_not_infty_if_not_infty_alt)
+      >> gvs[pow_not_infty]
+      >> gvs[pow_pos_lt]
+     )
+  (* Finish off the proof *)
+  >> gvs[mul_comm]
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Split up the probability of receiving a string given the initial input     *)
-(* into a product of each individual bit being received correctly given the   *)
-(* information that was sent.                                                 *)
+(* Simplify the conditional probability from map_decoder_bitwise_sum_bayes,   *)
+(* providing an explicit expression for it.                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_sum_bayes_prod:
   ∀enc n m p ds.
     0 < p ∧ p < 1 ∧
     LENGTH ds = m ∧
-    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
+    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
     map_decoder_bitwise enc n m p ds =
     let
-      (TODO: Where's the prod)
-      
       map_decoder_bitstring_prob_bayes =
-      λbs. cond_prob (ecc_bsc_prob_space n m p)
-                     (event_received_string_takes_value enc n m ds)
-                     (event_input_string_takes_value n m bs) *
+      λbs. (sym_noise_mass_func p (bxor (enc bs) ds)) *
            prob (ecc_bsc_prob_space n m p)
                 (event_input_string_takes_value n m bs);
       map_decoder_bit_prob =
@@ -1233,6 +1256,27 @@ Theorem map_decoder_bitwise_sum_bayes_prod:
     in
       (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n))
 Proof
+  rw[]
+  >> gvs[map_decoder_bitwise_sum_bayes]
+  (* The inner bit is the bit we need to prove equivalence of. We only need
+     to prove equivalence for valid i, that is, i < n *)
+  >> gvs[MAP_EQ_f]        
+  >> rw[]
+  (* In this case, the thing we are taking the argmax_bool over is exactly
+     equivalent *)
+  >> qmatch_goalsub_abbrev_tac ‘argmax_bool f ⇔ argmax_bool g’
+  >> ‘f = g’ suffices_by gvs[]
+  >> gvs[Abbr ‘f’, Abbr ‘g’]
+  >> rw[FUN_EQ_THM]
+  (* Simplify the function we are summing over using
+     cond_prob_string_given_input_prod *)
+  >> irule EXTREAL_SUM_IMAGE_EQ'
+  >> gvs[cond_prob_string_given_input_prod]
+  (* Any subset of length_n_codes is finite *)
+  >> qmatch_goalsub_abbrev_tac ‘FINITE S’
+  >> qsuff_tac ‘S ⊆ length_n_codes n’ >> gvs[Abbr ‘S’]
+  >- metis_tac[SUBSET_FINITE, length_n_codes_finite]
+  >> ASM_SET_TAC[]
 QED
 
 
