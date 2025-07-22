@@ -1237,6 +1237,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Simplify the conditional probability from map_decoder_bitwise_sum_bayes,   *)
 (* providing an explicit expression for it.                                   *)
+(*                                                                            *)
+(* Note thtat sym_noise_mass_func can be interpreted as a product of          *)
+(* probabilities, so we have an expression that is nearly suitable for use in *)
+(* a factor graph.                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_sum_bayes_prod:
   ∀enc n m p ds.
@@ -1278,7 +1282,5 @@ Proof
   >- metis_tac[SUBSET_FINITE, length_n_codes_finite]
   >> ASM_SET_TAC[]
 QED
-
-
 
 val _ = export_theory();

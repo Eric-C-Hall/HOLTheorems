@@ -124,4 +124,13 @@ Proof
   >> gvs[TAKE]
 QED
 
+Theorem DROP_ALL_BUT_ONE:
+  ∀n ps.
+    n + 1 = LENGTH ps ⇒
+    DROP n ps = [LAST ps]
+Proof
+  Induct_on ‘n’ >> Cases_on ‘ps’ >> rw[]
+  >> Cases_on ‘t’ >> gvs[]
+QED
+
 val _ = export_theory();

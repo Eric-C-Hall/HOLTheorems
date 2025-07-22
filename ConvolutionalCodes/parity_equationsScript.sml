@@ -411,6 +411,17 @@ Proof
      )
 QED
 
+Theorem apply_parity_equation_append:
+  ∀ps bs ds.
+    apply_parity_equation ps (bs ++ ds) =
+    (apply_parity_equation ps bs ⇎
+                           apply_parity_equation (DROP (LENGTH bs) ps) ds)
+Proof
+  Induct_on ‘bs’ >> rw[]
+  >> namedCases_on ‘ps’ ["", "p ps'"] >> gvs[apply_parity_equation_def]
+  >> metis_tac[]
+QED
+
 Theorem apply_parity_equation_empty_l[simp]:
   ∀bs. apply_parity_equation [] bs = F
 Proof
