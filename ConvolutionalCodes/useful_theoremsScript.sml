@@ -133,4 +133,21 @@ Proof
   >> Cases_on ‘t’ >> gvs[]
 QED
 
+Theorem LIST_NEQ:
+  ∀as bs.
+    as ≠ bs ⇒
+    ((∃i. EL i as ≠ EL i bs ∧ TAKE i as = TAKE i bs ∧ i < LENGTH as) ∨
+     LENGTH as ≠ LENGTH bs)
+Proof
+  Induct_on ‘as’ >> rw[]
+  >> namedCases_on ‘bs’ ["", "b bs'"] >> rw[] >> gvs[LENGTH]
+  >> Cases_on ‘h = b’
+  >- (gvs[]
+      >> last_assum (drule_then assume_tac)
+      >> fs[]
+      >> qexists ‘SUC i’ >> gvs[EL]
+     )
+  >> qexists ‘0’ >> gvs[]
+QED
+
 val _ = export_theory();

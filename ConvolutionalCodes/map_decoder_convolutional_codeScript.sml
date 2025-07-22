@@ -16,9 +16,10 @@ open donotexpandLib;
 (* Standard theories *)
 open arithmeticTheory;
 open bitstringTheory;
+open extrealTheory;
+open listTheory;
 open pred_setTheory;
 open probabilityTheory;
-open extrealTheory;
 open realTheory;
 open rich_listTheory;
 open sigma_algebraTheory;
@@ -54,7 +55,7 @@ QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* An expression for when encode_recursive_parity_equation is injective,      *)
-(* assuming that the length of the parity equation is appropriate             *)
+(* assuming that the length of the parity equation is appropriate.            *)
 (* -------------------------------------------------------------------------- *)
 Theorem encode_recursive_parity_equation_injective:
   ∀ps qs ts.
@@ -95,10 +96,62 @@ Proof
       >> metis_tac[]
      )
   (* Reverse implication.
-     If the last parity bit differs, then in the first step, the *)
-  >> 
+     Apply contrapositive to the definition of injectivity:
+     We want to prove if x ≠ y, then encode(x) ≠ encode(y).
+     Drop all information up until the point at which there is a difference in
+     the strings.
+     Since the last parity bit differs, then in the new first step, the
+     encoded strings will differ *)
+  (* Contrapositive *)
+  >> CCONTR_TAC >> qpat_x_assum ‘_ _ _ x = _ _ _ y’ mp_tac >> gvs[]
+  (* There is a difference between the strings *)
+  >> drule_then assume_tac LIST_NEQ
+  (* If the difference is in the length, then the encoded strings have
+     different lengths *)
+  >> Cases_on ‘LENGTH x ≠ LENGTH y’
+  >- metis_tac[encode_recursive_parity_equation_length]
+  >> gvs[]
+  (* Split x and y *)
+  >> qspecl_then [‘i’, ‘x’] assume_tac TAKE_DROP
+  >> qspecl_then [‘i’, ‘y’] assume_tac TAKE_DROP
+  >> NTAC 2 (pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th]))
+  (* Remove the front of the split x and y *)
+  >> gvs[encode_recursive_parity_equation_append]
+  (* Make the expression cleaner and simpler, replacing x and y by the new,
+     truncated variables, and forgetting about the way in which the new state
+     was constructed. *)
+  >> qmatch_goalsub_abbrev_tac ‘encode_recursive_parity_equation _ ts2 _’
+  >> ‘LENGTH ps = LENGTH ts2 + 1’ by (unabbrev_all_tac >>gvs[])
+  >> ‘HD (DROP i x) ⇎ HD (DROP i y)’ by gvs[HD_DROP]
+  >> ‘LENGTH (DROP i x) = LENGTH (DROP i y)’ by gvs[LENGTH_DROP]
+  >> qpat_x_assum ‘LENGTH bs = LENGTH ts + 1’ kall_tac
+  >> qpat_x_assum ‘x ≠ y’ kall_tac
+  >> qpat_x_assum ‘TAKE i x = TAKE i y’ kall_tac
+  >> qpat_x_assum ‘EL i x ⇎ EL i y’ kall_tac
+  >> qpat_x_assum ‘LENGTH x = LENGTH y’ kall_tac
+  >> qpat_x_assum ‘Abbrev (ts2 = _)’ kall_tac
+  >> qpat_x_assum ‘i < LENGTH y’ kall_tac
+  >> rename1 ‘_ _ _ x2 ≠ _ _ _ y2’
+  (* Simplify *)
+  >> Cases_on ‘x2’ >> Cases_on ‘y2’ >> gvs[encode_recursive_parity_equation_def]
+  >> rw[]
+  (* It's only the first element that matters, since it is the one which
+     differs *)
+  >> ‘F’ suffices_by gvs[]
+  (* Split up the append *)
+  >> gvs[apply_parity_equation_append]
+  (* Ignore the start, which is the same for each string *)
+  >> qmatch_asmsub_abbrev_tac ‘(x ⇔ expr1) ⇔ (x ⇔ expr2)’
+  >> ‘expr1 ⇔ expr2’ by metis_tac[]
+  >> qpat_x_assum ‘(x ⇔ expr1) ⇔ (x ⇔ expr2)’ kall_tac
+  >> unabbrev_all_tac
+  (* A simpler, explicit expression for ps with all but one of its elements
+     dropped*)
+  >> ‘DROP (LENGTH ts2) ps = [LAST ps]’ by gvs[DROP_ALL_BUT_ONE]
+  >> gvs[]
+  >> gvs[apply_parity_equation_def]
+  >> metis_tac[]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: simplify requirement on encoder outputting correct length for this   *)

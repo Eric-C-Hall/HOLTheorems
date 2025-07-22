@@ -1,8 +1,9 @@
 open HolKernel Parse boolLib bossLib;
 
 (* HOL4 theories *)
-open rich_listTheory;
 open bitstringTheory;
+open listTheory;
+open rich_listTheory;
 
 (* My theories *)
 open parity_equationsTheory;
@@ -33,6 +34,11 @@ val _ = new_theory "recursive_parity_equations";
 (*                                                                            *)
 (* Termination is simply handled by performing no additional output when      *)
 (* there is no further input.                                                 *)
+(*                                                                            *)
+(* This is more akin to the state machine view of applying a convolutional    *)
+(* code than the view where you slide a window across the input. In           *)
+(* particular, we keep track of the current state during computation, and we  *)
+(* implicitly add zero-padding on the left by starting in state 0.            *)
 (*                                                                            *)
 (* (ps, qs): the recursive parity equations to convolve (ps is the numerator  *)
 (* and qs is the denominator).                                                *)
@@ -77,7 +83,7 @@ End
 (* given set of parity equations to a given input starting from a given state *)
 (* -------------------------------------------------------------------------- *)
 Definition encode_recursive_parity_equation_state_def:
-  encode_recursive_parity_equation_state _ ts _ = ts ∧
+  encode_recursive_parity_equation_state _ ts [] = ts ∧
   encode_recursive_parity_equation_state (ps, qs) ts (b::bs) =
   let
     feedback = apply_parity_equation (FRONT qs) ts;
@@ -85,9 +91,9 @@ Definition encode_recursive_parity_equation_state_def:
     state_and_input = ts ⧺ [new_input];
     next_ts = TL state_and_input;
   in
-    encode_recursive_parity_equation (ps, qs) next_ts bs  
+    encode_recursive_parity_equation_state (ps, qs) next_ts bs
 End
-
+                                         
 (* -------------------------------------------------------------------------- *)
 (* Convert parity-equation expression of recursive convolutional codes into   *)
 (* a state-machine format.                                                    *)
@@ -189,6 +195,40 @@ QED*)
   (decode_recursive_parity_equation rs) = 
 Proof
 QED*)
+
+(* -------------------------------------------------------------------------- *)
+(* The length of a recursive parity equation                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem encode_recursive_parity_equation_length[simp]:
+  ∀ps qs ts bs.
+    LENGTH (encode_recursive_parity_equation (ps, qs) ts bs) = LENGTH bs
+Proof
+  Induct_on ‘bs’ >> rw[encode_recursive_parity_equation_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* An expression for the result of encoding the concatenation of two strings  *)
+(* -------------------------------------------------------------------------- *)
+Theorem encode_recursive_parity_equation_append:
+  ∀ps qs ts bs cs.
+    encode_recursive_parity_equation (ps, qs) ts (bs ++ cs) =
+    encode_recursive_parity_equation (ps, qs) ts bs ++
+    encode_recursive_parity_equation
+    (ps, qs)
+    (encode_recursive_parity_equation_state (ps, qs) ts bs)
+    cs
+Proof
+  Induct_on ‘bs’ >> rw[encode_recursive_parity_equation_def,
+                       encode_recursive_parity_equation_state_def]
+QED
+
+Theorem encode_recursive_parity_equation_state_length[simp]:
+  ∀ps qs ts bs.
+    LENGTH (encode_recursive_parity_equation_state (ps,qs) ts bs) = LENGTH ts
+Proof
+  Induct_on ‘bs’ >> gvs[encode_recursive_parity_equation_state_def]
+  >> gvs[LENGTH_TL]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
