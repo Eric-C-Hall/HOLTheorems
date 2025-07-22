@@ -210,6 +210,21 @@ Definition map_decoder_bitwise_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* This expression comes up frequently. Maybe I should make it a definition   *)
+(* or overload?                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem finite_el_i_is_b[simp]:
+  ∀n i b.
+    FINITE {bs | LENGTH bs = n ∧ (EL i bs ⇔ b)}
+Proof
+  rw[]
+  >> qmatch_goalsub_abbrev_tac ‘FINITE S’
+  >> qsuff_tac ‘S ⊆ length_n_codes n’ >> gvs[Abbr ‘S’]
+  >- metis_tac[SUBSET_FINITE, length_n_codes_finite]
+  >> ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Similar to ldiv_le_imp                                                     *)
 (* -------------------------------------------------------------------------- *)
 Theorem ldiv_le_iff:
@@ -1137,7 +1152,7 @@ Proof
   >> EQ_TAC >> rw[]
   >> metis_tac[]
 QED
-   
+
 Theorem lt_posinf_neq_posinf[simp]:
   ∀a.
     a < +∞ ⇔ a ≠ +∞
@@ -1276,11 +1291,42 @@ Proof
      cond_prob_string_given_input_prod *)
   >> irule EXTREAL_SUM_IMAGE_EQ'
   >> gvs[cond_prob_string_given_input_prod]
-  (* Any subset of length_n_codes is finite *)
-  >> qmatch_goalsub_abbrev_tac ‘FINITE S’
-  >> qsuff_tac ‘S ⊆ length_n_codes n’ >> gvs[Abbr ‘S’]
-  >- metis_tac[SUBSET_FINITE, length_n_codes_finite]
-  >> ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Simplification of the probability of the string taking a particular value  *)
+(* in map_decoder_bitwise_sum_bayes_prod                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem map_decoder_bitwise_simp:
+  ∀enc n m p ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
+    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
+    map_decoder_bitwise enc n m p ds =
+    let
+      map_decoder_bitstring_prob_bayes =
+      λbs. (sym_noise_mass_func p (bxor (enc bs) ds)) *
+           (1 / 2 pow n);
+      map_decoder_bit_prob =
+      λi b.
+        ∑ map_decoder_bitstring_prob_bayes {bs | LENGTH bs = n ∧ EL i bs = b};
+    in
+      (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n))
+Proof
+  rw[]
+  >> gvs[map_decoder_bitwise_sum_bayes_prod]
+  (* The inner bit is the bit we need to prove equivalence of. *)
+  >> gvs[MAP_EQ_f]
+  >> rw[]
+  (* In this case, the thing we are taking the argmax_bool over is exactly
+     equivalent *)
+  >> AP_TERM_TAC
+  >> rw[FUN_EQ_THM]
+  (* *)
+  >> irule EXTREAL_SUM_IMAGE_EQ'
+  >> rw[]
+  >> gvs[prob_event_input_string_takes_value, lt_le]
 QED
 
 val _ = export_theory();

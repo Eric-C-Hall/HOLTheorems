@@ -57,7 +57,7 @@ QED*)
 (* An expression for when encode_recursive_parity_equation is injective,      *)
 (* assuming that the length of the parity equation is appropriate.            *)
 (* -------------------------------------------------------------------------- *)
-Theorem encode_recursive_parity_equation_injective:
+Theorem encode_recursive_parity_equation_inj:
   ∀ps qs ts.
     LENGTH ps = LENGTH ts + 1 ⇒
     ((INJ (encode_recursive_parity_equation (ps, qs) ts)
@@ -156,12 +156,15 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: simplify requirement on encoder outputting correct length for this   *)
 (* special case                                                               *)
+(*                                                                            *)
+(* We assume that our parity equation is delayfree                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem temporary_name:
+Theorem map_decoder_bitwise_encode_recursive_parity_equation:
   ∀ps qs ts n m p ds.
     let
       enc = encode_recursive_parity_equation (ps, qs) ts;
     in
+      LAST ps ∧
       LENGTH ps = LENGTH ts + 1 ∧
       0 < p ∧ p < 1 ∧
       LENGTH ds = m ∧
@@ -172,10 +175,14 @@ Theorem temporary_name:
 Proof
   rw[]
   (* We start from the most simplified version of the MAP decoder *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[map_decoder_bitwise_sum_bayes_prod]
+  >> DEP_PURE_ONCE_REWRITE_TAC[map_decoder_bitwise_simp]
   >> rw[]
+  >- metis_tac[]
+  >- (drule encode_recursive_parity_equation_inj >> rpt strip_tac
+      >> gvs[INJ_DEF]
+      >> metis_tac[]
+     )
   (* The bitwise part is the part which is equivalent *)
-  >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 (e2 _)’
   >> gvs[MAP_EQ_f]
   >> rw[]
   (* In this case, the inner functions are equivalent *)
