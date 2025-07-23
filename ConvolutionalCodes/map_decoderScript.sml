@@ -1186,6 +1186,53 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* I think that it's better to have the preconditions x ≠ +∞ and x ≠ −∞ than  *)
+(* to require that the extreal has the form Normal r, because then I can use  *)
+(* it in situations where I have an arbitrary extreal in that position,       *)
+(* rather than having to have a Normal r in that position                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem EXTREAL_SUM_IMAGE_CMUL_ALT:
+  ∀s f c.
+    FINITE s ∧
+    c ≠ +∞ ∧
+    c ≠ −∞ ∧
+    ((∀x. x ∈ s ⇒ f x ≠ −∞) ∨ (∀x. x ∈ s ⇒ f x ≠ +∞)) ⇒
+    ∑ (λx. c * f x) s = c * ∑ f s
+Proof
+  rw[] >> Cases_on ‘c’ >> gvs[EXTREAL_SUM_IMAGE_CMUL]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* See comment above EXTREAL_SUM_IMAGE_CMUL_ALT                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem div_mul_refl_alt:
+  ∀a b : extreal.
+    b ≠ 0 ∧
+    b ≠ +∞ ∧
+    b ≠ −∞ ⇒
+    a / b * b = a
+Proof
+  rw[] >> Cases_on ‘b’ >> gvs[div_mul_refl]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Similar to EXTREAL_SUM_IMAGE_CMUL_ALT, it is better to have the            *)
+(* precondition n ≠ 0 than to require n to have the form SUC n, because then  *)
+(* I can match the theorem to an arbitrary expression, rather than only being *)
+(* able to match the theorem to an expression containing SUC n.               *)
+(*                                                                            *)
+(* Of course, the other definition has the advantage of more easily being     *)
+(* usable as a rewrite rule, since it has no preconditions.                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem pow_zero_alt:
+  ∀n x.
+    n ≠ 0 ⇒
+    (x pow n = 0 ⇔ x = 0)
+Proof
+  Cases_on ‘n’ >> gvs[pow_zero]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Simplify the conditional probability of receiving a particular string      *)
 (* given that the input string takes a particular value into the probability  *)
 (* of the corresponding noise being the noise which was added to the string   *)
@@ -1297,7 +1344,7 @@ QED
 (* Simplification of the probability of the string taking a particular value  *)
 (* in map_decoder_bitwise_sum_bayes_prod                                      *)
 (* -------------------------------------------------------------------------- *)
-Theorem map_decoder_bitwise_simp:
+Theorem map_decoder_bitwise_simp1:
   ∀enc n m p ds.
     0 < p ∧ p < 1 ∧
     LENGTH ds = m ∧
@@ -1323,10 +1370,64 @@ Proof
      equivalent *)
   >> AP_TERM_TAC
   >> rw[FUN_EQ_THM]
-  (* *)
+  (* The inner functions are equivalent *)
   >> irule EXTREAL_SUM_IMAGE_EQ'
   >> rw[]
   >> gvs[prob_event_input_string_takes_value, lt_le]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Simplification of the probability of the string taking a particular value  *)
+(* in map_decoder_bitwise_sum_bayes_prod                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem map_decoder_bitwise_simp2:
+  ∀enc n m p ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
+    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
+    map_decoder_bitwise enc n m p ds =
+    let
+      map_decoder_bitstring_prob_bayes =
+      λbs. (sym_noise_mass_func p (bxor (enc bs) ds));
+      map_decoder_bit_prob =
+      λi b.
+        ∑ map_decoder_bitstring_prob_bayes {bs | LENGTH bs = n ∧ EL i bs = b};
+    in
+      (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n))
+Proof
+  rw[]
+  >> gvs[map_decoder_bitwise_simp1]
+  (* More common assumption when dealing with probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
+  (* The inner bit is the bit we need to prove equivalence of. *)
+  >> gvs[MAP_EQ_f]
+  >> rw[]
+  (* We need to prove that the functions we are taking the argmax over are
+     multiples of each other *)
+  >> irule argmax_bool_mul_const
+  >> qexists ‘(2 pow n) : extreal’
+  >> gvs[pow_not_infty]
+  >> rw[FUN_EQ_THM, pow_pos_lt]
+  (* Now we bring the multiple into the sum *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
+  >> rw[pow_not_infty]
+  (* We prove the precondition first*)
+  >- (disj2_tac
+      >> rw[]
+      >> irule (cj 2 mul_not_infty2)
+      >> rw[sym_noise_mass_func_not_neginf, sym_noise_mass_func_not_inf]
+      >> (‘1 ≠ +∞ ∧ 0 < 2 pow LENGTH bs ∧ 2 pow LENGTH bs ≠ +∞’ suffices_by
+            gvs[div_not_infty_if_not_infty_alt]
+          >> gvs[pow_pos_lt, pow_not_infty]
+         )
+     )
+  (* Cancel the multiplication and division *)
+  >> PURE_ONCE_REWRITE_TAC[mul_comm]
+  >> gvs[GSYM mul_assoc]
+  >> DEP_PURE_ONCE_REWRITE_TAC[div_mul_refl_alt]
+  >> gvs[pow_pos_lt, pow_not_infty]
+  >> Cases_on ‘n = 0’ >> gvs[pow_zero_alt]
 QED
 
 val _ = export_theory();
