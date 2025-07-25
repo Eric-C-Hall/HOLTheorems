@@ -9,9 +9,9 @@ open dep_rewrite;
 val _ = new_theory "hamming_distance";
 
 Definition hamming_distance_def:
-  hamming_distance [] cs = 0 ∧
-  hamming_distance bs [] = 0 ∧
-  hamming_distance (b::bs) (c::cs) = hamming_distance bs cs + if b = c then 0 else 1
+  hamming_distance [] cs = 0n ∧
+  hamming_distance bs [] = 0n ∧
+  hamming_distance (b::bs) (c::cs) = hamming_distance bs cs + if b = c then 0n else 1n
 End
 
 Theorem hamming_distance_empty_left[simp]:

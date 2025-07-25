@@ -24,14 +24,14 @@ open state_machineTheory;
 (* because that one can be evaluated using EVAL_TAC when applied to a         *)
 (* constant, whereas the other cannot.                                        *)
 (* -------------------------------------------------------------------------- *)
-
 Theorem v2n_lt_imp:
   ∀v l.
     LENGTH v ≤ l ⇒ v2n v < 2 ** l
 Proof
   rpt strip_tac
-  >> ‘2 ** LENGTH v ≤ 2 ** l’ by gvs[]
-  >> ‘v2n v < 2 ** LENGTH v’ by gvs[v2n_lt]
+  >> qmatch_goalsub_abbrev_tac ‘LHS < RHS’
+  >> ‘2 ** LENGTH v ≤ RHS’ by gvs[Abbr ‘RHS’]
+  >> ‘LHS < 2 ** LENGTH v’ by gvs[Abbr ‘LHS’, v2n_lt]
   >> metis_tac[LESS_LESS_EQ_TRANS]
 QED
 

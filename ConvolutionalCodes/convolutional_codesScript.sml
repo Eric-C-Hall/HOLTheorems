@@ -196,7 +196,7 @@ Proof
       >> gvs[Abbr ‘LHS’]
       >> unabbrev_all_tac
       >> qmatch_goalsub_abbrev_tac ‘infnum_to_num (f (argmin _ qs)) ≤ infnum_to_num (f q)’
-      >> qmatch_goalsub_abbrev_tac ‘infnum_to_num min ≤ infnum_to_num specific’
+      >> qmatch_goalsub_abbrev_tac ‘infnum_to_num min_val ≤ infnum_to_num specific’
       >> sg ‘f (argmin (λa. f a) qs) ≤ f q’
       >- (gvs[ETA_THM]
           >> unabbrev_all_tac
@@ -206,9 +206,9 @@ Proof
           >> gvs[GSYM SNOC_APPEND]
           >> gvs[vd_encode_state_snoc]
          )
-      >> qsuff_tac ‘min ≠ INFINITY ∧ specific ≠ INFINITY’
+      >> qsuff_tac ‘min_val ≠ INFINITY ∧ specific ≠ INFINITY’
       >- gvs[]
-      >> gvs[Abbr ‘min’, Abbr ‘specific’]
+      >> gvs[Abbr ‘min_val’, Abbr ‘specific’]
       >> qsuff_tac ‘f q ≠ INFINITY’
       >- (gvs[]
           >> qmatch_goalsub_abbrev_tac ‘LHS ≠ INFINITY ⇒ RHS ≠ INFINITY’

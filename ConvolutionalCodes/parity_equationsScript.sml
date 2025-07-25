@@ -1455,7 +1455,7 @@ QED
 (* Unsure what name to give this *)
 Theorem ADD_LEQ_IFF_ZERO_RIGHT[simp]:
   ∀a b.
-    a + b ≤ a ⇔ b = 0
+    a + b ≤ a ⇔ b = 0 : num
 Proof
   rpt strip_tac
   >> Cases_on ‘b’ >> gvs[]
