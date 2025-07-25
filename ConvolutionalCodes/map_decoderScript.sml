@@ -353,6 +353,33 @@ Proof
   >> gvs[] 
 QED
 
+Theorem pow_mul_sub_leq:
+  ∀a b c x y.
+    0 ≤ a ∧
+    0 ≤ b ∧
+    b ≤ a ∧
+    x ≤ y ⇒
+    a pow x * b pow (c - x) ≤ a pow y * b pow (c - y)
+Proof
+  rw[]    
+  (* Introduce the variable n = y - x. We want to induct over that. *)
+  >> ‘y - x = y - x’ by gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘n = y - x’
+  >> ‘n = y - x’ by (unabbrev_all_tac >> gvs[])
+  >> pop_assum mp_tac >> NTAC 2 (pop_assum kall_tac)
+  (* Get ready for induction *)
+  >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
+  (* Perform induction on n*)
+  >> Induct_on ‘n’
+  >- (rw[] >> sg ‘x = y’ >> gvs[])
+  (* Inductive step *)
+  >> rw[]
+  (* y must have increased by one since last inductive step *)
+  >> Cases_on ‘y’ >> rw[]
+  (* *)
+  >> 
+QED
+
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
 (*                                                                            *)
