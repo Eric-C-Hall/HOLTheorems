@@ -71,6 +71,10 @@ val _ = hide "S";
 (* probability space consists of a set of the possible (input, noise) pairs   *)
 (* which satisfy that event.                                                  *)
 (*                                                                            *)
+(* As of writing this, the most simplified version of the MAP decoder for     *)
+(* binary symmetric channels and arbitrary codes is given by                  *)
+(* map_decoder_bitwise_simp2.                                                 *)
+(*                                                                            *)
 (* Notation:                                                                  *)
 (* - bs: the input bitstring                                                  *)
 (* - cs: the bitstring that was sent (after encoding)                         *)
@@ -197,6 +201,8 @@ End
 (* m: the length of the encoded message                                       *)
 (* p: the probability of bit error in our binary symmetric channel            *)
 (* ds: the string that we wish to decode                                      *)
+(*                                                                            *)
+(* Output: the decoded bitstring                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition map_decoder_bitwise_def:
   map_decoder_bitwise enc n m p ds =
@@ -208,6 +214,69 @@ Definition map_decoder_bitwise_def:
   in
     MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n)
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns the probability that the input string takes a particular value     *)
+(* given that the received string takes a particular value.                   *)
+(*                                                                            *)
+(* enc: the encoding function                                                 *)
+(* n: the input length                                                        *)
+(* m: the output length                                                       *)
+(* p: the probability of error                                                *)
+(* bs: the input string                                                       *)
+(* ds: the received string                                                    *)
+(*                                                                            *)
+(* Output: extreal representing the probability of the input string being     *)
+(* sent given that the received string was received.                          *)
+(* -------------------------------------------------------------------------- *)
+Definition prob_input_string_given_received_string_def:
+  prob_input_string_given_received_string enc n m p bs ds =
+  cond_prob (ecc_bsc_prob_space n m p)
+            (event_input_string_takes_value n m bs)
+            (event_received_string_takes_value enc n m ds)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns true if the given output bitstring is an optimal blockwise MAP     *)
+(* decoding of the given input bitstring, with respect to the binary          *)
+(* binary symmetric channel of probability p.                                 *)
+(*                                                                            *)
+(* We do this instead of defining a function which returns the optimal        *)
+(* decoding because there may be multiple bitstrings which are all optimal.   *)
+(*                                                                            *)
+(* enc: the encoder we are using                                              *)
+(* n: the input length                                                        *)
+(* m: the output length                                                       *)
+(* p: the probability of an error in our binary symmetric channel.            *)
+(* bs: the decoded string (bs is unencoded, cs is encoded, ds has noise)      *)
+(* ds: the string to decode (encoded, and with noise added)                   *)
+(* -------------------------------------------------------------------------- *)
+Definition is_optimal_blockwise_map_decoding_def:
+  is_optimal_blockwise_map_decoding enc n m p bs ds =
+  (∀bs2.
+     LENGTH bs2 = n ⇒
+     prob_input_string_given_received_string enc n m p bs ds ≤
+     prob_input_string_given_received_string enc n m p bs2 ds
+  )
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Fixing the input string and the received string will also fix the          *)
+(* event we are in to a single possibility.                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem input_string_takes_value_inter_received_string_takes_value:
+  ∀enc n m bs ds.
+    LENGTH bs = n ∧
+    LENGTH ds = m ∧
+    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+    (event_input_string_takes_value n m bs)
+    ∩ event_received_string_takes_value enc n m ds = {(bs, bxor (enc bs) ds)}
+Proof
+  rw[EXTENSION, event_input_string_takes_value_def,
+     event_received_string_takes_value_def]  
+  >> EQ_TAC >> rw[bxor_length]
+  >> (gvs[bxor_inv])
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* This expression comes up frequently. Maybe I should make it a definition   *)
@@ -236,6 +305,114 @@ Proof
   >> REVERSE EQ_TAC >- metis_tac[ldiv_le_imp]
   >> Cases_on ‘x’ >> Cases_on ‘y’ >> Cases_on ‘z’
   >> gvs[infty_div, le_infty, extreal_div_eq, REAL_POS_NZ]
+QED
+
+Theorem le_div_alt:
+  ∀y z : extreal.
+    0 ≤ y ∧ 0 < z ∧ z ≠ +∞ ⇒ 0 ≤ y / z
+Proof
+  Cases_on ‘z’ >> rw[le_div]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A theorem for finding an explicit formula for the symmetric noise mass     *)
+(*  function applied to the bitwise difference of two bitstrings              *)
+(* -------------------------------------------------------------------------- *)
+Theorem sym_noise_mass_func_bxor:
+  ∀bs1 bs2 p.
+    LENGTH bs1 = LENGTH bs2 ⇒
+    sym_noise_mass_func p (bxor bs1 bs2) =
+    p pow (hamming_distance bs1 bs2) *
+    (1 - p) pow (LENGTH bs1 - hamming_distance bs1 bs2)
+Proof
+  Induct_on ‘bs1’ >> rw[sym_noise_mass_func_def]
+  >> Cases_on ‘bs2’ >> gvs[sym_noise_mass_func_def]
+  >> rw[]
+  (* In the case where we have added a factor of p, we move the new factor
+     into the power and simplify *)
+  >- (gvs[mul_assoc]
+      >> gvs[GSYM (cj 2 extreal_pow)]
+      >> gvs[ADD1]
+     )
+  (* In the case where we have added a factor of 1 - p, we also move the new
+     factor into the corresponding power and simplify *)
+  >> PURE_ONCE_REWRITE_TAC[mul_comm]
+  >> gvs[GSYM mul_assoc]
+  >> gvs[mul_comm]
+  >> gvs[GSYM (cj 2 extreal_pow)]
+  >> gvs[ADD1]
+  >> gvs[SUB_RIGHT_ADD]
+  >> rw[]
+  (* We now have obtained the contradiction LENGTH t ≤ hamming_distance bs1 t.
+     Strengthen to LENGTH t < hamming_distance bs1 t*)
+  >> Cases_on ‘hamming_distance bs1 t = LENGTH t’ >> rw[]
+  >> sg ‘LENGTH t < hamming_distance bs1 t’ >> gvs[le_lt]
+  (* Introduce the thing it contradicts with: hamming_distance bs1 t ≤ LENGTH t*)
+  >> qspecl_then [‘bs1’, ‘t’] assume_tac hamming_distance_length
+  (* It automatically solves from this point*)
+  >> gvs[] 
+QED
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem blockwise_map_decoding_hamming:
+  ∀enc n m p bs ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH bs = n ∧
+    LENGTH ds = m ∧
+    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+    (is_optimal_blockwise_map_decoding enc n m p bs ds ⇔
+       (∀bs2.
+          LENGTH bs2 = n ⇒
+          hamming_distance ds (enc bs) ≤
+          hamming_distance ds (enc bs2)
+       ))
+Proof
+  rw[]
+  (* More useful expression for probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
+  (* Expand out definitions *)
+  >> gvs[is_optimal_blockwise_map_decoding_def]
+  >> gvs[prob_input_string_given_received_string_def]
+  >> gvs[cond_prob_def]
+  >> rw[]
+  (* Prove each implication separately *)
+  >> REVERSE EQ_TAC
+  >- (rw[]
+      (* Cancel out the divide *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_le_iff]
+      >> rw[]
+      >- gvs[lt_le, PROB_POSITIVE, event_received_string_takes_value_is_event,
+             ecc_bsc_prob_space_is_prob_space,
+             event_received_string_takes_value_nonzero_prob]
+      >- gvs[PROB_FINITE, ecc_bsc_prob_space_is_prob_space,
+             event_received_string_takes_value_is_event]
+      (* Simplify intersection which has a known value *)
+      >> gvs[input_string_takes_value_inter_received_string_takes_value]
+      (* Use expression for probability in our prob space *)
+      >> DEP_PURE_REWRITE_TAC[prob_ecc_bsc_prob_space]
+      >> gvs[events_ecc_bsc_prob_space, POW_DEF, bxor_length]
+      (* Cancel out the multiplication *)
+      >> irule le_lmul_imp
+      >> REVERSE conj_tac
+      >- (irule le_div_alt
+          >> gvs[le_01, pow_pos_lt, pow_not_infty]
+         )
+      (* Use expression for sym_noise_mass_func of bxor *)
+      >> gvs[sym_noise_mass_func_bxor]
+     )
+  (* We can use essentially the same working as above for the other direction.
+     the only reason I don't do both directions at the same time is because *)
+  >>
+
+  irule pow_pos_le)
+         gvs[pow_pos_le, le_01]
+            )
+
+
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -304,7 +481,7 @@ QED
 Theorem event_received_string_takes_value_is_event:
   ∀enc n m ds p.
     event_received_string_takes_value enc n m ds ∈
-                                     events (ecc_bsc_prob_space n m p)
+                                      events (ecc_bsc_prob_space n m p)
 Proof
   rw[event_received_string_takes_value_def, events_ecc_bsc_prob_space,
      POW_DEF, SUBSET_DEF]
@@ -661,21 +838,21 @@ Proof
   rw[]
   (* We have two cases depending on which side of the disjunction in the
      assumptions we are in, but they generally have the same working. *)
-    >> (Cases_on ‘y’ >> gvs[]
-        >> Induct_on ‘S’ >> rw[zero_div]
-        >> gvs[]
-        >> DEP_PURE_REWRITE_TAC[cj 3 EXTREAL_SUM_IMAGE_THM]
-        >> rw[]
-        >- (Cases_on ‘0 ≤ r’
-            >> metis_tac[REAL_LT_LE, div_not_infty_if_not_infty, REAL_NOT_LE]
-           )
-        >- metis_tac[]
-        >> gvs[DELETE_NON_ELEMENT_RWT]
-        >> DEP_PURE_ONCE_REWRITE_TAC[div_add2]
-        >> REVERSE conj_tac >- gvs[]
-        >> REVERSE conj_tac >- gvs[]
-        >> gvs[EXTREAL_SUM_IMAGE_NOT_POSINF, EXTREAL_SUM_IMAGE_NOT_NEGINF]
-       )
+  >> (Cases_on ‘y’ >> gvs[]
+      >> Induct_on ‘S’ >> rw[zero_div]
+      >> gvs[]
+      >> DEP_PURE_REWRITE_TAC[cj 3 EXTREAL_SUM_IMAGE_THM]
+      >> rw[]
+      >- (Cases_on ‘0 ≤ r’
+          >> metis_tac[REAL_LT_LE, div_not_infty_if_not_infty, REAL_NOT_LE]
+         )
+      >- metis_tac[]
+      >> gvs[DELETE_NON_ELEMENT_RWT]
+      >> DEP_PURE_ONCE_REWRITE_TAC[div_add2]
+      >> REVERSE conj_tac >- gvs[]
+      >> REVERSE conj_tac >- gvs[]
+      >> gvs[EXTREAL_SUM_IMAGE_NOT_POSINF, EXTREAL_SUM_IMAGE_NOT_NEGINF]
+     )
 QED
 
 Theorem extreal_div_cancel:
@@ -1084,7 +1261,7 @@ Proof
          )
       >> gvs[]
 QED
- *)
+      *)
 
 (* -------------------------------------------------------------------------- *)
 (* Since the noise applied to each bit is independent, the conditional        *)
@@ -1132,7 +1309,7 @@ Proof
   >> rw[]
   >> 
 QED
-*)
+      *)
 
 (* -------------------------------------------------------------------------- *)
 (* If we have an encoding method which is injective, then the input string    *)

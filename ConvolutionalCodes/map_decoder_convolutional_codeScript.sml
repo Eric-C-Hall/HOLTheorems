@@ -36,7 +36,6 @@ val _ = new_theory "map_decoder_convolutional_code";
 
 val _ = hide "S";
 
-
 (* This isn't true
 Theorem apply_parity_equation_append_iff:
   ∀ps ts b1 b2.
@@ -175,7 +174,7 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation:
 Proof
   rw[]
   (* We start from the most simplified version of the MAP decoder *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[map_decoder_bitwise_simp]
+  >> DEP_PURE_ONCE_REWRITE_TAC[map_decoder_bitwise_simp2]
   >> rw[]
   >- metis_tac[]
   >- (drule encode_recursive_parity_equation_inj >> rpt strip_tac
