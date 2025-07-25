@@ -1,10 +1,10 @@
 open HolKernel Parse boolLib bossLib;
 
+val _ = new_theory "turbo_codes";
+
 open recursive_parity_equationsTheory;
 open interleaveTheory;
 open bcjrTheory;
-
-val _ = new_theory "turbo_codes";
 
 (* -------------------------------------------------------------------------- *)
 (* Idea: allow turbo codes to be defined in such a way that encoding and      *)

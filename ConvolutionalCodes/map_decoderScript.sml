@@ -2,6 +2,8 @@
 
 open HolKernel Parse boolLib bossLib;
 
+val _ = new_theory "map_decoder";
+
 (* My theories *)
 open ecc_prob_spaceTheory;
 open argmin_extrealTheory;
@@ -27,8 +29,6 @@ open topologyTheory;
 open realLib;
 open dep_rewrite;
 open ConseqConv;
-
-val _ = new_theory "map_decoder";
 
 val _ = hide "S";
 
@@ -407,6 +407,10 @@ Proof
   >> gvs[cond_prob_def]
   >> rw[]
   (* Prove each implication separately *)
+  >> ho_match_mp_tac (METIS_PROVE[] “(∀x. P x ⇔ Q x) ⇒ ((∀x. P x) ⇔ (∀x. Q x))”)
+  >> qx_gen_tac ‘bs2’
+  >> Cases_on ‘LENGTH bs2 = LENGTH bs’ >> simp[] >>
+  qmatch_abbrev_tac ‘_ / (x:extreal) ≤ _ / x ⇔ _’
   >> REVERSE EQ_TAC
   >- (rw[]
       (* Cancel out the divide *)

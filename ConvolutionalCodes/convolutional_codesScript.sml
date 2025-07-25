@@ -31,7 +31,7 @@ open trellisTheory;
 
 val _ = monadsyntax.enable_monadsyntax()
 val _ = monadsyntax.enable_monad "option"
-                   
+
 (* -------------------------------------------------------------------------- *)
 (* Main Reference:                                                            *)
 (*                                                                            *)

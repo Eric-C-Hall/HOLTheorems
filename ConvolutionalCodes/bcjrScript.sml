@@ -2,6 +2,8 @@
 
 open HolKernel Parse boolLib bossLib;
 
+val _ = new_theory "bcjr";
+
 open factor_graphTheory;
 open extrealTheory;
 open probabilityTheory;
@@ -10,7 +12,6 @@ open state_machineTheory;
 open wf_state_machineTheory;
 open binary_symmetric_channelTheory;
 
-val _ = new_theory "bcjr";
 
 (* -------------------------------------------------------------------------- *)
 (* This is largely based on Fundamentals of Convolutional Coding by           *)

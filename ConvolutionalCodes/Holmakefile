@@ -1,1 +1,11 @@
 INCLUDES = ../Utility $(HOLDIR)/examples/generic_graphs
+
+all: $(DEFAULT_TARGETS)
+.PHONY: all
+
+probheap: $(SIGOBJ)/probabilityTheory.uo
+	$(HOLDIR)/bin/buildheap $< -o $@
+
+HOLHEAP = probheap
+
+EXTRA_CLEANS = probheap
