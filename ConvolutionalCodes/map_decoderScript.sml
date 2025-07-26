@@ -1624,45 +1624,90 @@ Proof
   >> gvs[ADD1, POW_ADD]
 QED
 
+Theorem POS_REAL_LEQ_RMUL:
+  ∀a b : real. 
+    0 < a ⇒
+    (a ≤ a * b ⇔ 1 ≤ b)
+Proof
+  rw[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Similar to pow_mul_sub_leq. See comment for that theorem                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem pow_mul_sub_lt:
   ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
-    a ≠ −∞ ∧
-    b ≠ −∞ ∧
-    a ≠ 0 ∧
-    b ≠ 0 ∧
-    a ≠ b ∧
+    0 < a ∧
+    a ≠ +∞ ∧
+    0 < b ∧
+    b ≠ +∞ ∧
+    b ≤ a ∧
     x ≤ n ∧
     y ≤ n ∧
     a pow x * b pow (n - x) < a pow y * b pow (n - y) ⇒
     x < y
 Proof
   rw[]
-  (* Break down a into Normal a *)
-  >> namedCases_on ‘a’ ["", "", "a"] >> gvs[]
-  >- (gvs[extreal_pow_def]
-      >> Cases_on ‘x’ >> Cases_on ‘y’ >> gvs[]
-      >- (gvs[extreal_mul_def]
-         )
-      >- (Cases_on ‘EVEN (SUC n')’ >> gvs[] 
-         )
-      >> 
-     )
-
-  >> gvs[extreal_pow_def]
-  >> Cases_on ‘x’ >> gvs[]
-  >> Cases_on ‘y’ >> gvs[]
-  >- (namedCases_on ‘b’ ["", "", "b"] >> gvs[extreal_mul_def]
-     )
-  >>
-  
   (* Break down our extreals a and b into Normal a and Normal b *)
-  >> namedCases_on ‘a’ ["", "", "a"] >> gvs[extreal_div_def]
-  >> namedCases_on ‘b’ ["", "", "b"] >> gvs[extreal_div_def]
+  >> namedCases_on ‘a’ ["", "", "a"] >> gvs[]
+  >> namedCases_on ‘b’ ["", "", "b"] >> gvs[]
   >> qabbrev_tac ‘a = a'’ >> pop_assum kall_tac
   >> qabbrev_tac ‘b = b'’ >> pop_assum kall_tac
+  (* Translate into a real expression *)
+  >> gvs[extreal_pow_def, extreal_mul_eq]
+  (* Instead of proving x < y, assume y ≤ x and prove false. This allows us to
+     write x as y + d for some d, which allows us to induct on d.*)
+  >> CCONTR_TAC
+  >> gvs[NOT_LESS]
+  (* Write x as y + d *)
+  >> qpat_x_assum ‘y ≤ x’ mp_tac >> simp[LE_EXISTS] >> rpt strip_tac >> gvs[]
+  >> qabbrev_tac ‘d = p’ >> pop_assum kall_tac
+  (* Induct on the variable which denotes the difference between y and x*)
+  >> Induct_on ‘d’ >> rw[]
+  (* Simplify *)
+  >> gvs[REAL_NOT_LT]
+  >> ‘a ≠ 0 ∧ b ≠ 0’ by (conj_tac >> (CCONTR_TAC >> gvs[]))
+  (* Convert powers into a multiplication of terms so that we can drag the
+     SUCs out of the expression, so that we can break down to the smaller case
+     where we can apply the inductive hypothesis. *)
+  >> gvs[ADD1, POW_ADD, POW_SUB]
+
+
+  (* LHS is the same in the goal and inductive hypothesis *)
+  >> qmatch_goalsub_abbrev_tac ‘LHS ≤ _’
+  (* Use associativity so that we can collect a / b together on the left *)
+  >> PURE_REWRITE_TAC[GSYM REAL_MUL_ASSOC]
+  >> qmatch_goalsub_abbrev_tac ‘LHS ≤ a * (_ * RHS)’
+  (* Use associativity to standardize. Now it is clear that our inductive
+     hypothesis is closely related to the goal *)
+  >> gvs[REAL_MUL_ASSOC]
+  (* Collect a / b together*)
+  >> PURE_ONCE_REWRITE_TAC[GSYM REAL_MUL_ASSOC]
+  (* It is sufficient to prove that the RHS of the inductive hypothesis is
+     less than or equal to the RHS of the goal. *)
+                                    >> ‘RHS ≤ RHS * (a * b⁻¹)’ suffices_by metis_tac[REAL_LE_TRANS]
+                                    (* *)
+                                    >> irule POS_REAL_LEQ_RMUL
+                                    >> qsuff_tac ‘a * b⁻¹ ≤ 1’
+                                    >> gvs[]
+                                          
+                                    >- (rw[]
+                                        (* Decompose the power which has had 1 newly added to it into a product
+         of the old value by a *)
+                                        >> gvs[POW_ADD]
+                                        (* Prepare the power which has had 1 newly subtracted from it so that we
+         can decompose it into a product of the old value by 1/b *)
+                                        >> PURE_REWRITE_TAC[SUB_PLUS]
+                                        >> ‘b pow (n - x - 1) = b pow (n - x) / b pow 1’ by gvs[POW_SUB]
+                                        >> pop_assum (fn th => gvs[th])
+                                       )
+                                    (* Inductive step *)
+      >> rw[] >> gvs[]
+      >> gvs[ADD1]
+      >> gvs[POW_ADD]
+      >> PURE_REWRITE_TAC[SUB_PLUS]
+      >> gvs[POW_SUB]
+            
 QED
 
 (* -------------------------------------------------------------------------- *)
