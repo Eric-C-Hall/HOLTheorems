@@ -353,97 +353,18 @@ Proof
   >> gvs[] 
 QED
 
-Theorem pow_mul_sub_leq:
-  ∀a b c x y.
-    0 ≤ a ∧
-    0 ≤ b ∧
-    b ≤ a ∧
-    x ≤ y ⇒
-    a pow x * b pow (c - x) ≤ a pow y * b pow (c - y)
-Proof
-  rw[]    
-  (* Introduce the variable n = y - x. We want to induct over that. *)
-  >> ‘y - x = y - x’ by gvs[]
-  >> qmatch_asmsub_abbrev_tac ‘n = y - x’
-  >> ‘n = y - x’ by (unabbrev_all_tac >> gvs[])
-  >> pop_assum mp_tac >> NTAC 2 (pop_assum kall_tac)
-  (* Get ready for induction *)
-  >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
-  (* Perform induction on n*)
-  >> Induct_on ‘n’
-  >- (rw[] >> sg ‘x = y’ >> gvs[])
-  (* Inductive step *)
-  >> rw[]
-  (* y must have increased by one since last inductive step *)
-  >> Cases_on ‘y’ >> rw[]
-  (* *)
-  >> 
-QED
-
-(* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-Theorem blockwise_map_decoding_hamming:
-  ∀enc n m p bs ds.
-    0 < p ∧ p < 1 ∧
-    LENGTH bs = n ∧
-    LENGTH ds = m ∧
-    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
-    (is_optimal_blockwise_map_decoding enc n m p bs ds ⇔
-       (∀bs2.
-          LENGTH bs2 = n ⇒
-          hamming_distance ds (enc bs) ≤
-          hamming_distance ds (enc bs2)
-       ))
+Theorem pow_leq_plus_imp[simp]:
+  ∀a p x.
+    1 ≤ a ⇒
+    a pow x ≤ a pow (p + x)
 Proof
   rw[]
-  (* More useful expression for probabilities *)
-  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
-  (* Expand out definitions *)
-  >> gvs[is_optimal_blockwise_map_decoding_def]
-  >> gvs[prob_input_string_given_received_string_def]
-  >> gvs[cond_prob_def]
-  >> rw[]
-  (* Prove each implication separately *)
-  >> ho_match_mp_tac (METIS_PROVE[] “(∀x. P x ⇔ Q x) ⇒ ((∀x. P x) ⇔ (∀x. Q x))”)
-  >> qx_gen_tac ‘bs2’
-  >> Cases_on ‘LENGTH bs2 = LENGTH bs’ >> simp[] >>
-  qmatch_abbrev_tac ‘_ / (x:extreal) ≤ _ / x ⇔ _’
-  >> REVERSE EQ_TAC
-  >- (rw[]
-      (* Cancel out the divide *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_le_iff]
-      >> rw[]
-      >- gvs[lt_le, PROB_POSITIVE, event_received_string_takes_value_is_event,
-             ecc_bsc_prob_space_is_prob_space,
-             event_received_string_takes_value_nonzero_prob]
-      >- gvs[PROB_FINITE, ecc_bsc_prob_space_is_prob_space,
-             event_received_string_takes_value_is_event]
-      (* Simplify intersection which has a known value *)
-      >> gvs[input_string_takes_value_inter_received_string_takes_value]
-      (* Use expression for probability in our prob space *)
-      >> DEP_PURE_REWRITE_TAC[prob_ecc_bsc_prob_space]
-      >> gvs[events_ecc_bsc_prob_space, POW_DEF, bxor_length]
-      (* Cancel out the multiplication *)
-      >> irule le_lmul_imp
-      >> REVERSE conj_tac
-      >- (irule le_div_alt
-          >> gvs[le_01, pow_pos_lt, pow_not_infty]
-         )
-      (* Use expression for sym_noise_mass_func of bxor *)
-      >> gvs[sym_noise_mass_func_bxor]
-     )
-  (* We can use essentially the same working as above for the other direction.
-     the only reason I don't do both directions at the same time is because *)
-  >>
-
-  irule pow_pos_le)
-         gvs[pow_pos_le, le_01]
-            )
-
-
+  >> Induct_on ‘p’ >> gvs[]
+  >> gvs[ADD1]
+  >> PURE_REWRITE_TAC[ADD_ASSOC]
+  >> PURE_ONCE_REWRITE_TAC[pow_add]
+  >> gvs[]
+  >> metis_tac[mul_rone, le_mul2, pow_pos_le, le_01, le_trans]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1636,6 +1557,297 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[div_mul_refl_alt]
   >> gvs[pow_pos_lt, pow_not_infty]
   >> Cases_on ‘n = 0’ >> gvs[pow_zero_alt]
+QED
+
+Theorem real_sub_plus:
+  ∀a b c : real.
+    a - (b + c) = a - b - c
+Proof
+  rw[]
+  >> gvs[real_sub, REAL_NEG_ADD, REAL_ADD_ASSOC]
+QED
+
+Theorem extreal_sub_plus:
+  ∀a b c : extreal.
+    (a = +∞ ⇒ b ≠ +∞ ∧ c ≠ +∞) ∧
+    (a = −∞ ⇒ b ≠ −∞ ∧ c ≠ −∞) ∧
+    (b = +∞ ⇒ c ≠ −∞) ∧
+    (b = −∞ ⇒ c ≠ +∞) ⇒
+    a - (b + c) = a - b - c
+Proof
+  rw[]
+  >> Cases_on ‘a’ >> Cases_on ‘b’ >> Cases_on ‘c’ >> gvs[extreal_add_def,
+                                                         extreal_sub_def]
+  >> gvs[real_sub_plus]
+QED
+
+Theorem mul_div_mul_rcancel:
+  ∀a b c : extreal.
+    a ≠ +∞ ∧
+    a ≠ −∞ ∧
+    b ≠ +∞ ∧
+    b ≠ −∞ ∧
+    b ≠ 0 ∧
+    c ≠ +∞ ∧
+    c ≠ −∞ ∧
+    c ≠ 0 ⇒
+    (a * c) / (b * c) = a / b
+Proof
+  Cases_on ‘a’ >> Cases_on ‘b’ >> Cases_on ‘c’ >> rw[]
+  >> gvs[extreal_mul_eq, extreal_div_eq]
+QED
+
+Theorem pow_sub:
+  ∀(a : extreal) (n : num) (m : num).
+    a ≠ +∞ ∧
+    a ≠ −∞ ∧
+    a ≠ 0 ∧
+    m ≤ n ⇒
+    a pow (n - m) = a pow n / a pow m
+Proof
+  Induct_on ‘m’ >> rw[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> gvs[ADD1, pow_add]
+  >> DEP_PURE_ONCE_REWRITE_TAC[mul_div_mul_rcancel]
+  >> gvs[pow_not_infty]
+  >> Cases_on ‘m’ >> gvs[]
+QED
+
+Theorem POW_SUB:
+  ∀(a : real) (n : num) (m : num).
+    a ≠ 0 ∧
+    m ≤ n ⇒
+    a pow (n - m) = a pow n / a pow m
+Proof
+  Induct_on ‘m’ >> rw[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> gvs[ADD1, POW_ADD]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Similar to pow_mul_sub_leq. See comment for that theorem                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem pow_mul_sub_lt:
+  ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
+    a ≠ −∞ ∧
+    b ≠ −∞ ∧
+    a ≠ 0 ∧
+    b ≠ 0 ∧
+    a ≠ b ∧
+    x ≤ n ∧
+    y ≤ n ∧
+    a pow x * b pow (n - x) < a pow y * b pow (n - y) ⇒
+    x < y
+Proof
+  rw[]
+  (* Break down a into Normal a *)
+  >> namedCases_on ‘a’ ["", "", "a"] >> gvs[]
+  >- (gvs[extreal_pow_def]
+      >> Cases_on ‘x’ >> Cases_on ‘y’ >> gvs[]
+      >- (gvs[extreal_mul_def]
+         )
+      >- (Cases_on ‘EVEN (SUC n')’ >> gvs[] 
+         )
+      >> 
+     )
+
+  >> gvs[extreal_pow_def]
+  >> Cases_on ‘x’ >> gvs[]
+  >> Cases_on ‘y’ >> gvs[]
+  >- (namedCases_on ‘b’ ["", "", "b"] >> gvs[extreal_mul_def]
+     )
+  >>
+  
+  (* Break down our extreals a and b into Normal a and Normal b *)
+  >> namedCases_on ‘a’ ["", "", "a"] >> gvs[extreal_div_def]
+  >> namedCases_on ‘b’ ["", "", "b"] >> gvs[extreal_div_def]
+  >> qabbrev_tac ‘a = a'’ >> pop_assum kall_tac
+  >> qabbrev_tac ‘b = b'’ >> pop_assum kall_tac
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The function which takes a to the power of x and b to the power of n - x   *)
+(* is injective with respect to x if a ≠ b                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem pow_mul_sub_inj:
+  ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
+    a ≠ +∞ ∧
+    a ≠ −∞ ∧
+    a ≠ 0 ∧
+    b ≠ +∞ ∧
+    b ≠ −∞ ∧
+    b ≠ 0 ∧
+    a ≠ b ∧
+    x ≤ n ∧
+    y ≤ n ∧
+    a pow x * b pow (n - x) = a pow y * b pow (n - y) ⇒
+    x = y
+Proof
+  rw[]
+  (* Break down our extreals a and b into Normal a and Normal b *)
+  >> namedCases_on ‘a’ ["", "", "a"] >> gvs[extreal_div_def]
+  >> namedCases_on ‘b’ ["", "", "b"] >> gvs[extreal_div_def]
+  >> qabbrev_tac ‘a = a'’ >> pop_assum kall_tac
+  >> qabbrev_tac ‘b = b'’ >> pop_assum kall_tac
+  (* Translate into a real expression *)
+  >> gvs[extreal_pow_def, extreal_mul_eq]
+  (* Instead of proving x = y, assume x ≠ y and prove false. This allows us to
+     write y as x + d for some d, which allows us to induct on d.*)
+  >> CCONTR_TAC
+  (* Without loss of generality, we may take x < y by symmetry, because if
+     we don't have x < y, we have y < x and can use that instead. *)
+  >> wlog_tac ‘x < y’ [‘x’, ‘y’] >> gvs[]
+  >- (last_x_assum (qspecl_then [‘y’, ‘x’] assume_tac)
+      >> gvs[]
+     )
+  (* Break up y as x + k, since x < y *)
+  >> gvs[LT_EXISTS]
+  (* Induct on the variable which denotes the difference between y and x*)
+  >> Induct_on ‘d’
+  >- (rw[]
+      (* Decompose the power which has had 1 newly added to it into a product
+         of the old value by a *)
+      >> gvs[POW_ADD]
+      (* Prepare the power which has had 1 newly subtracted from it so that we
+         can decompose it into a product of the old value by 1/b *)
+      >> PURE_REWRITE_TAC[SUB_PLUS]
+      >> ‘b pow (n - x - 1) = b pow (n - x) / b pow 1’ by gvs[POW_SUB]
+      >> pop_assum (fn th => gvs[th])
+     )
+  (* Inductive step *)
+  >> rw[] >> gvs[]
+  >> gvs[ADD1]
+  >> gvs[POW_ADD]
+  >> PURE_REWRITE_TAC[SUB_PLUS]
+  >> gvs[POW_SUB]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Suppose we have two nonnegative factors, each taken to some power. As we   *)
+(* increase the number of instances of the larger factor and decrease the     *)
+(* number of instances of the smaller factor, we cause an overall increase.   *)
+(*                                                                            *)
+(* We use x to refer to one of the exponents, and we use c - x to refer to    *)
+(* the other exponent for some c. Thus we require x ≤ c. We then increase x   *)
+(* to a new value y, similarly decreasing c - x to a new value c - y. We      *)
+(* thus also require y ≤ c. Then our value would have experienced an increase *)
+(* if and only if x increased to y.                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem pow_mul_sub_leq:
+  ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
+    0 ≤ a ∧
+    0 ≤ b ∧
+    b ≤ a ∧
+    x ≤ n ∧
+    y ≤ n ⇒
+    (a pow x * b pow (n - x) ≤ a pow y * b pow (n - y) ⇔ x ≤ y)
+Proof
+  rw[]
+  (* Without loss of generality, we can take x ≤ y. This is because in the case
+     where it's the other way around, applying our result to the opposite order
+     of variables will give us an inequality in the opposite direction. We then
+     only need to rule out the possibility of equality. *)
+  >> wlog_tac ‘x ≤ y’ [‘x’, ‘y’]
+  >- (gvs[NOT_LE, GSYM extreal_lt_def, lt_le]
+      >> CCONTR_TAC >> gvs[]
+      (* From the equality, derive y = x, which contradicts y < x. *)
+      >> 
+     )
+
+  (* Rewrite y as being equal to x plus some constant p *)
+  >> drule (iffLR LE_EXISTS) >> rw[] >> gvs[]
+  (* Induct on p, which is the difference between y and x *)
+  >> Induct_on ‘p’ >> rw[]
+  >> Cases_on ‘x + SUC p = c’ >> gvs[]
+  >- (gvs[pow_add]
+      >> qsuff_tac ‘b pow SUC p ≤ a pow SUC p’
+      >- (rw[]
+          >> irule le_lmul_imp
+          >> gvs[pow_pos_le]
+         )
+      >> irule pow_le
+      >> gvs[]
+     )
+  >> sg ‘x + p ≤ c’ >> gvs[]
+
+                          
+  (* Introduce the variable n = y - x. We want to induct over that. *)
+  >> ‘y - x = y - x’ by gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘n = y - x’
+  >> ‘n = y - x’ by (unabbrev_all_tac >> gvs[])
+  >> pop_assum mp_tac >> NTAC 2 (pop_assum kall_tac)
+  (* Get ready for induction *)
+  >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
+  (* Perform induction on n*)
+  >> Induct_on ‘n’
+  >- (rw[] >> sg ‘x = y’ >> gvs[])
+  (* Inductive step *)
+  >> rw[]
+  (* y must have increased by one since last inductive step *)
+  >> Cases_on ‘y’ >> rw[]
+  (* *)
+  >> 
+QED
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem blockwise_map_decoding_hamming:
+  ∀enc n m p bs ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH bs = n ∧
+    LENGTH ds = m ∧
+    (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+    (is_optimal_blockwise_map_decoding enc n m p bs ds ⇔
+       (∀bs2.
+          LENGTH bs2 = n ⇒
+          hamming_distance ds (enc bs) ≤
+          hamming_distance ds (enc bs2)
+       ))
+Proof
+  rw[]
+  (* More useful expression for probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
+  (* Expand out definitions *)
+  >> gvs[is_optimal_blockwise_map_decoding_def]
+  >> gvs[prob_input_string_given_received_string_def]
+  >> gvs[cond_prob_def]
+  >> rw[]
+  (* The LHS and RHS are true at precisely the same choices of bs2, so we may
+     drag the forall out of the iff without worrying that this may impact the
+     provability of the statement. *)
+  >> ho_match_mp_tac (METIS_PROVE[] “(∀x. P x ⇔ Q x) ⇒ ((∀x. P x) ⇔ (∀x. Q x))”)
+  >> gen_tac
+  (* The implication may be simplified out on both sides *)
+  >> Cases_on ‘LENGTH bs2 = LENGTH bs’ >> simp[]
+  (* Cancel out the divide *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_le_iff]
+  >> rw[]
+  >- gvs[lt_le, PROB_POSITIVE, event_received_string_takes_value_is_event,
+         ecc_bsc_prob_space_is_prob_space,
+         event_received_string_takes_value_nonzero_prob]
+  >- gvs[PROB_FINITE, ecc_bsc_prob_space_is_prob_space,
+         event_received_string_takes_value_is_event]
+  (* Simplify intersection which has a known value *)
+  >> gvs[input_string_takes_value_inter_received_string_takes_value]
+  (* Use expression for probability in our prob space *)
+  >> DEP_PURE_REWRITE_TAC[prob_ecc_bsc_prob_space]
+  >> gvs[events_ecc_bsc_prob_space, POW_DEF, bxor_length]
+  (* Cancel out the multiplication *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[le_lmul]
+  >> rw[]
+  >- (irule lt_div_alt
+      >> gvs[pow_pos_lt, pow_not_infty]
+     )
+  >- (irule (cj 1 div_not_infty_if_not_infty_alt)
+      >> gvs[pow_not_infty, pow_pos_lt]
+     )
+  (* Use expression for sym_noise_mass_func of bxor *)
+  >> gvs[sym_noise_mass_func_bxor]
+  (*  *)
+  >> 
 QED
 
 val _ = export_theory();
