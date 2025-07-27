@@ -1759,6 +1759,18 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Cancel on the right in the real case of a leq when the RHS is exactly      *)
+(* equal to the term being cancelled                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem REAL_RCANCEL_LEQ_ID:
+  ∀a b : real.
+    0 < b ⇒
+    (a * b ≤ b ⇔ a ≤ 1)
+Proof
+  rw[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Suppose we have two nonnegative factors, each taken to some power. As we   *)
 (* increase the number of instances of the larger factor and decrease the     *)
 (* number of instances of the smaller factor, we cause an overall increase.   *)
@@ -1771,68 +1783,119 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem pow_mul_sub_leq:
   ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
-    0 ≤ a ∧
+    0 < a ∧
     a ≠ +∞ ∧
-    0 ≤ b ∧
+    0 < b ∧
     b ≠ +∞ ∧
-    b ≤ a ∧
+    b < a ∧
     x ≤ n ∧
     y ≤ n ⇒
     (a pow x * b pow (n - x) ≤ a pow y * b pow (n - y) ⇔ x ≤ y)
 Proof
   rw[]
+  (* Prove commonly used preconditions *)
+  >> ‘0 ≤ a ∧ 0 ≤ b ∧ a ≠ 0 ∧ b ≠ 0 ∧ b ≤ a ∧ a ≠ b’ by gvs[lt_le]
+  (* We can use the lemmas written above for the forwards implication in the
+     case of equality and in the case of strict inequality*)
   >> EQ_TAC
-  >- (rw[]
-      >> gvs[GSYM POW_ADD]
-     )
-     
-
-
-    
-  (* Without loss of generality, we can take x ≤ y. This is because in the case
-     where it's the other way around, applying our result to the opposite order
-     of variables will give us an inequality in the opposite direction. We then
-     only need to rule out the possibility of equality. *)
-  >> wlog_tac ‘x ≤ y’ [‘x’, ‘y’]
-  >- (gvs[NOT_LE, GSYM extreal_lt_def, lt_le]
-      >> CCONTR_TAC >> gvs[]
-      (* From the equality, derive y = x, which contradicts y < x. *)
-      >> 
-     )
-
-  (* Rewrite y as being equal to x plus some constant p *)
-  >> drule (iffLR LE_EXISTS) >> rw[] >> gvs[]
-  (* Induct on p, which is the difference between y and x *)
-  >> Induct_on ‘p’ >> rw[]
-  >> Cases_on ‘x + SUC p = c’ >> gvs[]
-  >- (gvs[pow_add]
-      >> qsuff_tac ‘b pow SUC p ≤ a pow SUC p’
-      >- (rw[]
-          >> irule le_lmul_imp
-          >> gvs[pow_pos_le]
+  >- (simp[LE_LT, le_lt]
+          (* In the case where we have less than, use the lemma for the
+              less than case *)
+      >> rw[]
+      >- (disj1_tac
+          >> irule pow_mul_sub_lt
+          >> qexistsl [‘a’, ‘b’, ‘n’]
+          >> gvs[]
          )
-      >> irule pow_le
+      (* In the case where we have equality, use the lemma for the equality
+         case. *)
+      >> disj2_tac
+      >> irule pow_mul_sub_inj
+      >> qexistsl [‘a’, ‘b’, ‘n’]
       >> gvs[]
      )
-  >> sg ‘x + p ≤ c’ >> gvs[]
-
-                          
-  (* Introduce the variable n = y - x. We want to induct over that. *)
-  >> ‘y - x = y - x’ by gvs[]
-  >> qmatch_asmsub_abbrev_tac ‘n = y - x’
-  >> ‘n = y - x’ by (unabbrev_all_tac >> gvs[])
-  >> pop_assum mp_tac >> NTAC 2 (pop_assum kall_tac)
-  (* Get ready for induction *)
-  >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
-  (* Perform induction on n*)
-  >> Induct_on ‘n’
-  >- (rw[] >> sg ‘x = y’ >> gvs[])
-  (* Inductive step *)
   >> rw[]
-  (* y must have increased by one since last inductive step *)
-  >> Cases_on ‘y’ >> rw[]
-  (* *)
-  >> 
+  (* Now that we have proven the forwards implication, we need to prove the
+      reverse implication. Start by proving it in the specific case where
+      x = y, which is trivial. *)
+  >> Cases_on ‘x = y’ >> gvs[]
+  (* We now know x < y *)
+  >> ‘x < y’ by gvs[lt_le]
+  (* Rewrite y as x + d *)
+  >> pop_assum mp_tac >> simp[LT_EXISTS]
+  >> rw[]
+  >> gvs[]
+  (* Translate to a statement in reals rather than extreals *)
+  >> namedCases_on ‘a’ ["", "", "a"] >> gvs[extreal_div_def]
+  >> namedCases_on ‘b’ ["", "", "b"] >> gvs[extreal_div_def]
+  >> qabbrev_tac ‘a = a'’ >> pop_assum kall_tac
+  >> qabbrev_tac ‘b = b'’ >> pop_assum kall_tac
+  >> gvs[extreal_pow_def, extreal_mul_eq]
+  (* Induct on d, which is the difference between x and y. Break down the
+     powers into a multiplication of terms *)
+  >> Induct_on ‘d’ >> gvs[POW_ADD, POW_SUB, ADD1]
+  (* Simplify *)
+  >> rw[] >> gvs[]
+  (* Make it more similar in form to the inductive hypothesis *)
+  >> ‘b * (b * b pow d) ≤ a * (a * a pow d)’ suffices_by gvs[]
+  (* Give names to the LHS and RHS of the inductive hypothesis *)
+  >> qmatch_goalsub_abbrev_tac ‘b * LHS ≤ a * RHS’
+  (* Move b and a together *)
+  >> ‘(b / a) * LHS ≤ RHS’ suffices_by gvs[]
+  (* It's sufficient to show that the new LHS is bounded above by the LHS from
+     the inductive hypothesis *)
+  >> ‘b / a * LHS ≤ LHS’ suffices_by metis_tac[REAL_LE_TRANS]
+  (* It suffices that b / a ≤ 1 *)
+  >> ‘0 < LHS ∧ b / a ≤ 1’ suffices_by simp[REAL_RCANCEL_LEQ_ID]
+  >> conj_tac
+  >- (unabbrev_all_tac
+      >> gvs[GSYM (cj 2 pow)]
+      >> gvs[REAL_POW_LT]
+     )
+  (* Simplifier now automatically proves the goal *)
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A version of pow_mul_sub_le that works in the case where we have a less    *)
+(* than operator rather than a less than or equal to operator.                *)
+(* -------------------------------------------------------------------------- *)
+Theorem pow_mul_sub_lt:
+  ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
+    0 < a ∧
+    a ≠ +∞ ∧
+    0 < b ∧
+    b ≠ +∞ ∧
+    b < a ∧
+    x ≤ n ∧
+    y ≤ n ⇒
+    (a pow x * b pow (n - x) < a pow y * b pow (n - y) ⇔ x < y)
+Proof
+  rw[]
+  (* In the forwards implication, we have to treat the case where x = y
+     specially, but the case where x ≤ y follows from the leq version of this
+     theorem. *)
+  >> EQ_TAC >> rw[]
+  >- (Cases_on ‘x = y’ >> gvs[]
+      >> gvs[LT_LE]
+      >> irule (iffLR pow_mul_sub_leq)
+      >> qexistsl [‘a’, ‘b’, ‘n’]
+      >> gvs[lt_le]
+     )
+  (* Split goal up into less than and less than or equal to *)
+  >> simp[lt_le]
+  (* The leq case follows directly from the leq version of this theorem. *)
+  >> gvs[pow_mul_sub_leq]
+  (* The equal case follows from the injectivity of this function, proven
+     earlier *)
+  >> CCONTR_TAC >> gvs[]
+  >> ‘x = y’ suffices_by gvs[]
+  >> irule pow_mul_sub_inj
+  >> qexistsl [‘a’, ‘b’, ‘n’]
+  >> gvs[]
+  (* We may assume a = b by way of contadiction. Then the proof becomes trivial
+   *)
+  >> CCONTR_TAC >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
