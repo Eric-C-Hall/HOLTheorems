@@ -1857,6 +1857,23 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* A real version of pow_mul_sub_leq                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem REAL_POW_MUL_SUB_LEQ:
+  ∀(a : real) (b : real) (n : num) (x : num) (y : num).
+    0 < a ∧
+    0 < b ∧
+    b < a ∧
+    x ≤ n ∧
+    y ≤ n ⇒
+    (a pow x * b pow (n - x) ≤ a pow y * b pow (n - y) ⇔ x ≤ y)
+Proof
+  rw[]
+  >> qspecl_then [‘Normal a’, ‘Normal b’, ‘n’, ‘x’, ‘y’] assume_tac pow_mul_sub_leq
+  >> gvs[extreal_pow_def, extreal_mul_eq]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A version of pow_mul_sub_le that works in the case where we have a less    *)
 (* than operator rather than a less than or equal to operator.                *)
 (* -------------------------------------------------------------------------- *)
@@ -1955,8 +1972,67 @@ Proof
      )
   (* Use expression for sym_noise_mass_func of bxor *)
   >> gvs[sym_noise_mass_func_bxor]
-  (*  *)
+  (* Convert extreals to reals *)
+  >> namedCases_on ‘p’ ["", "", "p'"] >> gvs[]
+  >> qabbrev_tac ‘p = p'’ >> pop_assum kall_tac
+  >> gvs[GSYM normal_1, extreal_sub_eq, extreal_pow_def, extreal_mul_def]
+  (* Without loss of generality, p ≤ 1 - p, because there's symmetry between
+     p and 1 - p. We also need to swap bs with bs2. *)
+  >> wlog_tac ‘p ≤ 1 - p’ [‘p’, ‘bs’, ‘bs2’]
+  >- (rw[]
+      (* This holds due to the WLOG theorem applied to 1 - p instead of p,
+         by symmetry between p and 1 - p. We also need to swap bs with bs2. *)
+      >> last_x_assum (qspecl_then [‘1 - p’, ‘bs2’, ‘bs’] assume_tac)
+      (* Simplify 1 - (1 - p) *)
+      >> gvs[complement_complement_prob_real]
+      (* We now know that 1 - p ≤ p , since we aren't in the case where
+         p ≤ 1 - p. *)
+      >> ‘1 - p ≤ p’ by gvs[REAL_NOT_LE, REAL_LE_LT]
+      >> gvs[]
+      (* Prove 0 < 1 - p < 1 and also 0 ≤ 1 - p ≤ 1 from the corresponding
+         bounds on p *)
+      >> drule_all complement_prob_lt_real >> rw[] >> gvs[]
+      >> drule_all complement_prob_real >> rw[] >> gvs[]
+      (* TODO: seems reasonable to arrive at from hypothesis, maybe? *)
+      >> qmatch_goalsub_abbrev_tac ‘p pow m1 * (1 - p) pow n1 ≤ p pow n2 * (1 - p) pow m2’
+      >> metis_tac[]
+      >> sg ‘0 < 1 - p ∧ 1 - p < 1’
+      >- (metis_tac [ALT_ZERO, NUMERAL_DEF, ONE, EQ_CLAUSES, realTheory.real_sub]
+         )
+
+         hh (top_goal())
+
+         
+      >> 
+     )
+        
+  (* Use pow_mul_sub_leq, which was written to solve the current proof state *)
+  >> gvs[hamming_distance_sym]
+  >> irule pow_mul_sub_leq
+  (* *)
+  >> gvs[hamming_distance_length]
+        
+  >> Cases_on ‘p’ >> gvs[]
+                        
+  >> qspecl_then [‘a’, ‘b’, ‘n’, ‘x’, ‘y’] assume_tac pow_mul_sub_leq
+                 
   >> 
+  (* Apply pow_mul_sub_leq *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[iffLR pow_mul_sub_leq]
+  >> rw[]
+  >- (qexistsl [‘2’, ‘1’,
+                ‘MAX (hamming_distance ds (enc bs))
+                 (hamming_distance ds (enc bs2))’]
+      >> gvs[]
+      >> conj_tac >- gvs[extreal_of_num_def]
+      >> 
+     )
+
+  (* Convert extreals to reals *)
+          >> namedCases_on ‘p’ ["", "", "p'"] >> gvs[]
+          >> qabbrev_tac ‘p = p'’ >> pop_assum kall_tac
+          >> gvs[GSYM normal_1, extreal_sub_eq, extreal_pow_def, extreal_mul_def]
+
 QED
 
 val _ = export_theory();

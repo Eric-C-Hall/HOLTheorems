@@ -420,6 +420,44 @@ Proof
   >> Cases_on ‘e’ >> gvs[]
 QED
 
+Theorem REAL_SUB_ID_UNIQUE[simp]:
+  ∀a r : real.
+    a - r = a ⇔ r = 0
+Proof
+  rw[]
+  >> EQ_TAC >> gvs[]
+  >> rw[]
+  >> gvs[real_sub]
+  >> ‘a + -r = a + 0’ by metis_tac[REAL_ADD_RID]
+  >> gvs[]
+QED
+
+Theorem complement_prob_real:
+  ∀p : real.
+    0 ≤ p ∧ p ≤ 1 ⇒ 0 ≤ (1 - p) ∧ (1 - p) ≤ 1
+Proof
+  rw[]
+  >- gvs[REAL_LE_SUB_LADD]
+  >> gvs[real_sub]
+  >> ‘1 + -p ≤ 1 + 0’ suffices_by metis_tac[REAL_ADD_RID]
+  >> PURE_REWRITE_TAC[REAL_LE_LADD]
+  >> gvs[]
+QED
+
+Theorem complement_prob_lt_real:
+  ∀p : real.
+    0 < p ∧ p < 1 ⇒ 0 < (1 - p) ∧ (1 - p) < 1
+Proof
+  rw[REAL_LT_LE, complement_prob_real]
+QED
+
+Theorem complement_complement_prob_real:
+  ∀p : real.
+    1 - (1 - p) = p
+Proof
+  rw[real_sub, REAL_NEG_ADD, REAL_ADD_ASSOC]
+QED
+
 Theorem complement_prob:
   ∀p : extreal.
     0 ≤ p ∧ p ≤ 1 ⇒ 0 ≤ (1 - p) ∧ (1 - p) ≤ 1
@@ -431,6 +469,23 @@ Proof
   >> ‘1 + 0 ≤ 1 + p’ suffices_by gvs[]
   >> irule $ iffRL le_ladd
   >> gvs[]
+QED
+
+Theorem complement_prob_lt:
+  ∀p : extreal.
+    0 < p ∧ p < 1 ⇒ 0 < (1 - p) ∧ (1 - p) < 1
+Proof
+  Cases_on ‘p’ >> gvs[complement_prob_lt_real, GSYM normal_1, GSYM normal_0,
+                      extreal_sub_eq]
+QED
+
+Theorem complement_complement_prob:
+  ∀p : extreal.
+    1 - (1 - p) = p
+Proof
+  Cases_on ‘p’ >> gvs[complement_prob_lt_real, GSYM normal_1,
+                      extreal_sub_eq, complement_complement_prob_real,
+                      extreal_sub_def]
 QED
 
 Theorem sym_noise_mass_func_nonneg:
