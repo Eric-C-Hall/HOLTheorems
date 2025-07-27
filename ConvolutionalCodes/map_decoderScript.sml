@@ -29,6 +29,7 @@ open topologyTheory;
 open realLib;
 open dep_rewrite;
 open ConseqConv;
+open holyHammer;
 
 val _ = hide "S";
 
@@ -1261,7 +1262,7 @@ Proof
   >> rw[]
   >> 
 QED
-      *)
+*)
 
 (* -------------------------------------------------------------------------- *)
 (* If we have an encoding method which is injective, then the input string    *)
@@ -1633,7 +1634,9 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Similar to pow_mul_sub_leq. See comment for that theorem                   *)
+(* Similar to pow_mul_sub_leq. See comment for that theorem. I happened to be *)
+(* able to prove this more easily, and it's a useful step on the way to       *)
+(* proving that theorem.                                                      *)
 (* -------------------------------------------------------------------------- *)
 Theorem pow_mul_sub_lt:
   ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
@@ -1671,43 +1674,8 @@ Proof
      SUCs out of the expression, so that we can break down to the smaller case
      where we can apply the inductive hypothesis. *)
   >> gvs[ADD1, POW_ADD, POW_SUB]
-
-
-  (* LHS is the same in the goal and inductive hypothesis *)
-  >> qmatch_goalsub_abbrev_tac ‘LHS ≤ _’
-  (* Use associativity so that we can collect a / b together on the left *)
-  >> PURE_REWRITE_TAC[GSYM REAL_MUL_ASSOC]
-  >> qmatch_goalsub_abbrev_tac ‘LHS ≤ a * (_ * RHS)’
-  (* Use associativity to standardize. Now it is clear that our inductive
-     hypothesis is closely related to the goal *)
-  >> gvs[REAL_MUL_ASSOC]
-  (* Collect a / b together*)
-  >> PURE_ONCE_REWRITE_TAC[GSYM REAL_MUL_ASSOC]
-  (* It is sufficient to prove that the RHS of the inductive hypothesis is
-     less than or equal to the RHS of the goal. *)
-                                    >> ‘RHS ≤ RHS * (a * b⁻¹)’ suffices_by metis_tac[REAL_LE_TRANS]
-                                    (* *)
-                                    >> irule POS_REAL_LEQ_RMUL
-                                    >> qsuff_tac ‘a * b⁻¹ ≤ 1’
-                                    >> gvs[]
-                                          
-                                    >- (rw[]
-                                        (* Decompose the power which has had 1 newly added to it into a product
-         of the old value by a *)
-                                        >> gvs[POW_ADD]
-                                        (* Prepare the power which has had 1 newly subtracted from it so that we
-         can decompose it into a product of the old value by 1/b *)
-                                        >> PURE_REWRITE_TAC[SUB_PLUS]
-                                        >> ‘b pow (n - x - 1) = b pow (n - x) / b pow 1’ by gvs[POW_SUB]
-                                        >> pop_assum (fn th => gvs[th])
-                                       )
-                                    (* Inductive step *)
-      >> rw[] >> gvs[]
-      >> gvs[ADD1]
-      >> gvs[POW_ADD]
-      >> PURE_REWRITE_TAC[SUB_PLUS]
-      >> gvs[POW_SUB]
-            
+  (* Complete proof automatically using Holyhammer *)
+  >> metis_tac [POW_LE, REAL_LE_LT, pow]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1749,22 +1717,23 @@ Proof
   >> gvs[LT_EXISTS]
   (* Induct on the variable which denotes the difference between y and x*)
   >> Induct_on ‘d’
-  >- (rw[]
-      (* Decompose the power which has had 1 newly added to it into a product
+    >- (rw[]
+        (* Decompose the power which has had 1 newly added to it into a product
          of the old value by a *)
-      >> gvs[POW_ADD]
-      (* Prepare the power which has had 1 newly subtracted from it so that we
+        >> gvs[POW_ADD]
+        (* Prepare the power which has had 1 newly subtracted from it so that we
          can decompose it into a product of the old value by 1/b *)
-      >> PURE_REWRITE_TAC[SUB_PLUS]
-      >> ‘b pow (n - x - 1) = b pow (n - x) / b pow 1’ by gvs[POW_SUB]
-      >> pop_assum (fn th => gvs[th])
-     )
-  (* Inductive step *)
-  >> rw[] >> gvs[]
-  >> gvs[ADD1]
-  >> gvs[POW_ADD]
-  >> PURE_REWRITE_TAC[SUB_PLUS]
-  >> gvs[POW_SUB]
+        >> PURE_REWRITE_TAC[SUB_PLUS]
+        >> ‘b pow (n - x - 1) = b pow (n - x) / b pow 1’ by gvs[POW_SUB]
+        >> pop_assum (fn th => gvs[th])
+       )
+    (* Inductive step *)
+    >> rw[] >> gvs[]
+    >> gvs[ADD1]
+    >> gvs[POW_ADD]
+    >> PURE_REWRITE_TAC[SUB_PLUS]
+    >> gvs[POW_SUB]
+          (* *)          
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1781,7 +1750,9 @@ QED
 Theorem pow_mul_sub_leq:
   ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
     0 ≤ a ∧
+    a ≠ +∞ ∧
     0 ≤ b ∧
+    b ≠ +∞ ∧
     b ≤ a ∧
     x ≤ n ∧
     y ≤ n ⇒
