@@ -1625,6 +1625,17 @@ Proof
   >> gvs[ADD1, POW_ADD]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Expression for what happens when we divide who powers with the same base   *)
+(* -------------------------------------------------------------------------- *)
+Theorem POW_DIV_SAME:
+  ∀(a : real) (n : num) (m : num).
+    a ≠ 0 ⇒
+    a pow n / a pow m = if m ≤ n then a pow (n - m) else 1 / (a pow (m - n))
+Proof
+  rw[POW_SUB]
+QED
+
 Theorem POS_REAL_LEQ_RMUL:
   ∀a b : real. 
     0 < a ⇒
@@ -1679,17 +1690,29 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Like POW_EQ, but doesn't require the exponent to have the structure        *)
+(* "SUC n"                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem POW_EQ_ALT:
+  ∀(x : real) (y : real) (n : num).
+    0 ≤ x ∧ 0 ≤ y ∧ n ≠ 0n ⇒
+    (x pow n = y pow n ⇔ x = y)
+Proof
+  rw[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> EQ_TAC >> metis_tac[POW_EQ]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* The function which takes a to the power of x and b to the power of n - x   *)
 (* is injective with respect to x if a ≠ b                                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem pow_mul_sub_inj:
   ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
     a ≠ +∞ ∧
-    a ≠ −∞ ∧
-    a ≠ 0 ∧
+    0 < a ∧
     b ≠ +∞ ∧
-    b ≠ −∞ ∧
-    b ≠ 0 ∧
+    0 < b ∧
     a ≠ b ∧
     x ≤ n ∧
     y ≤ n ∧
@@ -1697,6 +1720,7 @@ Theorem pow_mul_sub_inj:
     x = y
 Proof
   rw[]
+  >> ‘0 ≠ a ∧ 0 ≠ b’ by (conj_tac >> CCONTR_TAC >> gvs[])
   (* Break down our extreals a and b into Normal a and Normal b *)
   >> namedCases_on ‘a’ ["", "", "a"] >> gvs[extreal_div_def]
   >> namedCases_on ‘b’ ["", "", "b"] >> gvs[extreal_div_def]
@@ -1704,36 +1728,34 @@ Proof
   >> qabbrev_tac ‘b = b'’ >> pop_assum kall_tac
   (* Translate into a real expression *)
   >> gvs[extreal_pow_def, extreal_mul_eq]
-  (* Instead of proving x = y, assume x ≠ y and prove false. This allows us to
-     write y as x + d for some d, which allows us to induct on d.*)
-  >> CCONTR_TAC
-  (* Without loss of generality, we may take x < y by symmetry, because if
-     we don't have x < y, we have y < x and can use that instead. *)
-  >> wlog_tac ‘x < y’ [‘x’, ‘y’] >> gvs[]
-  >- (last_x_assum (qspecl_then [‘y’, ‘x’] assume_tac)
+  (* Simplify *)
+  >> gvs[POW_SUB]
+  (* Case where x = y *)
+  >> Cases_on ‘x = y’ >> gvs[]
+  (* Without loss of generality, x < y*)
+  >> wlog_tac ‘x < y’ [‘x’, ‘y’]
+  >- (gvs[]
+      (* Swap x and y, so as to use symmetry *)
+      >> last_x_assum (qspecl_then [‘y’, ‘x’] assume_tac)
       >> gvs[]
      )
-  (* Break up y as x + k, since x < y *)
-  >> gvs[LT_EXISTS]
-  (* Induct on the variable which denotes the difference between y and x*)
-  >> Induct_on ‘d’
-    >- (rw[]
-        (* Decompose the power which has had 1 newly added to it into a product
-         of the old value by a *)
-        >> gvs[POW_ADD]
-        (* Prepare the power which has had 1 newly subtracted from it so that we
-         can decompose it into a product of the old value by 1/b *)
-        >> PURE_REWRITE_TAC[SUB_PLUS]
-        >> ‘b pow (n - x - 1) = b pow (n - x) / b pow 1’ by gvs[POW_SUB]
-        >> pop_assum (fn th => gvs[th])
-       )
-    (* Inductive step *)
-    >> rw[] >> gvs[]
-    >> gvs[ADD1]
-    >> gvs[POW_ADD]
-    >> PURE_REWRITE_TAC[SUB_PLUS]
-    >> gvs[POW_SUB]
-          (* *)          
+  >> gvs[]
+  (* Collect a terms and b terms *)
+  >> ‘(a pow x / a pow y) * (b pow y / b pow x) = 1’ by (gvs[] >> metis_tac[])
+  (* Simplify b term *)
+  >> sg ‘a pow x / a pow y * (b pow (y - x)) = 1’
+  >- (pop_assum mp_tac
+      >> DEP_PURE_REWRITE_TAC[POW_DIV_SAME]
+      >> gvs[]
+     )
+  (* Simplify the a-term using holyhammer *)
+  >> ‘1 / (a pow (y - x)) * b pow (y - x) = 1’ by metis_tac [NOT_LESS, POW_DIV_SAME]
+  (* Simplify *)
+  >> gvs[]
+  (* Use injectivity of pow *)
+  >> pop_assum mp_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[POW_EQ_ALT]
+  >> gvs[REAL_LT_LE]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1759,6 +1781,14 @@ Theorem pow_mul_sub_leq:
     (a pow x * b pow (n - x) ≤ a pow y * b pow (n - y) ⇔ x ≤ y)
 Proof
   rw[]
+  >> EQ_TAC
+  >- (rw[]
+      >> gvs[GSYM POW_ADD]
+     )
+     
+
+
+    
   (* Without loss of generality, we can take x ≤ y. This is because in the case
      where it's the other way around, applying our result to the opposite order
      of variables will give us an inequality in the opposite direction. We then
