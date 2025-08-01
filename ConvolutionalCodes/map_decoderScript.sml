@@ -1649,7 +1649,7 @@ QED
 (* able to prove this more easily, and it's a useful step on the way to       *)
 (* proving that theorem.                                                      *)
 (* -------------------------------------------------------------------------- *)
-Theorem pow_mul_sub_lt:
+Theorem pow_mul_sub_lt_imp:
   ∀(a : extreal) (b : extreal) (n : num) (x : num) (y : num).
     0 < a ∧
     a ≠ +∞ ∧
@@ -1803,7 +1803,7 @@ Proof
               less than case *)
       >> rw[]
       >- (disj1_tac
-          >> irule pow_mul_sub_lt
+          >> irule pow_mul_sub_lt_imp
           >> qexistsl [‘a’, ‘b’, ‘n’]
           >> gvs[]
          )
