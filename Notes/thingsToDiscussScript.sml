@@ -4,6 +4,10 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* see the simpset fragment map_decoder_SS. Discuss. *)
+
+(* --------------------------------------------- *)
+
 (* map_decoderScript has unnecessarily large subgoal in
    map_decoder_bitwise_sum_bayes *)
 

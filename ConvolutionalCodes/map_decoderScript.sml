@@ -15,6 +15,7 @@ open useful_tacticsLib;
 (* Standard theories *)
 open arithmeticTheory;
 open bitstringTheory;
+open pairTheory;
 open pred_setTheory;
 open probabilityTheory;
 open extrealTheory;
@@ -192,7 +193,7 @@ End
 (* which is added to the message.                                             *)
 (*                                                                            *)
 (* Since P(x_i), and since the denominator is the same positive value         *)
-(* regardless                                                                 *)
+(* regardless TODO: sentence is incomplete. What did I mean?                  *)
 (*                                                                            *)
 (* This implementation breaks ties by assuming a bit has the value T in the   *)
 (* case of a tie.                                                             *)
@@ -214,6 +215,27 @@ Definition map_decoder_bitwise_def:
                     (event_received_string_takes_value enc n m ds);
   in
     MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* A maximum a posteriori decoder which calculates the most likely sent       *)
+(* codeword in a bitwise manner. Ties are broken by assuming the bit is T.    *)
+(*                                                                            *)
+(* enc: the encoding function                                                 *)
+(* n: the length of the initial message                                       *)
+(* m: the length of the encoded message                                       *)
+(* p: the probability of bit error in our binary symmetric channel            *)
+(* ds: the string that we wish to decode                                      *)
+(* -------------------------------------------------------------------------- *)
+Definition map_decoder_bitwise_sent_def:
+  map_decoder_bitwise_sent enc n m p ds =
+  let
+    map_decoder_sent_bit_prob =
+    λi c. cond_prob (ecc_bsc_prob_space n m p)
+                    (event_sent_bit_takes_value enc n m i c)
+                    (event_received_string_takes_value enc n m ds);
+  in
+    MAP (λi. argmax_bool (map_decoder_sent_bit_prob i)) (COUNT_LIST m)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -428,6 +450,19 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* event_sent_string_takes_value is a valid event in the probability space it *)
+(* is designed for                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_sent_string_takes_value_is_event:
+  ∀enc n m cs p.
+    event_sent_string_takes_value enc n m cs ∈ events (ecc_bsc_prob_space n m p)
+Proof
+  rw[event_sent_string_takes_value_def, events_ecc_bsc_prob_space,
+     POW_DEF, SUBSET_DEF]
+  >> (gvs[])
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* event_received_string_takes_value is a valid event in the probability      *)
 (* space it is designed for                                                   *)
 (* -------------------------------------------------------------------------- *)
@@ -476,6 +511,28 @@ Proof
   >> gvs[event_input_string_takes_value_is_event]
   >> gvs[EXTENSION] >> rw[event_input_string_takes_value_def]
   >> qexists ‘REPLICATE m F’
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* event_sent_string_takes_value has a nonzero probability                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_sent_string_takes_value_nonzero_prob:
+  ∀enc n m cs p.
+    0 < p ∧
+    p < 1 ∧
+    LENGTH cs = m ∧
+    (∃bs. LENGTH bs = n ∧ enc bs = cs) ⇒
+    prob (ecc_bsc_prob_space n m p)
+         (event_sent_string_takes_value enc n m cs) ≠ 0
+Proof
+  rw[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+  >> gvs[event_sent_string_takes_value_is_event]
+  >> gvs[EXTENSION] >> rw[event_sent_string_takes_value_def]
+  >> qexists ‘bs’
+  >> gvs[]   
+  >> qexists ‘REPLICATE (LENGTH (enc bs)) F’
   >> gvs[]
 QED
 
@@ -869,6 +926,15 @@ Proof
   >> Cases_on ‘x’ >> gvs[]
 QED
 
+Theorem event_sent_string_takes_value_disjoint:
+  ∀enc n m cs cs'.
+    cs ≠ cs' ⇒
+    DISJOINT (event_sent_string_takes_value enc n m cs) (event_sent_string_takes_value enc n m cs')
+Proof
+  rw[DISJOINT_DEF, event_sent_string_takes_value_def, INTER_DEF, EXTENSION]
+  >> Cases_on ‘x’ >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The event where a single input takes a value can be expressed as the       *)
 (* bigunion of several events where the entire input takes a specific value.  *)
@@ -885,6 +951,24 @@ Proof
   >> rw[EXTENSION]
   >> EQ_TAC >> rw[]
   >> (Cases_on ‘x’ >> gvs[])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A version of event_input_string_takes_value_bigunion which works for the   *)
+(* sent string rather than the input string.                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_sent_string_takes_value_bigunion:
+  ∀enc n m i c.
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    event_sent_bit_takes_value enc n m i c =
+    BIGUNION (IMAGE (event_sent_string_takes_value enc n m)
+                    (length_n_codes m ∩ {cs | EL i cs ⇔ c}))
+Proof
+  rw[]
+  >> gvs[BIGUNION_IMAGE]
+  >> gvs[event_sent_bit_takes_value_def, event_sent_string_takes_value_def]
+  >> rw[EXTENSION]
+  >> EQ_TAC >> rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -930,6 +1014,48 @@ Proof
   >> metis_tac[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* A version of cond_prob_event_input_string_takes_value_sum which works      *)
+(* on the sent string rather than the input string                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem cond_prob_event_sent_string_takes_value_sum:
+  ∀enc n m p i c ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    cond_prob
+    (ecc_bsc_prob_space n m p)
+    (event_sent_bit_takes_value enc n m i c)
+    (event_received_string_takes_value enc n m ds) =
+    ∑ (λcs.
+         cond_prob (ecc_bsc_prob_space n m p)
+                   (event_sent_string_takes_value enc n m cs)
+                   (event_received_string_takes_value enc n m ds)
+      )
+      {cs | LENGTH cs = m ∧ (EL i cs = c)}
+Proof
+  rw[]
+  (* More common representation of probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
+  (* Rewrite the set we are summing over in terms of an intersection with
+     length_n_codes *)
+  >> gvs[length_n_codes_single_input_takes_value_intersection]
+  (* Bring the sum into the cond_prob, turning it into a union *)
+  >> DEP_PURE_REWRITE_TAC[GSYM cond_prob_additive_finite]
+  (* Satisfy all the necessary requirements *)
+  >> gvs[ecc_bsc_prob_space_is_prob_space,
+         event_received_string_takes_value_is_event,
+         event_sent_string_takes_value_is_event,
+         event_sent_string_takes_value_disjoint,
+         event_received_string_takes_value_nonzero_prob]
+  (* Now it suffices to prove that the events in the cond_prob are equivalent *)
+  >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 e3 = cond_prob sp e2 e3’
+  >> ‘e1 = e2’ suffices_by gvs[]
+  >> unabbrev_all_tac
+  >> gvs[event_sent_string_takes_value_bigunion]
+  >> metis_tac[]
+QED
+        
 (* -------------------------------------------------------------------------- *)
 (* A version of the MAP decoder which is represented as the sum over all      *)
 (* possible choices of input such that the ith element takes the appropriate  *)
@@ -1992,6 +2118,184 @@ Proof
   (* Solve preconditions for pow_mul_sub_leq*)
   >> gvs[hamming_distance_length]
   >> drule_all complement_prob_lt_real >> rw[] >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Simpset which collects some commonly used theorems regarding MAP decoders. *)
+(*                                                                            *)
+(* Based on real_SS from realSimps.sml.                                       *)
+(* -------------------------------------------------------------------------- *)
+val map_decoder_SS =
+SSFRAG
+{
+name = SOME"map_decoder",
+ac = [],
+congs = [],
+convs = [],
+dprocs = [],
+filter = NONE,
+rewrs = map
+        (fn s => (SOME {Thy = "map_decoder", Name = s},
+                  DB.fetch "map_decoder" s
+                 )
+        )
+        ["event_input_bit_takes_value_is_event",
+         "event_input_string_takes_value_is_event",
+         "event_sent_string_takes_value_is_event",
+         "event_received_string_takes_value_is_event",
+         "event_input_bit_takes_value_nonzero_prob",
+         "event_input_string_takes_value_nonzero_prob",
+         "event_sent_string_takes_value_nonzero_prob",
+         "event_received_string_takes_value_nonzero_prob",
+         "event_input_string_and_received_string_take_values_is_event",
+         "event_input_string_and_received_string_take_values_nonzero_prob",
+         "event_input_string_takes_value_disjoint",
+         "event_sent_string_takes_value_disjoint"
+        ]
+};
+
+val ecc_prob_space_SS =
+SSFRAG
+{
+name = SOME"ecc_prob_space",
+ac = [],
+congs = [],
+convs = [],
+dprocs = [],
+filter = NONE,
+rewrs = map
+        (fn s => (SOME {Thy = "ecc_prob_space", Name = s},
+                  DB.fetch "ecc_prob_space" s
+                 )
+        )
+        ["ecc_bsc_prob_space_is_prob_space"
+        ]
+};
+ 
+val ecc_SS =
+SSFRAG
+{
+name = SOME"ecc",
+ac = [],
+congs = [],
+convs = [],
+dprocs = [],
+filter = NONE,
+rewrs = []
+}
+
+map_decoder_SS.rewrs ++ ecc_prob_space_SS.rewrs
+
+(* -------------------------------------------------------------------------- *)
+(* A theorem based on map_decoder_bitwise_simp2, but instead taking the MAP   *)
+(* decoding relative to the sent string rather than the input string.         *)
+(*                                                                            *)
+(* Step 1: map_decoder_bitwise_sum                                            *)
+(* Step 2: map_decoder_bitwise_sum_bayes                                      *)
+(* Step 3: map_decoder_bitwise_sum_bayes_prod                                 *)
+(* Step 4: map_decoder_bitwise_simp1                                          *)
+(* Step 5: map_decoder_bitwise_simp2                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem map_decoder_bitwise_sent_simp2:
+  ∀enc n m p ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
+    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
+    map_decoder_bitwise_sent enc n m p ds =
+    MAP (λi. argmax_bool ARB) (COUNT_LIST (LENGTH ds))
+Proof
+  rw[]
+  (* More common assumption when dealing with probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
+  (* Expand out the definition we are finding an equivalent expression for *)
+  >> gvs[map_decoder_bitwise_sent_def]
+  (* The inner bit is the bit we need to prove equivalence of. *)
+  >> gvs[MAP_EQ_f]
+  >> rw[]
+  (* Name the LHS and RHS *)
+  >> qmatch_goalsub_abbrev_tac ‘LHS = RHS’
+  (* Sum out other sent bits, like in map_decoder_bitwise_sum *)
+  >> sg ‘LHS = argmax_bool
+               (λc. ∑
+                    (λcs. cond_prob
+                          (ecc_bsc_prob_space n (LENGTH ds) p)
+                          (event_sent_string_takes_value enc n (LENGTH ds) cs)
+                          (event_received_string_takes_value enc n (LENGTH ds) ds)
+                    )
+                    {cs | LENGTH cs = LENGTH ds ∧ (EL i cs ⇔ c)}
+               )’
+  >- (unabbrev_all_tac
+      >> irule argmax_bool_mul_const
+      >> qexists ‘1’
+      >> gvs[]
+      >> rw[FUN_EQ_THM]
+      >> gvs[cond_prob_event_sent_string_takes_value_sum]
+     )
+  >> qpat_x_assum ‘Abbrev (LHS ⇔ _)’ kall_tac
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘LHS = RHS’
+  (* Apply Bayes' rule, like in map_decoder_bitwise_sum_bayes *)
+  >> sg ‘LHS = argmax_bool
+               (λc. ∑
+                    (λcs. cond_prob
+                          (ecc_bsc_prob_space n (LENGTH ds) p)
+                          (event_received_string_takes_value enc n (LENGTH ds) ds)
+                          (event_sent_string_takes_value enc n (LENGTH ds) cs) *
+                          prob (ecc_bsc_prob_space n (LENGTH ds) p)
+                               (event_sent_string_takes_value enc n (LENGTH ds) cs)
+                    )
+                    {cs | LENGTH cs = LENGTH ds ∧ (EL i cs ⇔ c) ∧
+                          (∃bs. LENGTH bs = n ∧ enc bs = cs)}
+               )’
+  >- (unabbrev_all_tac
+      >> irule argmax_bool_mul_const
+      >> qexists ‘prob (ecc_bsc_prob_space n (LENGTH ds) p)
+                  (event_received_string_takes_value enc n (LENGTH ds) ds)’
+      >> rw[]
+      >- (irule (cj 2 PROB_FINITE)
+          >> gvs[SF ecc_ss]
+          >> gvs[ecc_bsc_prob_space_is_prob_space,
+                ]
+         )
+      >> rw[FUN_EQ_THM]
+      (* Move the constant into the sum *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT]
+      >> rw[] >- cheat  >- cheat >- cheat
+      (* First, restrict the set we are summing over to ensure we don't have
+         any zero probabilities, which would be an issue for Bayes' rule
+         because the denominator would then have 0 in it. *)
+      >> qmatch_goalsub_abbrev_tac ‘∑ f S1 = ∑ g S2’
+      >> sg ‘∑ g S2 = ∑ g S1’
+      >- (sg ‘S1 = S2 ∩ {cs | ∃bs. LENGTH bs = n ∧ enc bs = cs}’
+          >- (unabbrev_all_tac >> ASM_SET_TAC[])
+          >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+          (* Main lemma to restrict the set we are summing over *)
+          >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_INTER_ELIM]
+          >> rw[] >- cheat >- cheat
+          >> cheat
+         )
+      >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+      (* The two sums are equal because each of the functions is equal on the
+         domain *)
+      >> irule EXTREAL_SUM_IMAGE_EQ'
+      (* *)
+      >> REVERSE conj_tac >- cheat
+      >> rw[]
+      >> unabbrev_all_tac
+      >> rw[FUN_EQ_THM]
+      (* Apply Bayes' rule*)
+      >> DEP_PURE_ONCE_REWRITE_TAC[BAYES_RULE]
+      >> gvs[ecc_bsc_prob_space_is_prob_space,
+             event_sent_string_takes_value_is_event,
+             event_received_string_takes_value_is_event,
+             event_received_string_takes_value_nonzero_prob]
+      >> DEP_PURE_ONCE_REWRITE_TAC[div_mul_refl_alt]
+      >> gvs[]
+      >> rw[] >- cheat >- cheat >- cheat >- cheat
+     )
+     
+
 QED
 
 val _ = export_theory();

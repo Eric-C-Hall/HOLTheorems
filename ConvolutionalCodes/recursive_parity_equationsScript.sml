@@ -79,6 +79,14 @@ Definition encode_recursive_parity_equation_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* A version of encode_recursive_parity_equation which also outputs the       *)
+(* systematic bits                                                            *)
+(* -------------------------------------------------------------------------- *)
+(*Definition encode_recursive_parity_equation_with_systematic:
+  encode_recursive_parity_equation_with_systematic (ps, qs) ts bs =
+End*)
+
+(* -------------------------------------------------------------------------- *)
 (* The state that encode_recursive_parity_equation ends in after applying a   *)
 (* given set of parity equations to a given input starting from a given state *)
 (* -------------------------------------------------------------------------- *)
