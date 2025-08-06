@@ -158,7 +158,7 @@ QED
 (*                                                                            *)
 (* We assume that our parity equation is delayfree                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem map_decoder_bitwise_encode_recursive_parity_equation:
+Theorem map_decoder_bitwise_sent_encode_recursive_parity_equation:
   ∀ps qs ts n m p ds.
     let
       enc = encode_recursive_parity_equation (ps, qs) ts;
@@ -168,13 +168,13 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation:
       0 < p ∧ p < 1 ∧
       LENGTH ds = m ∧
       (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
-      map_decoder_bitwise enc n m p ds =
+      map_decoder_bitwise_sent enc n m p ds =
       MAP (λi. argmax_bool (λx. ARB))
-          (COUNT_LIST n)
+          (COUNT_LIST m)
 Proof
   rw[]
   (* We start from the most simplified version of the MAP decoder *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[map_decoder_bitwise_simp2]
+  >> DEP_PURE_ONCE_REWRITE_TAC[map_decoder_bitwise_sent_sum_bayes_prod]
   >> rw[]
   >- metis_tac[]
   >- (drule encode_recursive_parity_equation_inj >> rpt strip_tac
@@ -182,13 +182,13 @@ Proof
       >> metis_tac[]
      )
   (* The bitwise part is the part which is equivalent *)
-  >> gvs[MAP_EQ_f]
-  >> rw[]
+  >> rw[MAP_EQ_f]
   (* In this case, the inner functions are equivalent *)
-  >> AP_TERM_TAC
+  >> irule argmax_bool_mul_const
+  >> qexists ‘1’
+  >> gvs[]
   >> rw[FUN_EQ_THM]
-  (* The probability of the input taking a particular value is equal to the
-     probability of starting in the starting state *)
+  (* *)
   >> 
 QED
   
