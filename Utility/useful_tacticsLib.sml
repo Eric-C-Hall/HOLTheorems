@@ -40,4 +40,9 @@ val EXT_ALL_TAC = rpt (irule EQ_EXT >> gen_tac)
 
 (* TODO: write a function to negate both sides of an if and only if statement, even in the presence of quantifiers *)
 
+(* TODO: This is broken because it will apply pop_assum ttac to both the
+   goal to prove the subgoal, and the goal to use the subgoal to prove the
+   overall goal, as well as any other simultaneous goals that exist. *)
+(* fun sg_then tm ttac = (sg tm) >> pop_assum ttac; *)
+
 end

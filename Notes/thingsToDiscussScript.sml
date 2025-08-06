@@ -4,7 +4,8 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
-(* see the simpset fragment map_decoder_SS. Discuss. *)
+(* see the simpset fragment map_decoder_SS. Discuss. How do I add my own
+   simpset to gvs? *)
 
 (* --------------------------------------------- *)
 
