@@ -1601,10 +1601,34 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* A version of cond_prob_string_given_input_prod, calculated relative to the *)
+(* sent string taking a particular value rather than the input string taking  *)
+(* a particular value. It may be possible to remove the assumption that the   *)
+(* encoder is injective.                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem cond_prob_string_given_sent_prod:
+  ∀enc n m p cs ds.
+    0 < p ∧ p < 1 ∧
+    LENGTH cs = m ∧
+    LENGTH ds = m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
+    (∃bs. LENGTH bs = n ∧ enc bs = cs) ∧
+    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
+    cond_prob (ecc_bsc_prob_space n m p)
+              (event_received_string_takes_value enc n m ds)
+              (event_sent_string_takes_value enc n m cs) =
+    sym_noise_mass_func p (bxor cs ds)
+Proof
+  rw[]
+  >> gvs[GSYM event_input_string_takes_value_event_sent_string_takes_value]
+  >> metis_tac[cond_prob_string_given_input_prod]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Simplify the conditional probability from map_decoder_bitwise_sum_bayes,   *)
 (* providing an explicit expression for it.                                   *)
 (*                                                                            *)
-(* Note thtat sym_noise_mass_func can be interpreted as a product of          *)
+(* Note that sym_noise_mass_func can be interpreted as a product of           *)
 (* probabilities, so we have an expression that is nearly suitable for use in *)
 (* a factor graph.                                                            *)
 (* -------------------------------------------------------------------------- *)
@@ -2191,6 +2215,18 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* This expression has come up for me twice now, and gvs doesn't solve it     *)
+(* automatically, so I add it to the stateful simpset to ensure that it does  *)
+(* get solved automatically in the future                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem exists_with_length_and_enc[simp]:
+  ∀enc bs.
+    ∃bs2. LENGTH bs2 = LENGTH bs ∧ enc bs2 = enc bs
+Proof
+  metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Simpset which collects some commonly used theorems regarding MAP decoders. *)
 (*                                                                            *)
 (* Based on real_SS from realSimps.sml.                                       *)
@@ -2272,6 +2308,17 @@ val ecc3_ss = ecc2_ss ++ rewrites[mul_not_infty2,
                                   length_n_codes_ith_eq_codes_valid_inverse_codes,
                                   div_mul_refl_alt];
 
+argmax_bool
+(λc.
+   ∑
+   (λcs.
+      sym_noise_mass_func p (bxor cs ds) *
+      prob (ecc_bsc_prob_space n (LENGTH ds) p)
+           (event_sent_string_takes_value enc n (LENGTH ds) cs))
+   {cs |
+   LENGTH cs = LENGTH ds ∧ (EL i cs ⇔ c) ∧
+   ∃bs. LENGTH bs = n ∧ enc bs = cs})
+
 (* -------------------------------------------------------------------------- *)
 (* A theorem based on map_decoder_bitwise_simp2, but instead taking the MAP   *)
 (* decoding relative to the sent string rather than the input string.         *)
@@ -2279,17 +2326,28 @@ val ecc3_ss = ecc2_ss ++ rewrites[mul_not_infty2,
 (* Step 1: map_decoder_bitwise_sum                                            *)
 (* Step 2: map_decoder_bitwise_sum_bayes                                      *)
 (* Step 3: map_decoder_bitwise_sum_bayes_prod                                 *)
-(* Step 4: map_decoder_bitwise_simp1                                          *)
-(* Step 5: map_decoder_bitwise_simp2                                          *)
+(* Step 4 (invalid): map_decoder_bitwise_simp1                                *)
+(* Step 5 (invalid): map_decoder_bitwise_simp2                                *)
 (* -------------------------------------------------------------------------- *)
-Theorem map_decoder_bitwise_sent_simp2:
+Theorem map_decoder_bitwise_sent_sum_bayes_prod:
   ∀enc n m p ds.
     0 < p ∧ p < 1 ∧
     LENGTH ds = m ∧
     (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
     (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
     map_decoder_bitwise_sent enc n m p ds =
-    MAP (λi. argmax_bool ARB) (COUNT_LIST (LENGTH ds))
+    let
+      map_decoder_bitstring_prob_bayes =
+      λcs. (sym_noise_mass_func p (bxor cs ds)) *
+           prob (ecc_bsc_prob_space n m p)
+                (event_sent_string_takes_value enc n m cs);
+      map_decoder_bit_prob =
+      λi c.
+        ∑ map_decoder_bitstring_prob_bayes
+          {cs | LENGTH cs = m ∧ EL i cs = c
+                ∧ (∃bs. LENGTH bs = n ∧ enc bs = cs)};
+    in
+      (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST m))
 Proof
   rw[]
   (* More common assumption when dealing with probabilities *)
@@ -2371,9 +2429,36 @@ Proof
       >> DEP_PURE_ONCE_REWRITE_TAC[BAYES_RULE]
       >> full_simp_tac ecc3_ss []
      )
-  >> 
-     
-
+  >> qpat_x_assum ‘Abbrev (LHS ⇔ _)’ kall_tac
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘LHS ⇔ RHS’
+  (* Simplify the conditional probability, like in
+     map_decoder_bitwise_sum_bayes_prod *)
+  >> sg ‘LHS = argmax_bool
+               (λc. ∑
+                    (λcs. sym_noise_mass_func p (bxor cs ds) *
+                          prob (ecc_bsc_prob_space n (LENGTH ds) p)
+                               (event_sent_string_takes_value enc n (LENGTH ds) cs))
+                    {cs | LENGTH cs = LENGTH ds ∧ (EL i cs ⇔ c) ∧
+                          (∃bs. LENGTH bs = n ∧ enc bs = cs)}
+               )’
+  >- (unabbrev_all_tac
+      (* The inside of the argmax is equal *)
+      >> irule argmax_bool_mul_const
+      >> qexists ‘1’
+      >> gvs[]
+      >> rw[FUN_EQ_THM]
+      (* The inner functions are equivalent *)
+      >> irule EXTREAL_SUM_IMAGE_EQ'
+      >> unabbrev_all_tac
+      >> full_simp_tac ecc3_ss []
+      >> rw[]
+      (* *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_string_given_sent_prod]
+      >> full_simp_tac ecc3_ss []
+     )
+  >> qpat_x_assum ‘Abbrev (LHS ⇔ _)’ kall_tac
+  >> gvs[]
 QED
 
 val _ = export_theory();

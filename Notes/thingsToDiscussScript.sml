@@ -7,6 +7,13 @@ val _ = new_theory "relevant";
 (* see the simpset fragment map_decoder_SS. Discuss. How do I add my own
    simpset to gvs? *)
 
+(* Is it possible to write a congruence rule or something to make it easier to
+   simplify the interior of argmax_bool, creating a chain
+   argmax_bool P1 = argmax_bool P2 = argmax_bool P3 = ...
+.
+   Similarly for simplifying Σ f1 S = Σ f2 S = Σ f3 S = ...
+ *)
+
 (* --------------------------------------------- *)
 
 (* map_decoderScript has unnecessarily large subgoal in
