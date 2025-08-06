@@ -2308,17 +2308,6 @@ val ecc3_ss = ecc2_ss ++ rewrites[mul_not_infty2,
                                   length_n_codes_ith_eq_codes_valid_inverse_codes,
                                   div_mul_refl_alt];
 
-argmax_bool
-(λc.
-   ∑
-   (λcs.
-      sym_noise_mass_func p (bxor cs ds) *
-      prob (ecc_bsc_prob_space n (LENGTH ds) p)
-           (event_sent_string_takes_value enc n (LENGTH ds) cs))
-   {cs |
-   LENGTH cs = LENGTH ds ∧ (EL i cs ⇔ c) ∧
-   ∃bs. LENGTH bs = n ∧ enc bs = cs})
-
 (* -------------------------------------------------------------------------- *)
 (* A theorem based on map_decoder_bitwise_simp2, but instead taking the MAP   *)
 (* decoding relative to the sent string rather than the input string.         *)
@@ -2453,7 +2442,7 @@ Proof
       >> unabbrev_all_tac
       >> full_simp_tac ecc3_ss []
       >> rw[]
-      (* *)
+      (* Use lemma to simplify the conditional probability *)
       >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_string_given_sent_prod]
       >> full_simp_tac ecc3_ss []
      )
