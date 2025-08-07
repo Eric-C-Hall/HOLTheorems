@@ -12,6 +12,7 @@ open useful_theoremsTheory;
 
 (* My libraries *)
 open donotexpandLib;
+open map_decoderLib;
 
 (* Standard theories *)
 open arithmeticTheory;
@@ -36,21 +37,34 @@ val _ = new_theory "map_decoder_convolutional_code";
 
 val _ = hide "S";
 
-(* This isn't true
-Theorem apply_parity_equation_append_iff:
-  ∀ps ts b1 b2.
-    LENGTH ts < LENGTH ps ⇒
-    ((apply_parity_equation ps (SNOC b1 ts)
-      = apply_parity_equation ps (SNOC b2 ts)) ⇔ b1 = b2)
-Proof
-  Induct_on ‘ts’ >> rw[] >> EQ_TAC >> rw[]
-  >- (Cases_on ‘ps’ >> gvs[]
-      >> PURE_REWRITE_TAC[apply_parity_equation_def]
+(* -------------------------------------------------------------------------- *)
+(* The event in which a particular state takes a particular value.            *)
+(*                                                                            *)
+(* n: The size of the input                                                   *)
+(* m: The size of the output                                                  *)
+(* ps: The numerator parity equation                                          *)
+(* qs: The denominator parity equation                                        *)
+(* ts: The initial state                                                      *)
+(* i: The index of the state we expect to have a particular value             *)
+(* σ: The value that we expect that state to have                             *)
+(* -------------------------------------------------------------------------- *)
+Definition event_state_takes_value_def:
+  event_state_takes_value n m ps qs ts i σ = 
+  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧
+              encode_recursive_parity_equation_state (ps,qs) ts bs = σ
+  }
+End
 
-                         Cases_on ‘ps’ >> gvs[apply_parity_equation_def]
-      >> Cases_on ‘h’ >> gvs[]
-     )
-QED*)
+(* -------------------------------------------------------------------------- *)
+(* The event in which the states take a particular sequence of values         *)
+(* -------------------------------------------------------------------------- *)
+Definition event_state_sequence_takes_value_def:
+  (event_state_sequence_takes_value n m ps qs ts [] =
+   {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m})
+  ∧ event_state_sequence_takes_value n m ps qs ts (σ::σs) =
+    (event_state_sequence_takes_value n m ps qs ts σs)
+    ∩ event_state_takes_value n m ps qs ts (LENGTH σs) σ
+End
 
 (* -------------------------------------------------------------------------- *)
 (* An expression for when encode_recursive_parity_equation is injective,      *)
@@ -153,6 +167,86 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* The probability of the sent string taking a particular value can be        *)
+(* calculated by taking the marginal with respect to the state sequence.      *)
+(* This simplifies the calculation of the probability becuase we know the     *)
+(* state sequence and thus we have more information with which to calculate   *)
+(* the probability.                                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem ev_sent_marginal_states:
+  ∀n m p ps qs ts bs.
+    let
+      sp = ecc_bsc_prob_space n m p;
+      enc = encode_recursive_parity_equation (ps,qs) ts;
+      ev_sent = event_sent_string_takes_value enc n m (enc bs);
+    in
+      prob sp ev_sent =
+      ∑ (λσs. prob sp (ev_sent
+                       ∩ event_state_sequence_takes_value n m ps qs ts σs))
+        {σs : (bool list) list | LENGTH σs = LENGTH bs ∧
+                                 (∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts)}
+Proof
+  rw[]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* Apply the chain rule to ev_sent_marginal_states, to split the probability  *)
+(* of being in a particular state and sending a particular message into the   *)
+(* probability of being in a particular state, and the probability of sending *)
+(* a particular message given a state sequence. These are two simpler values  *)
+(* to calculate.                                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem ev_sent_chain_states:
+  ∀n m p ps qs ts bs.
+    let
+      sp = ecc_bsc_prob_space n m p;
+      enc = encode_recursive_parity_equation (ps,qs) ts;
+      ev_sent = event_sent_string_takes_value enc n m (enc bs);
+    in
+      prob sp ev_sent =
+      ∑ (λσs. cond_prob sp ev_sent
+                        (event_state_sequence_takes_value n m ps qs ts σs) *
+              prob sp (event_state_sequence_takes_value n m ps qs ts σs))
+        {σs : (bool list) list | LENGTH σs = LENGTH bs ∧
+                                 (∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts)}
+Proof
+  rw[]
+  >> qmatch_goalsub_abbrev_tac ‘prob sp (_ enc _ _ _) = ∑ _ S’
+  >> qmatch_goalsub_abbrev_tac ‘prob sp ev_sent = _’
+  >> qspecl_then [‘sp’,
+                  ‘ev_sent’,
+                  ‘event_state_sequence_takes_value n m ps qs ts’,
+                  ‘S’] assume_tac TOTAL_PROB_SIGMA
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> conj_tac
+  >- (unabbrev_all_tac
+      
+     )
+QED
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(* Note: σs does not include the initial state, only the resulting sequence   *)
+(*       of states.                                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem gfdjok:
+  ∀n m p ps qs ts bs.
+    prob (ecc_bsc_prob_space n m p)
+         (event_sent_string_takes_value
+          (encode_recursive_parity_equation (ps,qs) ts)
+          n
+          m
+          (encode_recursive_parity_equation (ps, qs) ts bs)
+         ) = ∑ (λσs. ARB)
+               {σs : (bool list) list | LENGTH σs = LENGTH bs}
+Proof
+  rw[]
+
+    TOTAL_PROB_SIGMA
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* TODO: simplify requirement on encoder outputting correct length for this   *)
 (* special case                                                               *)
 (*                                                                            *)
@@ -169,7 +263,17 @@ Theorem map_decoder_bitwise_sent_encode_recursive_parity_equation:
       LENGTH ds = m ∧
       (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
       map_decoder_bitwise_sent enc n m p ds =
-      MAP (λi. argmax_bool (λx. ARB))
+      MAP (λi.
+             argmax_bool
+             (λx. ∑ ARB
+                    {cs | LENGTH cs = m ∧
+                          (EL i cs = x) ∧
+                          (∃bs.
+                             LENGTH bs = n ∧
+                             encode_recursive_parity_equation (ps, qs) ts bs = cs)
+                             }
+             )
+          )
           (COUNT_LIST m)
 Proof
   rw[]
@@ -188,7 +292,18 @@ Proof
   >> qexists ‘1’
   >> gvs[]
   >> rw[FUN_EQ_THM]
-  (* *)
+  (* The function is equivalent *)
+  >> irule EXTREAL_SUM_IMAGE_EQ'
+  >> gvs[length_n_codes_ith_eq_codes_valid_inverse_codes]
+  >> rw[]
+  (*  *)
+       
+  
+  >> full_simp_tac map_decoder.ecc3_ss []
+  >> rw[]
+  (* P(cs) = Σ P(cs, σ) {σ}
+           = Σ (P(cs | σ))*)
+  (* The probability of *)
   >> 
 QED
   
