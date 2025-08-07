@@ -99,6 +99,4 @@ val ecc3_ss = ecc2_ss ++ rewrites[mul_not_infty2,
                                   length_n_codes_ith_eq_codes_valid_inverse_codes,
                                   div_mul_refl_alt];
 
-End
-
 end
