@@ -229,13 +229,55 @@ Proof
      )
 QED
 
+Theorem event_state_takes_value_disjoint[simp]:
+  ∀n m ps qs ts i σ1 σ2.
+    σ1 ≠ σ2 ⇒
+    DISJOINT
+    (event_state_takes_value n m ps qs ts i σ1)
+    (event_state_takes_value n m ps qs ts i σ2)
+Proof
+  rw[]
+  >> gvs[event_state_takes_value_def]
+  >> gvs[DISJOINT_ALT]
+  >> rw[]
+  >> gvs[]
+QED
+
+Theorem event_state_sequence_takes_value_disjoint[simp]:
+  ∀n m ps qs ts σs1 σs2.
+    LENGTH σs1 = LENGTH σs2 ∧
+    σs1 ≠ σs2 ⇒
+    DISJOINT
+    (event_state_sequence_takes_value n m ps qs ts σs1)
+    (event_state_sequence_takes_value n m ps qs ts σs2)
+Proof
+  (* Induct on σs1 and split up σs2 to match *)
+  Induct_on ‘σs1’ >> gvs[]
+  >> rw[]
+  >> Cases_on ‘σs2’ >> gvs[]
+  (* Better naming *)
+  >> qabbrev_tac ‘σ1 = h’ >> qpat_x_assum ‘Abbrev (σ1 = h)’ kall_tac
+  >> qabbrev_tac ‘σ2 = h'’ >> qpat_x_assum ‘Abbrev (σ2 = h')’ kall_tac
+  >> qabbrev_tac ‘σs2 = t’ >> qpat_x_assum ‘Abbrev (σs2 = t)’ kall_tac
+  (* Expand out definition of event and alt definition of disjoint *)
+  >> gvs[event_state_sequence_takes_value_def]
+  >> gvs[DISJOINT_ALT]
+  >> rw[]
+  (* Split on the case of whether or not x is in the current state that is
+     being inducted over and simplify *)
+  >> Cases_on ‘x ∈ event_state_takes_value n m ps qs ts (LENGTH σs2) σ2’ >> gvs[]
+  >> gvs[event_state_takes_value_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Add rewrites from this file                                                *)
 (* -------------------------------------------------------------------------- *)
 val ecc4_ss = ecc3_ss ++
               rewrites[length_n_state_sequences_finite,
                        event_state_sequence_takes_value_is_event,
-                       event_state_takes_value_is_event
+                       event_state_takes_value_is_event,
+                       event_state_takes_value_disjoint,
+                       event_state_sequence_takes_value_disjoint
                       ]
 
 (* -------------------------------------------------------------------------- *)
@@ -339,37 +381,13 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* The probability of the sent string taking a particular value can be        *)
-(* calculated by taking the marginal with respect to the state sequence.      *)
-(* This simplifies the calculation of the probability becuase we know the     *)
-(* state sequence and thus we have more information with which to calculate   *)
-(* the probability.                                                           *)
+(* Apply the law of total probability to the event where the sent string      *)
+(* takes a particular value, to split the probability up according to what    *)
+(* state sequence is observed. This makes it simpler to calculate, as it is   *)
+(* helpful to know the state sequence in order to calculate the probability   *)
+(* that the sent string takes a particular value.                             *)
 (* -------------------------------------------------------------------------- *)
-Theorem ev_sent_marginal_states:
-  ∀n m p ps qs ts bs.
-    let
-      sp = ecc_bsc_prob_space n m p;
-      enc = encode_recursive_parity_equation (ps,qs) ts;
-      ev_sent = event_sent_string_takes_value enc n m (enc bs);
-    in
-      prob sp ev_sent =
-      ∑ (λσs. prob sp (ev_sent
-                       ∩ event_state_sequence_takes_value n m ps qs ts σs))
-        {σs : (bool list) list | LENGTH σs = LENGTH bs ∧
-                                 (∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts)}
-Proof
-  rw[]
-QED
-
-
-(* -------------------------------------------------------------------------- *)
-(* Apply the chain rule to ev_sent_marginal_states, to split the probability  *)
-(* of being in a particular state and sending a particular message into the   *)
-(* probability of being in a particular state, and the probability of sending *)
-(* a particular message given a state sequence. These are two simpler values  *)
-(* to calculate.                                                              *)
-(* -------------------------------------------------------------------------- *)
-Theorem ev_sent_chain_states:
+Theorem ev_sent_law_total_prob_states:
   ∀n m p ps qs ts bs.
     0 ≤ p ∧ p ≤ 1 ⇒
     let
@@ -387,6 +405,7 @@ Proof
   rw[]
   >> qmatch_goalsub_abbrev_tac ‘prob sp (_ enc _ _ _) = ∑ _ S’
   >> qmatch_goalsub_abbrev_tac ‘prob sp ev_sent = _’
+  (* We're applying  *)
   >> qspecl_then [‘sp’,
                   ‘ev_sent’,
                   ‘event_state_sequence_takes_value n m ps qs ts’,
@@ -397,27 +416,6 @@ Proof
       >> full_simp_tac ecc4_ss []
       >> rw[]
      )
-QED
-
-(* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(* Note: σs does not include the initial state, only the resulting sequence   *)
-(*       of states.                                                           *)
-(* -------------------------------------------------------------------------- *)
-Theorem gfdjok:
-  ∀n m p ps qs ts bs.
-    prob (ecc_bsc_prob_space n m p)
-         (event_sent_string_takes_value
-          (encode_recursive_parity_equation (ps,qs) ts)
-          n
-          m
-          (encode_recursive_parity_equation (ps, qs) ts bs)
-         ) = ∑ (λσs. ARB)
-               {σs : (bool list) list | LENGTH σs = LENGTH bs}
-Proof
-  rw[]
-
-    TOTAL_PROB_SIGMA
 QED
 
 (* -------------------------------------------------------------------------- *)
