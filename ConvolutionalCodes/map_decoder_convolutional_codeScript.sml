@@ -409,13 +409,13 @@ Proof
   >> qspecl_then [‘sp’,
                   ‘ev_sent’,
                   ‘event_state_sequence_takes_value n m ps qs ts’,
-                  ‘S’] assume_tac TOTAL_PROB_SIGMA
+                  ‘S ∩ ’] assume_tac TOTAL_PROB_SIGMA
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
-  >> conj_tac
-  >- (unabbrev_all_tac
-      >> full_simp_tac ecc4_ss []
-      >> rw[]
-     )
+  >> REVERSE conj_tac
+  >- gvs[mul_comm]
+  >> unabbrev_all_tac
+  >> full_simp_tac ecc4_ss []
+  >> rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
