@@ -32,8 +32,7 @@ open topologyTheory;
 open realLib;
 open dep_rewrite;
 open ConseqConv;
-
-val _ = new_theory "map_decoder_convolutional_code";
+open holyHammer;
 
 val _ = hide "S";
 
@@ -65,6 +64,179 @@ Definition event_state_sequence_takes_value_def:
     (event_state_sequence_takes_value n m ps qs ts σs)
     ∩ event_state_takes_value n m ps qs ts (LENGTH σs) σ
 End
+
+Overload length_n_state_sequences = “λn. {σs : bool list list | LENGTH σs = n}”;
+
+(* TODO: This only includes one requirement for validity. A valid sequence will
+         also require, for example, each state to be reachable from the
+         previous. So I should probably rename this to something *)
+Overload valid_state_sequences = “λn. {σs : bool list list | ∀σ. MEM σ σs ⇒
+                                                                 LENGTH σ = n}”;
+
+Overload length_n_valid_state_sequences =
+“λn l. {σs : bool list list | LENGTH σs = n ∧ (∀σ. MEM σ σs ⇒ LENGTH σ = l)}”
+
+(* I'm no longer sure that it's better to treat these components separately,
+   because finiteness of the set only holds when both components are present. *)
+Theorem length_n_state_sequences_valid_state_sequences_inter:
+  ∀n l.
+    length_n_valid_state_sequences n l =
+    length_n_state_sequences n ∩ valid_state_sequences l
+Proof
+  rw[]
+  >> ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Write the length n valid state sequences inductively in terms of the       *)
+(* previous length valid state sequences.                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem length_n_valid_state_sequences_step:
+  ∀n l.
+    length_n_valid_state_sequences (SUC n) l =
+    BIGUNION (IMAGE
+              (λσ. IMAGE (CONS σ) (length_n_valid_state_sequences n l))
+              (length_n_codes l)
+             )
+Proof
+  rw[EXTENSION]
+  >> EQ_TAC >> gvs[] >> rw[]
+  >- (Cases_on ‘x’ >> gvs[]
+      >> qexists ‘IMAGE (CONS h) (length_n_valid_state_sequences (LENGTH t) l)’
+      >> rw[]
+      >> qexists ‘h’
+      >> rw[]
+      >> (last_x_assum (fn th => drule (iffLR th))
+          >> rw[]
+          >> Cases_on ‘σ' = σ’ >> gvs[])
+     )
+  >- (pop_assum (fn th => drule (iffLR th))
+      >> rw[]
+      >> pop_assum $ qspec_then ‘σ’ assume_tac
+      >> gvs[]
+     )
+  >- (last_x_assum (fn th => drule (iffLR th))
+      >> rw[]
+      >> Cases_on ‘σ' = σ’ >> gvs[]
+     )
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The set of valid length n state sequences, where each state has length l,  *)
+(* is finite.                                                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem length_n_state_sequences_finite[simp]:
+  ∀n l.
+    FINITE (length_n_valid_state_sequences n l)
+Proof
+  rw[]
+  >> Induct_on ‘n’ >> gvs[]
+  (* Base case *)
+  >- (qmatch_goalsub_abbrev_tac ‘FINITE S’
+      >> sg ‘S = {[]}’
+      >- (unabbrev_all_tac
+          >> rw[EXTENSION]
+          >> EQ_TAC >> gvs[]
+         )
+      >> gvs[]
+     )
+  (* Inductive step *) 
+  >> rw[length_n_valid_state_sequences_step]
+  >> gvs[]
+QED
+
+Theorem length_n_state_sequences_card[simp]:
+  ∀n l.
+    CARD (length_n_valid_state_sequences n l) = 2 ** (n * l) 
+Proof
+  rw[]
+  >> Induct_on ‘n’ >> gvs[]
+  (* Base case *)
+  >- (qmatch_goalsub_abbrev_tac ‘CARD S = _’
+      >> sg ‘S = {[]}’
+      >- (unabbrev_all_tac
+          >> rw[EXTENSION]
+          >> EQ_TAC >> gvs[]
+         )
+      >> gvs[]
+     )
+  (* Inductive step *) 
+  >> rw[length_n_valid_state_sequences_step]
+  (* Rewrite into form appropriate for CARD_BIGUNION_SAME_SIZED_SETS, so that
+     we may use that theorem to calculate the cardinality *)
+  >> qmatch_goalsub_abbrev_tac ‘CARD (BIGUNION S) = _’                               
+  >> qsuff_tac ‘CARD (BIGUNION S) = CARD S * (2 ** (l * n))’
+  >- (rw[]
+      >> qsuff_tac ‘CARD S = 2 ** l’
+      >- (rw[]
+          >> gvs[GSYM EXP_ADD]
+          >> gvs[MULT_CLAUSES]
+         )
+      >> unabbrev_all_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[FINITE_CARD_IMAGE]
+      >> rw[]
+      >> EQ_TAC >> gvs[]
+      >> PURE_REWRITE_TAC[IMAGE_DEF, EXTENSION]
+      >> disch_then (qspec_then ‘σ::REPLICATE n (REPLICATE l F)’ assume_tac)
+      >> gvs[]
+     )
+  (* Use CARD_BIGUNION_SAME_SIZED_SETS *)
+  >> irule CARD_BIGUNION_SAME_SIZED_SETS
+  >> rw[]
+  >- (unabbrev_all_tac
+      >> gvs[DISJOINT_ALT]
+      >> rw[]
+     )
+  >- (unabbrev_all_tac
+      >> gvs[]
+     )
+  >~ [‘FINITE S’] >- (unabbrev_all_tac >> gvs[])
+  (* Now we must find an expression for the cardinality of a single set from the
+     union, using the inductive hypothesis *)
+  >> unabbrev_all_tac
+  >> gvs[]
+  (* Finish off the proof using the fact that the image preserves cardinalities
+     if the given function is injective. *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[FINITE_CARD_IMAGE]
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The event that a particular state takes a particular value is a valid      *)
+(* event in the space we are working in                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_state_takes_value_is_event[simp]:
+  ∀n m p ps qs ts i σ.
+    event_state_takes_value n m ps qs ts i σ ∈
+                            events (ecc_bsc_prob_space n m p)
+Proof
+  rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+  >> (Cases_on ‘x’ >> gvs[event_state_takes_value_def])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The event that the state sequence takes a particular sequence of values is *)
+(* a valid event in the space we are working in                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_state_sequence_takes_value_is_event[simp]:
+  ∀n m p ps qs ts σs.
+    event_state_sequence_takes_value n m ps qs ts σs ∈
+                                     events (ecc_bsc_prob_space n m p)
+Proof
+  rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+  >> (Cases_on ‘x’ >> Cases_on ‘σs’ >> gvs[event_state_sequence_takes_value_def]
+      >> gvs[event_state_takes_value_def]
+     )
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Add rewrites from this file                                                *)
+(* -------------------------------------------------------------------------- *)
+val ecc4_ss = ecc3_ss ++
+              rewrites[length_n_state_sequences_finite,
+                       event_state_sequence_takes_value_is_event,
+                       event_state_takes_value_is_event
+                      ]
 
 (* -------------------------------------------------------------------------- *)
 (* An expression for when encode_recursive_parity_equation is injective,      *)
@@ -199,6 +371,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem ev_sent_chain_states:
   ∀n m p ps qs ts bs.
+    0 ≤ p ∧ p ≤ 1 ⇒
     let
       sp = ecc_bsc_prob_space n m p;
       enc = encode_recursive_parity_equation (ps,qs) ts;
@@ -221,7 +394,8 @@ Proof
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> conj_tac
   >- (unabbrev_all_tac
-      
+      >> full_simp_tac ecc4_ss []
+      >> rw[]
      )
 QED
 
