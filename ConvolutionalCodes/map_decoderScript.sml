@@ -1166,7 +1166,7 @@ Theorem map_decoder_bitwise_sum_bayes:
     (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
     map_decoder_bitwise enc n m p ds =
     let
-      map_decoder_bitstring_prob_bayes =
+      map_decoder_bitstring_prob =
       λbs. cond_prob (ecc_bsc_prob_space n m p)
                      (event_received_string_takes_value enc n m ds)
                      (event_input_string_takes_value n m bs) *
@@ -1174,7 +1174,7 @@ Theorem map_decoder_bitwise_sum_bayes:
                 (event_input_string_takes_value n m bs);
       map_decoder_bit_prob =
       λi b.
-        ∑ map_decoder_bitstring_prob_bayes {bs | LENGTH bs = n ∧ EL i bs = b};
+        ∑ map_decoder_bitstring_prob {bs | LENGTH bs = n ∧ EL i bs = b};
     in
       (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n))
 Proof
@@ -1643,13 +1643,13 @@ Theorem map_decoder_bitwise_sum_bayes_prod:
     (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
     map_decoder_bitwise enc n m p ds =
     let
-      map_decoder_bitstring_prob_bayes =
+      map_decoder_bitstring_prob =
       λbs. (sym_noise_mass_func p (bxor (enc bs) ds)) *
            prob (ecc_bsc_prob_space n m p)
                 (event_input_string_takes_value n m bs);
       map_decoder_bit_prob =
       λi b.
-        ∑ map_decoder_bitstring_prob_bayes {bs | LENGTH bs = n ∧ EL i bs = b};
+        ∑ map_decoder_bitstring_prob {bs | LENGTH bs = n ∧ EL i bs = b};
     in
       (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n))
 Proof
@@ -1683,12 +1683,12 @@ Theorem map_decoder_bitwise_simp1:
     (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
     map_decoder_bitwise enc n m p ds =
     let
-      map_decoder_bitstring_prob_bayes =
+      map_decoder_bitstring_prob =
       λbs. (sym_noise_mass_func p (bxor (enc bs) ds)) *
            (1 / 2 pow n);
       map_decoder_bit_prob =
       λi b.
-        ∑ map_decoder_bitstring_prob_bayes {bs | LENGTH bs = n ∧ EL i bs = b};
+        ∑ map_decoder_bitstring_prob {bs | LENGTH bs = n ∧ EL i bs = b};
     in
       (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n))
 Proof
@@ -1719,11 +1719,11 @@ Theorem map_decoder_bitwise_simp2:
     (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
     map_decoder_bitwise enc n m p ds =
     let
-      map_decoder_bitstring_prob_bayes =
+      map_decoder_bitstring_prob =
       λbs. (sym_noise_mass_func p (bxor (enc bs) ds));
       map_decoder_bit_prob =
       λi b.
-        ∑ map_decoder_bitstring_prob_bayes {bs | LENGTH bs = n ∧ EL i bs = b};
+        ∑ map_decoder_bitstring_prob {bs | LENGTH bs = n ∧ EL i bs = b};
     in
       (MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n))
 Proof
@@ -2329,13 +2329,13 @@ Theorem map_decoder_bitwise_sent_sum_bayes_prod:
     (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
     map_decoder_bitwise_sent enc n m p ds =
     let
-      map_decoder_bitstring_prob_bayes =
+      map_decoder_bitstring_prob =
       λcs. (sym_noise_mass_func p (bxor cs ds)) *
            prob (ecc_bsc_prob_space n m p)
                 (event_sent_string_takes_value enc n m cs);
       map_decoder_bit_prob =
       λi c.
-        ∑ map_decoder_bitstring_prob_bayes
+        ∑ map_decoder_bitstring_prob
           {cs | LENGTH cs = m ∧ EL i cs = c
                 ∧ (∃bs. LENGTH bs = n ∧ enc bs = cs)};
     in
