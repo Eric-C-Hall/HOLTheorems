@@ -421,11 +421,38 @@ QED
 *)
 
 (* -------------------------------------------------------------------------- *)
+(* HERE, I WAS EXPLORING THE POSSIBILITY OF USING THE GENERAL MAP DECODER     *)
+(* CODE TO HELP DO THE WORKING FOR THE CONVOLUTIONAL CODE MAP DECODER, BUT    *)
+(* I THINK IT MIGHT ACTUALLY BE EASIER TO JUST WORK ON THE CONVOLUTIONAL CODE *)
+(* MAP DECODER ITSELF.                                                        *)
+(*                                                                            *)
+(* Goal: map decoder is sum over p(σ_0) prod (sys_chan_prob nonsys_chan_prob  *)
+(* sys_prior_prob transition_prob)                                            *)
+(*                                                                            *)
+(* Start 1: map decoder is sum over mass func of noise bxor encoded bitsting  *)
+(* Alt 1:   - - - - - - - - - - - - cond prob of received string given input  *)
+(*                                  string                                    *)
+(*                                                                            *)
+(* Sum out state: - - - - - - - - - cond prob of received string given input  *)
+(*                                  string and state * cond prob of state     *)
+(*                                  given input string                        *)
+(*                                                                            *)
+(* Possible improvement: Explore whether or not it is necessary to sum out    *)
+(*                       the received string. Improve understanding as to why *)
+(*                       this is done.                                        *)
+(* Sum out sent string: - - - - - - cond prob of received string given input  *)
+(*                      string and sent string and state * prob of state *    *)
+(*                      prob of sent string.                                  *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* TODO: simplify requirement on encoder outputting correct length for this   *)
 (* special case                                                               *)
 (*                                                                            *)
 (* We assume that our parity equation is delayfree                            *)
 (* -------------------------------------------------------------------------- *)
+(* COMMENTED OUT BECAUSE I WANT TO WORK WITH THE CONVOLUTIONAL CODE WITH
+   SYSTEMATIC BITS RATHER THAN THE CONVOLUTIONAL CODE WITHOUT SYSTEMATIC BITS
 Theorem map_decoder_bitwise_encode_recursive_parity_equation:
   ∀ps qs ts n m p ds.
     let
@@ -479,8 +506,6 @@ Proof
            = Σ (P(cs | σ))*)
   (* The probability of *)
   >> 
-QED
-  
-
+QED*)
 
 val _ = export_theory();

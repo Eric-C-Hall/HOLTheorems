@@ -80,11 +80,16 @@ End
 
 (* -------------------------------------------------------------------------- *)
 (* A version of encode_recursive_parity_equation which also outputs the       *)
-(* systematic bits                                                            *)
+(* systematic bits. We append the systematic bits to the end of the encoded   *)
+(* string, rather than interleaving them. This makes it easier to split the   *)
+(* encoded string up into its systematic and nonsystematic bits, but it makes *)
+(* it somewhat harder to stream the data because all the encoded bits must be *)
+(* sent and received before the first systematic bit is sent and received.    *)
 (* -------------------------------------------------------------------------- *)
-(*Definition encode_recursive_parity_equation_with_systematic:
+Definition encode_recursive_parity_equation_with_systematic:
   encode_recursive_parity_equation_with_systematic (ps, qs) ts bs =
-End*)
+  encode_recursive_parity_equation (ps, qs) ts bs ++ bs
+End
 
 (* -------------------------------------------------------------------------- *)
 (* The state that encode_recursive_parity_equation ends in after applying a   *)
