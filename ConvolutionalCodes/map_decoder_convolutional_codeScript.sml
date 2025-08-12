@@ -387,6 +387,7 @@ QED
 (* helpful to know the state sequence in order to calculate the probability   *)
 (* that the sent string takes a particular value.                             *)
 (* -------------------------------------------------------------------------- *)
+(* COMMENTED OUT BECAUSE WE ARE NO LONGER WORKING WITH THE SENT MAP DECODER 
 Theorem ev_sent_law_total_prob_states:
   ∀n m p ps qs ts bs.
     0 ≤ p ∧ p ≤ 1 ⇒
@@ -417,6 +418,7 @@ Proof
   >> full_simp_tac ecc4_ss []
   >> rw[]
 QED
+*)
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: simplify requirement on encoder outputting correct length for this   *)
@@ -424,7 +426,7 @@ QED
 (*                                                                            *)
 (* We assume that our parity equation is delayfree                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem map_decoder_bitwise_sent_encode_recursive_parity_equation:
+Theorem map_decoder_bitwise_encode_recursive_parity_equation:
   ∀ps qs ts n m p ds.
     let
       enc = encode_recursive_parity_equation (ps, qs) ts;
@@ -434,7 +436,7 @@ Theorem map_decoder_bitwise_sent_encode_recursive_parity_equation:
       0 < p ∧ p < 1 ∧
       LENGTH ds = m ∧
       (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
-      map_decoder_bitwise_sent enc n m p ds =
+      map_decoder_bitwise enc n m p ds =
       MAP (λi.
              argmax_bool
              (λx. ∑ ARB
