@@ -31,7 +31,6 @@ open topologyTheory;
 open realLib;
 open dep_rewrite;
 open ConseqConv;
-open holyHammer;
 
 val _ = hide "S";
 

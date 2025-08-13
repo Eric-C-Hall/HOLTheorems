@@ -86,7 +86,7 @@ End
 (* it somewhat harder to stream the data because all the encoded bits must be *)
 (* sent and received before the first systematic bit is sent and received.    *)
 (* -------------------------------------------------------------------------- *)
-Definition encode_recursive_parity_equation_with_systematic:
+Definition encode_recursive_parity_equation_with_systematic_def:
   encode_recursive_parity_equation_with_systematic (ps, qs) ts bs =
   encode_recursive_parity_equation (ps, qs) ts bs ++ bs
 End

@@ -380,6 +380,27 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem encode_recursive_parity_equation_with_systematic_inj:
+  ∀ps qs ts.
+    INJ (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
+        𝕌(:bool list)
+        𝕌(:bool list)
+Proof
+  rw[]
+  >> gvs[INJ_DEF, encode_recursive_parity_equation_with_systematic_def]
+  >> rpt gen_tac
+  >> Cases_on ‘LENGTH x = LENGTH y’ >> gvs[]
+  >- (DEP_PURE_ONCE_REWRITE_TAC[APPEND_LENGTH_EQ]
+      >> rw[])
+  >> rw[]
+  >> ‘F’ suffices_by gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘LHS ++ x = RHS ++ y’
+  >> ‘LENGTH (LHS ++ x) = LENGTH (RHS ++ y)’ by metis_tac[]
+  >> qpat_x_assum ‘LHS ++ x = RHS ++ y’ kall_tac
+  >> unabbrev_all_tac
+  >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Apply the law of total probability to the event where the sent string      *)
 (* takes a particular value, to split the probability up according to what    *)
@@ -522,15 +543,16 @@ QED*)
 (*   p(ds | cs, σs) = Π P(d_i | c_i)                                          *)
 (* -------------------------------------------------------------------------- *)
 
+(* Possible improvement: can we remove some of these assumptions, especially
+   LENGTH ps = LENGTH ts + 1?*)
 Theorem dfgslkj:
   ∀ps qs ts n m p ds.
     let
-      enc = encode_recursive_parity_equation (ps, qs) ts;
+      enc = encode_recursive_parity_equation_with_ (ps, qs) ts;
     in
-      LAST ps ∧
-      LENGTH ps = LENGTH ts + 1 ∧
       0 < p ∧ p < 1 ∧
       LENGTH ds = m ∧
+      LENGTH ps = LENGTH ts + 1 ∧
       (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
       map_decoder_bitwise enc n m p ds =
       MAP (λi.
