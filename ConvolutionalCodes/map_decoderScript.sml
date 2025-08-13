@@ -2298,7 +2298,9 @@ val ecc2_ss = ecc_ss ++ rewrites[PROB_POSITIVE,
                                  PROB_FINITE,
                                  COND_PROB_BOUNDS,
                                  COND_PROB_FINITE];
-                                
+
+(* TODO: add all these things to the stateful simpset, if it would be sensible *)
+
 (* -------------------------------------------------------------------------- *)
 (* Add some more rewrites that may be a bit more time-intensive, or you may   *)
 (* not always want to use.                                                    *)

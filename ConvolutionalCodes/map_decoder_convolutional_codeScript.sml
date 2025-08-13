@@ -543,12 +543,219 @@ QED*)
 (*   p(ds | cs, σs) = Π P(d_i | c_i)                                          *)
 (* -------------------------------------------------------------------------- *)
 
+(* -------------------------------------------------------------------------- *)
+(* A version of PROB_EMPTY which has been added to the stateful simpset       *)
+(* -------------------------------------------------------------------------- *)
+Theorem PROB_EMPTY_STATEFUL_SIMPSET[simp]:
+  ∀p. prob_space p ⇒ prob p ∅ = 0
+Proof
+  gvs[PROB_EMPTY]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* I'm surprised this theorem doesn't exist yet. Perhaps it could be added?   *)
+(* -------------------------------------------------------------------------- *)
+Theorem INTER_DIFF[simp]:
+  ∀S T.
+    S ∩ (S DIFF T) = S DIFF T
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem INTER_INTER_L[simp]:
+  ∀S T.
+    S ∩ S ∩ T = S ∩ T
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem INTER_INTER_R[simp]:
+  ∀S T.
+    S ∩ T ∩ T = S ∩ T
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem COND_PROB_INTER_ID:
+  ∀sp e1 e2.
+    prob_space sp ∧
+    e1 INTER e2 IN events sp ∧ 
+    e2 IN events sp ==>
+    cond_prob sp (e1 INTER e2) e2 = cond_prob sp e1 e2
+Proof
+  rw[]
+  >> gvs[cond_prob_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A simpler version of COND_PROB_EXTREAL_SUM_IMAGE_FN which is easier to     *)
+(* prove. In particular, this one requires us to know that                    *)
+(* p ⊆ BIGUNION (IMAGE f s), which is a stronger condition than              *)
+(* e2 ⊆ BIGUNION (IMAGE f s)                                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem COND_PROB_EXTREAL_SUM_IMAGE_FN_SIMPLE:
+  ∀p f e1 e2 s.
+    prob_space p ∧
+    e1 ∈ events p ∧
+    e2 ∈ events p ∧
+    prob p e2 ≠ 0 ∧
+    (∀x. x ∈ s ⇒ e1 ∩ f x ∈ events p) ∧
+    FINITE s ∧
+    (∀x y. x ∈ s ∧ y ∈ s ∧ x ≠ y ⇒ DISJOINT (f x) (f y)) ∧
+    p_space p ⊆ BIGUNION (IMAGE f s) ⇒
+    cond_prob p e1 e2 = ∑ (λx. cond_prob p (e1 ∩ f x) e2) s
+Proof
+  rw[]
+  >> sg ‘e1 = BIGUNION (IMAGE (λx. e1 ∩ f x) s)’
+  >- (rw[BIGUNION_IMAGE]
+      >> rw[EXTENSION] 
+      >> EQ_TAC >> rw[] >> gvs[]
+      >> gvs[GSYM SUBSET_INTER_ABSORPTION, INTER_COMM]
+      >> gvs[SUBSET_DEF]
+      >> last_x_assum $ qspec_then ‘x’ assume_tac
+      >> sg ‘x ∈ p_space p’
+      >- (irule PROB_SPACE_IN_PSPACE
+          >> metis_tac[]
+         )
+      >> gvs[]
+      >> metis_tac[]
+     )
+  >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+  >> qpat_x_assum ‘e1 = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_additive_finite]
+  >> gvs[]
+  >> rw[]
+  >> simp[DISJOINT_ALT]
+  >> rw[]
+  >> last_x_assum $ qspecl_then [‘x’, ‘x'’] assume_tac
+  >> gvs[]
+  >> gvs[DISJOINT_ALT]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A version of PROB_EXTREAL_SUM_IMAGE_FN for conditional probabilities       *)
+(* -------------------------------------------------------------------------- *)
+Theorem COND_PROB_EXTREAL_SUM_IMAGE_FN:
+  ∀p f e1 e2 s.
+    prob_space p ∧
+    e1 ∈ events p ∧
+    e2 ∈ events p ∧
+    prob p e2 ≠ 0 ∧
+    (∀x. x ∈ s ⇒ e1 ∩ f x ∈ events p) ∧
+    FINITE s ∧
+    (∀x y. x ∈ s ∧ y ∈ s ∧ x ≠ y ⇒ DISJOINT (f x) (f y)) ∧
+    e2 ⊆ BIGUNION (IMAGE f s) ⇒
+    cond_prob p e1 e2 = ∑ (λx. cond_prob p (e1 ∩ f x) e2) s
+Proof
+  rw[]
+  (* Choose a specific element in s *)
+  >> REVERSE $ Cases_on ‘∃x. x ∈ s’
+  >- (Cases_on ‘s’ >> gvs[] >> metis_tac[])
+  >> gvs[]
+  (* Apply the simple version of this theorem to a function f which has been
+     extended so that all elements that are in e1 but not e2 are in f x for
+     the choice of x we took, and that none of these elements are in any of
+     the other choices of f y.
+.
+     This maintains the fact that they are events, disjointedness, and
+     strengthens from knowing that e2 is in the BIGUNION of the choices of
+     f x to knowing that p_space p is in the BIGUNION of the choices of f x.
+   *)
+  >> qspecl_then [‘p’, ‘λy. if y = x
+                            then (f y ∩ e2) ∪ ((p_space p) DIFF e2)
+                            else f y ∩ e2’, ‘e1’, ‘e2’, ‘s’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN_SIMPLE
+  (* Apply this version of the theorem *)
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  (* Simplify *)
+  >> rpt conj_tac
+  >- simp[]
+  >- simp[]
+  >- simp[]
+  >- simp[]
+  (* f x is still an event*)
+  >- (rw[]
+      >- (gvs[UNION_OVER_INTER]
+          >> irule EVENTS_UNION
+          >> rw[]
+          >- (PURE_ONCE_REWRITE_TAC[INTER_ASSOC]
+              >> irule EVENTS_INTER
+              >> gvs[])
+          >> irule EVENTS_INTER >> gvs[]
+          >> irule EVENTS_COMPL >> gvs[]
+         )
+      >> gvs[INTER_ASSOC]
+      >> irule EVENTS_INTER >> gvs[]
+     )
+  >- simp[]
+  (* f x is still disjoint *)
+  >- (qx_gen_tac ‘y1’
+      >> qx_gen_tac ‘y2’
+      >> strip_tac
+      >> PURE_REWRITE_TAC[DISJOINT_ALT]
+      >> qx_gen_tac ‘n’
+      >> gvs[]
+      >> disch_tac
+      (* - x is the special element we chose which is used to determine
+         which set has had all the stuff added to it
+         - y1 is the current index of the first f x we are testing for
+           disjointedness of
+         - y2 is the current index of the second f x we are testing for
+           disjointedness of (with respect to the first)
+         - n is the current element we are testing for whether or not it is in
+           each of the sets *)
+      (* Choose the appropriate indices for disjointedness in our assumption *)
+      >> first_x_assum $ qspecl_then [‘y1’, ‘y2’] assume_tac
+      >> gvs[]
+      (* In the case where the first f x is the special one which has had all
+         the additional stuff added to it: *)
+      >> Cases_on ‘y1 = x’
+      >- gvs[DISJOINT_ALT]
+      >> Cases_on ‘y2 = x’
+      >- gvs[DISJOINT_ALT]
+      >> gvs[DISJOINT_ALT]
+     )
+  (* p_space p is contained in the BIGUNION of the new f x*)
+  >- (simp[BIGUNION_IMAGE]
+      >> gvs[SUBSET_DEF]
+      >> qx_gen_tac ‘n’
+      >> rw[]
+      (* We want to choose the f y that our point n is contained in.
+         This depends on whether n is in e2. If it isn't in e2, then it'll
+         always be f x *)
+      >> Cases_on ‘n ∉ e2’
+      >- (qexists ‘x’
+          >> gvs[]
+         )
+      (* If it is in e2, then it'll be in the same choice of f x as it used to
+         be before the meaning of f was changed. *)
+      >> last_x_assum $ qspec_then ‘n’ assume_tac
+      >> gvs[]
+      >> qexists ‘x'’
+      >> gvs[]
+      >> rw[]
+      >> gvs[]
+     )
+  (* The sum we arrive at after applying the simplified version of this theorem
+     is equivalent to *)
+  >> irule EXTREAL_SUM_IMAGE_EQ'
+  >> rw[]
+  (* Use the fact that the conditional probability will constrict the top
+       probability by the event we are conditioning on *)
+  >> (gvs[cond_prob_def]
+      >> qmatch_goalsub_abbrev_tac ‘prob _ S1 / _ = prob _ S2 / _’
+      >> ‘S1 = S2’ suffices_by gvs[]
+      >> unabbrev_all_tac
+      >> ASM_SET_TAC[]
+     )
+QED
+
+
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
 Theorem dfgslkj:
   ∀ps qs ts n m p ds.
     let
-      enc = encode_recursive_parity_equation_with_ (ps, qs) ts;
+      enc = encode_recursive_parity_equation_with_systematic (ps, qs) ts;
     in
       0 < p ∧ p < 1 ∧
       LENGTH ds = m ∧
@@ -557,17 +764,34 @@ Theorem dfgslkj:
       map_decoder_bitwise enc n m p ds =
       MAP (λi.
              argmax_bool
-             (λx. ∑ ARB
-                    {cs | LENGTH cs = m ∧
-                          (EL i cs = x) ∧
-                          (∃bs.
-                             LENGTH bs = n ∧
-                             encode_recursive_parity_equation (ps, qs) ts bs = cs)
-                             }
+             (λx. ∑ ARB ARB
              )
           )
-          (COUNT_LIST m)
+          (COUNT_LIST n)
 Proof
+  rw[]
+  (* Definition of bitwise decoder *)
+  >> gvs[map_decoder_bitwise_def]
+  (* We care about the inside of the MAP *)
+  >> rw[MAP_EQ_f]
+  (* The function in argmax_bool differs by a multiplicative constant *)
+  >> irule argmax_bool_mul_const
+  (* *)
+  >> qexists ‘ARB’
+  (* *)
+  >> conj_tac >- cheat
+  >> REVERSE conj_tac >- cheat
+  (* Prove function equivalence when applied to all choices of x *)
+  >> rw[FUN_EQ_THM]
+  (* Nicer names *)
+  >> qmatch_abbrev_tac ‘C * cond_prob sp e1 e2 = RHS’
+  (* We are at the stage p(b_s | ds). Take a sum over σs, cs_p, and the
+      remaining elements of bs *)
+
+  >> qspecl_then [‘sp’, ‘’, ‘e2’, ‘’, ‘e1’] assume_tac COND_PROB_FINITE_ADDITIVE
+                       
+  >> qspecl_then [‘sp’, ‘, e1’] assume_tac PROB_EXTREAL_SUM_IMAGE_FN
+                 
 QED
 
 val _ = export_theory();
