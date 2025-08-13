@@ -508,4 +508,44 @@ Proof
   >> 
 QED*)
 
+(* -------------------------------------------------------------------------- *)
+(* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
+(* Theory:                                                                    *)
+(*                                                                            *)
+(* - MAP decoder = argmax p(b_s | ds)                                         *)
+(*               = argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs            *)
+(*               = argmax Σ p(cs, σs | ds) over cs, σs                        *)
+(*               = argmax Σ p(cs, σs | ds) over cs, σs with nonzero prob      *)
+(*               = argmax Σ p(ds | cs, σs) p(cs, σs) over ''                  *)
+(*   p(cs, σs) = p(σ_0)p(c_1_s)p(c_1_p,σ_1|c_1_s,σ_0)p(c_2_s)                 *)
+(*                 p(c_2_p,σ_2|c_2_s,σ_1)p(c_3_s)p(c_3_p,σ_3|c_3_s,σ_2)...    *)
+(*   p(ds | cs, σs) = Π P(d_i | c_i)                                          *)
+(* -------------------------------------------------------------------------- *)
+
+Theorem dfgslkj:
+  ∀ps qs ts n m p ds.
+    let
+      enc = encode_recursive_parity_equation (ps, qs) ts;
+    in
+      LAST ps ∧
+      LENGTH ps = LENGTH ts + 1 ∧
+      0 < p ∧ p < 1 ∧
+      LENGTH ds = m ∧
+      (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+      map_decoder_bitwise enc n m p ds =
+      MAP (λi.
+             argmax_bool
+             (λx. ∑ ARB
+                    {cs | LENGTH cs = m ∧
+                          (EL i cs = x) ∧
+                          (∃bs.
+                             LENGTH bs = n ∧
+                             encode_recursive_parity_equation (ps, qs) ts bs = cs)
+                             }
+             )
+          )
+          (COUNT_LIST m)
+Proof
+QED
+
 val _ = export_theory();
