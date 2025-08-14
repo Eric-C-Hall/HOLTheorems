@@ -802,11 +802,37 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* This contains the events we sum over when finding the factored form of the *)
-(* MAP decoder for convolutional codes                                        *)
+(* MAP decoder for convolutional codes.                                       *)
+(*                                                                            *)
+(* ps: the numerator parity equation                                          *)
+(* qs: the denominator parity equation                                        *)
+(* n: the length of the input of the encoder                                  *)
+(* m: the length of the output of the encoder                                 *)
+(* ts: the initial state                                                      *)
+(*                                                                            *)
+(* We sum over various choices of bs, σs, and cs_p                            *)
 (* -------------------------------------------------------------------------- *)
 Definition mdr_summed_out_events_def:
-  mdr_summed_out_events 
+  mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p) =
+  (event_input_string_takes_value n m bs)
+  ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs)
+  ∩ (event_sent_string_takes_value 
+     (encode_recursive_parity_equation (ps, qs) ts)
+     n m cs_p)
 End
+
+Theorem mdr_summed_out_events_is_event[simp]:
+  ∀psqs n m p ts bsσscs_p.
+    mdr_summed_out_events psqs n m ts bsσscs_p
+                          ∈ events (ecc_bsc_prob_space n m p)
+Proof
+  rw[]
+  >> namedCases_on ‘psqs’ ["ps qs"]
+  >> namedCases_on ‘bsσscs_p’ ["bs σs cs_p"]
+  >> rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+  >> gvs[mdr_summed_out_events_def,
+         event_input_string_takes_value_def]
+QED
 
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
@@ -852,12 +878,7 @@ Proof
   (* We are at the stage p(b_s | ds). Take a sum over σs, cs_p, and the
       remaining elements of bs *)
   >> qspecl_then [‘sp’,
-                  ‘λ(bs, σs, cs_p).
-                     (event_input_string_takes_value n (LENGTH ds) bs)
-                     ∩ (event_state_sequence_takes_value n (LENGTH ds) (ps,qs) ts σs)
-                     ∩ (event_sent_string_takes_value 
-                        (encode_recursive_parity_equation (ps, qs) ts)
-                        n (LENGTH ds) cs_p)’,
+                  ‘mdr_summed_out_events (ps,qs) n (LENGTH ds) ts’,
                   ‘e1’,
                   ‘e2’,
                   ‘mdr_summed_out_values (ps,qs) n ts i x’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
@@ -870,8 +891,6 @@ Proof
   (* The new intersection of events is an event *)
   >- (rw[mdr_summed_out_values_def]
       >> unabbrev_all_tac
-      >> irule EVENTS_INTER >> gvs[]
-      >> irule EVENTS_INTER >> gvs[]
       >> irule EVENTS_INTER >> gvs[]
      )
   >- gvs[]
@@ -894,14 +913,14 @@ Proof
       >> gvs[]
       (* If bs1 ≠ bs2, then the first part is disjoint *)
       >> Cases_on ‘bs1 ≠ bs2’
-      >- gvs[event_input_string_takes_value_def]
+      >- gvs[mdr_summed_out_events_def, event_input_string_takes_value_def]
       >> gvs[]
       (* If σs1 ≠ σs2, then the next part is disjoint *)
       >> Cases_on ‘σs1 ≠ σs2’
-      >- gvs[event_state_sequence_takes_value_def]
+      >- gvs[mdr_summed_out_events_def, event_state_sequence_takes_value_def]
       >> gvs[]
       (* We have cs1_p ≠ cs2_p, and so the final part is disjoint *)
-      >> gvs[event_sent_string_takes_value_def]
+      >> gvs[mdr_summed_out_events_def, event_sent_string_takes_value_def]
      )
   >- (PURE_REWRITE_TAC[BIGUNION_IMAGE]
       >> gvs[SUBSET_DEF]
@@ -910,7 +929,6 @@ Proof
       (* Apply event_received_string_takes_value_def to assumption *)
       >> pop_assum (fn th => assume_tac (SIMP_RULE bool_ss [event_received_string_takes_value_def] th))
       >> gs[]
-      >> qmatch_goalsub_abbrev_tac ‘event_sent_string_takes_value enc _ _ _’
       >> qexists ‘(bs,
                    encode_recursive_parity_equation_state_sequence (ps,qs) ts bs,
                    encode_recursive_parity_equation (ps,qs) ts bs)’
@@ -919,9 +937,10 @@ Proof
       >- (gs[mdr_summed_out_values_def]
           >> gs[event_input_bit_takes_value_def]
          )
-      >- gs[event_input_string_takes_value_def]
-      >- gs[event_state_sequence_takes_value_def]
-      >> gs[event_sent_string_takes_value_def]
+      >> gs[mdr_summed_out_events_def,
+            event_input_string_takes_value_def,
+            event_state_sequence_takes_value_def,
+            event_sent_string_takes_value_def]
      )
   (* Move the constant into the sum *)
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
@@ -959,13 +978,12 @@ Proof
       >- gvs[]
       >- (irule EVENTS_INTER >> gvs[]
           >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
-          >> irule EVENTS_INTER >> gvs[]
-          >> irule EVENTS_INTER >> gvs[]
          )
       >- gvs[]
       >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
       >> conj_tac
       >- (gvs[]
+          >> irule EVENTS_INTER >> gvs[]
          )
 
                                   
