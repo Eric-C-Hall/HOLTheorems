@@ -48,7 +48,7 @@ val _ = hide "S";
 (* σ: The value that we expect that state to have                             *)
 (* -------------------------------------------------------------------------- *)
 Definition event_state_takes_value_def:
-  event_state_takes_value n m ps qs ts i σ = 
+  event_state_takes_value n m (ps,qs) ts i σ = 
   {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧
               encode_recursive_parity_equation_state (ps,qs) ts bs = σ
   }
@@ -58,11 +58,11 @@ End
 (* The event in which the states take a particular sequence of values         *)
 (* -------------------------------------------------------------------------- *)
 Definition event_state_sequence_takes_value_def:
-  (event_state_sequence_takes_value n m ps qs ts [] =
+  (event_state_sequence_takes_value n m (ps,qs) ts [] =
    {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m})
-  ∧ event_state_sequence_takes_value n m ps qs ts (σ::σs) =
-    (event_state_sequence_takes_value n m ps qs ts σs)
-    ∩ event_state_takes_value n m ps qs ts (LENGTH σs) σ
+  ∧ event_state_sequence_takes_value n m (ps,qs) ts (σ::σs) =
+    (event_state_sequence_takes_value n m (ps,qs) ts σs)
+    ∩ event_state_takes_value n m (ps,qs) ts (LENGTH σs) σ
 End
 
 Overload length_n_state_sequences = “λn. {σs : bool list list | LENGTH σs = n}”;
@@ -207,7 +207,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem event_state_takes_value_is_event[simp]:
   ∀n m p ps qs ts i σ.
-    event_state_takes_value n m ps qs ts i σ ∈
+    event_state_takes_value n m (ps,qs) ts i σ ∈
                             events (ecc_bsc_prob_space n m p)
 Proof
   rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
@@ -220,7 +220,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem event_state_sequence_takes_value_is_event[simp]:
   ∀n m p ps qs ts σs.
-    event_state_sequence_takes_value n m ps qs ts σs ∈
+    event_state_sequence_takes_value n m (ps,qs) ts σs ∈
                                      events (ecc_bsc_prob_space n m p)
 Proof
   rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
@@ -233,8 +233,8 @@ Theorem event_state_takes_value_disjoint[simp]:
   ∀n m ps qs ts i σ1 σ2.
     σ1 ≠ σ2 ⇒
     DISJOINT
-    (event_state_takes_value n m ps qs ts i σ1)
-    (event_state_takes_value n m ps qs ts i σ2)
+    (event_state_takes_value n m (ps,qs) ts i σ1)
+    (event_state_takes_value n m (ps,qs) ts i σ2)
 Proof
   rw[]
   >> gvs[event_state_takes_value_def]
@@ -248,8 +248,8 @@ Theorem event_state_sequence_takes_value_disjoint[simp]:
     LENGTH σs1 = LENGTH σs2 ∧
     σs1 ≠ σs2 ⇒
     DISJOINT
-    (event_state_sequence_takes_value n m ps qs ts σs1)
-    (event_state_sequence_takes_value n m ps qs ts σs2)
+    (event_state_sequence_takes_value n m (ps,qs) ts σs1)
+    (event_state_sequence_takes_value n m (ps,qs) ts σs2)
 Proof
   (* Induct on σs1 and split up σs2 to match *)
   Induct_on ‘σs1’ >> gvs[]
@@ -265,7 +265,7 @@ Proof
   >> rw[]
   (* Split on the case of whether or not x is in the current state that is
      being inducted over and simplify *)
-  >> Cases_on ‘x ∈ event_state_takes_value n m ps qs ts (LENGTH σs2) σ2’ >> gvs[]
+  >> Cases_on ‘x ∈ event_state_takes_value n m (ps,qs) ts (LENGTH σs2) σ2’ >> gvs[]
   >> gvs[event_state_takes_value_def]
 QED
 
@@ -419,8 +419,8 @@ Theorem ev_sent_law_total_prob_states:
     in
       prob sp ev_sent =
       ∑ (λσs. cond_prob sp ev_sent
-                        (event_state_sequence_takes_value n m ps qs ts σs) *
-              prob sp (event_state_sequence_takes_value n m ps qs ts σs))
+                        (event_state_sequence_takes_value n m (ps, qs) ts σs) *
+              prob sp (event_state_sequence_takes_value n m (ps, qs) ts σs))
         {σs : (bool list) list | LENGTH σs = LENGTH bs ∧
                                  (∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts)}
 Proof
@@ -430,7 +430,7 @@ Proof
   (* We're applying  *)
   >> qspecl_then [‘sp’,
                   ‘ev_sent’,
-                  ‘event_state_sequence_takes_value n m ps qs ts’,
+                  ‘event_state_sequence_takes_value n m (ps, qs) ts’,
                   ‘S ∩ ’] assume_tac TOTAL_PROB_SIGMA
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> REVERSE conj_tac
@@ -749,7 +749,6 @@ Proof
      )
 QED
 
-
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
 Theorem dfgslkj:
@@ -774,6 +773,7 @@ Proof
   >> gvs[map_decoder_bitwise_def]
   (* We care about the inside of the MAP *)
   >> rw[MAP_EQ_f]
+  >> gvs[MEM_COUNT_LIST]
   (* The function in argmax_bool differs by a multiplicative constant *)
   >> irule argmax_bool_mul_const
   (* *)
@@ -787,11 +787,16 @@ Proof
   >> qmatch_abbrev_tac ‘C * cond_prob sp e1 e2 = RHS’
   (* We are at the stage p(b_s | ds). Take a sum over σs, cs_p, and the
       remaining elements of bs *)
-
-  >> qspecl_then [‘sp’, ‘’, ‘e2’, ‘’, ‘e1’] assume_tac COND_PROB_FINITE_ADDITIVE
-                       
+  >>
+  
+  >> qspecl_then [‘sp’,
+                  ‘λ(bs, σs, cs_p).
+                     (event_input_string_takes_value n (LENGTH ds) bs)
+                     ∩ (event_state_sequence_takes_value n (LENGTH ds) ps qs ts σs)’, ‘e1’, ‘e2’, ‘{(bs, σs, cs_p) | EL i bs = x}’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
+                 
   >> qspecl_then [‘sp’, ‘, e1’] assume_tac PROB_EXTREAL_SUM_IMAGE_FN
                  
 QED
 
 val _ = export_theory();
+
