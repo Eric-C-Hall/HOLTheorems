@@ -1,4 +1,3 @@
-x
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -33,7 +32,6 @@ open topologyTheory;
 open realLib;
 open dep_rewrite;
 open ConseqConv;
-open holyHammer;
 
 val _ = hide "S";
 
@@ -772,7 +770,7 @@ QED
 (* x: the value of the variable which does not need to be summed out          *)
 (* -------------------------------------------------------------------------- *)
 Definition mdr_summed_out_values_def:
-  mdr_summed_out_values ps qs n ts i x =
+  mdr_summed_out_values (ps,qs) n ts i x =
   {(bs, σs, cs_p) | LENGTH bs = n ∧
                     EL i bs = x ∧
                     σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ∧
@@ -785,7 +783,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Theorem mdr_summed_out_values_alt:
   ∀ps qs n ts i x.
-    mdr_summed_out_values ps qs n ts i x =
+    mdr_summed_out_values (ps,qs) n ts i x =
     IMAGE (λbs. (bs,
                  encode_recursive_parity_equation_state_sequence (ps,qs) ts bs,
                  encode_recursive_parity_equation (ps,qs) ts bs))
@@ -797,7 +795,7 @@ QED
 
 Theorem finite_mdr_summed_out_values[simp]:
   ∀ps qs n ts i x.
-    FINITE (mdr_summed_out_values ps qs n ts i x)
+    FINITE (mdr_summed_out_values (ps,qs) n ts i x)
 Proof
   rw[mdr_summed_out_values_alt]
 QED
@@ -807,7 +805,7 @@ QED
 (* MAP decoder for convolutional codes                                        *)
 (* -------------------------------------------------------------------------- *)
 Definition mdr_summed_out_events_def:
-  mdr_summed_out_events  
+  mdr_summed_out_events 
 End
 
 (* Possible improvement: can we remove some of these assumptions, especially
@@ -824,7 +822,7 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
       map_decoder_bitwise enc n m p ds =
       MAP (λi.
              argmax_bool
-             (λx. ∑ ARB (mdr_summed_out_values ps qs n ts i x)
+             (λx. ∑ ARB (mdr_summed_out_values (ps,qs) n ts i x)
              )
           )
           (COUNT_LIST n)
@@ -862,7 +860,7 @@ Proof
                         n (LENGTH ds) cs_p)’,
                   ‘e1’,
                   ‘e2’,
-                  ‘mdr_summed_out_values ps qs n ts i x’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
+                  ‘mdr_summed_out_values (ps,qs) n ts i x’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> rpt conj_tac >> unabbrev_all_tac
   >- gvs[]
