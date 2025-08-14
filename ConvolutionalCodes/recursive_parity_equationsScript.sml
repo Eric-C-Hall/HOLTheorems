@@ -106,7 +106,23 @@ Definition encode_recursive_parity_equation_state_def:
   in
     encode_recursive_parity_equation_state (ps, qs) next_ts bs
 End
-                                         
+
+(* -------------------------------------------------------------------------- *)
+(* The sequence of states that our recursive parity equation encoder goes     *)
+(* through when provided a certain input.                                     *)
+(* -------------------------------------------------------------------------- *)
+Definition encode_recursive_parity_equation_state_sequence_def:
+  encode_recursive_parity_equation_state_sequence _ ts [] = [ts] ∧
+  encode_recursive_parity_equation_state_sequence (ps,qs) ts (b::bs) =
+  let
+    feedback = apply_parity_equation (FRONT qs) ts;
+    new_input = (feedback ⇎ b);
+    state_and_input = ts ⧺ [new_input];
+    next_ts = TL state_and_input;
+  in
+    [ts] ++ encode_recursive_parity_equation_state_sequence (ps, qs) next_ts bs
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Convert parity-equation expression of recursive convolutional codes into   *)
 (* a state-machine format.                                                    *)
@@ -241,6 +257,50 @@ Theorem encode_recursive_parity_equation_state_length[simp]:
 Proof
   Induct_on ‘bs’ >> gvs[encode_recursive_parity_equation_state_def]
   >> gvs[LENGTH_TL]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Simplify the head of the sequence of states taken by the recursive         *)
+(* convolutional code: this is just the initial state.                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem hd_encode_recursive_parity_equation_state_sequence[simp]:
+  ∀ps qs ts bs.
+    HD (encode_recursive_parity_equation_state_sequence (ps,qs) ts bs) = ts
+Proof
+  rw[]
+  >> Cases_on ‘bs’ >> gvs[encode_recursive_parity_equation_state_sequence_def]
+QED
+
+Theorem encode_recursive_parity_equation_state_empty_list[simp]:
+  ∀ps qs ts.
+    encode_recursive_parity_equation_state (ps,qs) ts [] = ts
+Proof
+  rw[]
+  >> gvs[encode_recursive_parity_equation_state_def]
+QED
+
+Theorem encode_recursive_parity_equation_state_sequence_empty_list[simp]:
+  ∀ps qs ts.
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts [] = [ts]
+Proof
+  rw[encode_recursive_parity_equation_state_sequence_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A theorem to help prove the correctness of                                 *)
+(* encode_recursive_parity_equation_state_sequence by comparing it to         *)
+(* encode_recursive_parity_equation_state                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem el_encode_recursive_parity_equation_state_sequence:
+  ∀ps qs ts bs i.
+    i < LENGTH bs ⇒
+    EL i (encode_recursive_parity_equation_state_sequence (ps,qs) ts bs) =
+    encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs)
+Proof
+  Induct_on ‘i’ >> rw[]
+  >> Cases_on ‘bs’ >> gvs[]
+  >> gvs[encode_recursive_parity_equation_state_def,
+         encode_recursive_parity_equation_state_sequence_def]
 QED
 
 (* -------------------------------------------------------------------------- *)

@@ -751,7 +751,7 @@ QED
 
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
-Theorem dfgslkj:
+Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
   ∀ps qs ts n m p ds.
     let
       enc = encode_recursive_parity_equation_with_systematic (ps, qs) ts;
@@ -798,10 +798,23 @@ Proof
                         n (LENGTH ds) cs_p)’,
                   ‘e1’,
                   ‘e2’,
-                  ‘{(bs, σs, cs_p)}’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
+                  ‘{(bs, σs, cs_p | LENGTH bs = n ∧
+                                    EL i bs = x ∧
+                                    σs =  ∧
+                                    cs_p = encode_recursive_parity_equation (ps,qs) ts bs)}’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> rpt conj_tac
   >- (unabbrev_all_tac >> gvs[])
+  >- (unabbrev_all_tac >> gvs[])
+  >- (unabbrev_all_tac >> gvs[])
+  >- (unabbrev_all_tac >> gvs[])
+  (* The new intersection of events is an event *)
+  >- (rw[]
+      >> unabbrev_all_tac
+      >> irule EVENTS_INTER >> gvs[]
+      >> irule EVENTS_INTER >> gvs[]
+      >> irule EVENTS_INTER >> gvs[]
+     )
      
   >> qspecl_then [‘sp’, ‘, e1’] assume_tac PROB_EXTREAL_SUM_IMAGE_FN
                  
