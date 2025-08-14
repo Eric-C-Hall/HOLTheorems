@@ -644,26 +644,32 @@ Theorem COND_PROB_EXTREAL_SUM_IMAGE_FN:
     (∀x. x ∈ s ⇒ e1 ∩ f x ∈ events p) ∧
     FINITE s ∧
     (∀x y. x ∈ s ∧ y ∈ s ∧ x ≠ y ⇒ DISJOINT (f x) (f y)) ∧
-    e2 ⊆ BIGUNION (IMAGE f s) ⇒
+    e1 ∩ e2 ⊆ BIGUNION (IMAGE f s) ⇒
     cond_prob p e1 e2 = ∑ (λx. cond_prob p (e1 ∩ f x) e2) s
 Proof
   rw[]
-  (* Choose a specific element in s *)
+  (* Choose a specific choice of f x, that is, choose some in s *)
   >> REVERSE $ Cases_on ‘∃x. x ∈ s’
-  >- (Cases_on ‘s’ >> gvs[] >> metis_tac[])
+  >- (Cases_on ‘s’ >> gvs[]
+      >- gvs[cond_prob_def, zero_div]
+      >> metis_tac[]
+     )
   >> gvs[]
-  (* Apply the simple version of this theorem to a function f which has been
-     extended so that all elements that are in e1 but not e2 are in f x for
-     the choice of x we took, and that none of these elements are in any of
-     the other choices of f y.
+  (* Consider the function f which has first been restricted to e1 ∩ e2, and
+     then all the elements of the probability space which are not in e1 ∩ e2
+     have been added to the choice of f x which was made before.
+.     
+     This maintains the fact that the e1 ∩ f x are events, maintains the
+     disjointedness of the f x, maintains the value of the conditional
+     probability of e1 ∩ f x, and strengthens from knowing that e1 ∩ e2 is in
+     the BIGUNION of the choices of f x to knowing that p_space p is in the
+     BIGUNION of the choices of f x.
 .
-     This maintains the fact that they are events, disjointedness, and
-     strengthens from knowing that e2 is in the BIGUNION of the choices of
-     f x to knowing that p_space p is in the BIGUNION of the choices of f x.
+     Thus, we can apply the simple version of this theorem to this function.
    *)
   >> qspecl_then [‘p’, ‘λy. if y = x
-                            then (f y ∩ e2) ∪ ((p_space p) DIFF e2)
-                            else f y ∩ e2’, ‘e1’, ‘e2’, ‘s’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN_SIMPLE
+                            then (f y ∩ (e1 ∩ e2)) ∪ ((p_space p) DIFF (e1 ∩ e2))
+                            else f y ∩ (e1 ∩ e2)’, ‘e1’, ‘e2’, ‘s’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN_SIMPLE
   (* Apply this version of the theorem *)
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   (* Simplify *)
@@ -678,12 +684,14 @@ Proof
           >> irule EVENTS_UNION
           >> rw[]
           >- (PURE_ONCE_REWRITE_TAC[INTER_ASSOC]
-              >> irule EVENTS_INTER
-              >> gvs[])
+              >> irule EVENTS_INTER >> gvs[]
+              >> irule EVENTS_INTER >> gvs[])
           >> irule EVENTS_INTER >> gvs[]
           >> irule EVENTS_COMPL >> gvs[]
+          >> irule EVENTS_INTER >> gvs[]
          )
       >> gvs[INTER_ASSOC]
+      >> irule EVENTS_INTER >> gvs[]
       >> irule EVENTS_INTER >> gvs[]
      )
   >- simp[]
@@ -720,14 +728,14 @@ Proof
       >> qx_gen_tac ‘n’
       >> rw[]
       (* We want to choose the f y that our point n is contained in.
-         This depends on whether n is in e2. If it isn't in e2, then it'll
-         always be f x *)
-      >> Cases_on ‘n ∉ e2’
+         This depends on whether n is in e1 ∩ e2. If it isn't in e1 ∩ e2, then
+         it'll always be in f x for the special choice of x we made earlier *)
+      >> Cases_on ‘n ∉ e1 ∩ e2’
       >- (qexists ‘x’
           >> gvs[]
          )
-      (* If it is in e2, then it'll be in the same choice of f x as it used to
-         be before the meaning of f was changed. *)
+      (* If it is in e1 ∩ e2, then it'll be in the same choice of f x as it
+         used to be before the meaning of f was changed. *)
       >> last_x_assum $ qspec_then ‘n’ assume_tac
       >> gvs[]
       >> qexists ‘x'’
@@ -736,7 +744,7 @@ Proof
       >> gvs[]
      )
   (* The sum we arrive at after applying the simplified version of this theorem
-     is equivalent to *)
+     is equivalent to the sum in the more general version of this theorem. *)
   >> irule EXTREAL_SUM_IMAGE_EQ'
   >> rw[]
   (* Use the fact that the conditional probability will constrict the top
