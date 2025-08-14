@@ -286,6 +286,14 @@ Proof
   rw[encode_recursive_parity_equation_state_sequence_def]
 QED
 
+Theorem encode_recursive_parity_equation_state_sequence_neq_empty_list[simp]:
+  ∀ps qs ts bs.
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ≠ []
+Proof
+  rw[]
+  >> Cases_on ‘bs’ >> gvs[encode_recursive_parity_equation_state_sequence_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A theorem to help prove the correctness of                                 *)
 (* encode_recursive_parity_equation_state_sequence by comparing it to         *)

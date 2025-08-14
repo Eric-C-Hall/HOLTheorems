@@ -65,6 +65,26 @@ Definition event_state_sequence_takes_value_def:
     ∩ event_state_takes_value n m (ps,qs) ts (LENGTH σs) σ
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Express the event that the state sequence takes a particular value in      *)
+(* terms of the recently written code to calculate the sequence of states     *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_state_sequence_takes_value_alt:
+  ∀n m ps qs ts σs.
+    event_state_sequence_takes_value n m (ps,qs) ts σs =
+    {(bs, ns) | bs, ns | LENGTH bs = n ∧
+                         LENGTH ns = m ∧
+                         encode_recursive_parity_equation_state_sequence
+                         (ps,qs) ts bs = σs}
+Proof
+  Induct_on ‘σs’ >> gvs[event_state_sequence_takes_value_def]
+  >- (rw[EXTENSION]
+      >> EQ_TAC >> rw[]
+     )
+     
+  >> gvs[event_state_sequence_takes_value_def]
+QED
+
 Overload length_n_state_sequences = “λn. {σs : bool list list | LENGTH σs = n}”;
 
 (* TODO: This only includes one requirement for validity. A valid sequence will
@@ -749,6 +769,52 @@ Proof
      )
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* MDR stands for MAP Decoder Recursive, i.e. relating to the MAP decoder for *)
+(* recursive convolutional codes.                                             *)
+(*                                                                            *)
+(* This contains the summed out values when finding the factored form of      *)
+(* the MAP decoder for recursive convolutional codes.                         *)
+(*                                                                            *)
+(* ps: the numerator parity equation                                          *)
+(* qs: the denominator parity equation                                        *)
+(* n: the size of the input                                                   *)
+(* ts: the initial state                                                      *)
+(* i: the index of the variable which does not need to be summed out because  *)
+(*    it already has a value                                                  *)
+(* x: the value of the variable which does not need to be summed out          *)
+(* -------------------------------------------------------------------------- *)
+Definition mdr_summed_out_values_def:
+  mdr_summed_out_values ps qs n ts i x =
+  {(bs, σs, cs_p) | LENGTH bs = n ∧
+                    EL i bs = x ∧
+                    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ∧
+                    cs_p = encode_recursive_parity_equation (ps,qs) ts bs
+                     }
+End
+
+(* -------------------------------------------------------------------------- *)
+(* An alternate form of mdr_summed_out_values which is written using a MAP    *)
+(* -------------------------------------------------------------------------- *)
+Theorem mdr_summed_out_values_alt:
+  ∀ps qs n ts i x.
+    mdr_summed_out_values ps qs n ts i x =
+    IMAGE (λbs. (bs,
+                 encode_recursive_parity_equation_state_sequence (ps,qs) ts bs,
+                 encode_recursive_parity_equation (ps,qs) ts bs))
+          (length_n_codes n ∩ ith_eq_codes i x)
+Proof
+  gvs[mdr_summed_out_values_def]
+  >> ASM_SET_TAC[]
+QED
+
+Theorem finite_mdr_summed_out_values[simp]:
+  ∀ps qs n ts i x.
+    FINITE (mdr_summed_out_values ps qs n ts i x)
+Proof
+  rw[mdr_summed_out_values_alt]
+QED
+
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
 Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
@@ -798,22 +864,53 @@ Proof
                         n (LENGTH ds) cs_p)’,
                   ‘e1’,
                   ‘e2’,
-                  ‘{(bs, σs, cs_p | LENGTH bs = n ∧
-                                    EL i bs = x ∧
-                                    σs =  ∧
-                                    cs_p = encode_recursive_parity_equation (ps,qs) ts bs)}’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
+                  ‘mdr_summed_out_values ps qs n ts i x’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
-  >> rpt conj_tac
-  >- (unabbrev_all_tac >> gvs[])
-  >- (unabbrev_all_tac >> gvs[])
-  >- (unabbrev_all_tac >> gvs[])
-  >- (unabbrev_all_tac >> gvs[])
+  >> rpt conj_tac >> unabbrev_all_tac
+  >- gvs[]
+  >- gvs[]
+  >- gvs[]
+  >- gvs[]
   (* The new intersection of events is an event *)
-  >- (rw[]
+  >- (rw[mdr_summed_out_values_def]
       >> unabbrev_all_tac
       >> irule EVENTS_INTER >> gvs[]
       >> irule EVENTS_INTER >> gvs[]
       >> irule EVENTS_INTER >> gvs[]
+     )
+  >- gvs[]
+  (* The new events are disjoint *)
+  >- (all_tac
+      (* i1: index of first disjoint set
+         i2: index of second disjoint set *)
+      >> qx_gen_tac ‘i1’
+      >> qx_gen_tac ‘i2’
+      >> strip_tac
+      (* Alternate definition of disjoint *)
+      >> simp[DISJOINT_ALT]
+      (* y: element which should not be in the other disjoint set if it is in
+            the first disjoint set *)
+      >> qx_gen_tac ‘y’
+      >> rw[]
+      (* Give good names to the components of the indexes *)
+      >> namedCases_on ‘i1’ ["bs1 σs1 cs1_p"]
+      >> namedCases_on ‘i2’ ["bs2 σs2 cs2_p"]
+      >> gvs[]
+      (* If bs1 ≠ bs2, then the first part is disjoint *)
+      >> Cases_on ‘bs1 ≠ bs2’
+      >- gvs[event_input_string_takes_value_def]
+      >> gvs[]
+      (* If σs1 ≠ σs2, then the next part is disjoint *)
+      >> Cases_on ‘σs1 ≠ σs2’
+      >- (gvs[event_state_sequence_takes_value_def]
+         )
+
+     
+      >> gvs[IN_DEF]
+      >> Cases_on ‘x'’ >> Cases_on ‘y’ >> gvs[]
+      >> Cases_on ‘r'’ >> Cases_on ‘r’ >> gvs[]
+      >> Cases_on ‘q ≠ q'’ >> gvs[]
+      >- 
      )
      
   >> qspecl_then [‘sp’, ‘, e1’] assume_tac PROB_EXTREAL_SUM_IMAGE_FN
