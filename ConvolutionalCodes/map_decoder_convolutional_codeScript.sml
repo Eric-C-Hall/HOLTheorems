@@ -1,3 +1,4 @@
+x
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -535,12 +536,10 @@ QED*)
 (*                                                                            *)
 (* - MAP decoder = argmax p(b_s | ds)                                         *)
 (*               = argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs            *)
-(*               = argmax Σ p(cs, σs | ds) over cs, σs                        *)
-(*               = argmax Σ p(cs, σs | ds) over cs, σs with nonzero prob      *)
-(*               = argmax Σ p(ds | cs, σs) p(cs, σs) over ''                  *)
-(*   p(cs, σs) = p(σ_0)p(c_1_s)p(c_1_p,σ_1|c_1_s,σ_0)p(c_2_s)                 *)
-(*                 p(c_2_p,σ_2|c_2_s,σ_1)p(c_3_s)p(c_3_p,σ_3|c_3_s,σ_2)...    *)
-(*   p(ds | cs, σs) = Π P(d_i | c_i)                                          *)
+(*               = argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''      *)
+(*   p(bs, cs_p, σs) = p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)                 *)
+(*                       p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...    *)
+(*   p(ds | bs, cs_p, σs) = Π P(d_i | c_i)                                    *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -803,6 +802,14 @@ Proof
   rw[mdr_summed_out_values_alt]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* This contains the events we sum over when finding the factored form of the *)
+(* MAP decoder for convolutional codes                                        *)
+(* -------------------------------------------------------------------------- *)
+Definition mdr_summed_out_events_def:
+  mdr_summed_out_events  
+End
+
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
 Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
@@ -817,7 +824,7 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
       map_decoder_bitwise enc n m p ds =
       MAP (λi.
              argmax_bool
-             (λx. ∑ ARB ARB
+             (λx. ∑ ARB (mdr_summed_out_values ps qs n ts i x)
              )
           )
           (COUNT_LIST n)
@@ -839,6 +846,9 @@ Proof
   >> REVERSE conj_tac >- cheat
   (* Prove function equivalence when applied to all choices of x *)
   >> rw[FUN_EQ_THM]
+  (* For some reason, as I edited the theorem I was proving, this swapped
+     around*)
+  >> irule EQ_SYM
   (* Nicer names *)
   >> qmatch_abbrev_tac ‘C * cond_prob sp e1 e2 = RHS’
   (* We are at the stage p(b_s | ds). Take a sum over σs, cs_p, and the
@@ -907,20 +917,61 @@ Proof
                    encode_recursive_parity_equation_state_sequence (ps,qs) ts bs,
                    encode_recursive_parity_equation (ps,qs) ts bs)’
       >> gs[]
+      >> rpt conj_tac
+      >- (gs[mdr_summed_out_values_def]
+          >> gs[event_input_bit_takes_value_def]
+         )
+      >- gs[event_input_string_takes_value_def]
+      >- gs[event_state_sequence_takes_value_def]
+      >> gs[event_sent_string_takes_value_def]
+     )
+  (* Move the constant into the sum *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- gvs[]
+      >- cheat
+      >- cheat
+      >> disj2_tac
       >> rw[]
-      >> gvs[mdr_summed_out_values_def]
+      >> irule (cj 1 COND_PROB_FINITE)
+      >> gvs[]
+      >> irule EVENTS_INTER >> gvs[]
+      >> namedCases_on ‘x'’ ["bs σs cs_p"]
+      >> gvs[]
+      >> irule EVENTS_INTER >> gvs[]
+      >> irule EVENTS_INTER >> gvs[]
      )
+  (* The function in the sum is the equivalent bit *)
+  >> irule EXTREAL_SUM_IMAGE_EQ'
+  >> gvs[]
+  >> qx_gen_tac ‘w’
+  >> rw[]
+  (* We are currently up to the step
+     argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs.
+     Next step:
+     argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
+.
+     That is, we apply Bayes' rule here
+   *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[BAYES_RULE]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- gvs[]
+      >- gvs[]
+      >- (irule EVENTS_INTER >> gvs[]
+          >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
+          >> irule EVENTS_INTER >> gvs[]
+          >> irule EVENTS_INTER >> gvs[]
+         )
+      >- gvs[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+      >> conj_tac
+      >- (gvs[]
+         )
 
-            
-  >> gvs[IN_DEF]
-  >> Cases_on ‘x'’ >> Cases_on ‘y’ >> gvs[]
-  >> Cases_on ‘r'’ >> Cases_on ‘r’ >> gvs[]
-  >> Cases_on ‘q ≠ q'’ >> gvs[]
-  >- 
-     )
-     
-  >> qspecl_then [‘sp’, ‘, e1’] assume_tac PROB_EXTREAL_SUM_IMAGE_FN
-                 
+                                  
+                                  
 QED
 
 val _ = export_theory();
