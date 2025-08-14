@@ -58,32 +58,12 @@ End
 (* The event in which the states take a particular sequence of values         *)
 (* -------------------------------------------------------------------------- *)
 Definition event_state_sequence_takes_value_def:
-  (event_state_sequence_takes_value n m (ps,qs) ts [] =
-   {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m})
-  ∧ event_state_sequence_takes_value n m (ps,qs) ts (σ::σs) =
-    (event_state_sequence_takes_value n m (ps,qs) ts σs)
-    ∩ event_state_takes_value n m (ps,qs) ts (LENGTH σs) σ
+  event_state_sequence_takes_value n m (ps,qs) ts σs =
+  {(bs, ns) | bs, ns | LENGTH bs = n ∧
+                       LENGTH ns = m ∧
+                       encode_recursive_parity_equation_state_sequence
+                       (ps,qs) ts bs = σs}
 End
-
-(* -------------------------------------------------------------------------- *)
-(* Express the event that the state sequence takes a particular value in      *)
-(* terms of the recently written code to calculate the sequence of states     *)
-(* -------------------------------------------------------------------------- *)
-Theorem event_state_sequence_takes_value_alt:
-  ∀n m ps qs ts σs.
-    event_state_sequence_takes_value n m (ps,qs) ts σs =
-    {(bs, ns) | bs, ns | LENGTH bs = n ∧
-                         LENGTH ns = m ∧
-                         encode_recursive_parity_equation_state_sequence
-                         (ps,qs) ts bs = σs}
-Proof
-  Induct_on ‘σs’ >> gvs[event_state_sequence_takes_value_def]
-  >- (rw[EXTENSION]
-      >> EQ_TAC >> rw[]
-     )
-     
-  >> gvs[event_state_sequence_takes_value_def]
-QED
 
 Overload length_n_state_sequences = “λn. {σs : bool list list | LENGTH σs = n}”;
 
