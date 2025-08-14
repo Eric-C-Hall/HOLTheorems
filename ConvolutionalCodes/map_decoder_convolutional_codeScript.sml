@@ -882,15 +882,33 @@ Proof
       >> gvs[]
       (* If σs1 ≠ σs2, then the next part is disjoint *)
       >> Cases_on ‘σs1 ≠ σs2’
-      >- (gvs[event_state_sequence_takes_value_def]
-         )
+      >- gvs[event_state_sequence_takes_value_def]
+      >> gvs[]
+      (* We have cs1_p ≠ cs2_p, and so the final part is disjoint *)
+      >> gvs[event_sent_string_takes_value_def]
+     )
+  >- (PURE_REWRITE_TAC[BIGUNION_IMAGE]
+      >> gvs[SUBSET_DEF]
+      >> qx_gen_tac ‘y’
+      >> rw[]
+      (* Apply event_received_string_takes_value_def to assumption *)
+      >> pop_assum (fn th => assume_tac (SIMP_RULE bool_ss [event_received_string_takes_value_def] th))
+      >> gs[]
+      >> qmatch_goalsub_abbrev_tac ‘event_sent_string_takes_value enc _ _ _’
+      >> qexists ‘(bs,
+                   encode_recursive_parity_equation_state_sequence (ps,qs) ts bs,
+                   encode_recursive_parity_equation (ps,qs) ts bs)’
+      >> gs[]
+      >> rw[]
+      >> gvs[mdr_summed_out_values_def]
+     )
 
-     
-      >> gvs[IN_DEF]
-      >> Cases_on ‘x'’ >> Cases_on ‘y’ >> gvs[]
-      >> Cases_on ‘r'’ >> Cases_on ‘r’ >> gvs[]
-      >> Cases_on ‘q ≠ q'’ >> gvs[]
-      >- 
+            
+  >> gvs[IN_DEF]
+  >> Cases_on ‘x'’ >> Cases_on ‘y’ >> gvs[]
+  >> Cases_on ‘r'’ >> Cases_on ‘r’ >> gvs[]
+  >> Cases_on ‘q ≠ q'’ >> gvs[]
+  >- 
      )
      
   >> qspecl_then [‘sp’, ‘, e1’] assume_tac PROB_EXTREAL_SUM_IMAGE_FN
