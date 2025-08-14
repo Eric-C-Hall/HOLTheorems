@@ -490,7 +490,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* event_input_bit_takes_value has a nonzero probability                      *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_input_bit_takes_value_nonzero_prob:
+Theorem event_input_bit_takes_value_nonzero_prob[simp]:
   ∀n m i b p.
     0 < p ∧
     p < 1 ∧
@@ -509,7 +509,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* event_input_string_takes_value has a nonzero probability                   *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_input_string_takes_value_nonzero_prob:
+Theorem event_input_string_takes_value_nonzero_prob[simp]:
   ∀n m bs p.
     0 < p ∧
     p < 1 ∧
@@ -528,6 +528,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* event_sent_string_takes_value has a nonzero probability, assuming that     *)
 (* there is a potential input string which could result in the sent string.   *)
+(*                                                                            *)
+(* See also event_sent_string_takes_value_nonzero_prob_explicit, which is     *)
+(* easier to use as a rewrite rule. By contrast, this theorem is easier to    *)
+(* use with irule or DEP_PURE_ONCE_REWRITE_TAC.                               *)
 (* -------------------------------------------------------------------------- *)
 Theorem event_sent_string_takes_value_nonzero_prob:
   ∀enc n m cs p.
@@ -550,11 +554,13 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* A version of event_sent_string_takes_value_nonzero_prob which explicitly   *)
-(* requires our string cs to be of the form enc bs. In this scenario, we      *)
-(* can't use the aforementioned theorem as a rewrite rule and have it         *)
-(* succeed, so I write this theorem so that it can solve this scenario.       *)
+(* requires our string cs to be of the form enc bs. This makes it easier to   *)
+(* use it as a rewrite rule, because we don't rely on being able to solve a   *)
+(* precondition involving an exists statement. However, it also makes it      *)
+(* harder to use with irule or DEP_PURE_ONCE_REWRITE_TAC, because we require  *)
+(* our statement to have the explicit form where cs is represented as enc bs. *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_sent_string_takes_value_nonzero_prob_explicit:
+Theorem event_sent_string_takes_value_nonzero_prob_explicit[simp]:
   ∀enc n m p bs.
     0 < p ∧
     p < 1 ∧
@@ -574,7 +580,7 @@ QED
 (* If there is no string which could result in the sent string, then          *)
 (* event_sent_string_takes_value has a probability of zero                    *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_sent_string_takes_value_zero_prob:
+Theorem event_sent_string_takes_value_zero_prob[simp]:
   ∀enc n m cs p.
     0 ≤ p ∧
     p ≤ 1 ∧
@@ -595,7 +601,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* event_received_string_takes_value has a nonzero probability                *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_received_string_takes_value_nonzero_prob:
+Theorem event_received_string_takes_value_nonzero_prob[simp]:
   ∀enc n m ds p.
     0 < p ∧
     p < 1 ∧
@@ -623,7 +629,7 @@ Proof
   >> (gvs[])
 QED
 
-Theorem event_input_string_and_received_string_take_values_nonzero_prob:
+Theorem event_input_string_and_received_string_take_values_nonzero_prob[simp]:
   ∀enc n m bs ds p.
     0 < p ∧
     p < 1 ∧
@@ -645,7 +651,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* The probability that the input is of a certain form                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem prob_event_input_string_takes_value:
+Theorem prob_event_input_string_takes_value[simp]:
   ∀n m bs p.
     0 ≤ p ∧ p ≤ 1 ∧
     LENGTH bs = n ⇒
@@ -967,7 +973,7 @@ Proof
   >> gvs[INTER_DEF]
 QED
 
-Theorem event_input_string_takes_value_disjoint:
+Theorem event_input_string_takes_value_disjoint[simp]:
   ∀n m bs bs'.
     bs ≠ bs' ⇒
     DISJOINT (event_input_string_takes_value n m bs) (event_input_string_takes_value n m bs')
@@ -976,7 +982,7 @@ Proof
   >> Cases_on ‘x’ >> gvs[]
 QED
 
-Theorem event_sent_string_takes_value_disjoint:
+Theorem event_sent_string_takes_value_disjoint[simp]:
   ∀enc n m cs cs'.
     cs ≠ cs' ⇒
     DISJOINT (event_sent_string_takes_value enc n m cs) (event_sent_string_takes_value enc n m cs')
@@ -1055,7 +1061,7 @@ Proof
   (* Bring the sum into the cond_prob, turning it into a union *)
   >> DEP_PURE_REWRITE_TAC[GSYM cond_prob_additive_finite]
   >> rw[]
-  >- gvs[event_input_string_takes_value_disjoint]
+  (*>- gvs[event_input_string_takes_value_disjoint]*)
   (* Now it suffices to prove that the events in the cond_prob are equivalent *)
   >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 e3 = cond_prob sp e2 e3’
   >> ‘e1 = e2’ suffices_by gvs[]
@@ -1246,7 +1252,8 @@ Proof
       >> qmatch_goalsub_abbrev_tac ‘num / c’
       >> Cases_on ‘c’ >> Cases_on ‘num’ >> gvs[extreal_div_def, PROB_FINITE]
       >> irule (cj 1 div_not_infty)
-      >> metis_tac[]
+      >> qpat_x_assum ‘_ = Normal r’ (fn th => PURE_REWRITE_TAC[GSYM th])
+      >> gvs[]
      )
   (* Cancel out the constant *)
   >> unabbrev_all_tac >> gvs[prob_div_mul_refl]
@@ -1283,7 +1290,7 @@ QED
 (* An expression for the probability in the main probability space we are     *)
 (* using for the special case where the output length is 0.                   *)
 (* -------------------------------------------------------------------------- *)
-Theorem prob_ecc_bsc_prob_space_empty_output:
+Theorem prob_ecc_bsc_prob_space_empty_output[simp]:
   ∀n p S.
     0 ≤ p ∧ p ≤ 1 ∧
     S ∈ events (ecc_bsc_prob_space n 0 p) ⇒
@@ -1310,7 +1317,7 @@ QED
 (* An expression for the received string taking a value in the special case   *)
 (* where the output length is 0.                                              *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_received_string_takes_value_empty_output:
+Theorem event_received_string_takes_value_empty_output[simp]:
   ∀enc n.
     (∀xs. LENGTH xs = n ⇒ enc xs = []) ⇒
     event_received_string_takes_value enc n 0 [] =
@@ -1325,7 +1332,7 @@ QED
 (* An expression for the event of the input string taking a value in the      *)
 (* special case where the output length is 0                                  *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_input_string_takes_value_empty_output:
+Theorem event_input_string_takes_value_empty_output[simp]:
   ∀n bs.
     LENGTH bs = n ⇒
     event_input_string_takes_value n 0 bs = {(bs, [])}
@@ -1334,8 +1341,7 @@ Proof
   >> rw[EXTENSION]
 QED
 
-
-Theorem event_sent_string_takes_value_empty_output:
+Theorem event_sent_string_takes_value_empty_output[simp]:
   ∀enc n.
     (∀xs. LENGTH xs = n ⇒ enc xs = []) ⇒
     event_sent_string_takes_value enc n 0 [] = {(bs, []) | bs | LENGTH bs = n}

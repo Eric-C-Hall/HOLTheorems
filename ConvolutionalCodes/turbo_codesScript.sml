@@ -92,8 +92,9 @@ End
 (* Output: the a posteriori probabilities that a given input is 1.            *)
 (* -------------------------------------------------------------------------- *)
 (* TODO: is the intrinsic information defined correctly?                      *)
+(* TODO: Define this                                                          *)
 (* -------------------------------------------------------------------------- *)
-Definition parallel_turbo_code_a_posteriori_def:
+(*Definition parallel_turbo_code_a_posteriori_def:
   parallel_turbo_code_a_posteriori (ps, qs) perm p priors rs 0 = qs ∧
   parallel_turbo_code_a_posteriori (ps, qs) perm p priors rs (SUC i) =
   let
@@ -111,7 +112,7 @@ Definition parallel_turbo_code_a_posteriori_def:
                          (COUNT_LIST num_t);
   in
     perm_inverse decode_2_probs
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Decodes a parallel turbo code                                              *)
@@ -131,14 +132,16 @@ End
 (*                                                                            *)
 (* Output: the decoded bitstring                                              *)
 (* -------------------------------------------------------------------------- *)
-Definition decode_parallel_turbo_code_def:
+(* TODO: Complete this                                                        *)
+(* -------------------------------------------------------------------------- *)
+(*Definition decode_parallel_turbo_code_def:
   decode_parallel_turbo_code (ps, qs) perm p priors rs i =
   let
     a_posteriori_probs = parallel_turbo_code_a_posteriori
                          (ps, qs) perm p priors rs i;
   in
     MAP (λx. if 0.5 ≤ x then T else F) a_posteriori_probs
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Encoding and decoding a recursive parity equation using the BCJR algorithm *)

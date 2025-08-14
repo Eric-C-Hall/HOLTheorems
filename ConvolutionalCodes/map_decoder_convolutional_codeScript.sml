@@ -769,6 +769,8 @@ Theorem dfgslkj:
           (COUNT_LIST n)
 Proof
   rw[]
+  (* More standard properties showing that p represents a probability *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
   (* Definition of bitwise decoder *)
   >> gvs[map_decoder_bitwise_def]
   (* We care about the inside of the MAP *)
@@ -787,13 +789,20 @@ Proof
   >> qmatch_abbrev_tac ‘C * cond_prob sp e1 e2 = RHS’
   (* We are at the stage p(b_s | ds). Take a sum over σs, cs_p, and the
       remaining elements of bs *)
-  >>
-  
   >> qspecl_then [‘sp’,
                   ‘λ(bs, σs, cs_p).
                      (event_input_string_takes_value n (LENGTH ds) bs)
-                     ∩ (event_state_sequence_takes_value n (LENGTH ds) ps qs ts σs)’, ‘e1’, ‘e2’, ‘{(bs, σs, cs_p) | EL i bs = x}’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
-                 
+                     ∩ (event_state_sequence_takes_value n (LENGTH ds) (ps,qs) ts σs)
+                     ∩ (event_sent_string_takes_value 
+                        (encode_recursive_parity_equation (ps, qs) ts)
+                        n (LENGTH ds) cs_p)’,
+                  ‘e1’,
+                  ‘e2’,
+                  ‘{(bs, σs, cs_p)}’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> rpt conj_tac
+  >- (unabbrev_all_tac >> gvs[])
+     
   >> qspecl_then [‘sp’, ‘, e1’] assume_tac PROB_EXTREAL_SUM_IMAGE_FN
                  
 QED
