@@ -1033,8 +1033,12 @@ Proof
      That is, we split val2 up into a product of each individual received value
      given the corresponding sent value
    *)
-  >>
-                       
+  >> sg ‘val2 = ARB’
+  >- (unabbrev_all_tac
+      >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
+      >> gvs[mdr_summed_out_events_def]
+     )
+     
 QED
 
 val _ = export_theory();
