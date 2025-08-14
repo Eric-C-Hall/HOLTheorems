@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -942,6 +943,8 @@ Proof
             event_state_sequence_takes_value_def,
             event_sent_string_takes_value_def]
      )
+  (* Name the constant *)
+  >> qmatch_abbrev_tac ‘C * ∑ _ _ = _’
   (* Move the constant into the sum *)
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
   >> conj_tac
@@ -953,10 +956,6 @@ Proof
       >> rw[]
       >> irule (cj 1 COND_PROB_FINITE)
       >> gvs[]
-      >> irule EVENTS_INTER >> gvs[]
-      >> namedCases_on ‘x'’ ["bs σs cs_p"]
-      >> gvs[]
-      >> irule EVENTS_INTER >> gvs[]
       >> irule EVENTS_INTER >> gvs[]
      )
   (* The function in the sum is the equivalent bit *)
@@ -985,9 +984,57 @@ Proof
       >- (gvs[]
           >> irule EVENTS_INTER >> gvs[]
          )
-
-                                  
-                                  
+      >> gvs[EXTENSION]
+      >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
+      >> gvs[mdr_summed_out_events_def]
+      >> qexists ‘(bs, REPLICATE (LENGTH ds) F)’
+      >> rpt conj_tac
+      >- gvs[event_input_bit_takes_value_def,
+             mdr_summed_out_values_def]
+      >- gvs[event_input_string_takes_value_def,
+             mdr_summed_out_values_def]
+      >- gvs[event_state_sequence_takes_value_def,
+             mdr_summed_out_values_def]
+      >> gvs[event_sent_string_takes_value_def,
+             mdr_summed_out_values_def]
+     )
+  (* Merge the constant part into the constant *)
+  >> qmatch_abbrev_tac ‘C * (val1 * val2 / val3) = RHS’
+  >> qsuff_tac ‘(C / val3) * val1 * val2 = RHS’
+  >- (rw[]
+      >> sg ‘C ≠ +∞ ∧ C ≠ −∞’
+      >- cheat
+      >> sg ‘val1 ≠ +∞ ∧ val1 ≠ −∞ ∧ val2 ≠ +∞ ∧ val2 ≠ −∞ ∧ val3 ≠ +∞ ∧ val3 ≠ −∞’
+      >- (cheat
+         (*unabbrev_all_tac
+           >> gvs[PROB_FINITE, COND_PROB_FINITE]
+           >> rpt conj_tac
+           >- (irule (cj 1 COND_PROB_FINITE)
+               >> gvs[]
+               >> conj_tac
+               >> irule EVENTS_INTER >> gvs[]
+              )*)
+       )
+      >> Cases_on ‘C’ >> gvs[]
+      >> qpat_x_assum ‘Normal r = ARB’ (fn th => gvs[GSYM th])
+      >> Cases_on ‘val1’ >> gvs[]
+      >> Cases_on ‘val2’ >> gvs[]
+      >> Cases_on ‘val3’ >> gvs[]
+      >> Cases_on ‘r''' = 0’
+      >- cheat
+      >> gvs[extreal_mul_eq, extreal_div_eq]
+     )
+  >> simp[Abbr ‘C’, Abbr ‘val3’]
+  >> qmatch_abbrev_tac ‘C * val1 * val2 = RHS’
+  (* We are currently up to the step
+     argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
+     Next step: p(ds | bs, cs_p, σs) = Π P(d_i | c_i)
+.
+     That is, we split val2 up into a product of each individual received value
+     given the corresponding sent value
+   *)
+  >>
+                       
 QED
 
 val _ = export_theory();
