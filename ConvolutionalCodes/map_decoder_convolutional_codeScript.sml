@@ -843,6 +843,13 @@ Definition mdr_summed_out_events_def:
   ∩ (event_srcc_parity_bits_take_value (ps,qs) n m ts cs_p)
 End
 
+(* -------------------------------------------------------------------------- *)
+(* These intersection theorems are only helpful if we don't know that our     *)
+(* encoding function is injective, because otherwise we could simply use the  *)
+(* fact that, for example, a particular input string corresponds exactly to   *)
+(* a particular state sequence.                                               *)
+(* -------------------------------------------------------------------------- *)
+
 (* Should this be a simp rule, or is it wiser to avoid it being a simp rule
    because in some situations one event will be more useful and in other
    situations the other event will be more useful? *)
@@ -922,6 +929,17 @@ Proof
   >> rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
   >> gvs[mdr_summed_out_events_def,
          event_input_string_takes_value_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A correspondence between the input string taking a particular value and    *)
+(* the state sequence taking the sequence of values corresponding to that     *)
+(* input.                                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_string_takes_value_event_state_sequence_takes_value:
+  ∀.
+    event_input_string_takes_value n m bs
+Proof
 QED
 
 (* Possible improvement: can we remove some of these assumptions, especially
@@ -1140,10 +1158,18 @@ Proof
          string takes a value, it is now more obvious that this conditional
          probability is the product of the probabilities of each individual
          received bit given the corresponding sent bit. *)
-      >> 
+      >> gvs[cond_prob_string_given_sent_prod]
+      (* While this isn't a product, it's an explicit expresion for the
+         probability, which will be equal to the product*)
+      >> cheat
      )
-     
-  (* *)
+  >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+  >> simp[Abbr ‘val1’]
+  >> qmatch_goalsub_abbrev_tac ‘C * val1 * val2 = RHS’
+  (* Now we have split val1 up into a product of values.
+.
+     Next step: split 
+   *)
   >> sg ‘val2 = ARB’
   >- (unabbrev_all_tac
       >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
