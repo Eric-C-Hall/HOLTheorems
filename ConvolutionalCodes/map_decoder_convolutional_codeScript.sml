@@ -2,6 +2,8 @@
 
 open HolKernel Parse boolLib bossLib;
 
+val _ = new_theory "map_decoder_convolutional_code";
+
 (* My theories *)
 open ecc_prob_spaceTheory;
 open argmin_extrealTheory;
@@ -801,6 +803,28 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* The event that the parity bits for a systematic recursive convolutional    *)
+(* code (with one parity equation) take a certain value.                      *)
+(*                                                                            *)
+(* ps: the numerator parity equation                                          *)
+(* qs: the denominator parity equation                                        *)
+(* n: the input length                                                        *)
+(* m: the output length for the systematic recursive convolutional code       *)
+(*    (this will be equal to 2*n based on how the srcc works)                 *)
+(* ts: the initial state for the systematic recursive convolutional code      *)
+(* cs_p: the value we are expecting the parity bits to take (we have          *)
+(*       bs = input bits -> cs = sent bits -> ds = received bits, and the     *)
+(*       underscore p represents the fact that these are the parity bits and  *)
+(*       not the systematic bits.)                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition event_srcc_parity_bits_take_value_def:
+  event_srcc_parity_bits_take_value (ps,qs) n m ts cs_p =
+  {(bs, ns) | LENGTH bs = n ∧
+              LENGTH ns = m ∧
+              encode_recursive_parity_equation (ps,qs) ts bs = cs_p}
+End
+
+(* -------------------------------------------------------------------------- *)
 (* This contains the events we sum over when finding the factored form of the *)
 (* MAP decoder for convolutional codes.                                       *)
 (*                                                                            *)
@@ -816,9 +840,7 @@ Definition mdr_summed_out_events_def:
   mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p) =
   (event_input_string_takes_value n m bs)
   ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs)
-  ∩ (event_sent_string_takes_value 
-     (encode_recursive_parity_equation (ps, qs) ts)
-     n m cs_p)
+  ∩ (event_srcc_parity_bits_take_value (ps,qs) n m ts cs_p)
 End
 
 (* Should this be a simp rule, or is it wiser to avoid it being a simp rule
@@ -837,12 +859,15 @@ Proof
   >> ASM_SET_TAC[]
 QED
 
-Theorem inter_input_sent_eq_sent:
-  ∀.
-    (event_input_string_takes_value n m bs)
-    ∩ (event_sent_string_takes_value enc n m (enc bs)) =
-    (event_sent_string_takes_value 
+Theorem event_srcc_parity_bits_take_value_is_event[simp]:
+  ∀psqs n m p ts cs_p.
+    event_srcc_parity_bits_take_value psqs n m ts cs_p
+                                      ∈ events (ecc_bsc_prob_space n m p)
 Proof
+  rw[]
+  >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+  >> namedCases_on ‘psqs’ ["ps qs"] >> rw[event_srcc_parity_bits_take_value_def]
+  >> gvs[]
 QED
 
 Theorem mdr_summed_out_events_is_event[simp]:
@@ -944,7 +969,7 @@ Proof
       >- gvs[mdr_summed_out_events_def, event_state_sequence_takes_value_def]
       >> gvs[]
       (* We have cs1_p ≠ cs2_p, and so the final part is disjoint *)
-      >> gvs[mdr_summed_out_events_def, event_sent_string_takes_value_def]
+      >> gvs[mdr_summed_out_events_def, event_srcc_parity_bits_take_value_def]
      )
   >- (PURE_REWRITE_TAC[BIGUNION_IMAGE]
       >> gvs[SUBSET_DEF]
@@ -964,7 +989,7 @@ Proof
       >> gs[mdr_summed_out_events_def,
             event_input_string_takes_value_def,
             event_state_sequence_takes_value_def,
-            event_sent_string_takes_value_def]
+            event_srcc_parity_bits_take_value_def]
      )
   (* Name the constant *)
   >> qmatch_abbrev_tac ‘C * ∑ _ _ = _’
@@ -1018,7 +1043,7 @@ Proof
              mdr_summed_out_values_def]
       >- gvs[event_state_sequence_takes_value_def,
              mdr_summed_out_values_def]
-      >> gvs[event_sent_string_takes_value_def,
+      >> gvs[event_srcc_parity_bits_take_value_def,
              mdr_summed_out_values_def]
      )
   (* Merge the constant part into the constant *)
