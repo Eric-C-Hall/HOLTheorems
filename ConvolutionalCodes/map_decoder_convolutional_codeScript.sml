@@ -859,6 +859,47 @@ Proof
   >> ASM_SET_TAC[]
 QED
 
+Theorem inter_input_parity_eq_sent:
+  ∀n m ps qs ts bs cs_p.
+    cs_p = encode_recursive_parity_equation (ps,qs) ts bs ⇒
+    (event_input_string_takes_value n m bs)
+    ∩ (event_srcc_parity_bits_take_value (ps,qs) n m ts cs_p) =
+    event_sent_string_takes_value
+    (encode_recursive_parity_equation_with_systematic (ps,qs) ts) n m
+    (encode_recursive_parity_equation_with_systematic (ps,qs) ts bs)
+Proof
+  rw[]
+  >> gvs[event_input_string_takes_value_def,
+         event_srcc_parity_bits_take_value_def,
+         event_sent_string_takes_value_def]
+  >> gvs[encode_recursive_parity_equation_with_systematic_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[]
+  >> (qmatch_asmsub_abbrev_tac ‘l' ++ bs' = l ++ bs’
+      (* If we can prove equivalence of the lengths of corresponding components
+         being appended together, then the corresponding components are equal and
+         we can prove the result easily *)
+      >> qsuff_tac ‘LENGTH l' = LENGTH l ∧ LENGTH bs' = LENGTH bs’
+      >- (rw[] >> gvs[APPEND_LENGTH_EQ])
+      >> ‘LENGTH (l' ++ bs') = LENGTH (l ++ bs)’ by metis_tac[]
+      >> gvs[]
+      >> unabbrev_all_tac >> gvs[encode_recursive_parity_equation_length]
+     )
+QED
+
+Theorem inter_input_bit_sent_eq_sent:
+  ∀enc n m psqs t bs i x.
+    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ∧
+    EL i bs = x ⇒
+    (event_input_bit_takes_value n m i x)
+    ∩ (event_sent_string_takes_value enc n m (enc bs)) =
+    event_sent_string_takes_value enc n m (enc bs)
+Proof
+  rw[]
+  >> gvs[GSYM event_input_string_takes_value_event_sent_string_takes_value]
+  >> gvs[event_input_bit_takes_value_def, event_input_string_takes_value_def]
+  >> ASM_SET_TAC[]
+QED
+
 Theorem event_srcc_parity_bits_take_value_is_event[simp]:
   ∀psqs n m p ts cs_p.
     event_srcc_parity_bits_take_value psqs n m ts cs_p
@@ -1089,7 +1130,17 @@ Proof
          in the denominator of the conditional probability *)
       >> gs[mdr_summed_out_values_def]
       >> gs[inter_input_state_sequence_eq_input]
-      >> qmatch_goalsub_abbrev_tac ‘foo1 ∩ (foo2 ∩ foo3)’
+      >> gs[inter_input_parity_eq_sent]
+      >> qspecl_then [‘ps’, ‘qs’, ‘ts’] assume_tac
+                     encode_recursive_parity_equation_with_systematic_inj
+      >> gs[INJ_DEF]
+      >> gs[inter_input_bit_sent_eq_sent]
+      (* Now that we have simplified our conditional probability to just be
+         in terms of the received string taking a value given that the sent
+         string takes a value, it is now more obvious that this conditional
+         probability is the product of the probabilities of each individual
+         received bit given the corresponding sent bit. *)
+      >> 
      )
      
   (* *)

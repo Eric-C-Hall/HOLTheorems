@@ -1452,7 +1452,7 @@ QED
 (* the encoding of the input string                                           *)
 (* -------------------------------------------------------------------------- *)
 Theorem event_input_string_takes_value_event_sent_string_takes_value:
-  ∀(enc : bool list -> bool list) n m bs.
+  ∀enc n m bs.
     (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
     event_input_string_takes_value n m bs =
     event_sent_string_takes_value enc n m (enc bs)
