@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -822,6 +821,30 @@ Definition mdr_summed_out_events_def:
      n m cs_p)
 End
 
+(* Should this be a simp rule, or is it wiser to avoid it being a simp rule
+   because in some situations one event will be more useful and in other
+   situations the other event will be more useful? *)
+Theorem inter_input_state_sequence_eq_input:
+  ∀n m ps qs ts bs σs.
+    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ⇒
+    (event_input_string_takes_value n m bs)
+    ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs) =
+    event_input_string_takes_value n m bs
+Proof
+  rw[]
+  >> gvs[event_input_string_takes_value_def,
+         event_state_sequence_takes_value_def]
+  >> ASM_SET_TAC[]
+QED
+
+Theorem inter_input_sent_eq_sent:
+  ∀.
+    (event_input_string_takes_value n m bs)
+    ∩ (event_sent_string_takes_value enc n m (enc bs)) =
+    (event_sent_string_takes_value 
+Proof
+QED
+
 Theorem mdr_summed_out_events_is_event[simp]:
   ∀psqs n m p ts bsσscs_p.
     mdr_summed_out_events psqs n m ts bsσscs_p
@@ -1014,7 +1037,7 @@ Proof
                >> conj_tac
                >> irule EVENTS_INTER >> gvs[]
               )*)
-       )
+         )
       >> Cases_on ‘C’ >> gvs[]
       >> qpat_x_assum ‘Normal r = ARB’ (fn th => gvs[GSYM th])
       >> Cases_on ‘val1’ >> gvs[]
@@ -1030,13 +1053,26 @@ Proof
      argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
      Next step: p(ds | bs, cs_p, σs) = Π P(d_i | c_i)
 .
-     That is, we split val2 up into a product of each individual received value
+     That is, we split val1 up into a product of each individual received value
      given the corresponding sent value
    *)
+  >> sg ‘val1 = ARB’
+  >- (unabbrev_all_tac
+      >> namedCases_on ‘w’ ["bs σs cs_p"]
+      >> gvs[mdr_summed_out_events_def]
+      (* The sent string taking a particular value abosorbs all other events
+         in the denominator of the conditional probability *)
+      >> gs[mdr_summed_out_values_def]
+      >> gs[inter_input_state_sequence_eq_input]
+      >> qmatch_goalsub_abbrev_tac ‘foo1 ∩ (foo2 ∩ foo3)’
+     )
+     
+  (* *)
   >> sg ‘val2 = ARB’
   >- (unabbrev_all_tac
       >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
       >> gvs[mdr_summed_out_events_def]
+      >> 
      )
      
 QED
