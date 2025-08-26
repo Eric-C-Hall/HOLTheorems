@@ -1159,8 +1159,8 @@ Proof
          probability is the product of the probabilities of each individual
          received bit given the corresponding sent bit. *)
       >> gvs[cond_prob_string_given_sent_prod]
-      (* While this isn't a product, it's an explicit expresion for the
-         probability, which will be equal to the product*)
+      (* While this isn't a product, it's an explicit expression for the
+         probability, which will be equal to the product *)
       >> cheat
      )
   >> pop_assum (fn th => PURE_REWRITE_TAC[th])
@@ -1168,8 +1168,9 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘C * val1 * val2 = RHS’
   (* Now we have split val1 up into a product of values.
 .
-     Next step: split 
-   *)
+     Next step: split val2 up into p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)      
+                p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...
+    *)
   >> sg ‘val2 = ARB’
   >- (unabbrev_all_tac
       >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
