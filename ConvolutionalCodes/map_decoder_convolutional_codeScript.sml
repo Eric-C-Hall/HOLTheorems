@@ -781,7 +781,7 @@ Definition mdr_summed_out_values_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* An alternate form of mdr_summed_out_values which is written using a MAP    *)
+(* An alternate form of mdr_summed_out_values which is written using an IMAGE *)
 (* -------------------------------------------------------------------------- *)
 Theorem mdr_summed_out_values_alt:
   ∀ps qs n ts i x.
@@ -795,11 +795,38 @@ Proof
   >> ASM_SET_TAC[]
 QED
 
-Theorem finite_mdr_summed_out_values[simp]:
-  ∀ps qs n ts i x.
-    FINITE (mdr_summed_out_values (ps,qs) n ts i x)
+(* -------------------------------------------------------------------------- *)
+(* Contains all values that are being summed out when using the factor graph  *)
+(* method for MAP decoding of recursive convolutional codes                   *)
+(*                                                                            *)
+(* n: the size of the input to the encoder                                    *)
+(* ts: the intial state of the encoder                                        *)
+(* -------------------------------------------------------------------------- *)
+Definition mdr_summed_out_values_complete_def:
+  mdr_summed_out_values_complete n ts =
+  (length_n_codes n)
+  × (length_n_valid_state_sequences (n + 1) (LENGTH ts))
+  × (length_n_codes n)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* An alternative form of mdr_summed_out_values_complete which is expressed   *)
+(* as a product of sets                                                       *)
+(*                                                                            *)
+(* Note: if this is used as the definition, then our definition has a wider   *)
+(* range of allowable types, which causes issues when we want to apply the    *)
+(* other definition but we don't know that we have the appropriate types.     *)
+(* -------------------------------------------------------------------------- *)
+Theorem mdr_summed_out_values_complete_alt:
+  ∀n ts.
+    mdr_summed_out_values_complete n ts =
+    {(bs, σs, cs_p) | LENGTH bs = n ∧
+                      LENGTH σs = n + 1 ∧
+                      (∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts) ∧
+                      LENGTH cs_p = n}
 Proof
-  rw[mdr_summed_out_values_alt]
+  rw[mdr_summed_out_values_complete_def, CROSS_DEF]
+  >> ASM_SET_TAC[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -936,10 +963,57 @@ QED
 (* the state sequence taking the sequence of values corresponding to that     *)
 (* input.                                                                     *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_input_string_takes_value_event_state_sequence_takes_value:
+(*Theorem event_input_string_takes_value_event_state_sequence_takes_value:
   ∀.
     event_input_string_takes_value n m bs
 Proof
+QED*)
+
+Theorem mdr_summed_out_values_subset_mdr_summed_out_values_complete:
+  ∀ps qs n ts i x.
+    (mdr_summed_out_values (ps,qs) n ts i x) ⊆ (mdr_summed_out_values_complete n ts)
+Proof
+  gvs[mdr_summed_out_values_def, mdr_summed_out_values_complete_alt]
+  >> rw[SUBSET_DEF]
+  >> rw[]
+  >> metis_tac[mem_encode_recursive_parity_equation_state_sequence_length]
+QED
+
+Theorem finite_mdr_summed_out_values[simp]:
+  ∀ps qs n ts i x.
+    FINITE (mdr_summed_out_values (ps,qs) n ts i x)
+Proof
+  rw[mdr_summed_out_values_alt]
+QED
+
+Theorem finite_mdr_summed_out_values_complete[simp]:
+  ∀n ts.
+    FINITE (mdr_summed_out_values_complete n ts)
+Proof
+  rw[]
+  >> gvs[mdr_summed_out_values_complete_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A version of BAYES_RULE which does not require prob p B ≠ 0, since HOL4    *)
+(* treats undefined values as having a value of the appropriate type, and so  *)
+(* an undefined value multiplied by zero is equal to zero, not undefined.     *)
+(* -------------------------------------------------------------------------- *)
+Theorem BAYES_RULE_GENERALIZED:
+  ∀p A B.
+    prob_space p ∧
+    A ∈ events p ∧
+    B ∈ events p ∧
+    prob p A ≠ 0 ⇒
+    cond_prob p B A = cond_prob p A B * prob p B / prob p A
+Proof
+  rw[]
+  >> Cases_on ‘prob p B = 0’
+  >- (gvs[zero_div, cond_prob_def]
+      >> gvs[PROB_ZERO_INTER]
+      >> gvs[zero_div]
+     )
+  >> metis_tac[BAYES_RULE]
 QED
 
 (* Possible improvement: can we remove some of these assumptions, especially
@@ -956,7 +1030,7 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
       map_decoder_bitwise enc n m p ds =
       MAP (λi.
              argmax_bool
-             (λx. ∑ ARB (mdr_summed_out_values (ps,qs) n ts i x)
+             (λx. ∑ ARB (mdr_summed_out_values_complete n ts)
              )
           )
           (COUNT_LIST n)
@@ -1052,24 +1126,86 @@ Proof
      )
   (* Name the constant *)
   >> qmatch_abbrev_tac ‘C * ∑ _ _ = _’
+  (* Prove some helpful, reusable properties *)
+  >> sg ‘C ≠ −∞’ >- cheat
+  >> sg ‘C ≠ +∞’ >- cheat
   (* Move the constant into the sum *)
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
   >> conj_tac
   >- (rpt conj_tac
       >- gvs[]
-      >- cheat
-      >- cheat
+      >- gvs[]
+      >- gvs[]
       >> disj2_tac
       >> rw[]
       >> irule (cj 1 COND_PROB_FINITE)
       >> gvs[]
       >> irule EVENTS_INTER >> gvs[]
      )
+  (* Make our sum take all values over the input bitstring, the states,
+     and the parity bits, rather than just the valid choices, by giving each
+     term with invalid bitstring/states/parity bits a value of 0, so that it
+     doesn't affect the overall sum.
+.
+    First apply EXTREAL_SUM_IMAGE_IN_IF to change our term to the appropriate
+    term, then apply EXTREAL_SUM_IMAGE_INTER_ELIM in order to expand the set we
+    are summing over
+   *)
+  >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+  >> DEP_PURE_ONCE_REWRITE_TAC [EXTREAL_SUM_IMAGE_IN_IF]
+  >> simp[Abbr ‘RHS’]
+  >> conj_tac
+  >- (disj1_tac
+      >> rw[]
+      >> irule (cj 1 mul_not_infty2)
+      >> rpt conj_tac
+      >- gvs[]
+      >- gvs[]
+      >- (irule (cj 2 COND_PROB_FINITE)
+          >> gvs[]
+          >> namedCases_on ‘x'’ ["bs σs cs_p"]
+          >> irule EVENTS_INTER
+          >> gvs[]
+         )
+      >> irule (cj 1 COND_PROB_FINITE)
+      >> gvs[]
+      >> gvs[EVENTS_INTER]
+     )
+  >> sg ‘mdr_summed_out_values (ps, qs) n ts i x =
+         (mdr_summed_out_values_complete n ts)
+         ∩ mdr_summed_out_values (ps, qs) n ts i x
+        ’
+  >- (gvs[mdr_summed_out_values_def, mdr_summed_out_values_complete_alt]
+      >> rw[EXTENSION]
+      >> EQ_TAC
+      >> rw[] >> rw[]
+      >> metis_tac[mem_encode_recursive_parity_equation_state_sequence_length]
+     )
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_INTER_ELIM]
+  >> conj_tac
+  >- (rw[]
+      >> disj1_tac
+      >> rw[]
+      >> irule (cj 1 mul_not_infty2)
+      >> rpt conj_tac
+      >- gvs[]
+      >- gvs[]
+      >- (irule (cj 2 COND_PROB_FINITE)
+          >> gvs[]
+          >> namedCases_on ‘x'’ ["bs σs cs_p"]
+          >> irule EVENTS_INTER
+          >> gvs[]
+         )
+      >> irule (cj 1 COND_PROB_FINITE)
+      >> gvs[EVENTS_INTER]
+     )
   (* The function in the sum is the equivalent bit *)
   >> irule EXTREAL_SUM_IMAGE_EQ'
   >> gvs[]
   >> qx_gen_tac ‘w’
-  >> rw[]
+  >> disch_tac
+  >> namedCases_on ‘w’ ["bs σs cs_p"]
   (* We are currently up to the step
      argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs.
      Next step:
@@ -1077,41 +1213,37 @@ Proof
 .
      That is, we apply Bayes' rule here
    *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[BAYES_RULE]
+  >> DEP_PURE_ONCE_REWRITE_TAC[BAYES_RULE_GENERALIZED]
   >> conj_tac
   >- (rpt conj_tac
       >- gvs[]
       >- gvs[]
       >- (irule EVENTS_INTER >> gvs[]
-          >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
          )
       >- gvs[]
-      >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
-      >> conj_tac
-      >- (gvs[]
-          >> irule EVENTS_INTER >> gvs[]
-         )
-      >> gvs[EXTENSION]
-      >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
-      >> gvs[mdr_summed_out_events_def]
-      >> qexists ‘(bs, REPLICATE (LENGTH ds) F)’
-      >> rpt conj_tac
-      >- gvs[event_input_bit_takes_value_def,
-             mdr_summed_out_values_def]
-      >- gvs[event_input_string_takes_value_def,
-             mdr_summed_out_values_def]
-      >- gvs[event_state_sequence_takes_value_def,
-             mdr_summed_out_values_def]
-      >> gvs[event_srcc_parity_bits_take_value_def,
-             mdr_summed_out_values_def]
+     (*>> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+             >> conj_tac
+             >- (gvs[]
+                 >> irule EVENTS_INTER >> gvs[]
+                )
+             >> gvs[EXTENSION]
+             >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
+             >> gvs[mdr_summed_out_events_def]
+             >> qexists ‘(bs, REPLICATE (LENGTH ds) F)’
+             >> rpt conj_tac
+             >- gvs[event_input_bit_takes_value_def,
+                    mdr_summed_out_values_def]
+             >- gvs[event_input_string_takes_value_def,
+                    mdr_summed_out_values_def]
+             >- gvs[event_state_sequence_takes_value_def,
+                    mdr_summed_out_values_def]
+             >> gvs[event_srcc_parity_bits_take_value_def,
+                    mdr_summed_out_values_def]*)
      )
   (* Merge the constant part into the constant *)
-  >> qmatch_abbrev_tac ‘C * (val1 * val2 / val3) = RHS’
-  >> qsuff_tac ‘(C / val3) * val1 * val2 = RHS’
-  >- (rw[]
-      >> sg ‘C ≠ +∞ ∧ C ≠ −∞’
-      >- cheat
-      >> sg ‘val1 ≠ +∞ ∧ val1 ≠ −∞ ∧ val2 ≠ +∞ ∧ val2 ≠ −∞ ∧ val3 ≠ +∞ ∧ val3 ≠ −∞’
+  >> qmatch_goalsub_abbrev_tac ‘C * (val1 * val2 / val3)’
+  >> sg ‘C * (val1 * val2 / val3) = (C / val3) * val1 * val2’
+  >- (sg ‘val1 ≠ +∞ ∧ val1 ≠ −∞ ∧ val2 ≠ +∞ ∧ val2 ≠ −∞ ∧ val3 ≠ +∞ ∧ val3 ≠ −∞’
       >- (cheat
          (*unabbrev_all_tac
            >> gvs[PROB_FINITE, COND_PROB_FINITE]
@@ -1131,8 +1263,20 @@ Proof
       >- cheat
       >> gvs[extreal_mul_eq, extreal_div_eq]
      )
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
   >> simp[Abbr ‘C’, Abbr ‘val3’]
-  >> qmatch_abbrev_tac ‘C * val1 * val2 = RHS’
+  >> qmatch_abbrev_tac ‘(if b then C * val1 * val2 else 0) = _’
+  (* Now we have split val1 up into a product of values.
+.
+     Next step: split val2 up into p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)      
+                p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...
+   *)
+  >> sg ‘val2 = ARB’
+  >- (unabbrev_all_tac
+      >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
+      >> gvs[mdr_summed_out_events_def]
+      >> 
+     )
   (* We are currently up to the step
      argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
      Next step: p(ds | bs, cs_p, σs) = Π P(d_i | c_i)
@@ -1140,9 +1284,9 @@ Proof
      That is, we split val1 up into a product of each individual received value
      given the corresponding sent value
    *)
-  >> sg ‘val1 = ARB’
+  >> sg ‘b ⇒ val1 = ARB’
   >- (unabbrev_all_tac
-      >> namedCases_on ‘w’ ["bs σs cs_p"]
+      >> rw[]
       >> gvs[mdr_summed_out_events_def]
       (* The sent string taking a particular value abosorbs all other events
          in the denominator of the conditional probability *)
@@ -1163,20 +1307,9 @@ Proof
          probability, which will be equal to the product *)
       >> cheat
      )
-  >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+  >> pop_assum (fn th => PURE_REWRITE_TAC[th]) (* TODO: currently broken *)
   >> simp[Abbr ‘val1’]
-  >> qmatch_goalsub_abbrev_tac ‘C * val1 * val2 = RHS’
-  (* Now we have split val1 up into a product of values.
-.
-     Next step: split val2 up into p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)      
-                p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...
-    *)
-  >> sg ‘val2 = ARB’
-  >- (unabbrev_all_tac
-      >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
-      >> gvs[mdr_summed_out_events_def]
-      >> 
-     )
+  >> qmatch_goalsub_abbrev_tac ‘C * val1 * val2’
      
 QED
 

@@ -323,6 +323,20 @@ Proof
          encode_recursive_parity_equation_state_sequence_def]
 QED
 
+Theorem mem_encode_recursive_parity_equation_state_sequence_length:
+  ∀σ psqs ts bs.
+    MEM σ (encode_recursive_parity_equation_state_sequence psqs ts bs) ⇒
+    LENGTH σ = LENGTH ts
+Proof
+  Induct_on ‘bs’
+  >> rw[] >> gvs[encode_recursive_parity_equation_state_sequence_def]
+  >> namedCases_on ‘psqs’ ["ps qs"]
+  >> gvs[encode_recursive_parity_equation_state_sequence_def]
+  >> last_assum drule
+  >> rw[]
+  >> gvs[LENGTH_TL]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* -------------------------------------------------------------------------- *)
