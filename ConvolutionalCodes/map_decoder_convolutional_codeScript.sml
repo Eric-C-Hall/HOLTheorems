@@ -1379,6 +1379,40 @@ Proof
   >> ‘LHS = C * val1 * val2’ by (rw[] >> Cases_on ‘b’ >> gvs[])
   >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
   >> gvs[Abbr ‘RHS’]
+  (* 
+     Next step: p(ds | bs, cs_p, σs) = Π P(d_i | c_i)
+.
+     That is, we split val1 up into a product of each individual received value
+     given the corresponding sent value
+    *)
+  >> sg ‘b ⇒ val1 = TODO1’
+  >- (unabbrev_all_tac
+      >> rw[]
+      >> gvs[mdr_summed_out_events_def]
+      (* The sent string taking a particular value abosorbs all other events
+         in the denominator of the conditional probability *)
+      >> gs[mdr_summed_out_values_def]
+      >> gs[inter_input_state_sequence_eq_input]
+      >> gs[inter_input_parity_eq_sent]
+      >> qspecl_then [‘ps’, ‘qs’, ‘ts’] assume_tac
+                     encode_recursive_parity_equation_with_systematic_inj
+      >> gs[INJ_DEF]
+      >> gs[inter_input_bit_sent_eq_sent]
+      (* Now that we have simplified our conditional probability to just be
+         in terms of the received string taking a value given that the sent
+         string takes a value, it is now more obvious that this conditional
+         probability is the product of the probabilities of each individual
+         received bit given the corresponding sent bit. *)
+      >> gvs[cond_prob_string_given_sent_prod]
+      (* While this isn't a product, it's an explicit expression for the
+         probability, which will be equal to the product *)
+      >> cheat
+     )
+  >> ‘C * val1 * val2 = C * TODO1 * val2’ by (Cases_on ‘b’ >> gvs[])
+  >> qpat_x_assum ‘b ⇒ val1 = _’ kall_tac
+  >> qpat_x_assum ‘Abbrev (val1 = _)’ kall_tac
+  >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+  >> qmatch_abbrev_tac ‘C * val1 * val2 = _’
   (* We are currently up to the step
      argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
 .
@@ -1387,43 +1421,8 @@ Proof
    *)
   >> sg ‘val2 = ARB’
   >- (unabbrev_all_tac
-      >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
-      >> gvs[mdr_summed_out_events_def]
       >> 
      )
-  (* 
-     Next step: p(ds | bs, cs_p, σs) = Π P(d_i | c_i)
-.
-     That is, we split val1 up into a product of each individual received value
-     given the corresponding sent value
-    *)
-      >> sg ‘b ⇒ val1 = ARB’
-      >- (unabbrev_all_tac
-          >> rw[]
-          >> gvs[mdr_summed_out_events_def]
-          (* The sent string taking a particular value abosorbs all other events
-         in the denominator of the conditional probability *)
-          >> gs[mdr_summed_out_values_def]
-          >> gs[inter_input_state_sequence_eq_input]
-          >> gs[inter_input_parity_eq_sent]
-          >> qspecl_then [‘ps’, ‘qs’, ‘ts’] assume_tac
-                         encode_recursive_parity_equation_with_systematic_inj
-          >> gs[INJ_DEF]
-          >> gs[inter_input_bit_sent_eq_sent]
-          (* Now that we have simplified our conditional probability to just be
-         in terms of the received string taking a value given that the sent
-         string takes a value, it is now more obvious that this conditional
-         probability is the product of the probabilities of each individual
-         received bit given the corresponding sent bit. *)
-          >> gvs[cond_prob_string_given_sent_prod]
-          (* While this isn't a product, it's an explicit expression for the
-         probability, which will be equal to the product *)
-          >> cheat
-         )
-      >> pop_assum (fn th => PURE_REWRITE_TAC[th]) (* TODO: currently broken *)
-      >> simp[Abbr ‘val1’]
-      >> qmatch_goalsub_abbrev_tac ‘C * val1 * val2’
-                                   
 QED
 
 val _ = export_theory();
