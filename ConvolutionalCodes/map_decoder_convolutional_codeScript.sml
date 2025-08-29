@@ -1153,6 +1153,31 @@ Proof
           event_srcc_parity_bits_take_value_def]
 QED
 
+Theorem event_input_bit_takes_value_mdr_summed_out_events_el_i_x:
+  ∀n m i x ps qs ts bs σs cs_p.
+    EL i bs = x ⇒
+    (event_input_bit_takes_value n m i x)
+    ∩ (mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)) =
+    mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)
+Proof
+  rw[]
+  >> gvs[event_input_bit_takes_value_def,
+         mdr_summed_out_events_def,
+         event_input_string_takes_value_def,
+         event_state_sequence_takes_value_def,
+         event_srcc_parity_bits_take_value_def]
+  >> ASM_SET_TAC[]
+QED
+
+Theorem mdr_summed_out_values_2_el_i_x:
+  ∀n ts i x bs σs cs_p.
+    (bs, σs, cs_p) ∈ mdr_summed_out_values_2 n ts i x ⇒
+    EL i bs = x
+Proof
+  rw[]
+  >> gvs[mdr_summed_out_values_2_def]
+QED
+
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
 Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
@@ -1167,7 +1192,7 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
       map_decoder_bitwise enc n m p ds =
       MAP (λi.
              argmax_bool
-             (λx. ∑ ARB (mdr_summed_out_values_complete n ts)
+             (λx. ∑ ARB (mdr_summed_out_values_2 n ts i x)
              )
           )
           (COUNT_LIST n)
@@ -1284,7 +1309,9 @@ Proof
       >> gvs[]
       >> irule EVENTS_INTER >> gvs[]
      )
-  (* Make our sum take all values over the input bitstring, the states,
+  (* OUTDATED
+.
+Make our sum take all values over the input bitstring, the states,
      and the parity bits, rather than just the valid choices, by giving each
      term with invalid bitstring/states/parity bits a value of 0, so that it
      doesn't affect the overall sum.
@@ -1293,33 +1320,33 @@ Proof
     term, then apply EXTREAL_SUM_IMAGE_INTER_ELIM in order to expand the set we
     are summing over
    *)
-  >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
-  >> DEP_PURE_ONCE_REWRITE_TAC [EXTREAL_SUM_IMAGE_IN_IF]
-  >> simp[Abbr ‘RHS’]
-  >> conj_tac
-  >- (disj1_tac
-      >> rw[]
-      >> irule (cj 1 mul_not_infty2)
-      >> rpt conj_tac
-      >- gvs[]
-      >- gvs[]
-      >- (irule (cj 2 COND_PROB_FINITE)
+  (*>> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+      >> DEP_PURE_ONCE_REWRITE_TAC [EXTREAL_SUM_IMAGE_IN_IF]
+      >> simp[Abbr ‘RHS’]
+      >> conj_tac
+      >- (disj1_tac
+          >> rw[]
+          >> irule (cj 1 mul_not_infty2)
+          >> rpt conj_tac
+          >- gvs[]
+          >- gvs[]
+          >- (irule (cj 2 COND_PROB_FINITE)
+              >> gvs[]
+              >> namedCases_on ‘x'’ ["bs σs cs_p"]
+              >> irule EVENTS_INTER
+              >> gvs[]
+             )
+          >> irule (cj 1 COND_PROB_FINITE)
           >> gvs[]
-          >> namedCases_on ‘x'’ ["bs σs cs_p"]
-          >> irule EVENTS_INTER
-          >> gvs[]
+          >> gvs[EVENTS_INTER]
          )
-      >> irule (cj 1 COND_PROB_FINITE)
-      >> gvs[]
-      >> gvs[EVENTS_INTER]
-     )
-  >> sg ‘mdr_summed_out_values (ps, qs) n ts i x =
-         (mdr_summed_out_values_complete n ts)
-         ∩ mdr_summed_out_values (ps, qs) n ts i x
-        ’
-  >- (gvs[mdr_summed_out_values_def, mdr_summed_out_values_complete_alt]
-      >> rw[EXTENSION]
-      >> EQ_TAC
+      >> sg ‘mdr_summed_out_values (ps, qs) n ts i x =
+             (mdr_summed_out_values_complete n ts)
+             ∩ mdr_summed_out_values (ps, qs) n ts i x
+            ’
+      >- (gvs[mdr_summed_out_values_def, mdr_summed_out_values_complete_alt]
+          >> rw[EXTENSION]
+          >> EQ_TAC
       >> rw[] >> rw[]
       >> metis_tac[mem_encode_recursive_parity_equation_state_sequence_length]
      )
@@ -1341,7 +1368,7 @@ Proof
          )
       >> irule (cj 1 COND_PROB_FINITE)
       >> gvs[EVENTS_INTER]
-     )
+     )*)
   (* The function in the sum is the equivalent bit *)
   >> irule EXTREAL_SUM_IMAGE_EQ'
   >> gvs[]
@@ -1407,7 +1434,11 @@ Proof
      )
   >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
   >> simp[Abbr ‘C’, Abbr ‘val3’]
-  >> qmatch_abbrev_tac ‘(if b then C * val1 * val2 else 0) = _’
+  >> qmatch_abbrev_tac ‘C * val1 * val2 = _’
+  (* Introduce a variable b which tells us whether the current choice of
+     (bs, σs, cs_p) is valid, or if it is self-contradictory (since a given
+     choice of bs will correspond to only one specific choice of σs and cs_p) *)
+  >> qabbrev_tac ‘b = ((bs, σs, cs_p) ∈ mdr_summed_out_values (ps,qs) n ts i x)’
   (* When the values being summed over are invalid (i.e. we have ¬b), then
      val2 will equal 0, so we can remove the if _ then _ else _.
 .
@@ -1428,10 +1459,6 @@ Proof
          )
       >> metis_tac[mdr_summed_out_values_mdr_summed_out_events_empty]
      )
-  >> qmatch_goalsub_abbrev_tac ‘LHS = RHS’
-  >> ‘LHS = C * val1 * val2’ by (rw[] >> Cases_on ‘b’ >> gvs[])
-  >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
-  >> gvs[Abbr ‘RHS’]
   (* 
      Next step: p(ds | bs, cs_p, σs) = Π P(d_i | c_i)
 .
@@ -1466,6 +1493,9 @@ Proof
   >> qpat_x_assum ‘Abbrev (val1 = _)’ kall_tac
   >> pop_assum (fn th => PURE_REWRITE_TAC[th])
   >> qmatch_abbrev_tac ‘C * val1 * val2 = _’
+  (* We can eliminate x because it is simply equal to EL i bs*)
+  >> drule mdr_summed_out_values_2_el_i_x
+  >> disch_tac >> gvs[]
   (* We are currently up to the step
      argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
 .
@@ -1474,6 +1504,7 @@ Proof
    *)
   >> sg ‘val2 = ARB’
   >- (unabbrev_all_tac
+      >> gvs[event_input_bit_takes_value_mdr_summed_out_events_el_i_x]
       >> 
      )
 QED
