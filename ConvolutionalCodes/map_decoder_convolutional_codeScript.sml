@@ -781,7 +781,7 @@ Definition mdr_summed_out_values_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* An alternate form of mdr_summed_out_values which is written using an IMAGE *)
+(* An alternate form of mdr_summed_out_values which uses an IMAGE             *)
 (* -------------------------------------------------------------------------- *)
 Theorem mdr_summed_out_values_alt:
   ∀ps qs n ts i x.
@@ -792,6 +792,46 @@ Theorem mdr_summed_out_values_alt:
           (length_n_codes n ∩ ith_eq_codes i x)
 Proof
   gvs[mdr_summed_out_values_def]
+  >> ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A more accurate version of the values that are summed out: we sum out all  *)
+(* variables other than the one which has been chosen for the ith input       *)
+(*                                                                            *)
+(* ps: the numerator parity equation                                          *)
+(* qs: the denominator parity equation                                        *)
+(* n: the size of the input                                                   *)
+(* ts: the initial state                                                      *)
+(* i: the index of the variable which does not need to be summed out because  *)
+(*    it already has a value                                                  *)
+(* x: the value of the variable which does not need to be summed out          *)
+(* -------------------------------------------------------------------------- *)
+Definition mdr_summed_out_values_2_def:
+  mdr_summed_out_values_2 n ts i x =
+  (length_n_codes n ∩ ith_eq_codes i x)
+  × (length_n_valid_state_sequences (n + 1) (LENGTH ts))
+  × (length_n_codes n)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* An alternative form of mdr_summed_out_values_2 which is expressed as a     *)
+(* product of sets.                                                           *)
+(*                                                                            *)
+(* Note: if this is used as the definition, then our definition has a wider   *)
+(* range of allowable types, which causes issues when we want to apply the    *)
+(* other definition but we don't know that we have the appropriate types.     *)
+(* -------------------------------------------------------------------------- *)
+Theorem mdr_summed_out_values_2_alt:
+  ∀n ts i x.
+    mdr_summed_out_values_2 n ts i x =
+    {(bs, σs, cs_p) | LENGTH bs = n ∧
+                      LENGTH σs = n + 1 ∧
+                      (∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts) ∧
+                      LENGTH cs_p = n ∧
+                      EL i bs = x}
+Proof
+  rw[mdr_summed_out_values_2_def, CROSS_DEF]
   >> ASM_SET_TAC[]
 QED
 
@@ -986,6 +1026,14 @@ Proof
   rw[mdr_summed_out_values_alt]
 QED
 
+Theorem finite_mdr_summed_out_values_2[simp]:
+  ∀ps qs n ts i x.
+    FINITE (mdr_summed_out_values_2 n ts i x)
+Proof
+  rw[]
+  >> gvs[mdr_summed_out_values_2_def]
+QED
+
 Theorem finite_mdr_summed_out_values_complete[simp]:
   ∀n ts.
     FINITE (mdr_summed_out_values_complete n ts)
@@ -1142,7 +1190,7 @@ Proof
   (* Prove function equivalence when applied to all choices of x *)
   >> rw[FUN_EQ_THM]
   (* For some reason, as I edited the theorem I was proving, this swapped
-     around*)
+     around *)
   >> irule EQ_SYM
   (* Nicer names *)
   >> qmatch_abbrev_tac ‘C * cond_prob sp e1 e2 = RHS’
@@ -1152,7 +1200,7 @@ Proof
                   ‘mdr_summed_out_events (ps,qs) n (LENGTH ds) ts’,
                   ‘e1’,
                   ‘e2’,
-                  ‘mdr_summed_out_values (ps,qs) n ts i x’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
+                  ‘mdr_summed_out_values_2 n ts i x’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> rpt conj_tac >> unabbrev_all_tac
   >- gvs[]
@@ -1193,6 +1241,9 @@ Proof
       (* We have cs1_p ≠ cs2_p, and so the final part is disjoint *)
       >> gvs[mdr_summed_out_events_def, event_srcc_parity_bits_take_value_def]
      )
+  (* The numerator of the conditional probability (i.e. the intersection of the
+     two events in the conditional probability) is contained in the union of
+     the new events we are intesecting over. *)
   >- (PURE_REWRITE_TAC[BIGUNION_IMAGE]
       >> gvs[SUBSET_DEF]
       >> qx_gen_tac ‘y’
@@ -1205,8 +1256,10 @@ Proof
                    encode_recursive_parity_equation (ps,qs) ts bs)’
       >> gs[]
       >> rpt conj_tac
-      >- (gs[mdr_summed_out_values_def]
+      >- (gs[mdr_summed_out_values_2_alt]
           >> gs[event_input_bit_takes_value_def]
+          >> rw[]
+          >> metis_tac[mem_encode_recursive_parity_equation_state_sequence_length]
          )
       >> gs[mdr_summed_out_events_def,
             event_input_string_takes_value_def,
