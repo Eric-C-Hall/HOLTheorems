@@ -589,7 +589,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* A simpler version of COND_PROB_EXTREAL_SUM_IMAGE_FN which is easier to     *)
 (* prove. In particular, this one requires us to know that                    *)
-(* p ⊆ BIGUNION (IMAGE f s), which is a stronger condition than              *)
+(* p_space p ⊆ BIGUNION (IMAGE f s), which is a stronger condition than      *)
 (* e2 ⊆ BIGUNION (IMAGE f s)                                                 *)
 (* -------------------------------------------------------------------------- *)
 Theorem COND_PROB_EXTREAL_SUM_IMAGE_FN_SIMPLE:
@@ -1177,6 +1177,36 @@ Proof
   rw[]
   >> gvs[mdr_summed_out_values_2_def]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* We want to prove:                                                          *)
+(* P(bs,σs,cs) = P(σ_0)P(b_1)P(σ_1c_1|σ_0b_1)P(b_2)P(σ_2c_2|σ_1b_2)...        *)
+(*                                                                            *)
+(* Inductively apply the following steps:                                     *)
+(*                                                                            *)
+(* Merge P(b_i) into P(σ_0b_1σ_1c_1...b_{i-1}σ_{i-1}c_{i-1})                  *)
+(* - If σ_0b_1σ_1c_1...b_{i-1}σ_{i-1}c_{i-1} is invalid, then our             *)
+(*   probability on the right is 0, thus applying an intersection to the      *)
+(*   event will trivially maintain a probability of zero                      *)
+(* - If it is valid, then it is equivalent (by lemma) to the event            *)
+(*   b_1b_2b_3..., since the σs and the cs are completely determined by       *)
+(*   the bs. Then we can prove independence of the b_i with all previous b_k  *)
+(*   in a relatively straightforward way.                                     *)
+(*                                                                            *)
+(*                                                                            *)
+(* Merge P(σ_ic_i|σ_{i-1}b_i) into the result.                                *)
+(* -                                                                          *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem split_mdr_events_prob:
+
+Proof
+QED
+
+
 
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
