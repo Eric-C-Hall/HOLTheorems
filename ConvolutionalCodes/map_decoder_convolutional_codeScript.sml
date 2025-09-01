@@ -1202,34 +1202,32 @@ QED
 (*      with P(σ_{i+1}|σ_ib_{i+1}), but this may not be helpful and may be a  *)
 (*      waste of time.                                                        *)
 (*                                                                            *)
-(* PREVIOUS ATTEMPT:                                                          *)
-(* 2. Prove that P(bs, σs, cs) = P(bs)Indicator(σs and cs are valid)          *)
-(* 3. Prove that Indicator(σs and cs are valid)                               *)
-(*     = P(σ_0)P(σ_1c_1|σ_0b_1)P(σ_2c_2|σ_1b_2)...                            *)
-(*                                                                            *)
-(* PREVIOUS ATTEMPT:                                                          *)
-(* Inductively apply the following steps:                                     *)
-(*                                                                            *)
-(* Merge P(b_i) into P(σ_0b_1σ_1c_1...b_{i-1}σ_{i-1}c_{i-1})                  *)
-(* - If σ_0b_1σ_1c_1...b_{i-1}σ_{i-1}c_{i-1} is invalid, then our             *)
-(*   probability on the right is 0, thus applying an intersection to the      *)
-(*   event will trivially maintain a probability of zero                      *)
-(* - If it is valid, then it is equivalent (by lemma) to the event            *)
-(*   b_1b_2b_3..., since the σs and the cs are completely determined by       *)
-(*   the bs. Then we can prove independence of the b_i with all previous b_k  *)
-(*   in a relatively straightforward way.                                     *)
-(*                                                                            *)
-(* Merge P(σ_ic_i|σ_{i-1}b_i) into the result.                                *)
-(* - If σ_i is the incorrect state that would be arrived at after applying    *)
-(*   the bs, then b_i ∩ σ_i ∩ σ_{i-1} = 0, and so both LHS and RHS become     *)
-(*   zero. If it is the correct state, then b_i ∩ σ_i ∩ σ_{i-1} =             *)
+(* Note: whereas in the math, we index bs starting from 1 and σs starting     *)
+(*       from 0, in the implementation, we index both lists starting from     *)
 (* -------------------------------------------------------------------------- *)
 Theorem split_mdr_events_prob:
-
+  prob (ecc_bsc_prob_space n m p)
+  (mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)) =
+  ∏ (λi.
+       prob (ecc_bsc_prob_space n m p)
+            (event_input_bit_takes_value n m i (EL i bs))
+    ) (count n) *
+  prob (ecc_bsc_prob_space n m p)
+       (event_state_takes_value n m (ps,qs) ts 0 (El 0 σs)) *
+  ∏ (λi.
+       cond_prob (ecc_bsc_prob_space n m p)
+                 (event_state_takes_value n m (ps,qs) ts (i+1) (EL (i+1) σs))
+                 ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
+                  ∩ (event_input_bit_takes_value n m (i+1) (EL (i+1) bs)))
+    ) (count (n-1)) *
+  ∏ (λi.
+       cond_prob (ecc_bsc_prob_space n m p)
+                 ()
+                 ()
+    ) (count n)
+    
 Proof
 QED
-
-
 
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
@@ -1239,7 +1237,7 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
       enc = encode_recursive_parity_equation_with_systematic (ps, qs) ts;
     in
       0 < p ∧ p < 1 ∧
-      LENGTH ds = m ∧
+      LENGTH ds = mh ∧
       LENGTH ps = LENGTH ts + 1 ∧
       (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
       map_decoder_bitwise enc n m p ds =
