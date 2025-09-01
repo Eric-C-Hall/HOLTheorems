@@ -1213,27 +1213,27 @@ QED
 (*    this may not be helpful and may be a waste of time.                     *)
 (* -------------------------------------------------------------------------- *)
 Theorem split_mdr_events_prob:
-  prob (ecc_bsc_prob_space n m p)
-  (mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)) =
-  ∏ (λi.
-       prob (ecc_bsc_prob_space n m p)
-            (event_input_bit_takes_value n m i (EL i bs))
-    ) (count n) *
-  prob (ecc_bsc_prob_space n m p)
-       (event_state_takes_value n m (ps,qs) ts 0 (El 0 σs)) *
-  ∏ (λi.
-       cond_prob (ecc_bsc_prob_space n m p)
-                 (event_state_takes_value n m (ps,qs) ts (i+1) (EL (i+1) σs))
-                 ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
-                  ∩ (event_input_bit_takes_value n m (i+1) (EL (i+1) bs)))
-    ) (count (n-1)) *
-  ∏ (λi.
-       cond_prob (ecc_bsc_prob_space n m p)
-                 ()
-                 ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
-                  ∩ (event_input_bit_takes_value n m (i+1) (EL (i+1) bs)))
-    ) (count n)
-    
+  ∀n m p ps qs ts bs σs cs_p.
+    prob (ecc_bsc_prob_space n m p)
+         (mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)) =
+    ∏ (λi.
+         prob (ecc_bsc_prob_space n m p)
+              (event_input_bit_takes_value n m i (EL i bs))
+      ) (count n) *
+    prob (ecc_bsc_prob_space n m p)
+         (event_state_takes_value n m (ps,qs) ts 0 (EL 0 σs)) *
+    ∏ (λi.
+         cond_prob (ecc_bsc_prob_space n m p)
+                   (event_state_takes_value n m (ps,qs) ts (i+1) (EL (i+1) σs))
+                   ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
+                    ∩ (event_input_bit_takes_value n m i (EL i bs)))
+      ) (count n) *
+    ∏ (λi.
+         cond_prob (ecc_bsc_prob_space n m p)
+                   (event_srcc_parity_bit_takes_value (ps,qs) n m ts i (EL i cs_p))
+                   ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
+                    ∩ (event_input_bit_takes_value n m i (EL i bs)))
+      ) (count n)
 Proof
 QED
 
