@@ -884,11 +884,22 @@ QED
 (*       underscore p represents the fact that these are the parity bits and  *)
 (*       not the systematic bits.)                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition event_srcc_parity_bits_take_value_def:
-  event_srcc_parity_bits_take_value (ps,qs) n m ts cs_p =
+Definition event_srcc_parity_string_takes_value_def:
+  event_srcc_parity_string_takes_value (ps,qs) n m ts cs_p =
   {(bs, ns) | LENGTH bs = n ∧
               LENGTH ns = m ∧
               encode_recursive_parity_equation (ps,qs) ts bs = cs_p}
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The event that a single parity bit for a systematic recursive              *)
+(* convolutional code (with one parity equation) takes a certain value.       *)
+(* -------------------------------------------------------------------------- *)
+Definition event_srcc_parity_bit_takes_value_def:
+  event_srcc_parity_bit_takes_value (ps,qs) n m ts i c_p =
+  {(bs, ns) | LENGTH bs = n ∧
+              LENGTH ns = m ∧
+              EL i (encode_recursive_parity_equation (ps,qs) ts bs) = c_p}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -907,7 +918,7 @@ Definition mdr_summed_out_events_def:
   mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p) =
   (event_input_string_takes_value n m bs)
   ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs)
-  ∩ (event_srcc_parity_bits_take_value (ps,qs) n m ts cs_p)
+  ∩ (event_srcc_parity_string_takes_value (ps,qs) n m ts cs_p)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -937,14 +948,14 @@ Theorem inter_input_parity_eq_sent:
   ∀n m ps qs ts bs cs_p.
     cs_p = encode_recursive_parity_equation (ps,qs) ts bs ⇒
     (event_input_string_takes_value n m bs)
-    ∩ (event_srcc_parity_bits_take_value (ps,qs) n m ts cs_p) =
+    ∩ (event_srcc_parity_string_takes_value (ps,qs) n m ts cs_p) =
     event_sent_string_takes_value
     (encode_recursive_parity_equation_with_systematic (ps,qs) ts) n m
     (encode_recursive_parity_equation_with_systematic (ps,qs) ts bs)
 Proof
   rw[]
   >> gvs[event_input_string_takes_value_def,
-         event_srcc_parity_bits_take_value_def,
+         event_srcc_parity_string_takes_value_def,
          event_sent_string_takes_value_def]
   >> gvs[encode_recursive_parity_equation_with_systematic_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[]
@@ -974,14 +985,14 @@ Proof
   >> ASM_SET_TAC[]
 QED
 
-Theorem event_srcc_parity_bits_take_value_is_event[simp]:
+Theorem event_srcc_parity_string_takes_value_is_event[simp]:
   ∀psqs n m p ts cs_p.
-    event_srcc_parity_bits_take_value psqs n m ts cs_p
-                                      ∈ events (ecc_bsc_prob_space n m p)
+    event_srcc_parity_string_takes_value psqs n m ts cs_p
+                                         ∈ events (ecc_bsc_prob_space n m p)
 Proof
   rw[]
   >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-  >> namedCases_on ‘psqs’ ["ps qs"] >> rw[event_srcc_parity_bits_take_value_def]
+  >> namedCases_on ‘psqs’ ["ps qs"] >> rw[event_srcc_parity_string_takes_value_def]
   >> gvs[]
 QED
 
@@ -1088,7 +1099,7 @@ Proof
           event_input_bit_takes_value_def,
           event_input_string_takes_value_def,
           event_state_sequence_takes_value_def,
-          event_srcc_parity_bits_take_value_def]
+          event_srcc_parity_string_takes_value_def]
       >> ASM_SET_TAC[]
      )
   >> gvs[EXTENSION]
@@ -1100,7 +1111,7 @@ Proof
          event_input_bit_takes_value_def,
          event_input_string_takes_value_def,
          event_state_sequence_takes_value_def,
-         event_srcc_parity_bits_take_value_def]
+         event_srcc_parity_string_takes_value_def]
 QED
 
 Theorem mdr_summed_out_values_mdr_summed_out_events_empty:
@@ -1136,7 +1147,7 @@ Proof
       >> gvs[event_input_bit_takes_value_def,
              mdr_summed_out_events_def]
       >> gvs[event_state_sequence_takes_value_def,
-             event_srcc_parity_bits_take_value_def]
+             event_srcc_parity_string_takes_value_def]
       >> rpt (pop_assum mp_tac)
       >> PURE_ONCE_REWRITE_TAC[event_input_string_takes_value_def]
       >> rpt disch_tac
@@ -1150,7 +1161,7 @@ Proof
           event_input_bit_takes_value_def,
           event_input_string_takes_value_def,
           event_state_sequence_takes_value_def,
-          event_srcc_parity_bits_take_value_def]
+          event_srcc_parity_string_takes_value_def]
 QED
 
 Theorem event_input_bit_takes_value_mdr_summed_out_events_el_i_x:
@@ -1165,7 +1176,7 @@ Proof
          mdr_summed_out_events_def,
          event_input_string_takes_value_def,
          event_state_sequence_takes_value_def,
-         event_srcc_parity_bits_take_value_def]
+         event_srcc_parity_string_takes_value_def]
   >> ASM_SET_TAC[]
 QED
 
@@ -1180,11 +1191,11 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
-(* P(bs,σs,cs) = P(σ_0)P(b_1)P(σ_1c_1|σ_0b_1)P(b_2)P(σ_2c_2|σ_1b_2)...        *)
+(* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
 (*                                                                            *)
-(* 1. Inductively prove that P(bs) = P(b_1)P(b_2)...P(b_n)                    *)
+(* 1. Inductively prove that P(bs) = P(b_0)P(b_1)...P(b_{n-1})                *)
 (* 2. Inductively add σs, so we get                                           *)
-(*                     P(bs,σs) = P(bs)P(σ_0)P(σ_1|σ_0b_1)P(σ_2|σ_1b_2)...    *)
+(*                     P(bs,σs) = P(bs)P(σ_0)P(σ_1|σ_0b_0)P(σ_2|σ_1b_1)...    *)
 (*    - P(bs,σ_0) = 0 if σ_0 is valid and P(bs) otherwise = P(bs)P(σ_0)       *)
 (*    - P(bs,σ_0^kσ_{k+1}) = P(bs,σ_0^k,σ_k,b_{k+1},σ_{k+1})                  *)
 (*       notice that combining the events σ_k, b_{k+1}, σ_{k+1}, we get the   *)
@@ -1201,9 +1212,6 @@ QED
 (* 4. If desired, we can combine P(c_{i+1}|σ_ib_{i+1}                         *)
 (*      with P(σ_{i+1}|σ_ib_{i+1}), but this may not be helpful and may be a  *)
 (*      waste of time.                                                        *)
-(*                                                                            *)
-(* Note: whereas in the math, we index bs starting from 1 and σs starting     *)
-(*       from 0, in the implementation, we index both lists starting from     *)
 (* -------------------------------------------------------------------------- *)
 Theorem split_mdr_events_prob:
   prob (ecc_bsc_prob_space n m p)
@@ -1222,7 +1230,8 @@ Theorem split_mdr_events_prob:
     ) (count (n-1)) *
   ∏ (λi.
        cond_prob (ecc_bsc_prob_space n m p)
-                 ()
+                 (event_sent_bit_takes_value () 
+                                             event_state_takes_value n m (ps,qs) ts () ())
                  ()
     ) (count n)
     
@@ -1315,7 +1324,7 @@ Proof
       >- gvs[mdr_summed_out_events_def, event_state_sequence_takes_value_def]
       >> gvs[]
       (* We have cs1_p ≠ cs2_p, and so the final part is disjoint *)
-      >> gvs[mdr_summed_out_events_def, event_srcc_parity_bits_take_value_def]
+      >> gvs[mdr_summed_out_events_def, event_srcc_parity_string_takes_value_def]
      )
   (* The numerator of the conditional probability (i.e. the intersection of the
      two events in the conditional probability) is contained in the union of
@@ -1340,7 +1349,7 @@ Proof
       >> gs[mdr_summed_out_events_def,
             event_input_string_takes_value_def,
             event_state_sequence_takes_value_def,
-            event_srcc_parity_bits_take_value_def]
+            event_srcc_parity_string_takes_value_def]
      )
   (* Name the constant *)
   >> qmatch_abbrev_tac ‘C * ∑ _ _ = _’
@@ -1457,7 +1466,7 @@ Make our sum take all values over the input bitstring, the states,
                     mdr_summed_out_values_def]
              >- gvs[event_state_sequence_takes_value_def,
                     mdr_summed_out_values_def]
-             >> gvs[event_srcc_parity_bits_take_value_def,
+             >> gvs[event_srcc_parity_string_takes_value_def,
                     mdr_summed_out_values_def]*)
      )
   (* Merge the constant part into the constant *)
