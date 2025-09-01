@@ -701,6 +701,17 @@ Proof
   >> gvs[sym_noise_dist_length_n_codes]
 QED
 
+Theorem prob_event_input_bit_takes_value:
+  ∀n m p i b.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    prob (ecc_bsc_prob_space n m p) (event_input_bit_takes_value n m i b) =
+    1 / 2
+Proof
+  rw[]
+  >> gvs[prob_ecc_bsc_prob_space]
+        TODO
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
 (* given that we received a particular message, is equivalent to finding the  *)

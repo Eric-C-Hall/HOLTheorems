@@ -1189,6 +1189,55 @@ Proof
   >> gvs[mdr_summed_out_values_2_def]
 QED
 
+Theorem EXTREAL_PROD_IMAGE_POW:
+  ∀f S (x : extreal).
+    FINITE S ∧
+    (∀s. s ∈ S ⇒ f s = x) ⇒
+    ∏ f S = x pow (CARD S)
+Proof
+  rw[]
+  >> Induct_on ‘S’ using FINITE_INDUCT
+  >> rw[] >> gvs[]
+  >> gvs[EXTREAL_PROD_IMAGE_THM]
+  >> gvs[DELETE_NON_ELEMENT_RWT]
+  >> gvs[extreal_pow]
+QED
+
+Theorem prob_event_input_string_takes_value_decompose:
+  ∀n m p bs.
+    0 ≤ p ∧
+    p ≤ 1 ∧
+    LENGTH bs = n ⇒
+    prob (ecc_bsc_prob_space n m p) (event_input_string_takes_value n m bs) =
+    ∏ (λi.
+         prob (ecc_bsc_prob_space n m p)
+              (event_input_bit_takes_value n m i (EL i bs))
+      ) (count n)
+Proof
+  rw[]
+  >> qmatch_goalsub_abbrev_tac ‘∏ f S’
+  >> qspecl_then [‘f’, ‘S’, ‘1/2’] assume_tac EXTREAL_PROD_IMAGE_POW
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> unabbrev_all_tac >> gvs[]
+  >> REVERSE (rw[])
+  >- gvs[pow_div]
+  >> 
+    
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_PROD_IMAGE_POW]
+  >> conj_tac
+  >> gvs[]
+        
+  >> irule EQ_SYM
+  >> irule EXTREAL_PROD_IMAGE_POW
+           
+           
+  (* Put the goal in an appropriate form to apply induction *)
+  >> sg ‘prob (ecc_bsc_prob_space n m p) (event_input_string_takes_value n m bs)
+        ’
+
+        TODO
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1235,6 +1284,7 @@ Theorem split_mdr_events_prob:
                     ∩ (event_input_bit_takes_value n m i (EL i bs)))
       ) (count n)
 Proof
+  (* Step 1: *)
 QED
 
 (* Possible improvement: can we remove some of these assumptions, especially
