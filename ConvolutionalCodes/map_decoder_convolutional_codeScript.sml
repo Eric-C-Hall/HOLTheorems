@@ -1246,7 +1246,7 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
       enc = encode_recursive_parity_equation_with_systematic (ps, qs) ts;
     in
       0 < p ∧ p < 1 ∧
-      LENGTH ds = mh ∧
+      LENGTH ds = m ∧
       LENGTH ps = LENGTH ts + 1 ∧
       (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
       map_decoder_bitwise enc n m p ds =
@@ -1293,8 +1293,7 @@ Proof
   >- gvs[]
   >- gvs[]
   (* The new intersection of events is an event *)
-  >- (rw[mdr_summed_out_values_def]
-      >> unabbrev_all_tac
+  >- (rw[]
       >> irule EVENTS_INTER >> gvs[]
      )
   >- gvs[]
