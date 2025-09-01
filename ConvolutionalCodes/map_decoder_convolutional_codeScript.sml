@@ -78,7 +78,7 @@ Overload length_n_valid_state_sequences =
 “λn l. {σs : bool list list | LENGTH σs = n ∧ (∀σ. MEM σ σs ⇒ LENGTH σ = l)}”
 
 (* I'm no longer sure that it's better to treat these components separately,
-   because finiteness of the set only holds when both components are present. *)
+v  because finiteness of the set only holds when both components are present. *)
 Theorem length_n_state_sequences_valid_state_sequences_inter:
   ∀n l.
     length_n_valid_state_sequences n l =
@@ -1182,6 +1182,32 @@ QED
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_1)P(σ_1c_1|σ_0b_1)P(b_2)P(σ_2c_2|σ_1b_2)...        *)
 (*                                                                            *)
+(* 1. Inductively prove that P(bs) = P(b_1)P(b_2)...P(b_n)                    *)
+(* 2. Inductively add σs, so we get                                           *)
+(*                     P(bs,σs) = P(bs)P(σ_0)P(σ_1|σ_0b_1)P(σ_2|σ_1b_2)...    *)
+(*    - P(bs,σ_0) = 0 if σ_0 is valid and P(bs) otherwise = P(bs)P(σ_0)       *)
+(*    - P(bs,σ_0^kσ_{k+1}) = P(bs,σ_0^k,σ_k,b_{k+1},σ_{k+1})                  *)
+(*       notice that combining the events σ_k, b_{k+1}, σ_{k+1}, we get the   *)
+(*       empty event if σ_{k+1} is invalid and we get σ_k, b_{k+1} otherwise. *)
+(*                      = P(bs,σ_0^k,σ_k,b_{k+1})Indicator(σ_{k+1} is valid)  *)
+(*                         = P(bs,σ_0^k)P(σ_{k+1}|σ_{k}b_{k+1})               *)
+(*       (this second step can be performed by applying the same observation  *)
+(*        as previously mentioned again, this time to the new probability)    *)
+(* 3. Inductively add cs, so we get                                           *)
+(*                P(bs,σs,cs) = P(bs,σs)P(c_1|σ_0b_1)P(c_2|σ_1b_2)...         *)
+(*    - We can use the same logic as in part 2 during each inductive step,    *)
+(*      because the events σ_k, b_{k+1}, c_{k+1} reduce to σ_k, b_{k+1} if    *)
+(*      c_{k+1} is valid and to 0 otherwise.                                  *)
+(* 4. If desired, we can combine P(c_{i+1}|σ_ib_{i+1}                         *)
+(*      with P(σ_{i+1}|σ_ib_{i+1}), but this may not be helpful and may be a  *)
+(*      waste of time.                                                        *)
+(*                                                                            *)
+(* PREVIOUS ATTEMPT:                                                          *)
+(* 2. Prove that P(bs, σs, cs) = P(bs)Indicator(σs and cs are valid)          *)
+(* 3. Prove that Indicator(σs and cs are valid)                               *)
+(*     = P(σ_0)P(σ_1c_1|σ_0b_1)P(σ_2c_2|σ_1b_2)...                            *)
+(*                                                                            *)
+(* PREVIOUS ATTEMPT:                                                          *)
 (* Inductively apply the following steps:                                     *)
 (*                                                                            *)
 (* Merge P(b_i) into P(σ_0b_1σ_1c_1...b_{i-1}σ_{i-1}c_{i-1})                  *)
@@ -1193,13 +1219,10 @@ QED
 (*   the bs. Then we can prove independence of the b_i with all previous b_k  *)
 (*   in a relatively straightforward way.                                     *)
 (*                                                                            *)
-(*                                                                            *)
 (* Merge P(σ_ic_i|σ_{i-1}b_i) into the result.                                *)
-(* -                                                                          *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
+(* - If σ_i is the incorrect state that would be arrived at after applying    *)
+(*   the bs, then b_i ∩ σ_i ∩ σ_{i-1} = 0, and so both LHS and RHS become     *)
+(*   zero. If it is the correct state, then b_i ∩ σ_i ∩ σ_{i-1} =             *)
 (* -------------------------------------------------------------------------- *)
 Theorem split_mdr_events_prob:
 
