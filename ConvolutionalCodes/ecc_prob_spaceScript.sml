@@ -1530,6 +1530,18 @@ Proof
   >> gvs[sym_noise_prob_space_def, prob_def, sym_noise_dist_def]
 QED
 
+Theorem prob_sym_noise_prob_space_length_n_codes[simp]:
+  ∀m p.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    prob (sym_noise_prob_space m p) (length_n_codes m) = 1
+Proof
+  rw[]
+  >> sg ‘length_n_codes m = p_space (sym_noise_prob_space m p)’
+  >- gvs[sym_noise_prob_space_def, p_space_def]
+  >> pop_assum (fn th => gvs[th])
+  >> gvs[PROB_UNIV]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Things below this line are somewhat outdated, but may be useful at some    *)
 (* point                                                                      *)

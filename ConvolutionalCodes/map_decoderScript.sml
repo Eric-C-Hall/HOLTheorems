@@ -771,8 +771,10 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_cross]
   >> conj_tac
   >- gvs[POW_DEF]
-        >> gvs[sym_noise_prob_space_def, prob_def, length_n_codes_uniform_prob_space_def]
-    
+  >> 
+        
+  >> gvs[sym_noise_prob_space_def, prob_def, length_n_codes_uniform_prob_space_def]
+        
   >> gvs[event_input_bit_takes_value_length_n_codes_ith_eq_codes]
         
   >> gvs[prob_def]
