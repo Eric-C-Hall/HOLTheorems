@@ -805,6 +805,7 @@ QED
 
 Theorem prob_length_n_codes_uniform_prob_space_ith_eq_codes[simp]:
   ∀n i b.
+    i < n ⇒
     prob (length_n_codes_uniform_prob_space n)
          (length_n_codes n ∩ ith_eq_codes i b) = 1 / 2
 Proof
@@ -812,7 +813,12 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_length_n_codes_uniform_prob_space]
   >> conj_tac
   >- gvs[POW_DEF]
-  >> 
+  >> gvs[]
+  >> gvs[extreal_of_num_exp]
+  >> gvs[extreal_of_num_def]
+  >> gvs[extreal_div_eq, extreal_mul_eq, extreal_pow_def]
+  >> gvs[REAL_POW]
+  >> gvs[GSYM EXP]
 QED
 
 (* -------------------------------------------------------------------------- *)
