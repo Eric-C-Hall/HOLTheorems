@@ -1376,6 +1376,11 @@ QED
 (*                                                                            *)
 (* Note that the sum makes this expression similar to sym_noise_dist, but not *)
 (* easily represented in terms of it.                                         *)
+(*                                                                            *)
+(* It may sometimes be easier to instead break up S into the product of two   *)
+(* events, one in the space of bitstring, and one in the space of noises. If  *)
+(* this is possible, then we can calculate the probability by simply          *)
+(* multiplying the probabilities of these components.                         *)
 (* -------------------------------------------------------------------------- *)
 Theorem prob_ecc_bsc_prob_space:
   ∀n m p S.
@@ -1463,6 +1468,34 @@ Proof
      )
   (* Transform to composition *)
   >> gvs[o_DEF]
+QED
+
+Theorem prob_length_n_codes_uniform_prob_space:
+  ∀n e1.
+    e1 ∈ POW (length_n_codes n) ⇒
+    prob (length_n_codes_uniform_prob_space n) e1 =
+    ((1/2) pow n) * &(CARD e1)
+Proof
+  rw[]
+  >> sg ‘FINITE e1’ >- metis_tac[FINITE_IN_POW, length_n_codes_finite]
+  >> qpat_x_assum ‘e1 ∈ POW (length_n_codes n)’ mp_tac
+  >> Induct_on ‘e1’ using FINITE_INDUCT
+  >> conj_tac
+  >- rw[PROB_EMPTY]
+  >> rw[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_insert]
+  >> rpt conj_tac
+  >- gvs[]
+  >- gvs[length_n_codes_uniform_prob_space_def, events_def, POW_DEF]
+  >- gvs[length_n_codes_uniform_prob_space_def, events_def, POW_DEF]
+  >- gvs[]
+  >> gvs[POW_DEF]
+  >> gvs[length_n_codes_uniform_prob_space_def, prob_def,
+         uniform_distribution_def]
+  >> gvs[extreal_of_num_def]
+  >> gvs[extreal_div_eq, extreal_mul_eq, extreal_pow_def, extreal_add_def]
+  >- gvs[REAL_POW]
+  >> gvs[REAL_LDISTRIB]
 QED
 
 (* -------------------------------------------------------------------------- *)
