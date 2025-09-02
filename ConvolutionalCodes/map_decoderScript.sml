@@ -23,6 +23,7 @@ open realTheory;
 open rich_listTheory;
 open sigma_algebraTheory;
 open lebesgueTheory;
+open listTheory;
 open martingaleTheory;
 open measureTheory;
 open topologyTheory;
@@ -760,6 +761,54 @@ Proof
   >> gvs[]
 QED
 
+Theorem length_n_codes_ith_eq_codes_image:
+  ∀n i b.
+    i < n ⇒
+    length_n_codes n ∩ ith_eq_codes i b =
+    IMAGE (λbs. TAKE i bs ++ [b] ++ DROP i bs) (length_n_codes (n - 1))
+Proof
+  rw[]
+  >> rw[EXTENSION]
+  >> EQ_TAC >> gvs[]
+  >- (rw[]
+      >> qexists ‘TAKE i x ++ DROP (i+1) x’
+      (* Maybe this kind of mechanical list working can be automated? *)
+      >> REVERSE conj_tac
+      >- gvs[LENGTH_TAKE]
+      >> gvs[TAKE_APPEND]
+      >> gvs[TAKE_TAKE]
+      >> gvs[DROP_APPEND]
+      >> gvs[DROP_TAKE]
+      >> metis_tac[TAKE_DROP_SUC, ADD1]
+     )
+  >> rw[]
+  >- gvs[LENGTH_APPEND]
+  >> gvs[EL_APPEND]
+QED
+
+Theorem card_length_n_codes_ith_eq_codes[simp]:
+  ∀n i b.
+    CARD (length_n_codes n ∩ ith_eq_codes i b) = 2 ** (n - 1)
+Proof
+  rw[]
+  >> sg ‘length_n_codes ∩ ’
+QED
+
+Theorem prob_length_n_codes_uniform_prob_space_ith_eq_codes[simp]:
+  ∀n i b.
+    prob (length_n_codes_uniform_prob_space n)
+         (length_n_codes n ∩ ith_eq_codes i b) = 1 / 2
+Proof
+  rw[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_length_n_codes_uniform_prob_space]
+  >> conj_tac
+  >- gvs[POW_DEF]
+  >> 
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: move this to ecc_prob_spaceScript                                    *)
+(* -------------------------------------------------------------------------- *)
 Theorem prob_event_input_bit_takes_value:
   ∀n m p i b.
     0 ≤ p ∧ p ≤ 1 ⇒
@@ -771,6 +820,7 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_cross]
   >> conj_tac
   >- gvs[POW_DEF]
+  >> gvs[]
   >> 
         
   >> gvs[sym_noise_prob_space_def, prob_def, length_n_codes_uniform_prob_space_def]

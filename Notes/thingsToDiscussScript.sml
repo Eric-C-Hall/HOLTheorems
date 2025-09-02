@@ -4,6 +4,16 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* How do I automatically prove the following:
+
+         i ≤ LENGTH x
+   ------------------------------------
+        i + (LENGTH x − (i + 1)) = LENGTH x − 1
+        *)
+
+
+(* ------------------------------------------ *)
+
 (* see the simpset fragment map_decoder_SS. Discuss. How do I add my own
    simpset to gvs? *)
 
