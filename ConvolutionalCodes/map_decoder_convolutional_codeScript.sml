@@ -1219,23 +1219,8 @@ Proof
   >> qspecl_then [‘f’, ‘S’, ‘1/2’] assume_tac EXTREAL_PROD_IMAGE_POW
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> unabbrev_all_tac >> gvs[]
-  >> REVERSE (rw[])
-  >- gvs[pow_div]
-  >> 
-    
-  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_PROD_IMAGE_POW]
-  >> conj_tac
-  >> gvs[]
-        
-  >> irule EQ_SYM
-  >> irule EXTREAL_PROD_IMAGE_POW
-           
-           
-  (* Put the goal in an appropriate form to apply induction *)
-  >> sg ‘prob (ecc_bsc_prob_space n m p) (event_input_string_takes_value n m bs)
-        ’
-
-        TODO
+  >> rw[]
+  >> gvs[pow_div]
 QED
 
 (* -------------------------------------------------------------------------- *)
