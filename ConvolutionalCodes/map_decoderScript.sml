@@ -822,11 +822,13 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: move this to ecc_prob_spaceScript                                    *)
+(* TODO: move this to ecc_prob_spaceScript, along with the relevant things it *)
+(* relies on                                                                  *)
 (* -------------------------------------------------------------------------- *)
-Theorem prob_event_input_bit_takes_value:
+Theorem prob_event_input_bit_takes_value[simp]:
   ∀n m p i b.
-    0 ≤ p ∧ p ≤ 1 ⇒
+    0 ≤ p ∧ p ≤ 1 ∧
+    i < n ⇒
     prob (ecc_bsc_prob_space n m p) (event_input_bit_takes_value n m i b) =
     1 / 2
 Proof
@@ -836,18 +838,6 @@ Proof
   >> conj_tac
   >- gvs[POW_DEF]
   >> gvs[]
-  >> 
-        
-  >> gvs[sym_noise_prob_space_def, prob_def, length_n_codes_uniform_prob_space_def]
-        
-  >> gvs[event_input_bit_takes_value_length_n_codes_ith_eq_codes]
-        
-  >> gvs[prob_def]
-  >> gvs[ecc_bsc_prob_space_def]
-
-  >> gvs[prob_ecc_bsc_prob_space]
-  >> gvs[event_input_bit_takes_value_def]
-        TODO
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -951,7 +941,7 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘MAP f1 (COUNT_LIST n) = MAP f2 (COUNT_LIST n)’
   >> gvs[MAP_EQ_f]
   >> rw[Abbr ‘f1’, Abbr ‘f2’]
-  >> gvs[MEM_COUNT_LIST]
+  >> gvs[MEM_COUNT_LIST, Excl "prob_event_input_bit_takes_value"]
   (* The result follows from a lemma *)
   >> irule argmax_bool_bayes
   >> gvs[ecc_bsc_prob_space_is_prob_space,
@@ -1545,7 +1535,7 @@ Proof
          )
       >> gvs[]
 QED
-      *)
+*)
 
 (* -------------------------------------------------------------------------- *)
 (* Since the noise applied to each bit is independent, the conditional        *)
@@ -2154,7 +2144,7 @@ Proof
      case of equality and in the case of strict inequality*)
   >> EQ_TAC
   >- (simp[LE_LT, le_lt]
-          (* In the case where we have less than, use the lemma for the
+      (* In the case where we have less than, use the lemma for the
               less than case *)
       >> rw[]
       >- (disj1_tac
