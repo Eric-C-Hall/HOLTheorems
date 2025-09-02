@@ -1498,6 +1498,38 @@ Proof
   >> gvs[REAL_LDISTRIB]
 QED
 
+Theorem prob_sym_noise_prob_space:
+  ∀m p e1.
+    0 ≤ p ∧ p ≤ 1 ∧
+    e1 ∈ POW (length_n_codes m) ⇒
+    prob (sym_noise_prob_space m p) e1 =
+    ∑ (sym_noise_mass_func p) e1
+Proof
+  rw[]
+  >> ‘FINITE e1’ by metis_tac[FINITE_IN_POW, length_n_codes_finite]
+  >> qpat_x_assum ‘e1 ∈ POW (length_n_codes m)’ mp_tac
+  >> Induct_on ‘e1’ using FINITE_INDUCT
+  >> conj_tac
+  (* Base case *)
+  >- rw[PROB_EMPTY]
+  >> rw[]
+  (* Break down inductive step for prob *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_insert]
+  >> conj_tac
+  >- gvs[sym_noise_prob_space_def, events_def, POW_DEF]
+  (* Break down inductive step for sum *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_INSERT]
+  >> conj_tac
+  >- (gvs[]
+      >> disj2_tac
+      >> rw[]
+      >> gvs[sym_noise_mass_func_not_neginf]
+     )
+  >> gvs[DELETE_NON_ELEMENT_RWT]
+  >> gvs[POW_DEF]
+  >> gvs[sym_noise_prob_space_def, prob_def, sym_noise_dist_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Things below this line are somewhat outdated, but may be useful at some    *)
 (* point                                                                      *)
