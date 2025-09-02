@@ -743,18 +743,21 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem prob_ecc_bsc_prob_space_cross:
   ∀n m p e1 e2.
+    0 ≤ p ∧ p ≤ 1 ∧
     e1 ∈ POW (length_n_codes n) ∧
     e2 ∈ POW (length_n_codes m) ⇒
     prob (ecc_bsc_prob_space n m p) (e1 × e2) =
-    ARB
+    prob (length_n_codes_uniform_prob_space n) e1 *
+    prob (sym_noise_prob_space m p) e2
 Proof
   rw[]
   >> gvs[ecc_bsc_prob_space_def]
-  >> gvs[prob_cross]
-        
-  >> gvs[ecc_bsc_prob_space_def]
-  >> gvs[prob_cross]
-  >> gvs[prob_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_cross]
+  >> conj_tac
+  >- gvs[length_n_codes_uniform_prob_space_def,
+         sym_noise_prob_space_def,
+         events_def]
+  >> gvs[]
 QED
 
 Theorem prob_event_input_bit_takes_value:
