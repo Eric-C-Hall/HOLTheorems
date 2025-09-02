@@ -400,7 +400,7 @@ QED
 (* prob_on_finite_set                                      *)
 (* uniform_distribution_prob_space                         *)
 (* ------------------------------------------------------- *)
-Theorem length_n_codes_uniform_prob_space_is_prob_space:
+Theorem length_n_codes_uniform_prob_space_is_prob_space[simp]:
   ∀n : num.
     prob_space (length_n_codes_uniform_prob_space n)
 Proof
@@ -816,7 +816,7 @@ Proof
   >> gvs[sym_noise_dist_suc]
 QED
 
-Theorem sym_noise_prob_space_is_prob_space:
+Theorem sym_noise_prob_space_is_prob_space[simp]:
   ∀n p.
     0 ≤ p ∧ p ≤ 1 ⇒
     prob_space (sym_noise_prob_space n p)
@@ -1256,11 +1256,13 @@ Proof
   >> qpat_x_assum ‘prod_measure _ _ _ = 0’ mp_tac
   >> DEP_PURE_ONCE_REWRITE_TAC[prod_measure_sing]
   >> gvs[]
-  >> rw[]
+  >> rpt conj_tac
   >- (qspecl_then [‘n’] assume_tac length_n_codes_uniform_prob_space_is_prob_space
-      >> gvs[prob_space_def, length_n_codes_uniform_prob_space_def])
+      >> gvs[prob_space_def, length_n_codes_uniform_prob_space_def,
+             Excl "length_n_codes_uniform_prob_space_is_prob_space"])
   >- (qspecl_then [‘m’, ‘p’] assume_tac sym_noise_prob_space_is_prob_space
-      >> gvs[prob_space_def, sym_noise_prob_space_def, le_lt])
+      >> gvs[prob_space_def, sym_noise_prob_space_def, le_lt,
+             Excl "sym_noise_prob_space_is_prob_space"])
   >- gvs[POW_DEF]
   >- gvs[POW_DEF]
   >- (DEP_PURE_ONCE_REWRITE_TAC[uniform_distribution_nonzero]

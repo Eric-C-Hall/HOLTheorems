@@ -701,6 +701,62 @@ Proof
   >> gvs[sym_noise_dist_length_n_codes]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Express the event where an input bit takes a value in terms of the cross   *)
+(* product of two events: one which says that the input bit takes a given     *)
+(* value, and one which says that the noise is unrestricted by the choice     *)
+(* of input bit                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_bit_takes_value_length_n_codes_ith_eq_codes:
+  ∀n m i b.
+    event_input_bit_takes_value n m i b =
+    (length_n_codes n ∩ ith_eq_codes i b) × (length_n_codes m)
+Proof
+  rw[]
+  >> gvs[event_input_bit_takes_value_def]
+  >> gvs[CROSS_DEF]
+  >> ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we consider the cross of two events in the cross of two probability     *)
+(* spaces, then the probability is the product of the probabilities of the    *)
+(* events.                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_cross:
+  ∀sp1 sp2 e1 e2.
+    prob_space sp1 ∧
+    prob_space sp2 ∧
+    e1 ∈ events sp1 ∧
+    e2 ∈ events sp2 ⇒
+    prob (sp1 × sp2) (e1 × e2) = prob sp1 e1 * prob sp2 e2
+Proof
+  rw[]
+  >> gvs[prob_def, prod_measure_space_def, prob_space_def, events_def]
+  >> gvs[PROD_MEASURE_CROSS]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* It is often useful to apply our probability space to the cross between two *)
+(* events. This allows us to calculate the probability of each of the crossed *)
+(* events separately, which may sometimes be simpler.                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_ecc_bsc_prob_space_cross:
+  ∀n m p e1 e2.
+    e1 ∈ POW (length_n_codes n) ∧
+    e2 ∈ POW (length_n_codes m) ⇒
+    prob (ecc_bsc_prob_space n m p) (e1 × e2) =
+    ARB
+Proof
+  rw[]
+  >> gvs[ecc_bsc_prob_space_def]
+  >> gvs[prob_cross]
+        
+  >> gvs[ecc_bsc_prob_space_def]
+  >> gvs[prob_cross]
+  >> gvs[prob_def]
+QED
+
 Theorem prob_event_input_bit_takes_value:
   ∀n m p i b.
     0 ≤ p ∧ p ≤ 1 ⇒
@@ -708,7 +764,13 @@ Theorem prob_event_input_bit_takes_value:
     1 / 2
 Proof
   rw[]
+  >> gvs[event_input_bit_takes_value_length_n_codes_ith_eq_codes]
+    
+  >> gvs[prob_def]
+  >> gvs[ecc_bsc_prob_space_def]
+
   >> gvs[prob_ecc_bsc_prob_space]
+  >> gvs[event_input_bit_takes_value_def]
         TODO
 QED
 
