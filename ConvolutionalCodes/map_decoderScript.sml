@@ -788,10 +788,19 @@ QED
 
 Theorem card_length_n_codes_ith_eq_codes[simp]:
   ∀n i b.
+    i < n ⇒
     CARD (length_n_codes n ∩ ith_eq_codes i b) = 2 ** (n - 1)
 Proof
   rw[]
-  >> sg ‘length_n_codes ∩ ’
+  >> gvs[length_n_codes_ith_eq_codes_image]
+  >> DEP_PURE_ONCE_REWRITE_TAC[INJ_CARD_IMAGE_EQ]
+  >> DEP_PURE_ONCE_REWRITE_TAC[CARD_IMAGE_INJ]
+  >> conj_tac
+  >- (rw[]
+      >> gvs[APPEND_LENGTH_EQ]
+      >> metis_tac[TAKE_DROP]
+     )
+  >> gvs[]
 QED
 
 Theorem prob_length_n_codes_uniform_prob_space_ith_eq_codes[simp]:
