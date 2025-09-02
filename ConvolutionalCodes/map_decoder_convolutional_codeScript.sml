@@ -1269,7 +1269,27 @@ Theorem split_mdr_events_prob:
                     ∩ (event_input_bit_takes_value n m i (EL i bs)))
       ) (count n)
 Proof
-  (* Step 1: *)
+  (* Step 1: Split P(bs) up *)
+  kall_tac prob_event_input_string_takes_value_decompose
+  (* Step 2: Split σs away from P(bs,σs) *)
+  >> sg ‘prob (ecc_bsc_prob_space n m p)
+         ((event_input_string_takes_value n m bs)
+          ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs))
+         = prob (ecc_bsc_prob_space n m p)
+                (event_input_string_takes_value n m bs) *
+           prob (ecc_bsc_prob_space n m p)
+                (event_state_takes_value n m (ps,qs) ts 0 (EL 0 σs)) *
+           ∏ (λi.
+                cond_prob (ecc_bsc_prob_space n m p)
+                          (event_state_takes_value n m (ps,qs) ts (i+1) (EL (i+1) σs))
+                          ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
+                           ∩ (event_input_bit_takes_value n m i (EL i bs)))
+             ) (count n)
+        ’
+  >- (
+  )
+     (* Step 3: *)
+
 QED
 
 (* Possible improvement: can we remove some of these assumptions, especially
