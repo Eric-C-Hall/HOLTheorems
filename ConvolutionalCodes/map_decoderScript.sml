@@ -134,7 +134,7 @@ Definition event_received_string_starts_with_def:
   event_received_string_starts_with enc n m ds =
   {(bs : bool list, ns : bool list) | LENGTH bs = n ∧
                                       LENGTH ns = m ∧
-                                      TAKE (LENGTH ds) (bxor (enc bs) ns) = ds}
+                                      ds ≼ bxor (enc bs) ns}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -319,13 +319,12 @@ Proof
   rw[EXTENSION, event_input_string_starts_with_def,
      event_received_string_starts_with_def]  
   >> EQ_TAC >> rw[] >> gvs[bxor_length, bxor_inv]
-  >> rfs[TAKE_LENGTH_ID_rwt, bxor_length]
   (* Because bs ≼ bs' and LENGTH bs' = LENGTH bs, we have bs = bs' *)
   >> ‘bs = bs'’ by metis_tac[IS_PREFIX_LENGTH_ANTI]
   >> qpat_x_assum ‘bs ≼ bs'’ kall_tac
   >> qpat_x_assum ‘LENGTH bs' = LENGTH bs’ kall_tac
-  (* Finish proof *)
-  >> gvs[bxor_inv]
+  (* We similarly have ds = bxor (enc bs) ns *)
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI, bxor_length, bxor_inv, MAX_DEF]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1779,29 +1778,29 @@ Proof
              event_sent_string_takes_value_def,
              INTER_DEF]
       >> rw[EXTENSION]
-      >> EQ_TAC >> (rw[] >> (rfs[TAKE_LENGTH_ID_rwt, bxor_length]
-                             >> gvs[bxor_inv]))
+      >> EQ_TAC >> (rw[] >> metis_tac[bxor_inv, IS_PREFIX_LENGTH_ANTI, MAX_DEF,
+                                      bxor_length])
      )
   >> qpat_x_assum ‘Abbrev (e1 = _ ∩ _)’ kall_tac
   >> gvs[Abbr ‘sp’]
   (* Use the expression for a probability in our probability space *)
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space]
   >> rw[]
-                             >- gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF, bxor_length]
-                             (* Move the division to the RHS *)
-                             >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_eq]
-                             >> rw[]
-                             >- (irule lt_div_alt
-                                 >> rw[pow_not_infty]
-                                 >> gvs[pow_pos_lt]
-                                )
-                             >- (gvs[lt_posinf_neq_posinf]
-                                 >> irule (cj 1 div_not_infty_if_not_infty_alt)
-                                 >> gvs[pow_not_infty]
-                                 >> gvs[pow_pos_lt]
-                                )
-                             (* Finish off the proof *)
-    >> gvs[mul_comm]
+  >- gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF, bxor_length]
+  (* Move the division to the RHS *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_eq]
+  >> rw[]
+  >- (irule lt_div_alt
+      >> rw[pow_not_infty]
+      >> gvs[pow_pos_lt]
+     )
+  >- (gvs[lt_posinf_neq_posinf]
+      >> irule (cj 1 div_not_infty_if_not_infty_alt)
+      >> gvs[pow_not_infty]
+      >> gvs[pow_pos_lt]
+     )
+  (* Finish off the proof *)
+  >> gvs[mul_comm]
 QED
 
 (* -------------------------------------------------------------------------- *)
