@@ -119,7 +119,7 @@ Definition event_input_string_starts_with_def:
   event_input_string_starts_with n m bs' =
   {(bs : bool list, ns : bool list) | LENGTH bs = n ∧
                                       LENGTH ns = m ∧
-                                      TAKE (LENGTH bs') bs = bs'}
+                                      bs' ≼ bs }
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -320,7 +320,11 @@ Proof
      event_received_string_starts_with_def]  
   >> EQ_TAC >> rw[] >> gvs[bxor_length, bxor_inv]
   >> rfs[TAKE_LENGTH_ID_rwt, bxor_length]
-  >> gvs[TAKE_LENGTH_ID_rwt]
+  (* Because bs ≼ bs' and LENGTH bs' = LENGTH bs, we have bs = bs' *)
+  >> ‘bs = bs'’ by metis_tac[IS_PREFIX_LENGTH_ANTI]
+  >> qpat_x_assum ‘bs ≼ bs'’ kall_tac
+  >> qpat_x_assum ‘LENGTH bs' = LENGTH bs’ kall_tac
+  (* Finish proof *)
   >> gvs[bxor_inv]
 QED
 
@@ -693,8 +697,8 @@ Proof
       >> metis_tac[length_n_codes_finite, FINITE_SUBSET, FINITE_CROSS]
      )
   >- (gvs[INJ_DEF]
-      >> rw[]
-      >> gvs[TAKE_LENGTH_ID_rwt]
+      >> rw[] >> gvs[]
+      >> metis_tac[IS_PREFIX_LENGTH_ANTI]
      )
   >- (disj1_tac
       >> rw[]
@@ -1138,8 +1142,9 @@ Theorem event_input_string_starts_with_disjoint_eq_length:
              (event_input_string_starts_with n m bs')
 Proof
   rw[DISJOINT_DEF, INTER_DEF, EXTENSION]
-  >> Cases_on ‘x ∈ event_input_string_starts_with n m bs’ >> gvs[]
+  >> CCONTR_TAC >> gvs[]
   >> gvs[event_input_string_starts_with_def]
+  >> metis_tac[IS_PREFIX_EQ_REWRITE]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1148,23 +1153,14 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem event_input_string_starts_with_disjoint[simp]:
   ∀n m bs bs'.
-    TAKE (LENGTH bs') bs ≠ TAKE (LENGTH bs) bs' ⇒
+    ¬(bs ≼ bs') ∧ ¬(bs' ≼ bs) ⇒
     DISJOINT (event_input_string_starts_with n m bs)
              (event_input_string_starts_with n m bs')
 Proof
   rw[DISJOINT_DEF, INTER_DEF, EXTENSION]
   >> CCONTR_TAC
   >> gvs[event_input_string_starts_with_def]
-  >> qpat_x_assum ‘TALE _ bs ≠ TAKE _ bs'’ mp_tac >> gvs[]
-  >> ‘TAKE (LENGTH bs') (TAKE (LENGTH bs) bs'') =
-      TAKE (LENGTH bs) (TAKE (LENGTH bs') bs'')’ suffices_by gvs[]
-  >> rpt (pop_assum kall_tac)
-  >> gvs[TAKE_TAKE_MIN, MIN_DEF]
-  >> rw[TAKE_LENGTH_TOO_LONG]
-  >> gvs[NOT_LESS]
-  >> drule_all (iffLR LE_ANTISYM)
-  >> rpt (pop_assum kall_tac)
-  >> rw[]
+  >> metis_tac[prefixes_is_prefix_total]
 QED
 
 Theorem event_sent_string_takes_value_disjoint[simp]:
@@ -1192,7 +1188,7 @@ Proof
   >> rw[EXTENSION]
   >> EQ_TAC >> rw[]
   >- (qexists ‘bs’ >> gvs[])
-  >> gvs[]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1526,7 +1522,7 @@ Proof
   rw[event_input_string_starts_with_def]
   >> rw[EXTENSION]
   >> EQ_TAC >> rw[]
-  >> metis_tac[TAKE_LENGTH_ID_rwt]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 Theorem event_sent_string_takes_value_empty_output[simp]:
@@ -1659,7 +1655,7 @@ Proof
          event_sent_string_takes_value_def]
   >> rw[EXTENSION]
   >> EQ_TAC >> rw[]
-  >> metis_tac[TAKE_LENGTH_ID_rwt]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 Theorem lt_posinf_neq_posinf[simp]:

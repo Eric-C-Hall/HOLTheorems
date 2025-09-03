@@ -949,6 +949,7 @@ Proof
   >> gvs[event_input_string_starts_with_def,
          event_state_sequence_takes_value_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 (* Possible improvement: update this to better work with change where we now
@@ -971,7 +972,7 @@ Proof
          event_sent_string_takes_value_def]
   >> gvs[encode_recursive_parity_equation_with_systematic_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[]
-  >- gvs[TAKE_LENGTH_ID_rwt]
+  >- metis_tac[IS_PREFIX_LENGTH_ANTI]
   >> (qmatch_asmsub_abbrev_tac ‘l' ++ bs' = l ++ bs’
       (* If we can prove equivalence of the lengths of corresponding components
          being appended together, then the corresponding components are equal and
@@ -997,7 +998,7 @@ Proof
   rw[]
   >> gvs[GSYM event_input_string_starts_with_event_sent_string_takes_value]
   >> gvs[event_input_bit_takes_value_def, event_input_string_starts_with_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 Theorem event_srcc_parity_string_takes_value_is_event[simp]:
@@ -1115,7 +1116,7 @@ Proof
           event_input_string_starts_with_def,
           event_state_sequence_takes_value_def,
           event_srcc_parity_string_takes_value_def]
-      >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
      )
   >> gvs[EXTENSION]
   >> pop_assum (qspec_then ‘(bs, REPLICATE m ARB)’ assume_tac)
@@ -1172,7 +1173,7 @@ Proof
       >> qpat_x_assum ‘(q,r) ∈ _’ mp_tac
       >> rpt (pop_assum kall_tac)
       >> rw[]
-      >> gvs[TAKE_LENGTH_ID_rwt]
+      >> metis_tac[IS_PREFIX_LENGTH_ANTI]
      )
   >> rw[]
   >> gvs[mdr_summed_out_values_def,
@@ -1181,7 +1182,7 @@ Proof
           event_input_string_starts_with_def,
           event_state_sequence_takes_value_def,
           event_srcc_parity_string_takes_value_def]
-  >> gvs[TAKE_LENGTH_ID_rwt]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 (* Possible improvement: remove assumption that LENGTH bs = n (also remove
@@ -1200,7 +1201,7 @@ Proof
          event_input_string_starts_with_def,
          event_state_sequence_takes_value_def,
          event_srcc_parity_string_takes_value_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 Theorem mdr_summed_out_values_2_el_i_x:
