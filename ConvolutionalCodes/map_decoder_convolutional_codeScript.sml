@@ -1409,8 +1409,8 @@ Proof
       >> gvs[SUBSET_DEF]
       >> qx_gen_tac ‘y’
       >> rw[]
-      (* Apply event_received_string_takes_value_def to assumption *)
-      >> pop_assum (fn th => assume_tac (SIMP_RULE bool_ss [event_received_string_takes_value_def] th))
+      (* Apply event_received_string_starts_with_def to assumption *)
+      >> pop_assum (fn th => assume_tac (SIMP_RULE bool_ss [event_received_string_starts_with_def] th))
       >> gs[]
       >> qexists ‘(bs,
                    encode_recursive_parity_equation_state_sequence (ps,qs) ts bs,
