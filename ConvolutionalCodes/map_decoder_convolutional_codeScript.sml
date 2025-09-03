@@ -66,6 +66,8 @@ Definition event_state_sequence_takes_value_def:
   bs, ns | LENGTH bs = n ∧
            LENGTH ns = m ∧
            encode_recursive_parity_equation_state_sequence (ps,qs) ts bs = σs}
+
+                                                                             TODO: change this to a prefix-based definition
 End
 
 Overload length_n_state_sequences = “λn. {σs : bool list list | LENGTH σs = n}”;
@@ -418,7 +420,7 @@ Theorem ev_sent_law_total_prob_states:
     let
       sp = ecc_bsc_prob_space n m p;
       enc = encode_recursive_parity_equation (ps,qs) ts;
-      ev_sent = event_sent_string_takes_value enc n m (enc bs);
+      ev_sent = event_sent_string_starts_with enc n m (enc bs);
     in
       prob sp ev_sent =
       ∑ (λσs. cond_prob sp ev_sent
@@ -902,6 +904,8 @@ Definition event_srcc_parity_bit_takes_value_def:
   {(bs, ns) | LENGTH bs = n ∧
               LENGTH ns = m ∧
               EL i (encode_recursive_parity_equation (ps,qs) ts bs) = c_p}
+
+                                                                         TODO: change this to a prefix-based definition
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -962,17 +966,21 @@ Theorem inter_input_parity_eq_sent:
     cs_p = encode_recursive_parity_equation (ps,qs) ts bs ⇒
     (event_input_string_starts_with n m bs)
     ∩ (event_srcc_parity_string_takes_value (ps,qs) n m ts cs_p) =
-    event_sent_string_takes_value
+    event_sent_string_starts_with
     (encode_recursive_parity_equation_with_systematic (ps,qs) ts) n m
     (encode_recursive_parity_equation_with_systematic (ps,qs) ts bs)
 Proof
   rw[]
   >> gvs[event_input_string_starts_with_def,
          event_srcc_parity_string_takes_value_def,
-         event_sent_string_takes_value_def]
+         event_sent_string_starts_with_def]
   >> gvs[encode_recursive_parity_equation_with_systematic_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[]
-  >- metis_tac[IS_PREFIX_LENGTH_ANTI]
+  >- (gvs[IS_PREFIX_APPENDS]
+     )
+  >>
+  TODO
+(*>- metis_tac[IS_PREFIX_LENGTH_ANTI]
   >> (qmatch_asmsub_abbrev_tac ‘l' ++ bs' = l ++ bs’
       (* If we can prove equivalence of the lengths of corresponding components
          being appended together, then the corresponding components are equal and
@@ -983,6 +991,7 @@ Proof
       >> gvs[]
       >> unabbrev_all_tac >> gvs[encode_recursive_parity_equation_length]
      )
+   *)
 QED
 
 (* Possible improvement: remove requirement that LENGTH bs = n *)
@@ -992,11 +1001,11 @@ Theorem inter_input_bit_sent_eq_sent:
     (∀xs ys. enc xs = enc ys ⇒ xs = ys) ∧
     EL i bs = x ⇒
     (event_input_bit_takes_value n m i x)
-    ∩ (event_sent_string_takes_value enc n m (enc bs)) =
-    event_sent_string_takes_value enc n m (enc bs)
+    ∩ (event_sent_string_starts_with enc n m (enc bs)) =
+    event_sent_string_starts_with enc n m (enc bs)
 Proof
   rw[]
-  >> gvs[GSYM event_input_string_starts_with_event_sent_string_takes_value]
+  >> gvs[GSYM event_input_string_starts_with_event_sent_string_starts_with]
   >> gvs[event_input_bit_takes_value_def, event_input_string_starts_with_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED

@@ -162,11 +162,11 @@ End
 (* m: the length of the encoded message                                       *)
 (* ds: the bitstring which was sent                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition event_sent_string_takes_value_def:
-  event_sent_string_takes_value enc n m cs =
+Definition event_sent_string_starts_with_def:
+  event_sent_string_starts_with enc n m (cs : bool list) =
   {(bs : bool list, ns : bool list) | LENGTH bs = n ∧
                                       LENGTH ns = m ∧
-                                      enc bs = cs}
+                                      cs ≼ enc bs}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -479,14 +479,14 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* event_sent_string_takes_value is a valid event in the probability space it *)
+(* event_sent_string_starts_with is a valid event in the probability space it *)
 (* is designed for                                                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_sent_string_takes_value_is_event[simp]:
+Theorem event_sent_string_starts_with_is_event[simp]:
   ∀enc n m cs p.
-    event_sent_string_takes_value enc n m cs ∈ events (ecc_bsc_prob_space n m p)
+    event_sent_string_starts_with enc n m cs ∈ events (ecc_bsc_prob_space n m p)
 Proof
-  rw[event_sent_string_takes_value_def, events_ecc_bsc_prob_space,
+  rw[event_sent_string_starts_with_def, events_ecc_bsc_prob_space,
      POW_DEF, SUBSET_DEF]
   >> (gvs[])
 QED
@@ -544,26 +544,26 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* event_sent_string_takes_value has a nonzero probability, assuming that     *)
+(* event_sent_string_starts_with has a nonzero probability, assuming that     *)
 (* there is a potential input string which could result in the sent string.   *)
 (*                                                                            *)
-(* See also event_sent_string_takes_value_nonzero_prob_explicit, which is     *)
+(* See also event_sent_string_starts_with_nonzero_prob_explicit, which is     *)
 (* easier to use as a rewrite rule. By contrast, this theorem is easier to    *)
 (* use with irule or DEP_PURE_ONCE_REWRITE_TAC.                               *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_sent_string_takes_value_nonzero_prob:
+Theorem event_sent_string_starts_with_nonzero_prob:
   ∀enc n m cs p.
     0 < p ∧
-    p < 1 ∧
+    p < 1 ∧ 
     LENGTH cs = m ∧
     (∃bs. LENGTH bs = n ∧ enc bs = cs) ⇒
     prob (ecc_bsc_prob_space n m p)
-         (event_sent_string_takes_value enc n m cs) ≠ 0
+         (event_sent_string_starts_with enc n m cs) ≠ 0
 Proof
   rw[]
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
-  >> gvs[event_sent_string_takes_value_is_event]
-  >> gvs[EXTENSION] >> rw[event_sent_string_takes_value_def]
+  >> gvs[event_sent_string_starts_with_is_event]
+  >> gvs[EXTENSION] >> rw[event_sent_string_starts_with_def]
   >> qexists ‘bs’
   >> gvs[]   
   >> qexists ‘REPLICATE (LENGTH (enc bs)) F’
@@ -571,45 +571,45 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* A version of event_sent_string_takes_value_nonzero_prob which explicitly   *)
+(* A version of event_sent_string_starts_with_nonzero_prob which explicitly   *)
 (* requires our string cs to be of the form enc bs. This makes it easier to   *)
 (* use it as a rewrite rule, because we don't rely on being able to solve a   *)
 (* precondition involving an exists statement. However, it also makes it      *)
 (* harder to use with irule or DEP_PURE_ONCE_REWRITE_TAC, because we require  *)
 (* our statement to have the explicit form where cs is represented as enc bs. *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_sent_string_takes_value_nonzero_prob_explicit[simp]:
+Theorem event_sent_string_starts_with_nonzero_prob_explicit[simp]:
   ∀enc n m p bs.
     0 < p ∧
     p < 1 ∧
     LENGTH bs = n ⇒
     prob (ecc_bsc_prob_space n m p)
-         (event_sent_string_takes_value enc n m (enc bs)) ≠ 0
+         (event_sent_string_starts_with enc n m (enc bs)) ≠ 0
 Proof
   rw[]
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
   >> gvs[]
-  >> rw[EXTENSION, event_sent_string_takes_value_def]
+  >> rw[EXTENSION, event_sent_string_starts_with_def]
   >> qexists ‘bs’ >> gvs[]
   >> metis_tac[LENGTH_REPLICATE]
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* If there is no string which could result in the sent string, then          *)
-(* event_sent_string_takes_value has a probability of zero                    *)
+(* If there is no string which could result in a sent string with the given   *)
+(* prefix, then event_sent_string_starts_with has a probability of zero       *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_sent_string_takes_value_zero_prob[simp]:
+Theorem event_sent_string_starts_with_zero_prob[simp]:
   ∀enc n m cs p.
     0 ≤ p ∧
     p ≤ 1 ∧
-    (∀bs. LENGTH bs = n ⇒ enc bs ≠ cs) ⇒
+    (∀bs. LENGTH bs = n ⇒ ¬(cs ≼ enc bs)) ⇒
     prob (ecc_bsc_prob_space n m p)
-         (event_sent_string_takes_value enc n m cs) = 0
+         (event_sent_string_starts_with enc n m cs) = 0
 Proof
   rw[]
   >> qmatch_goalsub_abbrev_tac ‘prob sp S = 0’
   >> sg ‘S = ∅’ >> unabbrev_all_tac
-  >- (gvs[event_sent_string_takes_value_def]
+  >- (gvs[event_sent_string_starts_with_def]
       >> rw[EXTENSION]
      )
   >> metis_tac[ecc_bsc_prob_space_is_prob_space,
@@ -1162,13 +1162,16 @@ Proof
   >> metis_tac[prefixes_is_prefix_total]
 QED
 
-Theorem event_sent_string_takes_value_disjoint[simp]:
+Theorem event_sent_string_starts_with_disjoint[simp]:
   ∀enc n m cs cs'.
-    cs ≠ cs' ⇒
-    DISJOINT (event_sent_string_takes_value enc n m cs) (event_sent_string_takes_value enc n m cs')
+    ¬(cs ≼ cs') ∧ ¬(cs' ≼ cs) ⇒
+    DISJOINT (event_sent_string_starts_with enc n m cs) (event_sent_string_starts_with enc n m cs')
 Proof
-  rw[DISJOINT_DEF, event_sent_string_takes_value_def, INTER_DEF, EXTENSION]
+  rw[DISJOINT_DEF, event_sent_string_starts_with_def, INTER_DEF, EXTENSION]
   >> Cases_on ‘x’ >> gvs[]
+  >> rw[]
+  >> CCONTR_TAC >> gvs[]
+  >> metis_tac[prefixes_is_prefix_total]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1194,18 +1197,20 @@ QED
 (* A version of event_input_string_starts_with_bigunion which works for the   *)
 (* sent string rather than the input string.                                  *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_sent_string_takes_value_bigunion:
+Theorem event_sent_string_starts_with_bigunion:
   ∀enc n m i c.
     (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
     event_sent_bit_takes_value enc n m i c =
-    BIGUNION (IMAGE (event_sent_string_takes_value enc n m)
+    BIGUNION (IMAGE (event_sent_string_starts_with enc n m)
                     (length_n_codes m ∩ {cs | EL i cs ⇔ c}))
 Proof
   rw[]
   >> gvs[BIGUNION_IMAGE]
-  >> gvs[event_sent_bit_takes_value_def, event_sent_string_takes_value_def]
+  >> gvs[event_sent_bit_takes_value_def, event_sent_string_starts_with_def]
   >> rw[EXTENSION]
   >> EQ_TAC >> rw[]
+  >- (qexists ‘enc bs’ >> gvs[])
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1255,7 +1260,7 @@ QED
 (* A version of cond_prob_event_input_string_starts_with_sum which works      *)
 (* on the sent string rather than the input string                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem cond_prob_event_sent_string_takes_value_sum:
+Theorem cond_prob_event_sent_string_starts_with_sum:
   ∀enc n m p i c ds.
     0 < p ∧ p < 1 ∧
     LENGTH ds = m ∧
@@ -1266,7 +1271,7 @@ Theorem cond_prob_event_sent_string_takes_value_sum:
     (event_received_string_starts_with enc n m ds) =
     ∑ (λcs.
          cond_prob (ecc_bsc_prob_space n m p)
-                   (event_sent_string_takes_value enc n m cs)
+                   (event_sent_string_starts_with enc n m cs)
                    (event_received_string_starts_with enc n m ds)
       )
       {cs | LENGTH cs = m ∧ (EL i cs = c)}
@@ -1280,16 +1285,22 @@ Proof
   (* Bring the sum into the cond_prob, turning it into a union *)
   >> DEP_PURE_REWRITE_TAC[GSYM cond_prob_additive_finite]
   (* Satisfy all the necessary requirements *)
-  >> gvs[ecc_bsc_prob_space_is_prob_space,
-         event_received_string_starts_with_is_event,
-         event_sent_string_takes_value_is_event,
-         event_sent_string_takes_value_disjoint,
-         event_received_string_starts_with_nonzero_prob]
+  >> rpt conj_tac
+  >- gvs[]
+  >- gvs[]
+  >- (rw[]
+      >> irule event_sent_string_starts_with_disjoint
+      >> CCONTR_TAC >> gvs[]
+      >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+     )
+  >- gvs[]
+  >- gvs[]
+  >- gvs[]
   (* Now it suffices to prove that the events in the cond_prob are equivalent *)
   >> qmatch_goalsub_abbrev_tac ‘cond_prob sp e1 e3 = cond_prob sp e2 e3’
   >> ‘e1 = e2’ suffices_by gvs[]
   >> unabbrev_all_tac
-  >> gvs[event_sent_string_takes_value_bigunion]
+  >> gvs[event_sent_string_starts_with_bigunion]
   >> metis_tac[]
 QED
 
@@ -1524,13 +1535,13 @@ Proof
   >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
-Theorem event_sent_string_takes_value_empty_output[simp]:
+Theorem event_sent_string_starts_with_empty_output[simp]:
   ∀enc n.
     (∀xs. LENGTH xs = n ⇒ enc xs = []) ⇒
-    event_sent_string_takes_value enc n 0 [] = {(bs, []) | bs | LENGTH bs = n}
+    event_sent_string_starts_with enc n 0 [] = {(bs, []) | bs | LENGTH bs = n}
 Proof
   rw[]
-  >> gvs[event_sent_string_takes_value_def]
+  >> gvs[event_sent_string_starts_with_def]
   >> rw[EXTENSION]
   >> EQ_TAC >> rw[]
 QED
@@ -1633,28 +1644,16 @@ QED
 (* If we have an encoding method which is injective, then the input string    *)
 (* takes a certain value if and only if the sent string takes the value of    *)
 (* the encoding of the input string                                           *)
-(*                                                                            *)
-(* Possible improvement: A change was made from this event referring to when  *)
-(* the input string has a precise value to when the input string starts with  *)
-(* a given prefix. It doesn't seem straightforward to fix this theorem to     *)
-(* reflect this change, so I simply added the additional assumption that      *)
-(* LENGTH bs = n and thus we have the entire string and not a prefix. This    *)
-(* could perhaps be improved to say that the input having a particular prefix *)
-(* corresponds to the sent string having a particular prefix.                 *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_input_string_starts_with_event_sent_string_takes_value:
+Theorem event_input_string_starts_with_event_sent_string_starts_with:
   ∀enc n m bs.
-    LENGTH bs = n ∧
-    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
+    (∀xs ys. enc xs ≼ enc ys ⇔ xs ≼ ys) ⇒
     event_input_string_starts_with n m bs =
-    event_sent_string_takes_value enc n m (enc bs)
+    event_sent_string_starts_with enc n m (enc bs)
 Proof
   rw[]
   >> gvs[event_input_string_starts_with_def,
-         event_sent_string_takes_value_def]
-  >> rw[EXTENSION]
-  >> EQ_TAC >> rw[]
-  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+         event_sent_string_starts_with_def]
 QED
 
 Theorem lt_posinf_neq_posinf[simp]:
@@ -1746,8 +1745,7 @@ Theorem cond_prob_string_given_input_prod:
     0 < p ∧ p < 1 ∧
     LENGTH bs = n ∧
     LENGTH ds = m ∧
-    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
-    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
     cond_prob (ecc_bsc_prob_space n m p)
               (event_received_string_starts_with enc n m ds)
               (event_input_string_starts_with n m bs) =
@@ -1765,7 +1763,7 @@ Proof
      a particular value *)
   >> qspecl_then [‘enc’, ‘n’, ‘m’, ‘bs’]
                  assume_tac
-                 event_input_string_starts_with_event_sent_string_takes_value
+                 event_input_string_starts_with_event_sent_string_starts_with
   >> gvs[] >> pop_assum kall_tac
   (* Give nice names to the probability space and event*)
   >> qmatch_abbrev_tac ‘prob sp e / _ = _’
@@ -1774,10 +1772,9 @@ Proof
      require a specific received string, which fixes the noise. *)
   >> sg ‘e = {(bs, bxor (enc bs) ds)}’
   >- (unabbrev_all_tac
-      >> gvs[event_received_string_starts_with_def,
-             event_sent_string_takes_value_def,
-             INTER_DEF]
       >> rw[EXTENSION]
+      >> gvs[event_received_string_starts_with_def,
+             event_input_string_starts_with_def]
       >> EQ_TAC >> (rw[] >> metis_tac[bxor_inv, IS_PREFIX_LENGTH_ANTI, MAX_DEF,
                                       bxor_length])
      )
@@ -1816,14 +1813,14 @@ Theorem cond_prob_string_given_sent_prod:
     LENGTH ds = m ∧
     (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
     (∃bs. LENGTH bs = n ∧ enc bs = cs) ∧
-    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ⇒
+    (∀xs ys. enc xs ≼ enc ys ⇔ xs ≼ ys) ⇒
     cond_prob (ecc_bsc_prob_space n m p)
               (event_received_string_starts_with enc n m ds)
-              (event_sent_string_takes_value enc n m cs) =
+              (event_sent_string_starts_with enc n m cs) =
     sym_noise_mass_func p (bxor cs ds)
 Proof
   rw[]
-  >> gvs[GSYM event_input_string_starts_with_event_sent_string_takes_value]
+  >> gvs[GSYM event_input_string_starts_with_event_sent_string_starts_with]
   >> metis_tac[cond_prob_string_given_input_prod]
 QED
 
@@ -2450,18 +2447,18 @@ rewrs = map
         )
         ["event_input_bit_takes_value_is_event",
          "event_input_string_starts_with_is_event",
-         "event_sent_string_takes_value_is_event",
+         "event_sent_string_starts_with_is_event",
          "event_received_string_starts_with_is_event",
          "event_input_bit_takes_value_nonzero_prob",
          "event_input_string_starts_with_nonzero_prob",
-         "event_sent_string_takes_value_nonzero_prob",
+         "event_sent_string_starts_with_nonzero_prob",
          "event_received_string_starts_with_nonzero_prob",
-         "event_sent_string_takes_value_nonzero_prob_explicit",
-         "event_sent_string_takes_value_zero_prob",
+         "event_sent_string_starts_with_nonzero_prob_explicit",
+         "event_sent_string_starts_with_zero_prob",
          "event_input_string_and_received_string_start_with_is_event",
          "event_input_string_and_received_string_start_with_nonzero_prob",
          "event_input_string_starts_with_disjoint",
-         "event_sent_string_takes_value_disjoint"
+         "event_sent_string_starts_with_disjoint"
         ]
 };
 
@@ -2534,7 +2531,7 @@ Theorem map_decoder_bitwise_sent_sum_bayes_prod:
       map_decoder_bitstring_prob =
       λcs. (sym_noise_mass_func p (bxor cs ds)) *
            prob (ecc_bsc_prob_space n m p)
-                (event_sent_string_takes_value enc n m cs);
+                (event_sent_string_starts_with enc n m cs);
       map_decoder_bit_prob =
       λi c.
         ∑ map_decoder_bitstring_prob
@@ -2558,7 +2555,7 @@ Proof
                (λc. ∑
                     (λcs. cond_prob
                           (ecc_bsc_prob_space n (LENGTH ds) p)
-                          (event_sent_string_takes_value enc n (LENGTH ds) cs)
+                          (event_sent_string_starts_with enc n (LENGTH ds) cs)
                           (event_received_string_starts_with enc n (LENGTH ds) ds)
                     )
                     {cs | LENGTH cs = LENGTH ds ∧ (EL i cs ⇔ c)}
@@ -2568,7 +2565,7 @@ Proof
       >> qexists ‘1’
       >> gvs[]
       >> rw[FUN_EQ_THM]
-      >> gvs[cond_prob_event_sent_string_takes_value_sum]
+      >> gvs[cond_prob_event_sent_string_starts_with_sum]
      )
   >> qpat_x_assum ‘Abbrev (LHS ⇔ _)’ kall_tac
   >> gvs[]
@@ -2579,9 +2576,9 @@ Proof
                     (λcs. cond_prob
                           (ecc_bsc_prob_space n (LENGTH ds) p)
                           (event_received_string_starts_with enc n (LENGTH ds) ds)
-                          (event_sent_string_takes_value enc n (LENGTH ds) cs) *
+                          (event_sent_string_starts_with enc n (LENGTH ds) cs) *
                           prob (ecc_bsc_prob_space n (LENGTH ds) p)
-                               (event_sent_string_takes_value enc n (LENGTH ds) cs)
+                               (event_sent_string_starts_with enc n (LENGTH ds) cs)
                     )
                     {cs | LENGTH cs = LENGTH ds ∧ (EL i cs ⇔ c) ∧
                           (∃bs. LENGTH bs = n ∧ enc bs = cs)}
@@ -2611,6 +2608,7 @@ Proof
           >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_INTER_ELIM]
           >> unabbrev_all_tac
           >> full_simp_tac ecc3_ss []
+                           TODO
          )
       >> pop_assum  (fn th => PURE_REWRITE_TAC [th])
       (* The two sums are equal because each of the functions is equal on the
@@ -2632,7 +2630,7 @@ Proof
                (λc. ∑
                     (λcs. sym_noise_mass_func p (bxor cs ds) *
                           prob (ecc_bsc_prob_space n (LENGTH ds) p)
-                               (event_sent_string_takes_value enc n (LENGTH ds) cs))
+                               (event_sent_string_starts_with enc n (LENGTH ds) cs))
                     {cs | LENGTH cs = LENGTH ds ∧ (EL i cs ⇔ c) ∧
                           (∃bs. LENGTH bs = n ∧ enc bs = cs)}
                )’
