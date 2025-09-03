@@ -4,6 +4,10 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* If we have the assumption a ≤ b and the assumption b ≤ a (of type num), then
+   if we introduce a = b, this is removed in favour of the other assumptions.
+   Rather, the other assumptions should be removed in favour of a = b *)
+
 (* How do I convert a theorem of the form
    a ⇒ b ⇒ c to the form
    a ∧ b ⇒ c

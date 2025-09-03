@@ -50,8 +50,10 @@ val _ = hide "S";
 (* -------------------------------------------------------------------------- *)
 Definition event_state_takes_value_def:
   event_state_takes_value n m (ps,qs) ts i σ = 
-  {(bs, ns) | LENGTH bs = n ∧ LENGTH ns = m ∧
-              encode_recursive_parity_equation_state (ps,qs) ts bs = σ
+  {(bs : bool list, ns : bool list) | LENGTH bs = n ∧
+                                      LENGTH ns = m ∧
+                                      encode_recursive_parity_equation_state
+                                      (ps,qs) ts bs = σ
   }
 End
 
@@ -60,10 +62,10 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition event_state_sequence_takes_value_def:
   event_state_sequence_takes_value n m (ps,qs) ts σs =
-  {(bs, ns) | bs, ns | LENGTH bs = n ∧
-                       LENGTH ns = m ∧
-                       encode_recursive_parity_equation_state_sequence
-                       (ps,qs) ts bs = σs}
+  {(bs : bool list, ns : bool list) |
+  bs, ns | LENGTH bs = n ∧
+           LENGTH ns = m ∧
+           encode_recursive_parity_equation_state_sequence (ps,qs) ts bs = σs}
 End
 
 Overload length_n_state_sequences = “λn. {σs : bool list list | LENGTH σs = n}”;
@@ -916,7 +918,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition mdr_summed_out_events_def:
   mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p) =
-  (event_input_string_takes_value n m bs)
+  (event_input_string_starts_with n m bs)
   ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs)
   ∩ (event_srcc_parity_string_takes_value (ps,qs) n m ts cs_p)
 End
@@ -931,34 +933,45 @@ End
 (* Should this be a simp rule, or is it wiser to avoid it being a simp rule
    because in some situations one event will be more useful and in other
    situations the other event will be more useful? *)
+(* Possible improvement: update this to better work with change where we now
+   use the event that the input starts with a prefix rather than the event that
+   the input is precisely equal to a value. This involves removing assumption
+   on length of bs. *)
 Theorem inter_input_state_sequence_eq_input:
   ∀n m ps qs ts bs σs.
+    LENGTH bs = n ∧
     σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ⇒
-    (event_input_string_takes_value n m bs)
+    (event_input_string_starts_with n m bs)
     ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs) =
-    event_input_string_takes_value n m bs
+    event_input_string_starts_with n m bs
 Proof
   rw[]
-  >> gvs[event_input_string_takes_value_def,
+  >> gvs[event_input_string_starts_with_def,
          event_state_sequence_takes_value_def]
-  >> ASM_SET_TAC[]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
 QED
 
+(* Possible improvement: update this to better work with change where we now
+   use the event that the input starts with a prefix rather than the event that
+   the input is precisely equal to a value. This involves removing assumption
+   on length of bs. *)
 Theorem inter_input_parity_eq_sent:
   ∀n m ps qs ts bs cs_p.
+    LENGTH bs = n ∧
     cs_p = encode_recursive_parity_equation (ps,qs) ts bs ⇒
-    (event_input_string_takes_value n m bs)
+    (event_input_string_starts_with n m bs)
     ∩ (event_srcc_parity_string_takes_value (ps,qs) n m ts cs_p) =
     event_sent_string_takes_value
     (encode_recursive_parity_equation_with_systematic (ps,qs) ts) n m
     (encode_recursive_parity_equation_with_systematic (ps,qs) ts bs)
 Proof
   rw[]
-  >> gvs[event_input_string_takes_value_def,
+  >> gvs[event_input_string_starts_with_def,
          event_srcc_parity_string_takes_value_def,
          event_sent_string_takes_value_def]
   >> gvs[encode_recursive_parity_equation_with_systematic_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[]
+  >- gvs[TAKE_LENGTH_ID_rwt]
   >> (qmatch_asmsub_abbrev_tac ‘l' ++ bs' = l ++ bs’
       (* If we can prove equivalence of the lengths of corresponding components
          being appended together, then the corresponding components are equal and
@@ -971,8 +984,10 @@ Proof
      )
 QED
 
+(* Possible improvement: remove requirement that LENGTH bs = n *)
 Theorem inter_input_bit_sent_eq_sent:
   ∀enc n m psqs t bs i x.
+    LENGTH bs = n ∧
     (∀xs ys. enc xs = enc ys ⇒ xs = ys) ∧
     EL i bs = x ⇒
     (event_input_bit_takes_value n m i x)
@@ -980,9 +995,9 @@ Theorem inter_input_bit_sent_eq_sent:
     event_sent_string_takes_value enc n m (enc bs)
 Proof
   rw[]
-  >> gvs[GSYM event_input_string_takes_value_event_sent_string_takes_value]
-  >> gvs[event_input_bit_takes_value_def, event_input_string_takes_value_def]
-  >> ASM_SET_TAC[]
+  >> gvs[GSYM event_input_string_starts_with_event_sent_string_takes_value]
+  >> gvs[event_input_bit_takes_value_def, event_input_string_starts_with_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
 QED
 
 Theorem event_srcc_parity_string_takes_value_is_event[simp]:
@@ -1006,7 +1021,7 @@ Proof
   >> namedCases_on ‘bsσscs_p’ ["bs σs cs_p"]
   >> rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
   >> gvs[mdr_summed_out_events_def,
-         event_input_string_takes_value_def]
+         event_input_string_starts_with_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1014,9 +1029,9 @@ QED
 (* the state sequence taking the sequence of values corresponding to that     *)
 (* input.                                                                     *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem event_input_string_takes_value_event_state_sequence_takes_value:
+(*Theorem event_input_string_starts_with_event_state_sequence_takes_value:
   ∀.
-    event_input_string_takes_value n m bs
+    event_input_string_starts_with n m bs
 Proof
 QED*)
 
@@ -1097,10 +1112,10 @@ Proof
   >- (gvs[mdr_summed_out_values_def,
           mdr_summed_out_events_def,
           event_input_bit_takes_value_def,
-          event_input_string_takes_value_def,
+          event_input_string_starts_with_def,
           event_state_sequence_takes_value_def,
           event_srcc_parity_string_takes_value_def]
-      >> ASM_SET_TAC[]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
      )
   >> gvs[EXTENSION]
   >> pop_assum (qspec_then ‘(bs, REPLICATE m ARB)’ assume_tac)
@@ -1109,16 +1124,19 @@ Proof
   >> gvs[mdr_summed_out_values_def,
          mdr_summed_out_events_def,
          event_input_bit_takes_value_def,
-         event_input_string_takes_value_def,
+         event_input_string_starts_with_def,
          event_state_sequence_takes_value_def,
          event_srcc_parity_string_takes_value_def]
 QED
 
+(* Possible improvement: remove assumption that LENGTH bs = n (also remove
+   this assumption from theorems this depends on) *)
 Theorem mdr_summed_out_values_mdr_summed_out_events_empty:
   ∀ps qs n m ts i x bs σs cs_p.
-    (bs, σs, cs_p) ∉ mdr_summed_out_values (ps,qs) n ts i x ⇔
-      (event_input_bit_takes_value n m i x)
-      ∩ (mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p)) = ∅
+    LENGTH bs = n ⇒
+    ((bs, σs, cs_p) ∉ mdr_summed_out_values (ps,qs) n ts i x ⇔
+       (event_input_bit_takes_value n m i x)
+       ∩ (mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p)) = ∅)
 Proof
   (* This proof is a little messy and could be improved *)
   rw[]
@@ -1149,23 +1167,28 @@ Proof
       >> gvs[event_state_sequence_takes_value_def,
              event_srcc_parity_string_takes_value_def]
       >> rpt (pop_assum mp_tac)
-      >> PURE_ONCE_REWRITE_TAC[event_input_string_takes_value_def]
+      >> PURE_ONCE_REWRITE_TAC[event_input_string_starts_with_def]
       >> rpt disch_tac
       >> qpat_x_assum ‘(q,r) ∈ _’ mp_tac
       >> rpt (pop_assum kall_tac)
       >> rw[]
+      >> gvs[TAKE_LENGTH_ID_rwt]
      )
   >> rw[]
   >> gvs[mdr_summed_out_values_def,
          mdr_summed_out_events_def,
           event_input_bit_takes_value_def,
-          event_input_string_takes_value_def,
+          event_input_string_starts_with_def,
           event_state_sequence_takes_value_def,
           event_srcc_parity_string_takes_value_def]
+  >> gvs[TAKE_LENGTH_ID_rwt]
 QED
 
+(* Possible improvement: remove assumption that LENGTH bs = n (also remove
+   this assumption from theorems this depends on) *)
 Theorem event_input_bit_takes_value_mdr_summed_out_events_el_i_x:
   ∀n m i x ps qs ts bs σs cs_p.
+    LENGTH bs = n ∧
     EL i bs = x ⇒
     (event_input_bit_takes_value n m i x)
     ∩ (mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)) =
@@ -1174,10 +1197,10 @@ Proof
   rw[]
   >> gvs[event_input_bit_takes_value_def,
          mdr_summed_out_events_def,
-         event_input_string_takes_value_def,
+         event_input_string_starts_with_def,
          event_state_sequence_takes_value_def,
          event_srcc_parity_string_takes_value_def]
-  >> ASM_SET_TAC[]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
 QED
 
 Theorem mdr_summed_out_values_2_el_i_x:
@@ -1203,12 +1226,12 @@ Proof
   >> gvs[extreal_pow]
 QED
 
-Theorem prob_event_input_string_takes_value_decompose:
+Theorem prob_event_input_string_starts_with_decompose:
   ∀n m p bs.
     0 ≤ p ∧
     p ≤ 1 ∧
     LENGTH bs = n ⇒
-    prob (ecc_bsc_prob_space n m p) (event_input_string_takes_value n m bs) =
+    prob (ecc_bsc_prob_space n m p) (event_input_string_starts_with n m bs) =
     ∏ (λi.
          prob (ecc_bsc_prob_space n m p)
               (event_input_bit_takes_value n m i (EL i bs))
@@ -1270,13 +1293,13 @@ Theorem split_mdr_events_prob:
       ) (count n)
 Proof
   (* Step 1: Split P(bs) up *)
-  kall_tac prob_event_input_string_takes_value_decompose
+  kall_tac prob_event_input_string_starts_with_decompose
   (* Step 2: Split σs away from P(bs,σs) *)
   >> sg ‘prob (ecc_bsc_prob_space n m p)
-         ((event_input_string_takes_value n m bs)
+         ((event_input_string_starts_with n m bs)
           ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs))
          = prob (ecc_bsc_prob_space n m p)
-                (event_input_string_takes_value n m bs) *
+                (event_input_string_starts_with n m bs) *
            prob (ecc_bsc_prob_space n m p)
                 (event_state_takes_value n m (ps,qs) ts 0 (EL 0 σs)) *
            ∏ (λi.
@@ -1370,7 +1393,7 @@ Proof
       >> gvs[]
       (* If bs1 ≠ bs2, then the first part is disjoint *)
       >> Cases_on ‘bs1 ≠ bs2’
-      >- gvs[mdr_summed_out_events_def, event_input_string_takes_value_def]
+      >- gvs[mdr_summed_out_events_def, event_input_string_starts_with_def]
       >> gvs[]
       (* If σs1 ≠ σs2, then the next part is disjoint *)
       >> Cases_on ‘σs1 ≠ σs2’
@@ -1400,7 +1423,7 @@ Proof
           >> metis_tac[mem_encode_recursive_parity_equation_state_sequence_length]
          )
       >> gs[mdr_summed_out_events_def,
-            event_input_string_takes_value_def,
+            event_input_string_starts_with_def,
             event_state_sequence_takes_value_def,
             event_srcc_parity_string_takes_value_def]
      )
@@ -1515,7 +1538,7 @@ Make our sum take all values over the input bitstring, the states,
              >> rpt conj_tac
              >- gvs[event_input_bit_takes_value_def,
                     mdr_summed_out_values_def]
-             >- gvs[event_input_string_takes_value_def,
+             >- gvs[event_input_string_starts_with_def,
                     mdr_summed_out_values_def]
              >- gvs[event_state_sequence_takes_value_def,
                     mdr_summed_out_values_def]

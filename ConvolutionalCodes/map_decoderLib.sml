@@ -37,18 +37,18 @@ rewrs = map
                  )
         )
         ["event_input_bit_takes_value_is_event",
-         "event_input_string_takes_value_is_event",
+         "event_input_string_starts_with_is_event",
          "event_sent_string_takes_value_is_event",
          "event_received_string_takes_value_is_event",
          "event_input_bit_takes_value_nonzero_prob",
-         "event_input_string_takes_value_nonzero_prob",
+         "event_input_string_starts_with_nonzero_prob",
          "event_sent_string_takes_value_nonzero_prob",
          "event_received_string_takes_value_nonzero_prob",
          "event_sent_string_takes_value_nonzero_prob_explicit",
          "event_sent_string_takes_value_zero_prob",
          "event_input_string_and_received_string_take_values_is_event",
          "event_input_string_and_received_string_take_values_nonzero_prob",
-         "event_input_string_takes_value_disjoint",
+         "event_input_string_starts_with_disjoint",
          "event_sent_string_takes_value_disjoint"
         ]
 };
