@@ -60,14 +60,12 @@ End
 (* -------------------------------------------------------------------------- *)
 (* The event in which the states take a particular sequence of values         *)
 (* -------------------------------------------------------------------------- *)
-Definition event_state_sequence_takes_value_def:
-  event_state_sequence_takes_value n m (ps,qs) ts σs =
+Definition event_state_sequence_starts_with_def:
+  event_state_sequence_starts_with n m (ps,qs) ts σs =
   {(bs : bool list, ns : bool list) |
   bs, ns | LENGTH bs = n ∧
            LENGTH ns = m ∧
-           encode_recursive_parity_equation_state_sequence (ps,qs) ts bs = σs}
-
-                                                                             TODO: change this to a prefix-based definition
+           σs ≼ encode_recursive_parity_equation_state_sequence (ps,qs) ts bs}
 End
 
 Overload length_n_state_sequences = “λn. {σs : bool list list | LENGTH σs = n}”;
@@ -223,13 +221,13 @@ QED
 (* The event that the state sequence takes a particular sequence of values is *)
 (* a valid event in the space we are working in                               *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_state_sequence_takes_value_is_event[simp]:
+Theorem event_state_sequence_starts_with_is_event[simp]:
   ∀n m p ps qs ts σs.
-    event_state_sequence_takes_value n m (ps,qs) ts σs ∈
+    event_state_sequence_starts_with n m (ps,qs) ts σs ∈
                                      events (ecc_bsc_prob_space n m p)
 Proof
   rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-  >> (Cases_on ‘x’ >> Cases_on ‘σs’ >> gvs[event_state_sequence_takes_value_def]
+  >> (Cases_on ‘x’ >> Cases_on ‘σs’ >> gvs[event_state_sequence_starts_with_def]
       >> gvs[event_state_takes_value_def]
      )
 QED
@@ -248,30 +246,24 @@ Proof
   >> gvs[]
 QED
 
-Theorem event_state_sequence_takes_value_disjoint[simp]:
+Theorem event_state_sequence_starts_with_disjoint[simp]:
   ∀n m ps qs ts σs1 σs2.
     LENGTH σs1 = LENGTH σs2 ∧
     σs1 ≠ σs2 ⇒
     DISJOINT
-    (event_state_sequence_takes_value n m (ps,qs) ts σs1)
-    (event_state_sequence_takes_value n m (ps,qs) ts σs2)
+    (event_state_sequence_starts_with n m (ps,qs) ts σs1)
+    (event_state_sequence_starts_with n m (ps,qs) ts σs2)
 Proof
-  (* Induct on σs1 and split up σs2 to match *)
-  Induct_on ‘σs1’ >> gvs[]
-  >> rw[]
-  >> Cases_on ‘σs2’ >> gvs[]
-  (* Better naming *)
-  >> qabbrev_tac ‘σ1 = h’ >> qpat_x_assum ‘Abbrev (σ1 = h)’ kall_tac
-  >> qabbrev_tac ‘σ2 = h'’ >> qpat_x_assum ‘Abbrev (σ2 = h')’ kall_tac
-  >> qabbrev_tac ‘σs2 = t’ >> qpat_x_assum ‘Abbrev (σs2 = t)’ kall_tac
-  (* Expand out definition of event and alt definition of disjoint *)
-  >> gvs[event_state_sequence_takes_value_def]
+  (* Rewrite definition of DISJOINT into more usable form *)
+  rw[]
   >> gvs[DISJOINT_ALT]
   >> rw[]
-  (* Split on the case of whether or not x is in the current state that is
-     being inducted over and simplify *)
-  >> Cases_on ‘x ∈ event_state_takes_value n m (ps,qs) ts (LENGTH σs2) σ2’ >> gvs[]
-  >> gvs[event_state_takes_value_def]
+  >> CCONTR_TAC
+  >> gvs[]
+  (* Use definition of event_state_sequence_starts_with *)
+  >> gvs[event_state_sequence_starts_with_def]
+  (* Property follows from basic properties of prefixes *)
+  >> metis_tac[IS_PREFIX_EQ_REWRITE]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -279,10 +271,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 val ecc4_ss = ecc3_ss ++
               rewrites[length_n_state_sequences_finite,
-                       event_state_sequence_takes_value_is_event,
+                       event_state_sequence_starts_with_is_event,
                        event_state_takes_value_is_event,
                        event_state_takes_value_disjoint,
-                       event_state_sequence_takes_value_disjoint
+                       event_state_sequence_starts_with_disjoint
                       ]
 
 (* -------------------------------------------------------------------------- *)
@@ -424,8 +416,8 @@ Theorem ev_sent_law_total_prob_states:
     in
       prob sp ev_sent =
       ∑ (λσs. cond_prob sp ev_sent
-                        (event_state_sequence_takes_value n m (ps, qs) ts σs) *
-              prob sp (event_state_sequence_takes_value n m (ps, qs) ts σs))
+                        (event_state_sequence_starts_with n m (ps, qs) ts σs) *
+              prob sp (event_state_sequence_starts_with n m (ps, qs) ts σs))
         {σs : (bool list) list | LENGTH σs = LENGTH bs ∧
                                  (∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts)}
 Proof
@@ -435,7 +427,7 @@ Proof
   (* We're applying  *)
   >> qspecl_then [‘sp’,
                   ‘ev_sent’,
-                  ‘event_state_sequence_takes_value n m (ps, qs) ts’,
+                  ‘event_state_sequence_starts_with n m (ps, qs) ts’,
                   ‘S ∩ ’] assume_tac TOTAL_PROB_SIGMA
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> REVERSE conj_tac
@@ -875,7 +867,7 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* The event that the parity bits for a systematic recursive convolutional    *)
-(* code (with one parity equation) take a certain value.                      *)
+(* code (with one parity equation) start with a certain prefix.               *)
 (*                                                                            *)
 (* ps: the numerator parity equation                                          *)
 (* qs: the denominator parity equation                                        *)
@@ -888,11 +880,11 @@ QED
 (*       underscore p represents the fact that these are the parity bits and  *)
 (*       not the systematic bits.)                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition event_srcc_parity_string_takes_value_def:
-  event_srcc_parity_string_takes_value (ps,qs) n m ts cs_p =
+Definition event_srcc_parity_string_starts_with_def:
+  event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p =
   {(bs, ns) | LENGTH bs = n ∧
               LENGTH ns = m ∧
-              encode_recursive_parity_equation (ps,qs) ts bs = cs_p}
+              cs_p ≼ encode_recursive_parity_equation (ps,qs) ts bs }
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -904,8 +896,6 @@ Definition event_srcc_parity_bit_takes_value_def:
   {(bs, ns) | LENGTH bs = n ∧
               LENGTH ns = m ∧
               EL i (encode_recursive_parity_equation (ps,qs) ts bs) = c_p}
-
-                                                                         TODO: change this to a prefix-based definition
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -923,8 +913,8 @@ End
 Definition mdr_summed_out_events_def:
   mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p) =
   (event_input_string_starts_with n m bs)
-  ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs)
-  ∩ (event_srcc_parity_string_takes_value (ps,qs) n m ts cs_p)
+  ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs)
+  ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -946,12 +936,12 @@ Theorem inter_input_state_sequence_eq_input:
     LENGTH bs = n ∧
     σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ⇒
     (event_input_string_starts_with n m bs)
-    ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs) =
+    ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs) =
     event_input_string_starts_with n m bs
 Proof
   rw[]
   >> gvs[event_input_string_starts_with_def,
-         event_state_sequence_takes_value_def]
+         event_state_sequence_starts_with_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
   >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
@@ -965,33 +955,33 @@ Theorem inter_input_parity_eq_sent:
     LENGTH bs = n ∧
     cs_p = encode_recursive_parity_equation (ps,qs) ts bs ⇒
     (event_input_string_starts_with n m bs)
-    ∩ (event_srcc_parity_string_takes_value (ps,qs) n m ts cs_p) =
+    ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p) =
     event_sent_string_starts_with
     (encode_recursive_parity_equation_with_systematic (ps,qs) ts) n m
     (encode_recursive_parity_equation_with_systematic (ps,qs) ts bs)
 Proof
   rw[]
   >> gvs[event_input_string_starts_with_def,
-         event_srcc_parity_string_takes_value_def,
+         event_srcc_parity_string_starts_with_def,
          event_sent_string_starts_with_def]
   >> gvs[encode_recursive_parity_equation_with_systematic_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[]
-  >- (gvs[IS_PREFIX_APPENDS]
-     )
-  >>
-  TODO
-(*>- metis_tac[IS_PREFIX_LENGTH_ANTI]
-  >> (qmatch_asmsub_abbrev_tac ‘l' ++ bs' = l ++ bs’
-      (* If we can prove equivalence of the lengths of corresponding components
+  >- metis_tac[IS_PREFIX_LENGTH_ANTI]
+  >> (
+  )
+      >- (
+       )
+         
+(*>> (qmatch_asmsub_abbrev_tac ‘l' ++ bs' = l ++ bs’
+                   (* If we can prove equivalence of the lengths of corresponding components
          being appended together, then the corresponding components are equal and
          we can prove the result easily *)
-      >> qsuff_tac ‘LENGTH l' = LENGTH l ∧ LENGTH bs' = LENGTH bs’
-      >- (rw[] >> gvs[APPEND_LENGTH_EQ])
-      >> ‘LENGTH (l' ++ bs') = LENGTH (l ++ bs)’ by metis_tac[]
-      >> gvs[]
-      >> unabbrev_all_tac >> gvs[encode_recursive_parity_equation_length]
-     )
-   *)
+                   >> qsuff_tac ‘LENGTH l' = LENGTH l ∧ LENGTH bs' = LENGTH bs’
+                   >- (rw[] >> gvs[APPEND_LENGTH_EQ])
+                   >> ‘LENGTH (l' ++ bs') = LENGTH (l ++ bs)’ by metis_tac[]
+                   >> gvs[]
+                   >> unabbrev_all_tac >> gvs[encode_recursive_parity_equation_length]
+     )*)
 QED
 
 (* Possible improvement: remove requirement that LENGTH bs = n *)
@@ -1010,14 +1000,14 @@ Proof
   >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
-Theorem event_srcc_parity_string_takes_value_is_event[simp]:
+Theorem event_srcc_parity_string_starts_with_is_event[simp]:
   ∀psqs n m p ts cs_p.
-    event_srcc_parity_string_takes_value psqs n m ts cs_p
+    event_srcc_parity_string_starts_with psqs n m ts cs_p
                                          ∈ events (ecc_bsc_prob_space n m p)
 Proof
   rw[]
   >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-  >> namedCases_on ‘psqs’ ["ps qs"] >> rw[event_srcc_parity_string_takes_value_def]
+  >> namedCases_on ‘psqs’ ["ps qs"] >> rw[event_srcc_parity_string_starts_with_def]
   >> gvs[]
 QED
 
@@ -1039,7 +1029,7 @@ QED
 (* the state sequence taking the sequence of values corresponding to that     *)
 (* input.                                                                     *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem event_input_string_starts_with_event_state_sequence_takes_value:
+(*Theorem event_input_string_starts_with_event_state_sequence_starts_with:
   ∀.
     event_input_string_starts_with n m bs
 Proof
@@ -1123,8 +1113,8 @@ Proof
           mdr_summed_out_events_def,
           event_input_bit_takes_value_def,
           event_input_string_starts_with_def,
-          event_state_sequence_takes_value_def,
-          event_srcc_parity_string_takes_value_def]
+          event_state_sequence_starts_with_def,
+          event_srcc_parity_string_starts_with_def]
       >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
      )
   >> gvs[EXTENSION]
@@ -1135,8 +1125,8 @@ Proof
          mdr_summed_out_events_def,
          event_input_bit_takes_value_def,
          event_input_string_starts_with_def,
-         event_state_sequence_takes_value_def,
-         event_srcc_parity_string_takes_value_def]
+         event_state_sequence_starts_with_def,
+         event_srcc_parity_string_starts_with_def]
 QED
 
 (* Possible improvement: remove assumption that LENGTH bs = n (also remove
@@ -1174,8 +1164,8 @@ Proof
       >> Cases_on ‘x''’
       >> gvs[event_input_bit_takes_value_def,
              mdr_summed_out_events_def]
-      >> gvs[event_state_sequence_takes_value_def,
-             event_srcc_parity_string_takes_value_def]
+      >> gvs[event_state_sequence_starts_with_def,
+             event_srcc_parity_string_starts_with_def]
       >> rpt (pop_assum mp_tac)
       >> PURE_ONCE_REWRITE_TAC[event_input_string_starts_with_def]
       >> rpt disch_tac
@@ -1189,8 +1179,8 @@ Proof
          mdr_summed_out_events_def,
           event_input_bit_takes_value_def,
           event_input_string_starts_with_def,
-          event_state_sequence_takes_value_def,
-          event_srcc_parity_string_takes_value_def]
+          event_state_sequence_starts_with_def,
+          event_srcc_parity_string_starts_with_def]
   >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
@@ -1208,8 +1198,8 @@ Proof
   >> gvs[event_input_bit_takes_value_def,
          mdr_summed_out_events_def,
          event_input_string_starts_with_def,
-         event_state_sequence_takes_value_def,
-         event_srcc_parity_string_takes_value_def]
+         event_state_sequence_starts_with_def,
+         event_srcc_parity_string_starts_with_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
@@ -1307,7 +1297,7 @@ Proof
   (* Step 2: Split σs away from P(bs,σs) *)
   >> sg ‘prob (ecc_bsc_prob_space n m p)
          ((event_input_string_starts_with n m bs)
-          ∩ (event_state_sequence_takes_value n m (ps,qs) ts σs))
+          ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs))
          = prob (ecc_bsc_prob_space n m p)
                 (event_input_string_starts_with n m bs) *
            prob (ecc_bsc_prob_space n m p)
@@ -1407,10 +1397,10 @@ Proof
       >> gvs[]
       (* If σs1 ≠ σs2, then the next part is disjoint *)
       >> Cases_on ‘σs1 ≠ σs2’
-      >- gvs[mdr_summed_out_events_def, event_state_sequence_takes_value_def]
+      >- gvs[mdr_summed_out_events_def, event_state_sequence_starts_with_def]
       >> gvs[]
       (* We have cs1_p ≠ cs2_p, and so the final part is disjoint *)
-      >> gvs[mdr_summed_out_events_def, event_srcc_parity_string_takes_value_def]
+      >> gvs[mdr_summed_out_events_def, event_srcc_parity_string_starts_with_def]
      )
   (* The numerator of the conditional probability (i.e. the intersection of the
      two events in the conditional probability) is contained in the union of
@@ -1434,8 +1424,8 @@ Proof
          )
       >> gs[mdr_summed_out_events_def,
             event_input_string_starts_with_def,
-            event_state_sequence_takes_value_def,
-            event_srcc_parity_string_takes_value_def]
+            event_state_sequence_starts_with_def,
+            event_srcc_parity_string_starts_with_def]
      )
   (* Name the constant *)
   >> qmatch_abbrev_tac ‘C * ∑ _ _ = _’
@@ -1550,9 +1540,9 @@ Make our sum take all values over the input bitstring, the states,
                     mdr_summed_out_values_def]
              >- gvs[event_input_string_starts_with_def,
                     mdr_summed_out_values_def]
-             >- gvs[event_state_sequence_takes_value_def,
+             >- gvs[event_state_sequence_starts_with_def,
                     mdr_summed_out_values_def]
-             >> gvs[event_srcc_parity_string_takes_value_def,
+             >> gvs[event_srcc_parity_string_starts_with_def,
                     mdr_summed_out_values_def]*)
      )
   (* Merge the constant part into the constant *)

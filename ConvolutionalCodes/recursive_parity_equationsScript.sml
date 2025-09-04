@@ -152,6 +152,11 @@ Definition recursive_parity_equations_to_state_machine_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Note: (ps,qs) is delayfree and thus injective when LAST ps = T, which      *)
+(* simplifies to LAST ps, assuming that ps has the correct length             *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* Encodes a recursive parity equation using zero-tail termination.           *)
 (*                                                                            *)
 (* First, encodes as usual up until the end of the input string.              *)
