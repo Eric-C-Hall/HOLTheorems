@@ -957,6 +957,15 @@ Proof
   >> Cases_on ‘LENGTH bs’ >> gvs[DROP]
 QED
 
+Theorem encode_recursive_parity_equation_prefix_mono:
+  ∀ps qs ts bs bs'.
+    bs ≼ bs' ⇒
+    ((encode_recursive_parity_equation (ps,qs) ts bs)
+     ≼ encode_recursive_parity_equation (ps,qs) ts bs')
+Proof
+  Induct_on ‘bs’ >> Cases_on ‘bs'’ >> rw[encode_recursive_parity_equation_def]
+QED
+
 Theorem encode_recursive_parity_equation_prefix_inj:
   ∀ps qs ts bs bs'.
     LAST ps ∧
@@ -966,13 +975,7 @@ Theorem encode_recursive_parity_equation_prefix_inj:
         ≼ encode_recursive_parity_equation (ps,qs) ts bs'))
 Proof
   Induct_on ‘bs’ >> Cases_on ‘bs'’ >> rw[encode_recursive_parity_equation_def]
-  >> EQ_TAC
-  (* If bs ≼ bs', then enc bs ≼ enc bs' *)
-  >- (rw[]
-      >> qmatch_goalsub_abbrev_tac ‘encode_recursive_parity_equation (ps,qs) ts2 bs’
-      >> ‘LENGTH ps = LENGTH ts2 + 1’ by gvs[Abbr ‘ts2’, LENGTH_TL]
-      >> metis_tac[]
-     )
+  >> EQ_TAC >- gvs[encode_recursive_parity_equation_prefix_mono]
   (* If enc bs ≼ enc bs', then bs ≼ bs' *)
   >> disch_tac >> gvs[]                     
   (* Inductive step: a single element at the front must be equal, because the
@@ -1044,22 +1047,11 @@ Proof
   >> gvs[encode_recursive_parity_equation_with_systematic_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[]
   >- metis_tac[IS_PREFIX_LENGTH_ANTI]
-  >> (irule (iffRL encode_recursive_parity_equation_prefix_inj)
-      >> metis_tac[IS_PREFIX_APPENDS]
-     )
-      >- (
-       )
-         
-(*>> (qmatch_asmsub_abbrev_tac ‘l' ++ bs' = l ++ bs’
-                   (* If we can prove equivalence of the lengths of corresponding components
-         being appended together, then the corresponding components are equal and
-         we can prove the result easily *)
-                   >> qsuff_tac ‘LENGTH l' = LENGTH l ∧ LENGTH bs' = LENGTH bs’
-                   >- (rw[] >> gvs[APPEND_LENGTH_EQ])
-                   >> ‘LENGTH (l' ++ bs') = LENGTH (l ++ bs)’ by metis_tac[]
-                   >> gvs[]
-                   >> unabbrev_all_tac >> gvs[encode_recursive_parity_equation_length]
-     )*)
+  >- metis_tac[IS_PREFIX_APPEND_SECOND,
+               encode_recursive_parity_equation_length]
+  >> metis_tac[IS_PREFIX_APPEND_SECOND,
+               encode_recursive_parity_equation_length,
+               encode_recursive_parity_equation_prefix_mono]
 QED
 
 (* Possible improvement: remove requirement that LENGTH bs = n *)
@@ -1255,10 +1247,10 @@ Proof
   >> rw[]
   >> gvs[mdr_summed_out_values_def,
          mdr_summed_out_events_def,
-          event_input_bit_takes_value_def,
-          event_input_string_starts_with_def,
-          event_state_sequence_starts_with_def,
-          event_srcc_parity_string_starts_with_def]
+         event_input_bit_takes_value_def,
+         event_input_string_starts_with_def,
+         event_state_sequence_starts_with_def,
+         event_srcc_parity_string_starts_with_def]
   >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
