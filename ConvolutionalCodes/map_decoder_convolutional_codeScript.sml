@@ -1003,6 +1003,26 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem IS_PREFIX_APPEND_FIRST:
+  ∀l1 k1 l2 k2.
+    LENGTH l1 ≤ LENGTH l2 ∧
+    l1 ++ k1 ≼ l2 ++ k2 ⇒
+    l1 ≼ l2
+Proof
+  Induct_on ‘l1’ >> Cases_on ‘l2’ >> rw[]
+  >> metis_tac[]
+QED
+
+Theorem IS_PREFIX_APPEND_SECOND:
+  ∀l1 k1 l2 k2.
+    LENGTH l1 = LENGTH l2 ∧
+    l1 ++ k1 ≼ l2 ++ k2 ⇒
+    k1 ≼ k2
+Proof
+  Induct_on ‘l1’ >> Cases_on ‘l2’ >> rw[]
+  >> metis_tac[]
+QED
+
 (* Possible improvement: update this to better work with change where we now
    use the event that the input starts with a prefix rather than the event that
    the input is precisely equal to a value. This involves removing assumption
@@ -1024,8 +1044,9 @@ Proof
   >> gvs[encode_recursive_parity_equation_with_systematic_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[]
   >- metis_tac[IS_PREFIX_LENGTH_ANTI]
-  >> (
-  )
+  >> (irule (iffRL encode_recursive_parity_equation_prefix_inj)
+      >> metis_tac[IS_PREFIX_APPENDS]
+     )
       >- (
        )
          
