@@ -1341,6 +1341,20 @@ Proof
   >> Cases_on ‘bs’ >> gvs[encode_recursive_parity_equation_state_sequence_def]
 QED
         
+Theorem event_state_takes_value_zero:
+  ∀n m ps qs ts σ.
+    event_state_takes_value n m (ps,qs) ts 0 σ =
+    if ts = σ then
+      event_universal n m
+    else
+      ∅
+Proof
+  rw[]
+  >> gvs[event_state_takes_value_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[]
+  >> 
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1416,6 +1430,8 @@ Proof
       >> gvs[HD_SNOC]
       >> Cases_on ‘σs = []’
       >- (gvs[]
+          >> gvs[event_state_sequence_starts_with_sing]
+          >> rw[]
       )
       >> gvs[event_state_sequence_starts_with_def]
       >> rw[]
