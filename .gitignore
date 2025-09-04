@@ -1,4 +1,5 @@
 *.sig
+.hol
 .holobjs
 .HOLMK
 .hollogs

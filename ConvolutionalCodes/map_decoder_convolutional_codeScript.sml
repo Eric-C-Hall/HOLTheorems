@@ -79,6 +79,10 @@ Overload valid_state_sequences = “λn. {σs : bool list list | ∀σ. MEM σ �
 Overload length_n_valid_state_sequences =
 “λn l. {σs : bool list list | LENGTH σs = n ∧ (∀σ. MEM σ σs ⇒ LENGTH σ = l)}”
 
+(* Maybe give this a less generic name to avoid conflicts? *)
+Overload event_universal =
+“λn m. {(bs : bool list, ns : bool list) | LENGTH bs = n ∧ LENGTH ns = m}”
+    
 (* I'm no longer sure that it's better to treat these components separately,
 v  because finiteness of the set only holds when both components are present. *)
 Theorem length_n_state_sequences_valid_state_sequences_inter:
@@ -1318,6 +1322,25 @@ Proof
   >> gvs[pow_div]
 QED
 
+Theorem event_state_sequence_starts_with_sing:
+  ∀n m ps qs ts x.
+    event_state_sequence_starts_with n m (ps,qs) ts [x] =
+    if ts = x then
+      event_universal n m
+    else
+      ∅
+Proof
+  rw[event_state_sequence_starts_with_def]
+  >- (rw[EXTENSION] >> EQ_TAC >> rw[]
+      >> Cases_on ‘encode_recursive_parity_equation_state_sequence (ps,qs) ts bs’
+      >> gvs[]
+      >> Cases_on ‘bs’ >> gvs[encode_recursive_parity_equation_state_sequence_def])
+  >> rw[EXTENSION]
+  >> Cases_on ‘encode_recursive_parity_equation_state_sequence (ps,qs) ts bs’
+  >> gvs[]
+  >> Cases_on ‘bs’ >> gvs[encode_recursive_parity_equation_state_sequence_def]
+QED
+        
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1343,6 +1366,9 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem split_mdr_events_prob:
   ∀n m p ps qs ts bs σs cs_p.
+    LENGTH bs = n ∧
+    LENGTH σs = n + 1 ∧
+    LENGTH cs_p = n ⇒
     prob (ecc_bsc_prob_space n m p)
          (mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)) =
     ∏ (λi.
@@ -1367,7 +1393,9 @@ Proof
   (* Step 1: Split P(bs) up *)
   kall_tac prob_event_input_string_starts_with_decompose
   (* Step 2: Split σs away from P(bs,σs) *)
-  >> sg ‘prob (ecc_bsc_prob_space n m p)
+  >> sg ‘LENGTH bs = n ∧
+         σs ≠ [] ⇒
+         prob (ecc_bsc_prob_space n m p)
          ((event_input_string_starts_with n m bs)
           ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs))
          = prob (ecc_bsc_prob_space n m p)
@@ -1379,10 +1407,19 @@ Proof
                           (event_state_takes_value n m (ps,qs) ts (i+1) (EL (i+1) σs))
                           ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
                            ∩ (event_input_bit_takes_value n m i (EL i bs)))
-             ) (count n)
+             ) (count (LENGTH σs - 1))
         ’
-  >- (
-  )
+  >- (disch_tac
+      >> SPEC_ALL_TAC
+      >> Induct_on ‘σs’ using SNOC_INDUCT >- gvs[]
+      >> rw[]
+      >> gvs[HD_SNOC]
+      >> Cases_on ‘σs = []’
+      >- (gvs[]
+      )
+      >> gvs[event_state_sequence_starts_with_def]
+      >> rw[]
+     )
      (* Step 3: *)
 
 QED
