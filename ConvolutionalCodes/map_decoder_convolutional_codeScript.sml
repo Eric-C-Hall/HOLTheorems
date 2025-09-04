@@ -1017,7 +1017,7 @@ Theorem IS_PREFIX_APPEND_SECOND:
   ∀l1 k1 l2 k2.
     LENGTH l1 = LENGTH l2 ∧
     l1 ++ k1 ≼ l2 ++ k2 ⇒
-    k1 ≼ k2
+    l1 = l2 ∧ k1 ≼ k2
 Proof
   Induct_on ‘l1’ >> Cases_on ‘l2’ >> rw[]
   >> metis_tac[]
