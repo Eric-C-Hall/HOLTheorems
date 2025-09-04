@@ -1058,7 +1058,7 @@ QED
 Theorem inter_input_bit_sent_eq_sent:
   ∀enc n m psqs t bs i x.
     LENGTH bs = n ∧
-    (∀xs ys. enc xs = enc ys ⇒ xs = ys) ∧
+    (∀xs ys. enc xs ≼ enc ys ⇔ xs ≼ ys) ∧
     EL i bs = x ⇒
     (event_input_bit_takes_value n m i x)
     ∩ (event_sent_string_starts_with enc n m (enc bs)) =
