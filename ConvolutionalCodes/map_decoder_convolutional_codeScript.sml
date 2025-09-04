@@ -946,6 +946,63 @@ Proof
   >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
+Theorem DROP_ALL_BUT_ONE:
+  ∀bs.
+    bs ≠ [] ⇒
+    DROP (LENGTH bs - 1) bs = [LAST bs]
+Proof
+  Induct_on ‘bs’ >> rw[]
+  >> rw[LAST_DEF]
+  >> gvs[]
+  >> Cases_on ‘LENGTH bs’ >> gvs[DROP]
+QED
+
+Theorem encode_recursive_parity_equation_prefix_inj:
+  ∀ps qs ts bs bs'.
+    LAST ps ∧
+    LENGTH ps = LENGTH ts + 1 ⇒
+    (bs ≼ bs' ⇔
+       ((encode_recursive_parity_equation (ps,qs) ts bs)
+        ≼ encode_recursive_parity_equation (ps,qs) ts bs'))
+Proof
+  Induct_on ‘bs’ >> Cases_on ‘bs'’ >> rw[encode_recursive_parity_equation_def]
+  >> EQ_TAC
+  (* If bs ≼ bs', then enc bs ≼ enc bs' *)
+  >- (rw[]
+      >> qmatch_goalsub_abbrev_tac ‘encode_recursive_parity_equation (ps,qs) ts2 bs’
+      >> ‘LENGTH ps = LENGTH ts2 + 1’ by gvs[Abbr ‘ts2’, LENGTH_TL]
+      >> metis_tac[]
+     )
+  (* If enc bs ≼ enc bs', then bs ≼ bs' *)
+  >> disch_tac >> gvs[]                     
+  (* Inductive step: a single element at the front must be equal, because the
+     front element of the output is equal, and since the last element of ps is
+     true. This will also be helpful to know when proving that the tail is a
+     prefix, because it means we know we'll be starting from the same state
+     after reading h' as we would be after reading h. *)
+  >> sg ‘h' ⇔ h’
+  >- (gvs[apply_parity_equation_append]
+      >> sg ‘DROP (LENGTH ts) ps = [LAST ps]’
+      >- (gvs[]
+          >> ‘LENGTH ts = LENGTH ps - 1’ by gvs[]
+          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >> Cases_on ‘ps = []’ >- gvs[]
+          >> simp[DROP_ALL_BUT_ONE]
+         )
+      >> pop_assum (fn th => gvs[th])
+      >> gvs[apply_parity_equation_def]
+      >> qmatch_asmsub_abbrev_tac ‘(b1 ⇔ (b2 ⇎ h')) ⇔ (b1 ⇔ (b2 ⇎ h))’
+      (* h' ⇔ h directly follows from (b1 ⇔ (b2 ⇎ h')) ⇔ (b1 ⇔ (b2 ⇎ h))
+         using basic, automatically evaluable logic *)
+      >> metis_tac[]
+     )
+  >> gvs[]
+  (* By the inductive hypothesis, the tail must be a prefix, too *)
+  >> qmatch_asmsub_abbrev_tac ‘encode_recursive_parity_equation (ps,qs) ts2 bs’
+  >> ‘LENGTH ps = LENGTH ts2 + 1’ by gvs[Abbr ‘ts2’, LENGTH_TL]
+  >> metis_tac[]
+QED
+
 (* Possible improvement: update this to better work with change where we now
    use the event that the input starts with a prefix rather than the event that
    the input is precisely equal to a value. This involves removing assumption
