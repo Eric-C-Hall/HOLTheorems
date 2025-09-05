@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -1394,6 +1395,30 @@ Proof
             ecc_bsc_prob_space_is_prob_space]
 QED
 
+Theorem IS_PREFIX_SNOC_L:
+  ∀b bs cs.
+    LENGTH bs + 1 ≤ LENGTH cs ⇒
+    (SNOC b bs ≼ cs ⇔ (bs ≼ cs ∧ EL (LENGTH bs) cs = b))
+Proof
+  Induct_on ‘bs’ >> Cases_on ‘cs’ >> rw[]
+  >- metis_tac[]
+  >> EQ_TAC >> rw[]
+QED
+
+Theorem event_state_sequence_starts_with_snoc:
+  ∀n m ps qs ts σ σs.
+    LENGTH σs ≤ n ⇒
+    event_state_sequence_starts_with n m (ps,qs) ts (SNOC σ σs)
+    = (event_state_sequence_starts_with n m (ps,qs) ts σs)
+      ∩ (event_state_takes_value n m (ps,qs) ts (LENGTH σs) σ)
+Proof
+  rw[]
+  >> gvs[event_state_sequence_starts_with_def,
+         event_state_takes_value_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[IS_PREFIX_SNOC_L,
+                                            el_encode_recursive_parity_equation_state_sequence]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1474,10 +1499,8 @@ Proof
           >> gvs[event_state_sequence_starts_with_sing,
                  event_state_takes_value_zero]
           >> rw[]
-          >> 
          )
-      >> gvs[event_state_sequence_starts_with_def]
-      >> rw[]
+      >> 
      )
      (* Step 3: *)
 
