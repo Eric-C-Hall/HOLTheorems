@@ -4,6 +4,18 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* Would be cool if given:
+
+{(bs,ns) |
+         LENGTH bs = n ∧ LENGTH ns = m ∧
+         encode_recursive_parity_equation_state (ps,qs) ts
+           (TAKE (LENGTH σs) bs) =
+         σ}
+
+         we could do a transformation on the final conjunct which requires
+         some of the previous conjuncts as a precondition.
+ *)
+
 (* If we have the assumption a ≤ b and the assumption b ≤ a (of type num), then
    if we introduce a = b, this is removed in favour of the other assumptions.
    Rather, the other assumptions should be removed in favour of a = b *)

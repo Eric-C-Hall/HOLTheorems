@@ -315,10 +315,14 @@ QED
 (* A theorem to help prove the correctness of                                 *)
 (* encode_recursive_parity_equation_state_sequence by comparing it to         *)
 (* encode_recursive_parity_equation_state                                     *)
+(*                                                                            *)
+(* Possible improvement: perhaps this is an indication that we don't need the *)
+(* version with a single state, because we can just take the appropriate      *)
+(* element from the state sequence?                                           *)
 (* -------------------------------------------------------------------------- *)
 Theorem el_encode_recursive_parity_equation_state_sequence:
   ∀ps qs ts bs i.
-    i < LENGTH bs ⇒
+    i ≤ LENGTH bs ⇒
     EL i (encode_recursive_parity_equation_state_sequence (ps,qs) ts bs) =
     encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs)
 Proof
