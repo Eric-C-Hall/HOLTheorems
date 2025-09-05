@@ -1,40 +1,10 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-open HolKernel Parse boolLib bossLib;
+Theory map_decoder_convolutional_code
 
-val _ = new_theory "map_decoder_convolutional_code";
+Ancestors ecc_prob_space argmin_extreal map_decoder parity_equations recursive_parity_equations useful_theorems arithmetic bitstring extreal list pred_set probability real rich_list sigma_algebra martingale measure topology
 
-(* My theories *)
-open ecc_prob_spaceTheory;
-open argmin_extrealTheory;
-open map_decoderTheory;
-open parity_equationsTheory;
-open recursive_parity_equationsTheory;
-open useful_theoremsTheory;
-
-(* My libraries *)
-open donotexpandLib;
-open map_decoderLib;
-
-(* Standard theories *)
-open arithmeticTheory;
-open bitstringTheory;
-open extrealTheory;
-open listTheory;
-open pred_setTheory;
-open probabilityTheory;
-open realTheory;
-open rich_listTheory;
-open sigma_algebraTheory;
-open martingaleTheory;
-open measureTheory;
-open topologyTheory;
-
-(* Standard libraries *)
-open realLib;
-open dep_rewrite;
-open ConseqConv;
+Libs donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
 val _ = hide "S";
 
@@ -1902,6 +1872,4 @@ Make our sum take all values over the input bitstring, the states,
       >> 
      )
 QED
-
-val _ = export_theory();
 
