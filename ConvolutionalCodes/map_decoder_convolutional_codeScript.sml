@@ -1419,6 +1419,23 @@ Proof
                                             el_encode_recursive_parity_equation_state_sequence]
 QED
 
+Theorem event_input_string_starts_with_inter_event_input_bit_takes_value[simp]:
+  ∀n m bs i.
+    i < LENGTH bs ⇒
+    (event_input_string_starts_with n m bs)
+    ∩ (event_input_bit_takes_value n m i (EL i bs)) =
+    event_input_string_starts_with n m bs
+Proof
+  rw[event_input_string_starts_with_def,
+     event_input_bit_takes_value_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[]
+  >> irule EQ_SYM
+  >> irule is_prefix_el
+  >> gvs[]
+  >> ‘LENGTH bs ≤ LENGTH bs'’ by metis_tac[IS_PREFIX_LENGTH]
+  >> decide_tac
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1474,7 +1491,8 @@ Proof
   (* Step 2: Split σs away from P(bs,σs) *)
   >> sg ‘0 ≤ p ∧ p ≤ 1 ∧
          LENGTH bs = n ∧
-         σs ≠ [] ⇒
+         σs ≠ [] ∧
+         LENGTH σs ≤ n + 1 ⇒
          prob (ecc_bsc_prob_space n m p)
               ((event_input_string_starts_with n m bs)
                ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs))
@@ -1491,16 +1509,36 @@ Proof
         ’
   >- (strip_tac
       >> SPEC_ALL_TAC
-      >> Induct_on ‘σs’ using SNOC_INDUCT >- gvs[]
+      >> Induct_on ‘σs’ using SNOC_INDUCT >- gvs[] (* Base case: σs = [] *)
       >> rw[]
       >> gvs[HD_SNOC]
-      >> Cases_on ‘σs = []’
+      >> Cases_on ‘σs = []’ (* Second base case: σs = σ::[] *)
       >- (gvs[]
           >> gvs[event_state_sequence_starts_with_sing,
                  event_state_takes_value_zero]
           >> rw[]
          )
-      >> 
+      (* Inductive step *)
+      (* Break down SNOC *)
+      >> gvs[event_state_sequence_starts_with_snoc]
+      (* Better names *)
+      >> qmatch_goalsub_abbrev_tac ‘prob sp (e1 ∩ (e2 ∩ e3)) = RHS’
+      (* Introduce events which subsume e3 *)
+      >> qabbrev_tac ‘e4 = event_input_bit_takes_value
+                           (LENGTH bs) m (LENGTH σs - 1) (EL (LENGTH σs - 1) bs)’
+      >> qabbrev_tac ‘e5 = event_state_takes_value
+                           (LENGTH bs) m (ps,qs) ts (LENGTH σs - 1)
+                           (EL (LENGTH σs - 1) σs)’
+      >> sg ‘e1 ∩ (e2 ∩ e3) = e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))’
+      >- (‘e1 ∩ (e2 ∩ e3) = (e1 ∩ e4) ∩ ((e2 ∩ e5) ∩ e3)’ suffices_by ASM_SET_TAC[]
+          >> ‘e1 = e1 ∩ e4 ∧ e2 = e2 ∩ e5’ suffices_by metis_tac[]
+          >> conj_tac
+          >- (unabbrev_all_tac
+             )
+         )
+      (* Subsume e3 *)
+      >>
+      (* Remove events introduced to subsume e3 *)
      )
      (* Step 3: *)
 
@@ -1646,7 +1684,7 @@ Make our sum take all values over the input bitstring, the states,
     First apply EXTREAL_SUM_IMAGE_IN_IF to change our term to the appropriate
     term, then apply EXTREAL_SUM_IMAGE_INTER_ELIM in order to expand the set we
     are summing over
-   *)
+             *)
   (*>> qmatch_goalsub_abbrev_tac ‘_ = RHS’
       >> DEP_PURE_ONCE_REWRITE_TAC [EXTREAL_SUM_IMAGE_IN_IF]
       >> simp[Abbr ‘RHS’]
@@ -1708,7 +1746,7 @@ Make our sum take all values over the input bitstring, the states,
      argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
 .
      That is, we apply Bayes' rule here
-   *)
+             *)
   >> DEP_PURE_ONCE_REWRITE_TAC[BAYES_RULE_GENERALIZED]
   >> conj_tac
   >- (rpt conj_tac
@@ -1773,7 +1811,7 @@ Make our sum take all values over the input bitstring, the states,
      correspond to (bs, σs, cs_p) and also have the ith element of the input
      to be x, but when the values being summed over are invalid, we precisely
      know that at least one of these things is not the case.
-   *)
+             *)
   >> sg ‘¬b ⇒ val2 = 0’
   >- (rw[]
       >> unabbrev_all_tac
@@ -1791,7 +1829,7 @@ Make our sum take all values over the input bitstring, the states,
 .
      That is, we split val1 up into a product of each individual received value
      given the corresponding sent value
-    *)
+             *)
   >> sg ‘b ⇒ val1 = TODO1’
   >- (unabbrev_all_tac
       >> rw[]
@@ -1828,7 +1866,7 @@ Make our sum take all values over the input bitstring, the states,
 .
      Next step: split val2 up into p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)      
                 p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...
-   *)
+             *)
   >> sg ‘val2 = ARB’
   >- (unabbrev_all_tac
       >> gvs[event_input_bit_takes_value_mdr_summed_out_events_el_i_x]
