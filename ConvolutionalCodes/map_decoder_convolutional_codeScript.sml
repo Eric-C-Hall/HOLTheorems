@@ -1386,11 +1386,12 @@ QED
 
 Theorem prob_ecc_bsc_prob_space_event_universal[simp]:
   ∀n m p.
+    0 ≤ p ∧ p ≤ 1 ⇒
     prob (ecc_bsc_prob_space n m p) (event_universal n m) = 1
 Proof
-  rw[]
-  >> gvs[ecc_bsc_prob_space_def]
-  >> PROB_UNIV
+  metis_tac[PROB_UNIV,
+            p_space_ecc_bsc_prob_space_event_universal,
+            ecc_bsc_prob_space_is_prob_space]
 QED
 
 (* -------------------------------------------------------------------------- *)
