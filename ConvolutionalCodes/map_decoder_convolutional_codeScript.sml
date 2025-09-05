@@ -1436,6 +1436,25 @@ Proof
   >> decide_tac
 QED
 
+Theorem event_state_sequence_starts_with_inter_event_state_takes_value[simp]:
+  ∀n m ps qs ts σs i.
+    i < LENGTH σs ⇒
+    (event_state_sequence_starts_with n m (ps,qs) ts σs)
+    ∩ (event_state_takes_value n m (ps,qs) ts i (EL i σs)) =
+    event_state_sequence_starts_with n m (ps,qs) ts σs
+Proof
+  rw[event_state_sequence_starts_with_def,
+     event_state_takes_value_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[]
+  >> qmatch_asmsub_abbrev_tac ‘σs ≼ σs'’
+  >> ‘LENGTH σs ≤ LENGTH σs'’ by metis_tac[IS_PREFIX_LENGTH]
+  >> gvs[Abbr ‘σs'’]
+  >> gvs[GSYM el_encode_recursive_parity_equation_state_sequence]
+  >> irule EQ_SYM
+  >> irule is_prefix_el
+  >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1521,6 +1540,7 @@ Proof
       (* Inductive step *)
       (* Break down SNOC *)
       >> gvs[event_state_sequence_starts_with_snoc]
+      >> gvs[ADD1]
       (* Better names *)
       >> qmatch_goalsub_abbrev_tac ‘prob sp (e1 ∩ (e2 ∩ e3)) = RHS’
       (* Introduce events which subsume e3 *)
@@ -1534,6 +1554,9 @@ Proof
           >> ‘e1 = e1 ∩ e4 ∧ e2 = e2 ∩ e5’ suffices_by metis_tac[]
           >> conj_tac
           >- (unabbrev_all_tac
+              >> DEP_PURE_ONCE_REWRITE_TAC[event_input_string_starts_with_inter_event_input_bit_takes_value]
+              >> gvs[]
+              >> Cases_on ‘bs’ >> gvs[]
              )
          )
       (* Subsume e3 *)

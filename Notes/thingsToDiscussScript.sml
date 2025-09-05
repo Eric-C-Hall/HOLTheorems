@@ -4,6 +4,8 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
+(* When does decide_tac work? I've very rarely found it helpful *)
+
 (* Would be cool if given:
 
 {(bs,ns) |
