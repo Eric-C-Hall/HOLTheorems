@@ -1558,10 +1558,16 @@ Proof
               >> gvs[]
               >> Cases_on ‘bs’ >> gvs[]
              )
+          >> unabbrev_all_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[event_state_sequence_starts_with_inter_event_state_takes_value]
+          >> gvs[]
+          >> Cases_on ‘σs’ >> gvs[]
          )
-      (* Subsume e3 *)
-      >>
-      (* Remove events introduced to subsume e3 *)
+      >> pop_assum (fn th => gvs[th])
+      (* Subsume e3, and introduce a factor to handle the case in which e3
+         is being taken with regards to an invalid state *)
+      >> sg ‘prob sp (e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))) = prob sp (e1 ∩ (e2 ∩ (e4 ∩ e5))) * prob sp ’
+            (* Remove events introduced to subsume e3 *)
      )
      (* Step 3: *)
 
