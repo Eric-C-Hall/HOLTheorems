@@ -1364,7 +1364,35 @@ Proof
       >> last_x_assum drule
       >> rw[])
 QED
-                               
+
+(* -------------------------------------------------------------------------- *)
+(* Perhaps I should just write event_universal n m in terms of                *)
+(* p_space ecc_bsc_prob_space n m p? But maybe the other interpretation is    *)
+(* more convenient sometimes?                                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem p_space_ecc_bsc_prob_space_event_universal:
+  ∀n m p.
+    event_universal n m = p_space (ecc_bsc_prob_space n m p)
+Proof
+  rw[]
+  >> gvs[p_space_def]
+  >> gvs[ecc_bsc_prob_space_def,
+         prod_measure_space_def,
+         length_n_codes_uniform_prob_space_def,
+         sym_noise_prob_space_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[]
+  >> Cases_on ‘x’ >> gvs[]
+QED
+
+Theorem prob_ecc_bsc_prob_space_event_universal[simp]:
+  ∀n m p.
+    prob (ecc_bsc_prob_space n m p) (event_universal n m) = 1
+Proof
+  rw[]
+  >> gvs[ecc_bsc_prob_space_def]
+  >> PROB_UNIV
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1390,6 +1418,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem split_mdr_events_prob:
   ∀n m p ps qs ts bs σs cs_p.
+    0 ≤ p ∧ p ≤ 1 ∧
     LENGTH bs = n ∧
     LENGTH σs = n + 1 ∧
     LENGTH cs_p = n ⇒
@@ -1417,11 +1446,12 @@ Proof
   (* Step 1: Split P(bs) up *)
   kall_tac prob_event_input_string_starts_with_decompose
   (* Step 2: Split σs away from P(bs,σs) *)
-  >> sg ‘LENGTH bs = n ∧
+  >> sg ‘0 ≤ p ∧ p ≤ 1 ∧
+         LENGTH bs = n ∧
          σs ≠ [] ⇒
          prob (ecc_bsc_prob_space n m p)
-         ((event_input_string_starts_with n m bs)
-          ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs))
+              ((event_input_string_starts_with n m bs)
+               ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs))
          = prob (ecc_bsc_prob_space n m p)
                 (event_input_string_starts_with n m bs) *
            prob (ecc_bsc_prob_space n m p)
@@ -1433,15 +1463,17 @@ Proof
                            ∩ (event_input_bit_takes_value n m i (EL i bs)))
              ) (count (LENGTH σs - 1))
         ’
-  >- (disch_tac
+  >- (strip_tac
       >> SPEC_ALL_TAC
       >> Induct_on ‘σs’ using SNOC_INDUCT >- gvs[]
       >> rw[]
       >> gvs[HD_SNOC]
       >> Cases_on ‘σs = []’
       >- (gvs[]
-          >> gvs[event_state_sequence_starts_with_sing]
+          >> gvs[event_state_sequence_starts_with_sing,
+                 event_state_takes_value_zero]
           >> rw[]
+          >> 
          )
       >> gvs[event_state_sequence_starts_with_def]
       >> rw[]
