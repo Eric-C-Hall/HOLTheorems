@@ -53,7 +53,7 @@ Definition event_state_takes_value_def:
   {(bs : bool list, ns : bool list) | LENGTH bs = n ∧
                                       LENGTH ns = m ∧
                                       encode_recursive_parity_equation_state
-                                      (ps,qs) ts bs = σ
+                                      (ps,qs) ts (TAKE i bs) = σ
   }
 End
 
@@ -1340,7 +1340,7 @@ Proof
   >> gvs[]
   >> Cases_on ‘bs’ >> gvs[encode_recursive_parity_equation_state_sequence_def]
 QED
-        
+
 Theorem event_state_takes_value_zero:
   ∀n m ps qs ts σ.
     event_state_takes_value n m (ps,qs) ts 0 σ =
@@ -1349,12 +1349,22 @@ Theorem event_state_takes_value_zero:
     else
       ∅
 Proof
-  rw[]
-  >> gvs[event_state_takes_value_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[]
-  >> 
+  rw[event_state_takes_value_def]
 QED
 
+Theorem event_input_string_starts_with_event_universal[simp]:
+  ∀n m p E.
+    E ∈ events (ecc_bsc_prob_space n m p)
+    ⇒ E ∩ event_universal n m = E ∧ event_universal n m ∩ E = E
+Proof
+  rw[]
+  >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[]
+  >> (Cases_on ‘x’ >> gvs[]
+      >> last_x_assum drule
+      >> rw[])
+QED
+                               
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1432,7 +1442,7 @@ Proof
       >- (gvs[]
           >> gvs[event_state_sequence_starts_with_sing]
           >> rw[]
-      )
+         )
       >> gvs[event_state_sequence_starts_with_def]
       >> rw[]
      )
