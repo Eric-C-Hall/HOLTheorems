@@ -1579,7 +1579,8 @@ Proof
       >> qabbrev_tac ‘e5 = event_state_takes_value
                            (LENGTH bs) m (ps,qs) ts (LENGTH σs - 1)
                            (EL (LENGTH σs - 1) σs)’
-      >> sg ‘e1 ∩ (e2 ∩ e3) = e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))’
+      >> Q.SUBGOAL_THEN ‘e1 ∩ (e2 ∩ e3) = e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))’
+          (fn th => gvs[th])
       >- (‘e1 ∩ (e2 ∩ e3) = (e1 ∩ e4) ∩ ((e2 ∩ e5) ∩ e3)’ suffices_by ASM_SET_TAC[]
           >> ‘e1 = e1 ∩ e4 ∧ e2 = e2 ∩ e5’ suffices_by metis_tac[]
           >> conj_tac
@@ -1593,10 +1594,10 @@ Proof
           >> gvs[]
           >> Cases_on ‘σs’ >> gvs[]
          )
-      >> pop_assum (fn th => gvs[th])
       (* Subsume e3, and introduce a factor to handle the case in which e3
          is being taken with regards to an invalid state *)
-      >> sg ‘prob sp (e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))) = prob sp (e1 ∩ (e2 ∩ (e4 ∩ e5))) * cond_prob sp e3 (e5 ∩ e4)’
+      >> Q.SUBGOAL_THEN ‘prob sp (e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))) = prob sp (e1 ∩ (e2 ∩ (e4 ∩ e5))) * cond_prob sp e3 (e5 ∩ e4)’
+          (fn th => PURE_REWRITE_TAC[th])
       >- (‘e3 ∩ e4 ∩ e5 = e5 ∩ e4 ∩ e3’ by gvs[AC INTER_COMM INTER_ASSOC]
           >> pop_assum (fn th => PURE_REWRITE_TAC[th])
           >> gvs[Abbr ‘e3’, Abbr ‘e4’, Abbr ‘e5’]
@@ -1614,10 +1615,9 @@ Proof
           gvs[event_state_input_step]
              
          )
-      >> pop_assum (fn th => PURE_REWRITE_TAC[th])
       (* Remove events which were introduced to subsume e3 (they are, in
-     turn, subsumed into e1 and e2) *)
-      >> sg ‘e1 ∩ (e2 ∩ (e4 ∩ e5)) = e1 ∩ e2’
+         turn, subsumed into e1 and e2) *)
+      >> Q.SUBGOAL_THEN ‘e1 ∩ (e2 ∩ (e4 ∩ e5)) = e1 ∩ e2’ (fn th => gvs[th])
       >- (‘e1 ∩ (e2 ∩ (e4 ∩ e5)) = (e1 ∩ e4) ∩ (e2 ∩ e5)’ by gvs[AC INTER_COMM INTER_ASSOC]
           >> pop_assum (fn th => PURE_REWRITE_TAC[th])
           >> ‘e1 = e1 ∩ e4 ∧ e2 = e2 ∩ e5’ suffices_by metis_tac[]
@@ -1634,7 +1634,6 @@ Proof
           >> gvs[]
           >> Cases_on ‘σs’ >> gvs[]
          )
-      >> pop_assum (fn th => gvs[th])
       (* Apply the inductive hypothesis and move the new term into the product
          of terms, finishing the proof*)
       >> unabbrev_all_tac
@@ -1644,9 +1643,17 @@ Proof
       >> unabbrev_all_tac
       >> qmatch_goalsub_abbrev_tac ‘∏ f1 S1 * step = ∏ f2 S2’
       (* Combine step into ∏ f1 S1 *)
-      >> sg ‘∏ f1 S1 * step = ∏ f1 S2’
+      >> Q.SUBGOAL_THEN ‘∏ f1 S1 * step = ∏ f1 S2’ (fn th => gvs[th])
       >- (unabbrev_all_tac
-          >> 
+          >> ‘count (LENGTH σs) = (LENGTH σs - 1) INSERT count (LENGTH σs - 1)’
+          >- (‘LENGTH σs = (LENGTH σs - 1) + 1’ by (Cases_on ‘σs’ >> gvs[])
+              >> metis_tac[count_add1]
+             )
+          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >> DEP_PURE_ONCE_REWRITE_TAC[PURE_REWRITE_RULE [AND_IMP_INTRO] PROD_IMAGE_INSERT ]
+          >> DEP_PURE_ONCE_REWRITE_TAC[PROD_IMAGE_INSERT] IMP_CONJ_THM
+          >> qmatch_goalsub_abbrev_tac ‘∏ foo (erk INSERT soz)’
+                                       PROD_IMAGE_THM
          )
      )
   (* Step 3: Split cs away from P(bs,σs,cs) *)
