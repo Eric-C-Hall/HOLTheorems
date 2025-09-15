@@ -1425,6 +1425,66 @@ Proof
   >> gvs[]
 QED
 
+Theorem encode_recursive_parity_equation_state_encode_recursive_parity_equation_state:
+  ∀ps qs ts bs1 bs2.
+    encode_recursive_parity_equation_state
+    (ps,qs)
+    (encode_recursive_parity_equation_state (ps,qs) ts bs1)
+    bs2 =
+    encode_recursive_parity_equation_state (ps,qs) ts (bs1 ++ bs2)
+Proof
+  Induct_on ‘bs1’ >> rw[]
+  >> gvs[encode_recursive_parity_equation_state_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we have the event that a state takes a certain value, and also we have  *)
+(* a certain input, and also the next state takes a certain value, then if    *)
+(* the next state follows from the previous state, we can absorb the third    *)
+(* condition into the first two, otherwise our event is contradictory and     *)
+(* thus is the empty event                                                    *)
+(*                                                                            *)
+(* Possible improvement: it would be nice to automatically be able to         *)
+(* generate this theorem from if (state = ...) and (input = ...) then         *)
+(* (state = ...)                                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_state_input_step:
+  ∀n m ps qs ts i b σ1 σ2.
+    i < n ⇒
+    (event_state_takes_value n m (ps,qs) ts i σ1)
+    ∩ (event_input_bit_takes_value n m i b)
+    ∩ (event_state_takes_value n m (ps,qs) ts (i + 1) σ2) =
+    if
+    encode_recursive_parity_equation_state (ps,qs) σ1 [b] = σ2
+    then
+      (event_state_takes_value n m (ps,qs) ts i σ1)
+      ∩ event_input_bit_takes_value n m i b
+    else
+      ∅
+Proof
+  rw[]
+  (* If the new state follows from the old state and input *)
+  >- (gvs[event_state_takes_value_def,
+          event_input_bit_takes_value_def]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[]
+      >> gvs[encode_recursive_parity_equation_state_encode_recursive_parity_equation_state]
+      >> gvs[GSYM SNOC_APPEND]
+      >> gvs[GSYM TAKE_SUC_BY_TAKE]
+      >> gvs[ADD1]
+     )
+  (* If the new state doesn't follow from the old state and input *)
+  >> rw[EXTENSION]
+  >> CCONTR_TAC
+  >> gvs[]
+  >> qpat_x_assum ‘_ ≠ _’ mp_tac >> gvs[]
+  >> gvs[event_state_takes_value_def,
+         event_input_bit_takes_value_def]
+  >> gvs[encode_recursive_parity_equation_state_encode_recursive_parity_equation_state]
+  >> gvs[GSYM SNOC_APPEND]
+  >> gvs[GSYM TAKE_SUC_BY_TAKE]
+  >> gvs[ADD1]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1536,8 +1596,10 @@ Proof
       >> pop_assum (fn th => gvs[th])
       (* Subsume e3, and introduce a factor to handle the case in which e3
          is being taken with regards to an invalid state *)
-      >> sg ‘prob sp (e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))) = prob sp (e1 ∩ (e2 ∩ (e4 ∩ e5))) * prob sp ’
-            (* Remove events introduced to subsume e3 *)
+      >> sg ‘prob sp (e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))) = prob sp (e1 ∩ (e2 ∩ (e4 ∩ e5))) * cond_prob sp e3 (e5 ∩ e4)’
+      >- (
+       )
+         (* Remove events introduced to subsume e3 *)
      )
      (* Step 3: *)
 
