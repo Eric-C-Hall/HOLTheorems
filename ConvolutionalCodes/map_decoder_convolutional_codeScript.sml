@@ -1597,12 +1597,60 @@ Proof
       (* Subsume e3, and introduce a factor to handle the case in which e3
          is being taken with regards to an invalid state *)
       >> sg ‘prob sp (e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))) = prob sp (e1 ∩ (e2 ∩ (e4 ∩ e5))) * cond_prob sp e3 (e5 ∩ e4)’
-      >- (
-       )
-         (* Remove events introduced to subsume e3 *)
-     )
-     (* Step 3: *)
+      >- (‘e3 ∩ e4 ∩ e5 = e5 ∩ e4 ∩ e3’ by gvs[AC INTER_COMM INTER_ASSOC]
+          >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+          >> gvs[Abbr ‘e3’, Abbr ‘e4’, Abbr ‘e5’]
+          >> ‘event_state_takes_value (LENGTH bs) m (ps,qs) ts (LENGTH σs) x = event_state_takes_value (LENGTH bs) m (ps,qs) ts ((LENGTH σs - 1) + 1) x’ by (Cases_on ‘σs’ >> gvs[ADD1])
+          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >> DEP_PURE_ONCE_REWRITE_TAC[event_state_input_step]
+          >> gvs[]
+          >> conj_tac
+          >- (Cases_on ‘bs’ >> gvs[])
+          >> rw[]
+          >- (
+           )
+          >>
 
+          gvs[event_state_input_step]
+             
+         )
+      >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+      (* Remove events which were introduced to subsume e3 (they are, in
+     turn, subsumed into e1 and e2) *)
+      >> sg ‘e1 ∩ (e2 ∩ (e4 ∩ e5)) = e1 ∩ e2’
+      >- (‘e1 ∩ (e2 ∩ (e4 ∩ e5)) = (e1 ∩ e4) ∩ (e2 ∩ e5)’ by gvs[AC INTER_COMM INTER_ASSOC]
+          >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+          >> ‘e1 = e1 ∩ e4 ∧ e2 = e2 ∩ e5’ suffices_by metis_tac[]
+          (* This is copy/pasted from where the exact same thing was proven
+             when introducing events to subsume e3 *)
+          >> conj_tac
+          >- (unabbrev_all_tac
+              >> DEP_PURE_ONCE_REWRITE_TAC[event_input_string_starts_with_inter_event_input_bit_takes_value]
+              >> gvs[]
+              >> Cases_on ‘bs’ >> gvs[]
+             )
+          >> unabbrev_all_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[event_state_sequence_starts_with_inter_event_state_takes_value]
+          >> gvs[]
+          >> Cases_on ‘σs’ >> gvs[]
+         )
+      >> pop_assum (fn th => gvs[th])
+      (* Apply the inductive hypothesis and move the new term into the product
+         of terms, finishing the proof*)
+      >> unabbrev_all_tac
+      >> gvs[]
+      >> qmatch_abbrev_tac ‘C1 * C2 * ind * step = C1 * C2 * combined : extreal’
+      >> ‘ind * step = combined’ suffices_by rw[AC mul_comm mul_assoc]
+      >> unabbrev_all_tac
+      >> qmatch_goalsub_abbrev_tac ‘∏ f1 S1 * step = ∏ f2 S2’
+      (* Combine step into ∏ f1 S1 *)
+      >> sg ‘∏ f1 S1 * step = ∏ f1 S2’
+      >- (unabbrev_all_tac
+          >> 
+         )
+     )
+  (* Step 3: Split cs away from P(bs,σs,cs) *)
+  >> sg ‘’
 QED
 
 (* Possible improvement: can we remove some of these assumptions, especially

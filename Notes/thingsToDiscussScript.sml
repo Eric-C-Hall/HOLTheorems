@@ -4,7 +4,12 @@ open HolKernel Parse boolLib bossLib;
 
 val _ = new_theory "relevant";
 
-(* When does decide_tac work? I've very rarely found it helpful *)
+(* proof might be too unweildy and messy at where, in map_decoder_convolutional_codeScript, it says:
+   "Subsume e3, and introduce a factor to handle the case in which e3
+         is being taken with regards to an invalid stat"
+*)
+
+(* ------------------------------------------------------------ *)
 
 (* Would be cool if given:
 
@@ -32,6 +37,8 @@ val _ = new_theory "relevant";
          i ≤ LENGTH x
    ------------------------------------
         i + (LENGTH x − (i + 1)) = LENGTH x − 1
+
+        related to decide_tac
         *)
 
 

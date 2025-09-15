@@ -1,0 +1,3 @@
+Why isn't AC INTER_COMM INTER_ASSOC automatically used?
+
+Also, why is AC mul_comm mul_asoc not in the simpset by default?
