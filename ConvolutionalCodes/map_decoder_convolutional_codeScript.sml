@@ -1539,7 +1539,7 @@ Theorem split_mdr_events_prob:
       ) (count n)
 Proof
   (* Step 1: Split P(bs) up *)
-  >> kall_tac prob_event_input_string_starts_with_decompose
+  kall_tac prob_event_input_string_starts_with_decompose
   (* Step 2: Split σs away from P(bs,σs) *)
   >> sg ‘0 < p ∧ p < 1 ∧
          LENGTH bs = n ∧
@@ -1602,48 +1602,55 @@ Proof
          is being taken with regards to an invalid state *)
       >> Q.SUBGOAL_THEN ‘prob sp (e1 ∩ (e2 ∩ (e3 ∩ e4 ∩ e5))) = prob sp (e1 ∩ (e2 ∩ (e4 ∩ e5))) * cond_prob sp e3 (e5 ∩ e4)’
           (fn th => PURE_REWRITE_TAC[th])
-      >- (‘e3 ∩ e4 ∩ e5 = e5 ∩ e4 ∩ e3’ by gvs[AC INTER_COMM INTER_ASSOC]
-          >> pop_assum (fn th => PURE_REWRITE_TAC[th])
-          >> gvs[Abbr ‘e3’, Abbr ‘e4’, Abbr ‘e5’]
-          >> DEP_PURE_ONCE_REWRITE_TAC[event_state_input_step]
-          >> conj_tac
-          >- (Cases_on ‘bs’ >> Cases_on ‘σs’ >> gvs[])
-          >> rw[]
-          (* Next state is valid, so the conditional probability of this step
-             is 1 *)
-          >- (qmatch_goalsub_abbrev_tac ‘ind1 = ind2 * step’
-              >> ‘ind1 = ind2 ∧ step = 1’ suffices_by gvs[]
-              >> conj_tac
-              >- (gvs[Abbr ‘ind1’, Abbr ‘ind2’]
-                  >> gvs[INTER_COMM]
-                 )
-              >> gvs[Abbr ‘step’]
-              >> ‘LENGTH σs - 1 + 1 = LENGTH σs’ by (Cases_on ‘σs’ >> gvs[])
-              >> gvs[]
-              >> gvs[cond_prob_def]
-              >> qmatch_abbrev_tac ‘prob sp (ev_state_after ∩ (ev_state_before ∩ ev_input_before)) / d = 1’
-              >> Q.SUBGOAL_THEN ‘ev_state_after ∩ (ev_state_before ∩ ev_input_before) = ev_state_before ∩ ev_input_before ∩ ev_state_after’
-                  (fn th => gvs[th])
+      >- (Cases_on ‘e5 ∩ e4 = ∅’
+          (* If the denominator of our conditional probability is the empty
+             event, we treat this as a special case to avoid having an invalid
+             conditional probability *)
+          >- gvs[AC INTER_COMM INTER_ASSOC, Abbr ‘sp’, PROB_EMPTY]
+          (* Break the conditional probability down so that its numerator is
+             an intersection of events, so that we can simplify this
+             intersection at the same time as we simplify the other equivalent
+             intersection. *)
+          >> gvs[cond_prob_def, AC INTER_COMM INTER_ASSOC]
+          (* Depending on whether e3 is valid with respect to e4 and e5, the
+             intersection either breaks down to e4 ∩ e5 or to ∅ *)
+          >> sg ‘e3 ∩ e4 ∩ e5 = e4 ∩ e5 ∨ e3 ∩ e4 ∩ e5 = ∅’
+          >- (Q.SUBGOAL_THEN ‘e3 ∩ e4 ∩ e5 = e5 ∩ e4 ∩ e3’
+               (fn th => PURE_REWRITE_TAC[th])
               >- gvs[AC INTER_COMM INTER_ASSOC]
-              >> gvs[Abbr ‘ev_state_before’,
-                     Abbr ‘ev_input_before’,
-                     Abbr ‘ev_state_after’]
+              >> gvs[Abbr ‘e3’, Abbr ‘e4’, Abbr ‘e5’]
               >> DEP_PURE_ONCE_REWRITE_TAC[event_state_input_step]
-              >> gvs[]
-              >> irule div_refl
-              >> gvs[Abbr ‘d’]
-              >> gvs[Abbr ‘sp’, PROB_FINITE, EVENTS_INTER]
-              >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
-              >> gvs[EVENTS_INTER]
+              >> conj_tac
+              >- (Cases_on ‘bs’ >> Cases_on ‘σs’ >> gvs[])
+              >> rw[]
+              >> gvs[AC INTER_COMM INTER_ASSOC]
              )
-          (* Next state is invalid, so the conditional probability of this step
-                 is 0 *)
-          >> DEP_PURE_ONCE_REWRITE_TAC[event_state_input_step]
-          >> gvs[event_state_input_step]
-                
+          >- (gvs[AC INTER_COMM INTER_ASSOC]
+              (* The top and bottom of the division are identical, so this
+                 factor reduces to 1, if the denominator is not zero and is
+                 finite. *)
+              >> DEP_PURE_ONCE_REWRITE_TAC[div_refl]
+              >> conj_tac
+              >- (conj_tac
+                  (* Denominator is not zero *)
+                  >- (gvs[Abbr ‘sp’]
+                      >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+                      >> gvs[Abbr ‘e4’, Abbr ‘e5’, EVENTS_INTER]
+                     )
+                  (* Denominator is finite *)
+                  >> gvs[PROB_FINITE, Abbr ‘sp’, Abbr ‘e4’, Abbr ‘e5’, EVENTS_INTER]
+                 )
+              >> gvs[]
+             )
+          >> gvs[AC INTER_COMM INTER_ASSOC]
+          >> gvs[Abbr ‘sp’, PROB_EMPTY]
+          >> disj2_tac
+          >> irule zero_div
+          >> gvs[prob_ecc_bsc_prob_space_zero,
+                 Abbr ‘e4’, Abbr ‘e5’, EVENTS_INTER]
          )
       (* Remove events which were introduced to subsume e3 (they are, in
-         turn, subsumed into e1 and e2) *)
+          turn, subsumed into e1 and e2) *)
       >> Q.SUBGOAL_THEN ‘e1 ∩ (e2 ∩ (e4 ∩ e5)) = e1 ∩ e2’ (fn th => gvs[th])
       >- (‘e1 ∩ (e2 ∩ (e4 ∩ e5)) = (e1 ∩ e4) ∩ (e2 ∩ e5)’ by gvs[AC INTER_COMM INTER_ASSOC]
           >> pop_assum (fn th => PURE_REWRITE_TAC[th])
@@ -1663,12 +1670,12 @@ Proof
          )
       (* Apply the inductive hypothesis and move the new term into the product
          of terms, finishing the proof *)
-  >> unabbrev_all_tac
-  >> gvs[]
-  >> qmatch_abbrev_tac ‘C1 * C2 * ind * step = C1 * C2 * combined : extreal’
-      >> ‘ind * step = combined’ suffices_by rw[AC mul_comm mul_assoc]
-      >> unabbrev_all_tac
-      >> qmatch_goalsub_abbrev_tac ‘∏ f1 S1 * step = ∏ f2 S2’
+                 >> unabbrev_all_tac
+                 >> gvs[]
+                 >> qmatch_abbrev_tac ‘C1 * C2 * ind * step = C1 * C2 * combined : extreal’
+                 >> ‘ind * step = combined’ suffices_by rw[AC mul_comm mul_assoc]
+                 >> unabbrev_all_tac
+                 >> qmatch_goalsub_abbrev_tac ‘∏ f1 S1 * step = ∏ f2 S2’
       (* Split S2 into new_elt INSERT S1, so we can use the inductive step
          on the product in order to bring the element out *)
       >> Q.SUBGOAL_THEN ‘S2 = (LENGTH σs - 1) INSERT S1’
