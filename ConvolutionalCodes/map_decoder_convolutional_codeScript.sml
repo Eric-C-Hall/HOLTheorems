@@ -1645,13 +1645,28 @@ Proof
       (* Combine step into ∏ f1 S1 *)
       >> Q.SUBGOAL_THEN ‘∏ f1 S1 * step = ∏ f1 S2’ (fn th => gvs[th])
       >- (unabbrev_all_tac
-          >> ‘count (LENGTH σs) = (LENGTH σs - 1) INSERT count (LENGTH σs - 1)’
+          (* Split S2 into new_elt INSERT S1, so we can use the inductive step
+             on the product in order to bring the element out *)
+          >> Q.SUBGOAL_THEN ‘count (LENGTH σs) = (LENGTH σs - 1) INSERT count (LENGTH σs - 1)’ (fn th => PURE_ONCE_REWRITE_TAC[th])
           >- (‘LENGTH σs = (LENGTH σs - 1) + 1’ by (Cases_on ‘σs’ >> gvs[])
               >> metis_tac[count_add1]
              )
-          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
-          >> DEP_PURE_ONCE_REWRITE_TAC[PURE_REWRITE_RULE [AND_IMP_INTRO] PROD_IMAGE_INSERT ]
-          >> DEP_PURE_ONCE_REWRITE_TAC[PROD_IMAGE_INSERT] IMP_CONJ_THM
+          >> gvs[EXTREAL_PROD_IMAGE_THM]
+          >> qmatch_abbrev_tac ‘ind * step1 = step2 * ind : extreal’ 
+          >> ‘step1 = step2’ suffices_by gvs[AC mul_comm mul_assoc]
+          >> unabbrev_all_tac
+          >> qmatch_abbrev_tac ‘cond_prob sp e1 e3 = cond_prob sp e2 e3’
+          >> ‘e1 = e2’ suffices_by gvs[]
+          >> unabbrev_all_tac
+          >> ‘LENGTH σs - 1 + 1 = LENGTH σs’ by (Cases_on ‘σs’ >> gvs[])
+          >> gvs[]
+          
+          >> DEP_PURE_ONCE_REWRITE_TAC[SIMP_RULE bool_ss [PULL_FORALL, AND_IMP_INTRO] EXTREAL_PROD_IMAGE_THM]
+          >> qspecl_then [‘f’, ‘e’, ‘s’] assume_tac (SIMP_RULE bool_ss [PULL_FORALL, AND_IMP_INTRO] EXTREAL_PROD_IMAGE_THM)
+          >> gvs[]
+          >> Cases_on ‘FINITE s’
+          >> gvs[]
+                
           >> qmatch_goalsub_abbrev_tac ‘∏ foo (erk INSERT soz)’
                                        PROD_IMAGE_THM
          )

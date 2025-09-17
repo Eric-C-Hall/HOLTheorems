@@ -1,3 +1,5 @@
+(* To pull quantifiers to front and convert multiple implications to ands: SIMP_RULE bool_ss [AND_IMP_INTRO, PULL_FORALL] PROD_IMAGE_INSERT *)
+
 (* May be a good idea to use theorem provers to poke holes in existing practice.
  In a way, disproving existing ideas is the "productive" and "novel" half of using theorem provers. Replicating pre-existing results is less novel *)
 

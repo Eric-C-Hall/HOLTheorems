@@ -1,8 +1,12 @@
 (* Written by Eric Hall *)
 
-open HolKernel Parse boolLib bossLib;
+Theory thingsToDiscuss
 
-val _ = new_theory "relevant";
+Ancestors extreal probability
+
+Libs dep_rewrite;
+
+(* How come the following works? Isn't PULL_FORALL Higher order logic? SIMP_RULE [PULL_FORALL] PROD_IMAGE_INSERT *)
 
 (* proof might be too unweildy and messy at where, in map_decoder_convolutional_codeScript, it says:
    "Subsume e3, and introduce a factor to handle the case in which e3
@@ -112,5 +116,3 @@ val _ = new_theory "relevant";
 (* polar codes have been developed which are the first code to provably
    achieve/approach the Shannon limit. Maybe I should be working on them?
    However, apparently polar codes still have poor implementation in practice *)
-
-val _ = export_theory();
