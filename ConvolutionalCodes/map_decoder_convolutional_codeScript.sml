@@ -1449,11 +1449,12 @@ QED
 (* (state = ...)                                                              *)
 (* -------------------------------------------------------------------------- *)
 Theorem event_state_input_step:
-  ∀n m ps qs ts i b σ1 σ2.
-    i < n ⇒
+  ∀n m ps qs ts i j b σ1 σ2.
+    i < n ∧
+    j = i + 1 ⇒
     (event_state_takes_value n m (ps,qs) ts i σ1)
     ∩ (event_input_bit_takes_value n m i b)
-    ∩ (event_state_takes_value n m (ps,qs) ts (i + 1) σ2) =
+    ∩ (event_state_takes_value n m (ps,qs) ts j σ2) =
     if
     encode_recursive_parity_equation_state (ps,qs) σ1 [b] = σ2
     then
@@ -1507,10 +1508,12 @@ QED
 (*      and to 0 otherwise.                                                   *)
 (* 4. If desired, we can combine P(c_i|σ_ib_i) with P(σ_{i+1}|σ_ib_i), but    *)
 (*    this may not be helpful and may be a waste of time.                     *)
+(*                                                                            *)
+(* Possible improvement: not sure if 0 < p ∧ p < 1 is necessary              *)
 (* -------------------------------------------------------------------------- *)
 Theorem split_mdr_events_prob:
   ∀n m p ps qs ts bs σs cs_p.
-    0 ≤ p ∧ p ≤ 1 ∧
+    0 < p ∧ p < 1 ∧
     LENGTH bs = n ∧
     LENGTH σs = n + 1 ∧
     LENGTH cs_p = n ⇒
@@ -1536,9 +1539,9 @@ Theorem split_mdr_events_prob:
       ) (count n)
 Proof
   (* Step 1: Split P(bs) up *)
-  kall_tac prob_event_input_string_starts_with_decompose
+  >> kall_tac prob_event_input_string_starts_with_decompose
   (* Step 2: Split σs away from P(bs,σs) *)
-  >> sg ‘0 ≤ p ∧ p ≤ 1 ∧
+  >> sg ‘0 < p ∧ p < 1 ∧
          LENGTH bs = n ∧
          σs ≠ [] ∧
          LENGTH σs ≤ n + 1 ⇒
@@ -1557,6 +1560,7 @@ Proof
              ) (count (LENGTH σs - 1))
         ’
   >- (strip_tac
+      >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
       >> SPEC_ALL_TAC
       >> Induct_on ‘σs’ using SNOC_INDUCT >- gvs[] (* Base case: σs = [] *)
       >> rw[]
@@ -1601,19 +1605,42 @@ Proof
       >- (‘e3 ∩ e4 ∩ e5 = e5 ∩ e4 ∩ e3’ by gvs[AC INTER_COMM INTER_ASSOC]
           >> pop_assum (fn th => PURE_REWRITE_TAC[th])
           >> gvs[Abbr ‘e3’, Abbr ‘e4’, Abbr ‘e5’]
-          >> ‘event_state_takes_value (LENGTH bs) m (ps,qs) ts (LENGTH σs) x = event_state_takes_value (LENGTH bs) m (ps,qs) ts ((LENGTH σs - 1) + 1) x’ by (Cases_on ‘σs’ >> gvs[ADD1])
-          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
           >> DEP_PURE_ONCE_REWRITE_TAC[event_state_input_step]
-          >> gvs[]
           >> conj_tac
-          >- (Cases_on ‘bs’ >> gvs[])
+          >- (Cases_on ‘bs’ >> Cases_on ‘σs’ >> gvs[])
           >> rw[]
-          >- (
-           )
-          >>
-
-          gvs[event_state_input_step]
-             
+          (* Next state is valid, so the conditional probability of this step
+             is 1 *)
+          >- (qmatch_goalsub_abbrev_tac ‘ind1 = ind2 * step’
+              >> ‘ind1 = ind2 ∧ step = 1’ suffices_by gvs[]
+              >> conj_tac
+              >- (gvs[Abbr ‘ind1’, Abbr ‘ind2’]
+                  >> gvs[INTER_COMM]
+                 )
+              >> gvs[Abbr ‘step’]
+              >> ‘LENGTH σs - 1 + 1 = LENGTH σs’ by (Cases_on ‘σs’ >> gvs[])
+              >> gvs[]
+              >> gvs[cond_prob_def]
+              >> qmatch_abbrev_tac ‘prob sp (ev_state_after ∩ (ev_state_before ∩ ev_input_before)) / d = 1’
+              >> Q.SUBGOAL_THEN ‘ev_state_after ∩ (ev_state_before ∩ ev_input_before) = ev_state_before ∩ ev_input_before ∩ ev_state_after’
+                  (fn th => gvs[th])
+              >- gvs[AC INTER_COMM INTER_ASSOC]
+              >> gvs[Abbr ‘ev_state_before’,
+                     Abbr ‘ev_input_before’,
+                     Abbr ‘ev_state_after’]
+              >> DEP_PURE_ONCE_REWRITE_TAC[event_state_input_step]
+              >> gvs[]
+              >> irule div_refl
+              >> gvs[Abbr ‘d’]
+              >> gvs[Abbr ‘sp’, PROB_FINITE, EVENTS_INTER]
+              >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+              >> gvs[EVENTS_INTER]
+             )
+          (* Next state is invalid, so the conditional probability of this step
+                 is 0 *)
+          >> DEP_PURE_ONCE_REWRITE_TAC[event_state_input_step]
+          >> gvs[event_state_input_step]
+                
          )
       (* Remove events which were introduced to subsume e3 (they are, in
          turn, subsumed into e1 and e2) *)
@@ -1635,41 +1662,38 @@ Proof
           >> Cases_on ‘σs’ >> gvs[]
          )
       (* Apply the inductive hypothesis and move the new term into the product
-         of terms, finishing the proof*)
-      >> unabbrev_all_tac
-      >> gvs[]
-      >> qmatch_abbrev_tac ‘C1 * C2 * ind * step = C1 * C2 * combined : extreal’
+         of terms, finishing the proof *)
+  >> unabbrev_all_tac
+  >> gvs[]
+  >> qmatch_abbrev_tac ‘C1 * C2 * ind * step = C1 * C2 * combined : extreal’
       >> ‘ind * step = combined’ suffices_by rw[AC mul_comm mul_assoc]
       >> unabbrev_all_tac
       >> qmatch_goalsub_abbrev_tac ‘∏ f1 S1 * step = ∏ f2 S2’
-      (* Combine step into ∏ f1 S1 *)
-      >> Q.SUBGOAL_THEN ‘∏ f1 S1 * step = ∏ f1 S2’ (fn th => gvs[th])
+      (* Split S2 into new_elt INSERT S1, so we can use the inductive step
+         on the product in order to bring the element out *)
+      >> Q.SUBGOAL_THEN ‘S2 = (LENGTH σs - 1) INSERT S1’
+          (fn th => gvs[th] >> gvs[Abbr ‘S2’])
       >- (unabbrev_all_tac
-          (* Split S2 into new_elt INSERT S1, so we can use the inductive step
-             on the product in order to bring the element out *)
-          >> Q.SUBGOAL_THEN ‘count (LENGTH σs) = (LENGTH σs - 1) INSERT count (LENGTH σs - 1)’ (fn th => PURE_ONCE_REWRITE_TAC[th])
-          >- (‘LENGTH σs = (LENGTH σs - 1) + 1’ by (Cases_on ‘σs’ >> gvs[])
-              >> metis_tac[count_add1]
-             )
-          >> gvs[EXTREAL_PROD_IMAGE_THM]
-          >> qmatch_abbrev_tac ‘ind * step1 = step2 * ind : extreal’ 
-          >> ‘step1 = step2’ suffices_by gvs[AC mul_comm mul_assoc]
-          >> unabbrev_all_tac
-          >> qmatch_abbrev_tac ‘cond_prob sp e1 e3 = cond_prob sp e2 e3’
-          >> ‘e1 = e2’ suffices_by gvs[]
-          >> unabbrev_all_tac
-          >> ‘LENGTH σs - 1 + 1 = LENGTH σs’ by (Cases_on ‘σs’ >> gvs[])
-          >> gvs[]
-          
-          >> DEP_PURE_ONCE_REWRITE_TAC[SIMP_RULE bool_ss [PULL_FORALL, AND_IMP_INTRO] EXTREAL_PROD_IMAGE_THM]
-          >> qspecl_then [‘f’, ‘e’, ‘s’] assume_tac (SIMP_RULE bool_ss [PULL_FORALL, AND_IMP_INTRO] EXTREAL_PROD_IMAGE_THM)
-          >> gvs[]
-          >> Cases_on ‘FINITE s’
-          >> gvs[]
-                
-          >> qmatch_goalsub_abbrev_tac ‘∏ foo (erk INSERT soz)’
-                                       PROD_IMAGE_THM
+          >> ‘LENGTH σs = (LENGTH σs - 1) + 1’ by (Cases_on ‘σs’ >> gvs[])
+          >> metis_tac[count_add1]
          )
+      (* Bring the element out of S2 *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 EXTREAL_PROD_IMAGE_THM]
+      >> conj_tac >- (unabbrev_all_tac >> gvs[])
+      >> unabbrev_all_tac >> gvs[]
+      >> gvs[]
+      >> qmatch_abbrev_tac ‘ind1 * step1 = step2 * ind2 : extreal’
+      >> ‘ind1 = ind2 ∧ step1 = step2’ suffices_by gvs[AC mul_comm mul_assoc]
+      >> conj_tac
+      >- (unabbrev_all_tac
+          >> irule EXTREAL_PROD_IMAGE_EQ
+          >> rw[]
+          >> gvs[EL_SNOC]
+         )
+      >> unabbrev_all_tac
+      >> ‘LENGTH σs - 1 + 1 = LENGTH σs’ by (Cases_on ‘σs’ >> gvs[])
+      >> gvs[]
+      >> gvs[EL_SNOC, EL_LENGTH_SNOC]
      )
   (* Step 3: Split cs away from P(bs,σs,cs) *)
   >> sg ‘’
