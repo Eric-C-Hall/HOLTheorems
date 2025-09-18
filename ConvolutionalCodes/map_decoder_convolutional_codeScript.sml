@@ -8,6 +8,17 @@ Libs donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
 val _ = hide "S";
 
+(* Add EVENTS_INTER to the simpset *)
+Theorem EVENTS_INTER_ADD_TO_SIMPSET[simp]:
+  ∀p s t.
+    prob_space p ∧
+    s ∈ events p ∧
+    t ∈ events p ⇒
+    s ∩ t ∈ events p
+Proof
+  gvs[EVENTS_INTER]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The event in which a particular state takes a particular value.            *)
 (*                                                                            *)
@@ -1486,6 +1497,28 @@ Proof
   >> gvs[ADD1]
 QED
 
+Theorem encode_recursive_parity_equation_snoc:
+  ∀ps qs n m ts x cs_p.
+    event_srcc_parity_string_starts_with (ps,qs) n m ts (SNOC x cs_p) =
+    (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p)
+    ∩ (event_srcc_parity_bit_takes_value (ps,qs) n m ts (LENGTH cs_p) x)
+Proof
+  Induct_on ‘cs_p’
+  >- (rw[]
+      >> gvs[event_srcc_parity_string_starts_with_def]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[]
+      >- (pop_assum mp_tac
+          >> CASE_TAC
+          >> rw[]
+          >> gvs[event_srcc_parity_bit_takes_value_def]
+         )
+      >> CASE_TAC >> gvs[]
+      >> gvs[]
+      >> Cases_on ‘bs’ >> gvs[encode_recursive_parity_equation_def]
+      >> gvs[event_srcc_parity_bit_takes_value_def]
+     )
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1538,28 +1571,33 @@ Theorem split_mdr_events_prob:
                     ∩ (event_input_bit_takes_value n m i (EL i bs)))
       ) (count n)
 Proof
+
+  rw[]
   (* Step 1: Split P(bs) up *)
-  kall_tac prob_event_input_string_starts_with_decompose
+  >> kall_tac prob_event_input_string_starts_with_decompose
   (* Step 2: Split σs away from P(bs,σs) *)
-  >> sg ‘0 < p ∧ p < 1 ∧
-         LENGTH bs = n ∧
-         σs ≠ [] ∧
-         LENGTH σs ≤ n + 1 ⇒
-         prob (ecc_bsc_prob_space n m p)
-              ((event_input_string_starts_with n m bs)
-               ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs))
-         = prob (ecc_bsc_prob_space n m p)
-                (event_input_string_starts_with n m bs) *
+  >> sg ‘∀n m p ps qs ts bs σs cs_p.
+           0 < p ∧ p < 1 ∧
+           LENGTH bs = n ∧
+           σs ≠ [] ∧
+           LENGTH σs ≤ n + 1 ⇒
            prob (ecc_bsc_prob_space n m p)
-                (event_state_takes_value n m (ps,qs) ts 0 (EL 0 σs)) *
-           ∏ (λi.
-                cond_prob (ecc_bsc_prob_space n m p)
-                          (event_state_takes_value n m (ps,qs) ts (i+1) (EL (i+1) σs))
-                          ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
-                           ∩ (event_input_bit_takes_value n m i (EL i bs)))
-             ) (count (LENGTH σs - 1))
+                ((event_input_string_starts_with n m bs)
+                 ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs))
+           = prob (ecc_bsc_prob_space n m p)
+                  (event_input_string_starts_with n m bs) *
+             prob (ecc_bsc_prob_space n m p)
+                  (event_state_takes_value n m (ps,qs) ts 0 (EL 0 σs)) *
+             ∏ (λi.
+                  cond_prob (ecc_bsc_prob_space n m p)
+                            (event_state_takes_value n m (ps,qs) ts (i+1) (EL (i+1) σs))
+                            ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
+                             ∩ (event_input_bit_takes_value n m i (EL i bs)))
+               ) (count (LENGTH σs - 1))
         ’
-  >- (strip_tac
+  >- (rpt (pop_assum kall_tac)
+      >> rpt gen_tac
+      >> strip_tac
       >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
       >> SPEC_ALL_TAC
       >> Induct_on ‘σs’ using SNOC_INDUCT >- gvs[] (* Base case: σs = [] *)
@@ -1670,12 +1708,12 @@ Proof
          )
       (* Apply the inductive hypothesis and move the new term into the product
          of terms, finishing the proof *)
-                 >> unabbrev_all_tac
-                 >> gvs[]
-                 >> qmatch_abbrev_tac ‘C1 * C2 * ind * step = C1 * C2 * combined : extreal’
-                 >> ‘ind * step = combined’ suffices_by rw[AC mul_comm mul_assoc]
-                 >> unabbrev_all_tac
-                 >> qmatch_goalsub_abbrev_tac ‘∏ f1 S1 * step = ∏ f2 S2’
+      >> unabbrev_all_tac
+      >> gvs[]
+      >> qmatch_abbrev_tac ‘C1 * C2 * ind * step = C1 * C2 * combined : extreal’
+      >> ‘ind * step = combined’ suffices_by rw[AC mul_comm mul_assoc]
+      >> unabbrev_all_tac
+      >> qmatch_goalsub_abbrev_tac ‘∏ f1 S1 * step = ∏ f2 S2’
       (* Split S2 into new_elt INSERT S1, so we can use the inductive step
          on the product in order to bring the element out *)
       >> Q.SUBGOAL_THEN ‘S2 = (LENGTH σs - 1) INSERT S1’
@@ -1702,8 +1740,50 @@ Proof
       >> gvs[]
       >> gvs[EL_SNOC, EL_LENGTH_SNOC]
      )
+     
   (* Step 3: Split cs away from P(bs,σs,cs) *)
-  >> sg ‘’
+  >> sg ‘∀n m p ps qs ts bs σs cs_p.
+           0 ≤ p ∧ p ≤ 1 ∧
+           0 < p ∧ p < 1 ⇒
+           prob (ecc_bsc_prob_space n m p)
+                ((event_input_string_starts_with n m bs)
+                 ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs)
+                 ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p))
+           = prob (ecc_bsc_prob_space n m p)
+                  ((event_input_string_starts_with n m bs)
+                   ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs)) *
+             ∏ (λi.
+                  cond_prob (ecc_bsc_prob_space n m p)
+                            (event_srcc_parity_bit_takes_value (ps,qs) n m ts i
+                                                               (EL i cs_p))
+                            ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
+                             ∩ (event_input_bit_takes_value n m i (EL i bs)))
+               ) (count (LENGTH cs_p))’
+  >- (rpt (pop_assum kall_tac)
+      >> rw[]
+      >> Induct_on ‘cs_p’ using SNOC_INDUCT
+      >- (gvs[event_srcc_parity_string_starts_with_def]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 1 event_input_string_starts_with_event_universal]
+          >> conj_tac
+          >- (qexists ‘p’
+              >> gvs[EVENTS_INTER, event_input_string_starts_with_is_event,
+                     event_state_sequence_starts_with_is_event]
+             )
+          >> gvs[]
+         )
+      >> rw[]
+      >> qmatch_abbrev_tac ‘prob sp (e1 ∩ e2 ∩ e3_with_step) = prob sp (e1 ∩ e2) * ∏ f s’
+      >> qmatch_asmsub_abbrev_tac ‘prob sp (e1 ∩ e2 ∩ e3_without_step) = prob sp (e1 ∩ e2) * ∏ _ _’
+      (* Each step will add one of the factors in the product *)
+      >> Q.SUBGOAL_THEN ‘prob sp (e1 ∩ e2 ∩ e3_with_step) =
+                         prob sp (e1 ∩ e2 ∩ e3_without_step) *
+                         f (LENGTH cs_p)’
+          (fn th => PURE_REWRITE_TAC[th])
+      >- (gvs[Abbr ‘e3_with_step’]
+          >> 
+         )
+         
+     )
 QED
 
 (* Possible improvement: can we remove some of these assumptions, especially

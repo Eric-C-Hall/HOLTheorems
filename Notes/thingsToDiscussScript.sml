@@ -13,7 +13,9 @@ Libs dep_rewrite;
 (* proof might be too unweildy and messy at where, in map_decoder_convolutional_codeScript, it says:
    "Subsume e3, and introduce a factor to handle the case in which e3
          is being taken with regards to an invalid stat"
-*)
+ *)
+
+(* What's the best way to add an existing theorem to the stateful simpset *)
 
 (* ------------------------------------------------------------ *)
 
