@@ -17,19 +17,37 @@ Proof
   >> Cases_on ‘x’ >> metis_tac[]
 QED
 
-val NORMFRAG_SS = rewrites[extreal_add_eq,
-                           extreal_sub_eq,
-                           extreal_mul_eq,
-                           extreal_div_eq,
-                           extreal_pow_def
-                          ];
-
-val NORMFRAG2_SS = SSFRAG{NORMFRAG_SS with name = SOME "NORMFRAG"};
-
-SF NORMFRAG_SS
-
-
-
+val EXTREAL_NORMFRAG_SS =
+SSFRAG
+{
+name = SOME"EXTREAL_NORMFRAG",
+ac = [],
+congs = [],
+convs = [],
+dprocs = [],
+filter = NONE,
+rewrs = List.concat
+            (map (fn (thy, th_names) =>
+                    map (fn name =>
+                           (SOME{Thy = thy, Name = name}, DB.fetch thy name)
+                        ) th_names
+                 )
+                 [
+                   ("extreal",
+                    ["extreal_add_eq",
+                     "extreal_sub_eq",
+                     "extreal_mul_eq",
+                     "extreal_div_eq",
+                     "extreal_pow_def"
+                    ]
+                   ),
+                   ("extreal_to_real",
+                    ["extreal_forall_cases"
+                    ]
+                   )
+                 ]
+            )
+};
 
 (* This is a tactic which splits the current proof state according to all
    extreal terms.
@@ -53,7 +71,7 @@ gvs[extreal_add_def,
     extreal_pow_def]
 >> rw[]*)
 
-Theorem gfdlkj:
+Theorem extreal_to_real_test_case_1:
   ∀a b c d.
     a ≠ +∞ ∧ a ≠ −∞ ∧
     b ≠ +∞ ∧ b ≠ −∞ ∧
@@ -61,15 +79,6 @@ Theorem gfdlkj:
     d ≠ +∞ ∧ d ≠ −∞ ⇒
     a + b = c * d : extreal
 Proof
-  gvs[extreal_forall_cases]
-     Cases_extreal
-  >> gvs[]
-        simplify_extreal
-        gvs[foobar]
-        Cases_on ‘a’
-  >> Cases_on ‘b’
-  >> Cases_on ‘c’
-  >> Cases_on ‘d’
-  >> gvs[extreal_mul_eq]
+  gvs[SF EXTREAL_NORMFRAG_SS]
 QED
 
