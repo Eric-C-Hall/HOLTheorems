@@ -1,6 +1,0 @@
-Theorem qux:
-  (∀x : extreal. P x) ⇔ (∀x' : real. P +∞ ∧ P −∞ ∧ P (Normal x'))
-Proof
-  EQ_TAC >> rw[]
-  >> Cases_on ‘x’ >> metis_tac[]
-QED

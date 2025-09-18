@@ -8,6 +8,8 @@ Libs dep_rewrite;
 
 (* How come the following works? Isn't PULL_FORALL Higher order logic? SIMP_RULE [PULL_FORALL] PROD_IMAGE_INSERT *)
 
+(* Does higher order logic work in the theorem search? I tried a 1 = a 2 and it came up with a bunch of really weird results *)
+
 (* proof might be too unweildy and messy at where, in map_decoder_convolutional_codeScript, it says:
    "Subsume e3, and introduce a factor to handle the case in which e3
          is being taken with regards to an invalid stat"
