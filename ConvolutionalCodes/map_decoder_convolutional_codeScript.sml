@@ -1,3 +1,4 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 Theory map_decoder_convolutional_code
@@ -8,16 +9,13 @@ Libs donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
 val _ = hide "S";
 
-(* Add EVENTS_INTER to the simpset *)
-Theorem EVENTS_INTER_ADD_TO_SIMPSET[simp]:
-  ∀p s t.
-    prob_space p ∧
-    s ∈ events p ∧
-    t ∈ events p ⇒
-    s ∩ t ∈ events p
-Proof
-  gvs[EVENTS_INTER]
-QED
+(* -------------------------------------------------------------------------- *)
+(* Add generally useful theorems to the simpset                               *)
+(* -------------------------------------------------------------------------- *)
+val _ = augment_srw_ss [rewrites[TAKE_TAKE,
+                                 DROP_TAKE,
+                                 LENGTH_TAKE,
+                                 EVENTS_INTER]]
 
 (* -------------------------------------------------------------------------- *)
 (* The event in which a particular state takes a particular value.            *)
@@ -1525,7 +1523,7 @@ Proof
   rw[]
 QED
 
-Theorem encode_recursive_parity_equation:
+Theorem encode_recursive_parity_equation_take_el_sing:
   ∀ps qs ts i bs x.
     i + 1 ≤ LENGTH bs ⇒
     encode_recursive_parity_equation
@@ -1542,7 +1540,8 @@ Proof
   >> gvs[TAKE_TAKE,
          DROP_TAKE]
   >> pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
-  >> 
+  >> gvs[encode_recursive_parity_equation_take]
+  >> gvs[DROP_TAKE]
 QED
 
 Theorem event_srcc_parity_bit_takes_value_inter_input_state:
@@ -1564,11 +1563,15 @@ Proof
           event_input_bit_takes_value_def,
           event_srcc_parity_bit_takes_value_def]
       >> rw[EXTENSION] >> EQ_TAC >> rw[]
-      >> qspecl_then [‘i’,‘ps’, ‘qs’, ‘ts’, ‘TAKE (i + 1) bs’]
-                     assume_tac
-                     drop_encode_recursive_parity_equation
-      >> gvs[]
+      >> gvs[encode_recursive_parity_equation_take_el_sing]
      )
+  >> rw[EXTENSION]
+  >> CCONTR_TAC >> gvs[]
+  >> qpat_x_assum ‘_ ≠ _’ mp_tac >> gvs[]
+  >> gvs[event_state_takes_value_def,
+         event_input_bit_takes_value_def,
+         event_srcc_parity_bit_takes_value_def]
+  >> gvs[encode_recursive_parity_equation_take_el_sing]
 QED
 
 (* -------------------------------------------------------------------------- *)
