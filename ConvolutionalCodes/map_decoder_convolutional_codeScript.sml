@@ -876,11 +876,15 @@ End
 (* -------------------------------------------------------------------------- *)
 (* The event that a single parity bit for a systematic recursive              *)
 (* convolutional code (with one parity equation) takes a certain value.       *)
+(*                                                                            *)
+(* We require i < n in order to make the event empty in the case where we     *)
+(* have an invalid index, rather than indeterminate                           *)
 (* -------------------------------------------------------------------------- *)
 Definition event_srcc_parity_bit_takes_value_def:
   event_srcc_parity_bit_takes_value (ps,qs) n m ts i c_p =
   {(bs, ns) | LENGTH bs = n ∧
               LENGTH ns = m ∧
+              i < n ∧
               EL i (encode_recursive_parity_equation (ps,qs) ts bs) = c_p}
 End
 
@@ -1499,24 +1503,15 @@ QED
 
 Theorem encode_recursive_parity_equation_snoc:
   ∀ps qs n m ts x cs_p.
+    LENGTH cs_p + 1 ≤ n ⇒
     event_srcc_parity_string_starts_with (ps,qs) n m ts (SNOC x cs_p) =
     (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p)
     ∩ (event_srcc_parity_bit_takes_value (ps,qs) n m ts (LENGTH cs_p) x)
 Proof
-  Induct_on ‘cs_p’
-  >- (rw[]
-      >> gvs[event_srcc_parity_string_starts_with_def]
-      >> rw[EXTENSION] >> EQ_TAC >> rw[]
-      >- (pop_assum mp_tac
-          >> CASE_TAC
-          >> rw[]
-          >> gvs[event_srcc_parity_bit_takes_value_def]
-         )
-      >> CASE_TAC >> gvs[]
-      >> gvs[]
-      >> Cases_on ‘bs’ >> gvs[encode_recursive_parity_equation_def]
-      >> gvs[event_srcc_parity_bit_takes_value_def]
-     )
+  rw[]
+  >> gvs[event_srcc_parity_string_starts_with_def,
+         event_srcc_parity_bit_takes_value_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[IS_PREFIX_SNOC_L]
 QED
 
 (* -------------------------------------------------------------------------- *)

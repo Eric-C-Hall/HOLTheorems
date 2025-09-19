@@ -346,6 +346,13 @@ Proof
   >> gvs[LENGTH_TL]
 QED
 
+Theorem encode_recursive_parity_equation_empty[simp]:
+  ∀ps qs ts.
+    encode_recursive_parity_equation (ps,qs) ts [] = []
+Proof
+  rw[encode_recursive_parity_equation_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* -------------------------------------------------------------------------- *)
