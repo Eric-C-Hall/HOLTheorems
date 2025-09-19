@@ -1501,7 +1501,7 @@ Proof
   >> gvs[ADD1]
 QED
 
-Theorem encode_recursive_parity_equation_snoc:
+Theorem event_srcc_parity_string_starts_with_snoc:
   ∀ps qs n m ts x cs_p.
     LENGTH cs_p + 1 ≤ n ⇒
     event_srcc_parity_string_starts_with (ps,qs) n m ts (SNOC x cs_p) =
@@ -1512,6 +1512,17 @@ Proof
   >> gvs[event_srcc_parity_string_starts_with_def,
          event_srcc_parity_bit_takes_value_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[IS_PREFIX_SNOC_L]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The relationship between count1 and count. I'm surprised that a search     *)
+(* for this theorem returned no results.                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem count1_count:
+  ∀n.
+    count1 n = count (n + 1)
+Proof
+  rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1735,11 +1746,12 @@ Proof
       >> gvs[]
       >> gvs[EL_SNOC, EL_LENGTH_SNOC]
      )
-     
+
   (* Step 3: Split cs away from P(bs,σs,cs) *)
   >> sg ‘∀n m p ps qs ts bs σs cs_p.
            0 ≤ p ∧ p ≤ 1 ∧
-           0 < p ∧ p < 1 ⇒
+           0 < p ∧ p < 1 ∧
+           LENGTH cs_p ≤ n ⇒
            prob (ecc_bsc_prob_space n m p)
                 ((event_input_string_starts_with n m bs)
                  ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs)
@@ -1775,7 +1787,26 @@ Proof
                          f (LENGTH cs_p)’
           (fn th => PURE_REWRITE_TAC[th])
       >- (gvs[Abbr ‘e3_with_step’]
-          >> 
+          (* Break up the SNOC, to move towards the inductive hypothesis on the
+             left hand side *)
+          >> gvs[event_srcc_parity_string_starts_with_snoc]
+          (* Apply the inductive hypothesis to move the RHS towards the LHS *)
+          >> qmatch_abbrev_tac ‘_ = _ * ∏ f2 _ * f _’
+          >> qpat_x_assum ‘prob _ _ = prob _ _ * ∏ _ _ ’
+                          (fn th => gvs[ReqD (GSYM th)])
+          (* Name the event we are adding in this step *)
+          >> qmatch_abbrev_tac ‘prob _ (_ ∩ _ ∩ (_ ∩ e_step)) = _’
+          (* Introduce events to subsume e_step *)
+          >> qmatch_abbrev_tac ‘e4 = event_input_bit_takes_value
+                                     n
+                                     m
+                                     (LENGTH cs_p)
+                               ’
+          >> Q.SUBGOAL_THEN ‘e1 ∩ e2 ∩ (e3_without_step ∩ e_step) =
+                             e1 ∩ e2 ∩ (e3_without_step ∩ (e_step ∩ e4 ∩ e5)’
+              (fn th => PURE_REWRITE_TAC[th])
+          >- (
+           )
          )
          
      )
