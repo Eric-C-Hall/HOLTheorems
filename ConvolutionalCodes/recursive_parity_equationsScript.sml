@@ -353,6 +353,34 @@ Proof
   rw[encode_recursive_parity_equation_def]
 QED
 
+Theorem encode_recursive_parity_equation_take:
+  ∀ps qs ts k bs.
+    encode_recursive_parity_equation (ps,qs) ts (TAKE k bs) =
+    TAKE k (encode_recursive_parity_equation (ps,qs) ts bs)
+Proof
+  Induct_on ‘k’ >> rw[]
+  >> Cases_on ‘bs’ >> gvs[encode_recursive_parity_equation_def]
+QED
+
+Theorem drop_encode_recursive_parity_equation:
+  ∀k ps qs ts bs.
+    k ≤ LENGTH bs ⇒
+    DROP k (encode_recursive_parity_equation (ps,qs) ts bs) =
+    encode_recursive_parity_equation
+    (ps,qs)
+    (encode_recursive_parity_equation_state (ps,qs) ts (TAKE k bs))
+    (DROP k bs)
+Proof
+  rw[]
+  >> qspecl_then
+     [‘ps’, ‘qs’, ‘ts’, ‘TAKE k bs’, ‘DROP k bs’]
+     assume_tac
+     encode_recursive_parity_equation_append
+  >> gvs[]
+  >> gvs[DROP_APPEND, LENGTH_TAKE]
+QED
+
+
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* -------------------------------------------------------------------------- *)

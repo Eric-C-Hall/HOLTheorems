@@ -1525,22 +1525,24 @@ Proof
   rw[]
 QED
 
-Theorem drop_encode_recursive_parity_equation:
-  ∀k ps qs ts bs.
-    k ≤ LENGTH bs ⇒
-    DROP k (encode_recursive_parity_equation (ps,qs) ts bs) =
+Theorem encode_recursive_parity_equation:
+  ∀ps qs ts i bs x.
+    i + 1 ≤ LENGTH bs ⇒
     encode_recursive_parity_equation
     (ps,qs)
-    (encode_recursive_parity_equation_state (ps,qs) ts (TAKE k bs))
-    (DROP k bs)
+    (encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs))
+    [EL i bs] =
+    [EL i (encode_recursive_parity_equation (ps,qs) ts bs)]
 Proof
   rw[]
-  >> qspecl_then
-     [‘ps’, ‘qs’, ‘ts’, ‘TAKE k bs’, ‘DROP k bs’]
-     assume_tac
-     encode_recursive_parity_equation_append
-  >> gvs[]
-  >> gvs[DROP_APPEND, LENGTH_TAKE]
+  >> qspecl_then [‘i’,‘ps’, ‘qs’, ‘ts’, ‘TAKE (i + 1) bs’]
+                 assume_tac
+                 drop_encode_recursive_parity_equation
+  >> gvs[LENGTH_TAKE]
+  >> gvs[TAKE_TAKE,
+         DROP_TAKE]
+  >> pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
+  >> 
 QED
 
 Theorem event_srcc_parity_bit_takes_value_inter_input_state:
@@ -1562,7 +1564,10 @@ Proof
           event_input_bit_takes_value_def,
           event_srcc_parity_bit_takes_value_def]
       >> rw[EXTENSION] >> EQ_TAC >> rw[]
-                                      
+      >> qspecl_then [‘i’,‘ps’, ‘qs’, ‘ts’, ‘TAKE (i + 1) bs’]
+                     assume_tac
+                     drop_encode_recursive_parity_equation
+      >> gvs[]
      )
 QED
 
