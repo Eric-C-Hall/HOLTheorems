@@ -15,7 +15,8 @@ val _ = hide "S";
 val _ = augment_srw_ss [rewrites[TAKE_TAKE,
                                  DROP_TAKE,
                                  LENGTH_TAKE,
-                                 EVENTS_INTER]]
+                                 EVENTS_INTER,
+                                 PROB_EMPTY]]
 
 (* -------------------------------------------------------------------------- *)
 (* The event in which a particular state takes a particular value.            *)
@@ -1874,12 +1875,22 @@ Proof
              of the events used to subsume it. *)
           >> Q.SUBGOAL_THEN ‘e_step ∩ e4 ∩ e5 = ∅ ∨ e_step ∩ e4 ∩ e5 = e4 ∩ e5’
               assume_tac
-          >- (unabbrev_all_tac
+          >- (‘e5 ∩ e4 ∩ e_step = ∅ ∨ e5 ∩ e4 ∩ e_step = e5 ∩ e4’ suffices_by gvs[AC INTER_COMM INTER_ASSOC]
+              >> unabbrev_all_tac
+              >> gvs[event_srcc_parity_bit_takes_value_inter_input_state]
              )
           >> gvs[]
           (* Prove the case where we get the empty set *)
-          >- (
-           )
+          >- (gvs[PROB_EMPTY, Abbr ‘sp’]
+              >> disj2_tac
+              >> gvs[Abbr ‘f’]
+              (* The numerator of the conditional probability is the
+                 intersection we have information about *)
+              >> gvs[cond_prob_def]
+              >> gvs[EL_LENGTH_SNOC]
+              >> gvs[AC INTER_COMM INTER_ASSOC]
+              >> gvs[zero_div]
+             )
           (* Prove the case where we get the intersection of the events used to subsume the event. Start by moving the events used to subsume e_step back to the events whence they came *)
           >>
           (* Absorb the introduced events back into the events they came from *)
