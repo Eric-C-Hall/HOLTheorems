@@ -1525,6 +1525,47 @@ Proof
   rw[]
 QED
 
+Theorem drop_encode_recursive_parity_equation:
+  ∀k ps qs ts bs.
+    k ≤ LENGTH bs ⇒
+    DROP k (encode_recursive_parity_equation (ps,qs) ts bs) =
+    encode_recursive_parity_equation
+    (ps,qs)
+    (encode_recursive_parity_equation_state (ps,qs) ts (TAKE k bs))
+    (DROP k bs)
+Proof
+  rw[]
+  >> qspecl_then
+     [‘ps’, ‘qs’, ‘ts’, ‘TAKE k bs’, ‘DROP k bs’]
+     assume_tac
+     encode_recursive_parity_equation_append
+  >> gvs[]
+  >> gvs[DROP_APPEND, LENGTH_TAKE]
+QED
+
+Theorem event_srcc_parity_bit_takes_value_inter_input_state:
+  ∀n m ps qs ts b i σ c_p.
+    i < n ⇒
+    (event_state_takes_value n m (ps,qs) ts i σ)
+    ∩ (event_input_bit_takes_value n m i b)
+    ∩ (event_srcc_parity_bit_takes_value (ps,qs) n m ts i c_p) =
+    if
+    encode_recursive_parity_equation (ps,qs) σ [b] = [c_p]
+    then
+      (event_state_takes_value n m (ps,qs) ts i σ)
+      ∩ (event_input_bit_takes_value n m i b)
+    else
+      ∅
+Proof
+  rw[]
+  >- (gvs[event_state_takes_value_def,
+          event_input_bit_takes_value_def,
+          event_srcc_parity_bit_takes_value_def]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[]
+                                      
+     )
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* We want to prove:                                                          *)
 (* P(bs,σs,cs) = P(σ_0)P(b_0)P(σ_1c_0|σ_0b_0)P(b_1)P(σ_2c_1|σ_1b_1)...        *)
@@ -1751,6 +1792,8 @@ Proof
   >> sg ‘∀n m p ps qs ts bs σs cs_p.
            0 ≤ p ∧ p ≤ 1 ∧
            0 < p ∧ p < 1 ∧
+           LENGTH bs = n ∧
+           LENGTH σs = n ∧
            LENGTH cs_p ≤ n ⇒
            prob (ecc_bsc_prob_space n m p)
                 ((event_input_string_starts_with n m bs)
@@ -1768,6 +1811,8 @@ Proof
                ) (count (LENGTH cs_p))’
   >- (rpt (pop_assum kall_tac)
       >> rw[]
+      (* Use LENGTH bs instead of LENGTH σs for simplicity *)
+      >> ‘LENGTH σs = LENGTH bs’ by gvs[] >> gvs[]
       >> Induct_on ‘cs_p’ using SNOC_INDUCT
       >- (gvs[event_srcc_parity_string_starts_with_def]
           >> DEP_PURE_ONCE_REWRITE_TAC[cj 1 event_input_string_starts_with_event_universal]
@@ -1797,16 +1842,39 @@ Proof
           (* Name the event we are adding in this step *)
           >> qmatch_abbrev_tac ‘prob _ (_ ∩ _ ∩ (_ ∩ e_step)) = _’
           (* Introduce events to subsume e_step *)
-          >> qmatch_abbrev_tac ‘e4 = event_input_bit_takes_value
-                                     n
-                                     m
-                                     (LENGTH cs_p)
-                               ’
+          >> qabbrev_tac ‘e4 = event_input_bit_takes_value
+                               (LENGTH bs) m (LENGTH cs_p) (EL (LENGTH cs_p) bs)
+                         ’
+          >> qabbrev_tac ‘e5 = event_state_takes_value
+                               (LENGTH bs) m (ps,qs) ts (LENGTH cs_p) (EL (LENGTH cs_p) σs)’
           >> Q.SUBGOAL_THEN ‘e1 ∩ e2 ∩ (e3_without_step ∩ e_step) =
-                             e1 ∩ e2 ∩ (e3_without_step ∩ (e_step ∩ e4 ∩ e5)’
+                             (e1 ∩ e4) ∩ (e2 ∩ e5) ∩ (e3_without_step ∩ e_step)’
               (fn th => PURE_REWRITE_TAC[th])
+          >- (‘e1 = e1 ∩ e4 ∧ e2 = e2 ∩ e5’ suffices_by metis_tac[]
+              >> conj_tac
+              >- gvs[Abbr ‘e1’, Abbr ‘e4’]
+              >> gvs[Abbr ‘e2’, Abbr ‘e5’]
+              >> DEP_PURE_ONCE_REWRITE_TAC[event_state_sequence_starts_with_inter_event_state_takes_value]
+             )
+          (* Move events to subsume e_step to the appropriate location *)
+          >> Q.SUBGOAL_THEN ‘(e1 ∩ e4) ∩ (e2 ∩ e5) ∩ (e3_without_step ∩ e_step) =
+                             (e1 ∩ e2 ∩ e3_without_step ∩ (e_step ∩ e4 ∩ e5))’
+              (fn th => PURE_REWRITE_TAC[th])
+          >- gvs[AC INTER_COMM INTER_ASSOC]
+          (* Subsume e_step. We either get the empty set if the step is invalid
+             with respect to the existing events, or we get the intersection
+             of the events used to subsume it. *)
+          >> Q.SUBGOAL_THEN ‘e_step ∩ e4 ∩ e5 = ∅ ∨ e_step ∩ e4 ∩ e5 = e4 ∩ e5’
+              assume_tac
+          >- (unabbrev_all_tac
+             )
+          >> gvs[]
+          (* Prove the case where we get the empty set *)
           >- (
            )
+          (* Prove the case where we get the intersection of the events used to subsume the event. Start by moving the events used to subsume e_step back to the events whence they came *)
+          >>
+          (* Absorb the introduced events back into the events they came from *)
          )
          
      )
