@@ -16,7 +16,8 @@ val _ = augment_srw_ss [rewrites[TAKE_TAKE,
                                  DROP_TAKE,
                                  LENGTH_TAKE,
                                  EVENTS_INTER,
-                                 PROB_EMPTY]]
+                                 PROB_EMPTY,
+                                 PROB_FINITE]]
 
 (* -------------------------------------------------------------------------- *)
 (* The event in which a particular state takes a particular value.            *)
@@ -1627,7 +1628,7 @@ Theorem split_mdr_events_prob:
                     ∩ (event_input_bit_takes_value n m i (EL i bs)))
       ) (count n)
 Proof
-
+  
   rw[]
   (* Step 1: Split P(bs) up *)
   >> kall_tac prob_event_input_string_starts_with_decompose
@@ -1795,8 +1796,7 @@ Proof
       >> ‘LENGTH σs - 1 + 1 = LENGTH σs’ by (Cases_on ‘σs’ >> gvs[])
       >> gvs[]
       >> gvs[EL_SNOC, EL_LENGTH_SNOC]
-     )
-
+     )     
   (* Step 3: Split cs away from P(bs,σs,cs) *)
   >> sg ‘∀n m p ps qs ts bs σs cs_p.
            0 ≤ p ∧ p ≤ 1 ∧
@@ -1817,7 +1817,7 @@ Proof
                                                                (EL i cs_p))
                             ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
                              ∩ (event_input_bit_takes_value n m i (EL i bs)))
-               ) (count (LENGTH cs_p))’
+               ) (count (LENGTH cs_p))’        
   >- (rpt (pop_assum kall_tac)
       >> rw[]
       (* Use LENGTH bs instead of LENGTH σs for simplicity *)
@@ -1839,7 +1839,7 @@ Proof
       >> Q.SUBGOAL_THEN ‘prob sp (e1 ∩ e2 ∩ e3_with_step) =
                          prob sp (e1 ∩ e2 ∩ e3_without_step) *
                          f (LENGTH cs_p)’
-          (fn th => PURE_REWRITE_TAC[th])
+          (fn th => PURE_REWRITE_TAC[th])          
       >- (gvs[Abbr ‘e3_with_step’]
           (* Break up the SNOC, to move towards the inductive hypothesis on the
              left hand side *)
@@ -1850,26 +1850,35 @@ Proof
                           (fn th => gvs[ReqD (GSYM th)])
           (* Name the event we are adding in this step *)
           >> qmatch_abbrev_tac ‘prob _ (_ ∩ _ ∩ (_ ∩ e_step)) = _’
-          (* Introduce events to subsume e_step *)
+          (* Introduce events to subsume e_step (on both the LHS and RHS,
+             to maintain concsistency between each side) *)
           >> qabbrev_tac ‘e4 = event_input_bit_takes_value
                                (LENGTH bs) m (LENGTH cs_p) (EL (LENGTH cs_p) bs)
                          ’
           >> qabbrev_tac ‘e5 = event_state_takes_value
                                (LENGTH bs) m (ps,qs) ts (LENGTH cs_p) (EL (LENGTH cs_p) σs)’
-          >> Q.SUBGOAL_THEN ‘e1 ∩ e2 ∩ (e3_without_step ∩ e_step) =
-                             (e1 ∩ e4) ∩ (e2 ∩ e5) ∩ (e3_without_step ∩ e_step)’
-              (fn th => PURE_REWRITE_TAC[th])
-          >- (‘e1 = e1 ∩ e4 ∧ e2 = e2 ∩ e5’ suffices_by metis_tac[]
-              >> conj_tac
-              >- gvs[Abbr ‘e1’, Abbr ‘e4’]
-              >> gvs[Abbr ‘e2’, Abbr ‘e5’]
-              >> DEP_PURE_ONCE_REWRITE_TAC[event_state_sequence_starts_with_inter_event_state_takes_value]
-             )
+          >> ‘e1 = e1 ∩ e4’ by gvs[Abbr ‘e1’, Abbr ‘e4’]
+          >> first_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >> ‘e2 = e2 ∩ e5’ by gvs[Abbr ‘e2’, Abbr ‘e5’]
+          >> first_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
           (* Move events to subsume e_step to the appropriate location *)
           >> Q.SUBGOAL_THEN ‘(e1 ∩ e4) ∩ (e2 ∩ e5) ∩ (e3_without_step ∩ e_step) =
                              (e1 ∩ e2 ∩ e3_without_step ∩ (e_step ∩ e4 ∩ e5))’
               (fn th => PURE_REWRITE_TAC[th])
           >- gvs[AC INTER_COMM INTER_ASSOC]
+          (* Do the same thing to the RHS *)
+          >> Q.SUBGOAL_THEN ‘(e1 ∩ e4) ∩ (e2 ∩ e5) ∩ e3_without_step =
+                             e1 ∩ e2 ∩ (e3_without_step ∩ (e4 ∩ e5))’
+              (fn th => PURE_REWRITE_TAC[th])
+          >- gvs[AC INTER_COMM INTER_ASSOC]
+          (* Treat the special case where e4 ∩ e5 = ∅, because that will end up
+             being the denominator in the application of cond_prob in the
+             application of f *)
+          >> Cases_on ‘e4 ∩ e5 = ∅’
+          >- (gvs[]
+              >> gvs[GSYM INTER_ASSOC]
+              >> gvs[Abbr ‘sp’]
+             )
           (* Subsume e_step. We either get the empty set if the step is invalid
              with respect to the existing events, or we get the intersection
              of the events used to subsume it. *)
@@ -1889,14 +1898,54 @@ Proof
               >> gvs[cond_prob_def]
               >> gvs[EL_LENGTH_SNOC]
               >> gvs[AC INTER_COMM INTER_ASSOC]
-              >> gvs[zero_div]
+              >> DEP_PURE_ONCE_REWRITE_TAC[zero_div]
+              >> gvs[prob_ecc_bsc_prob_space_zero, Abbr ‘e4’, Abbr ‘e5’]
              )
-          (* Prove the case where we get the intersection of the events used to subsume the event. Start by moving the events used to subsume e_step back to the events whence they came *)
-          >>
-          (* Absorb the introduced events back into the events they came from *)
-         )
-         
+          (* Prove the case where the subsumed event simply disappears
+             without taking e4 and e5 along with it. *)
+          >> gvs[AC INTER_COMM INTER_ASSOC]
+          (* We just need to prove that the added factor in this case is equal
+             to 1, because the new event has disappeared without affecting the
+             event *)
+          >> ‘f (LENGTH cs_p) = 1’ suffices_by gvs[]
+          >> gvs[Abbr ‘f’]
+          (* In this case, the conditional probability simplifies to
+             prob (e4 ∩ e5) / prob (e4 ∩ e5), which simplifies to 1 assuming
+             we don't have 0, +∞, or −∞ *)
+          >> gvs[cond_prob_def]
+          >> gvs[EL_LENGTH_SNOC]
+          >> gvs[AC INTER_COMM INTER_ASSOC]
+          >> DEP_PURE_ONCE_REWRITE_TAC[div_refl] >> gvs[]
+          >> conj_tac
+          (* The probability is nonzero: we earlier handled the situation of
+             e4 ∩ e5 = ∅ *)
+          >- gvs[Abbr ‘sp’, Abbr ‘e4’, Abbr ‘e5’, prob_ecc_bsc_prob_space_zero]
+          (* The probability is not infinite because no probability is *)
+          >> gvs[Abbr ‘sp’, Abbr ‘e4’, Abbr ‘e5’]
+         )         
+      (* Use the inductive hypothesis and drag the new factor into the
+         product from the inductive step. In order to use the inductive
+         hypothesis, we first handle the case where cs_p has grown too large
+         to be valid *)
+      >> Cases_on ‘LENGTH cs_p ≤ LENGTH bs’ >> gvs[]
+      >> qmatch_abbrev_tac ‘C * ∏ f2 s2 * step = C * ∏ f s’
+      >> ‘∏ f s = ∏ f2 s2 * step’ suffices_by gvs[AC mul_comm mul_assoc]
+      >> gvs[Abbr ‘step’, Abbr ‘s’, Abbr ‘s2’, Abbr ‘C’]
+      >> gvs[COUNT_SUC]
+      >> gvs[EXTREAL_PROD_IMAGE_THM]
+      >> gvs[mul_comm]
+      >> qmatch_goalsub_abbrev_tac ‘C * LHS = C * RHS’
+      >> ‘LHS = RHS’ suffices_by gvs[]
+      >> gvs[Abbr ‘LHS’, Abbr ‘RHS’, Abbr ‘C’]
+      >> irule EXTREAL_PROD_IMAGE_EQ
+      >> rw[]
+      >> gvs[Abbr ‘f’, Abbr ‘f2’]
+      >> gvs[EL_SNOC]
      )
+     
+  (* Step 4: Combine the subtheorems to arrive at the final result *)
+  >> gvs[mdr_summed_out_events_def]
+  >> pop_assum (fn th => gvs[th])
 QED
 
 (* Possible improvement: can we remove some of these assumptions, especially

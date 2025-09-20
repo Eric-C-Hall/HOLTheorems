@@ -6,6 +6,12 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* EXTREAL_PROD_IMAGE_THM *)
+
+(* -------------------------------------------------------------------------- *)
+(* ALREADY DISCUSSED:                                                         *)
+(* -------------------------------------------------------------------------- *)
+
 (* How come the following works? Isn't PULL_FORALL Higher order logic? SIMP_RULE [PULL_FORALL] PROD_IMAGE_INSERT *)
 
 (* Does higher order logic work in the theorem search? I tried a 1 = a 2 and it came up with a bunch of really weird results *)
