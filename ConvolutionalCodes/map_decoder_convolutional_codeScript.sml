@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 Theory map_decoder_convolutional_code
@@ -1628,12 +1627,13 @@ Theorem split_mdr_events_prob:
                     ∩ (event_input_bit_takes_value n m i (EL i bs)))
       ) (count n)
 Proof
-  
   rw[]
+  (* It's more convenient for LENGTH bs*)
+  >> sg ‘LENGTH cs_p = LENGTH bs’ >> gvs[] 
   (* Step 1: Split P(bs) up *)
   >> kall_tac prob_event_input_string_starts_with_decompose
   (* Step 2: Split σs away from P(bs,σs) *)
-  >> sg ‘∀n m p ps qs ts bs σs cs_p.
+  >> sg ‘∀n m p (ps : bool list) qs ts bs σs.
            0 < p ∧ p < 1 ∧
            LENGTH bs = n ∧
            σs ≠ [] ∧
@@ -1802,7 +1802,7 @@ Proof
            0 ≤ p ∧ p ≤ 1 ∧
            0 < p ∧ p < 1 ∧
            LENGTH bs = n ∧
-           LENGTH σs = n ∧
+           LENGTH σs = n + 1 ∧
            LENGTH cs_p ≤ n ⇒
            prob (ecc_bsc_prob_space n m p)
                 ((event_input_string_starts_with n m bs)
@@ -1820,8 +1820,6 @@ Proof
                ) (count (LENGTH cs_p))’        
   >- (rpt (pop_assum kall_tac)
       >> rw[]
-      (* Use LENGTH bs instead of LENGTH σs for simplicity *)
-      >> ‘LENGTH σs = LENGTH bs’ by gvs[] >> gvs[]
       >> Induct_on ‘cs_p’ using SNOC_INDUCT
       >- (gvs[event_srcc_parity_string_starts_with_def]
           >> DEP_PURE_ONCE_REWRITE_TAC[cj 1 event_input_string_starts_with_event_universal]
@@ -1941,11 +1939,21 @@ Proof
       >> rw[]
       >> gvs[Abbr ‘f’, Abbr ‘f2’]
       >> gvs[EL_SNOC]
-     )
-     
+     )         
   (* Step 4: Combine the subtheorems to arrive at the final result *)
   >> gvs[mdr_summed_out_events_def]
-  >> pop_assum (fn th => gvs[th])
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> conj_tac
+  >- gvs[le_lt]
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> conj_tac
+  >- (gvs[]
+      >> Cases_on ‘σs’ >> gvs[]
+     )
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_event_input_string_starts_with_decompose]
+  >> conj_tac
+  >- gvs[le_lt]
+  >> gvs[]
 QED
 
 (* Possible improvement: can we remove some of these assumptions, especially
@@ -2088,7 +2096,7 @@ Make our sum take all values over the input bitstring, the states,
     First apply EXTREAL_SUM_IMAGE_IN_IF to change our term to the appropriate
     term, then apply EXTREAL_SUM_IMAGE_INTER_ELIM in order to expand the set we
     are summing over
-             *)
+   *)
   (*>> qmatch_goalsub_abbrev_tac ‘_ = RHS’
       >> DEP_PURE_ONCE_REWRITE_TAC [EXTREAL_SUM_IMAGE_IN_IF]
       >> simp[Abbr ‘RHS’]
@@ -2150,7 +2158,7 @@ Make our sum take all values over the input bitstring, the states,
      argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
 .
      That is, we apply Bayes' rule here
-             *)
+   *)
   >> DEP_PURE_ONCE_REWRITE_TAC[BAYES_RULE_GENERALIZED]
   >> conj_tac
   >- (rpt conj_tac
