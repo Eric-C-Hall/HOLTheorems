@@ -449,81 +449,6 @@ QED
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: simplify requirement on encoder outputting correct length for this   *)
-(* special case                                                               *)
-(*                                                                            *)
-(* We assume that our parity equation is delayfree                            *)
-(* -------------------------------------------------------------------------- *)
-(* COMMENTED OUT BECAUSE I WANT TO WORK WITH THE CONVOLUTIONAL CODE WITH
-   SYSTEMATIC BITS RATHER THAN THE CONVOLUTIONAL CODE WITHOUT SYSTEMATIC BITS
-Theorem map_decoder_bitwise_encode_recursive_parity_equation:
-  ∀ps qs ts n m p ds.
-    let
-      enc = encode_recursive_parity_equation (ps, qs) ts;
-    in
-      LAST ps ∧
-      LENGTH ps = LENGTH ts + 1 ∧
-      0 < p ∧ p < 1 ∧
-      LENGTH ds = m ∧
-      (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
-      map_decoder_bitwise enc n m p ds =
-      MAP (λi.
-             argmax_bool
-             (λx. ∑ ARB
-                    {cs | LENGTH cs = m ∧
-                          (EL i cs = x) ∧
-                          (∃bs.
-                             LENGTH bs = n ∧
-                             encode_recursive_parity_equation (ps, qs) ts bs = cs)
-                             }
-             )
-          )
-          (COUNT_LIST m)
-Proof
-  rw[]
-  (* We start from the most simplified version of the MAP decoder *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[map_decoder_bitwise_sent_sum_bayes_prod]
-  >> rw[]
-  >- metis_tac[]
-  >- (drule encode_recursive_parity_equation_inj >> rpt strip_tac
-      >> gvs[INJ_DEF]
-      >> metis_tac[]
-     )
-  (* The bitwise part is the part which is equivalent *)
-  >> rw[MAP_EQ_f]
-  (* In this case, the inner functions are equivalent *)
-  >> irule argmax_bool_mul_const
-  >> qexists ‘1’
-  >> gvs[]
-  >> rw[FUN_EQ_THM]
-  (* The function is equivalent *)
-  >> irule EXTREAL_SUM_IMAGE_EQ'
-  >> gvs[length_n_codes_ith_eq_codes_valid_inverse_codes]
-  >> rw[]
-  (*  *)
-       
-  
-  >> full_simp_tac map_decoder.ecc3_ss []
-  >> rw[]
-  (* P(cs) = Σ P(cs, σ) {σ}
-           = Σ (P(cs | σ))*)
-  (* The probability of *)
-  >> 
-QED*)
-
-(* -------------------------------------------------------------------------- *)
-(* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
-(* Theory:                                                                    *)
-(*                                                                            *)
-(* - MAP decoder = argmax p(b_s | ds)                                         *)
-(*               = argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs            *)
-(*               = argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''      *)
-(*   p(bs, cs_p, σs) = p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)                 *)
-(*                       p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...    *)
-(*   p(ds | bs, cs_p, σs) = Π P(d_i | c_i)                                    *)
-(* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
 (* A version of PROB_EMPTY which has been added to the stateful simpset       *)
 (* -------------------------------------------------------------------------- *)
 Theorem PROB_EMPTY_STATEFUL_SIMPSET[simp]:
@@ -752,46 +677,6 @@ QED
 (*    it already has a value                                                  *)
 (* x: the value of the variable which does not need to be summed out          *)
 (* -------------------------------------------------------------------------- *)
-(* OLD VERSION OF mdr_summed_out_values
-Definition mdr_summed_out_values_def:
-  mdr_summed_out_values (ps,qs) n ts i x =
-  {(bs, σs, cs_p) | LENGTH bs = n ∧
-                    EL i bs = x ∧
-                    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ∧
-                    cs_p = encode_recursive_parity_equation (ps,qs) ts bs
-                     }
-End
-*)
-
-(* -------------------------------------------------------------------------- *)
-(* An alternate form of mdr_summed_out_values which uses an IMAGE             *)
-(* -------------------------------------------------------------------------- *)
-(* OLD VERSION OF mdr_summed_out_values
-Theorem mdr_summed_out_values_alt:
-  ∀ps qs n ts i x.
-    mdr_summed_out_values (ps,qs) n ts i x =
-    IMAGE (λbs. (bs,
-                 encode_recursive_parity_equation_state_sequence (ps,qs) ts bs,
-                 encode_recursive_parity_equation (ps,qs) ts bs))
-          (length_n_codes n ∩ ith_eq_codes i x)
-Proof
-  gvs[mdr_summed_out_values_def]
-  >> ASM_SET_TAC[]
-QED
- *)
-
-(* -------------------------------------------------------------------------- *)
-(* A more accurate version of the values that are summed out: we sum out all  *)
-(* variables other than the one which has been chosen for the ith input       *)
-(*                                                                            *)
-(* ps: the numerator parity equation                                          *)
-(* qs: the denominator parity equation                                        *)
-(* n: the size of the input                                                   *)
-(* ts: the initial state                                                      *)
-(* i: the index of the variable which does not need to be summed out because  *)
-(*    it already has a value                                                  *)
-(* x: the value of the variable which does not need to be summed out          *)
-(* -------------------------------------------------------------------------- *)
 Definition mdr_summed_out_values_2_def:
   mdr_summed_out_values_2 n ts i x =
   (length_n_codes n ∩ ith_eq_codes i x)
@@ -819,44 +704,6 @@ Proof
   rw[mdr_summed_out_values_2_def, CROSS_DEF]
   >> ASM_SET_TAC[]
 QED
-
-(* -------------------------------------------------------------------------- *)
-(* Contains all values that are being summed out when using the factor graph  *)
-(* method for MAP decoding of recursive convolutional codes                   *)
-(*                                                                            *)
-(* n: the size of the input to the encoder                                    *)
-(* ts: the intial state of the encoder                                        *)
-(* -------------------------------------------------------------------------- *)
-(* OLD VERSION OF mdr_summed_out_values
-Definition mdr_summed_out_values_complete_def:
-  mdr_summed_out_values_complete n ts =
-  (length_n_codes n)
-  × (length_n_valid_state_sequences (n + 1) (LENGTH ts))
-  × (length_n_codes n)
-End
- *)
-
-(* -------------------------------------------------------------------------- *)
-(* An alternative form of mdr_summed_out_values_complete which is expressed   *)
-(* as a product of sets                                                       *)
-(*                                                                            *)
-(* Note: if this is used as the definition, then our definition has a wider   *)
-(* range of allowable types, which causes issues when we want to apply the    *)
-(* other definition but we don't know that we have the appropriate types.     *)
-(* -------------------------------------------------------------------------- *)
-(* OLD VERSION OF mdr_summed_out_values
-Theorem mdr_summed_out_values_complete_alt:
-  ∀n ts.
-    mdr_summed_out_values_complete n ts =
-    {(bs, σs, cs_p) | LENGTH bs = n ∧
-                      LENGTH σs = n + 1 ∧
-                      (∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts) ∧
-                      LENGTH cs_p = n}
-Proof
-  rw[mdr_summed_out_values_complete_def, CROSS_DEF]
-  >> ASM_SET_TAC[]
-QED
- *)
 
 (* -------------------------------------------------------------------------- *)
 (* The event that the parity bits for a systematic recursive convolutional    *)
@@ -1091,38 +938,6 @@ Proof
          event_input_string_starts_with_def]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* A correspondence between the input string taking a particular value and    *)
-(* the state sequence taking the sequence of values corresponding to that     *)
-(* input.                                                                     *)
-(* -------------------------------------------------------------------------- *)
-(*Theorem event_input_string_starts_with_event_state_sequence_starts_with:
-  ∀.
-    event_input_string_starts_with n m bs
-Proof
-QED*)
-
-(* OLD VERSION OF mdr_summed_out_values
-Theorem mdr_summed_out_values_subset_mdr_summed_out_values_complete:
-  ∀ps qs n ts i x.
-    (mdr_summed_out_values (ps,qs) n ts i x) ⊆ (mdr_summed_out_values_complete n ts)
-Proof
-  gvs[mdr_summed_out_values_def, mdr_summed_out_values_complete_alt]
-  >> rw[SUBSET_DEF]
-  >> rw[]
-  >> metis_tac[mem_encode_recursive_parity_equation_state_sequence_length]
-QED
- *)
-
-(* OLD VERSION OF mdr_summed_out_values
-Theorem finite_mdr_summed_out_values[simp]:
-  ∀ps qs n ts i x.
-    FINITE (mdr_summed_out_values (ps,qs) n ts i x)
-Proof
-  rw[mdr_summed_out_values_alt]
-QED
- *)
-
 Theorem finite_mdr_summed_out_values_2[simp]:
   ∀ps qs n ts i x.
     FINITE (mdr_summed_out_values_2 n ts i x)
@@ -1130,16 +945,6 @@ Proof
   rw[]
   >> gvs[mdr_summed_out_values_2_def]
 QED
-
-(* OLD VERSION OF mdr_summed_out_values
-Theorem finite_mdr_summed_out_values_complete[simp]:
-  ∀n ts.
-    FINITE (mdr_summed_out_values_complete n ts)
-Proof
-  rw[]
-  >> gvs[mdr_summed_out_values_complete_def]
-QED
- *)
 
 (* -------------------------------------------------------------------------- *)
 (* A version of BAYES_RULE which does not require prob p B ≠ 0, since HOL4    *)
@@ -1972,6 +1777,18 @@ QED
 
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
+
+(* -------------------------------------------------------------------------- *)
+(* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
+(* Theory:                                                                    *)
+(*                                                                            *)
+(* - MAP decoder = argmax p(b_s | ds)                                         *)
+(*               = argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs            *)
+(*               = argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''      *)
+(*   p(bs, cs_p, σs) = p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)                 *)
+(*                       p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...    *)
+(*   p(ds | bs, cs_p, σs) = Π P(d_i | c_i)                                    *)
+(* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
   ∀ps qs ts n m p ds.
     let
@@ -2111,66 +1928,6 @@ Proof
       >> irule (cj 1 COND_PROB_FINITE)
       >> gvs[]
      )
-  (* OUTDATED
-.
-Make our sum take all values over the input bitstring, the states,
-     and the parity bits, rather than just the valid choices, by giving each
-     term with invalid bitstring/states/parity bits a value of 0, so that it
-     doesn't affect the overall sum.
-.
-    First apply EXTREAL_SUM_IMAGE_IN_IF to change our term to the appropriate
-    term, then apply EXTREAL_SUM_IMAGE_INTER_ELIM in order to expand the set we
-    are summing over
-   *)
-  (*>> qmatch_goalsub_abbrev_tac ‘_ = RHS’
-      >> DEP_PURE_ONCE_REWRITE_TAC [EXTREAL_SUM_IMAGE_IN_IF]
-      >> simp[Abbr ‘RHS’]
-      >> conj_tac
-      >- (disj1_tac
-          >> rw[]
-          >> irule (cj 1 mul_not_infty2)
-          >> rpt conj_tac
-          >- gvs[]
-          >- gvs[]
-          >- (irule (cj 2 COND_PROB_FINITE)
-              >> gvs[]
-              >> namedCases_on ‘x'’ ["bs σs cs_p"]
-              >> irule EVENTS_INTER
-              >> gvs[]
-             )
-          >> irule (cj 1 COND_PROB_FINITE)
-          >> gvs[]
-          >> gvs[EVENTS_INTER]
-         )
-      >> sg ‘mdr_summed_out_values (ps, qs) n ts i x =
-             (mdr_summed_out_values_complete n ts)
-             ∩ mdr_summed_out_values (ps, qs) n ts i x
-            ’
-      >- (gvs[mdr_summed_out_values_def, mdr_summed_out_values_complete_alt]
-          >> rw[EXTENSION]
-          >> EQ_TAC
-      >> rw[] >> rw[]
-      >> metis_tac[mem_encode_recursive_parity_equation_state_sequence_length]
-     )
-  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_INTER_ELIM]
-  >> conj_tac
-  >- (rw[]
-      >> disj1_tac
-      >> rw[]
-      >> irule (cj 1 mul_not_infty2)
-      >> rpt conj_tac
-      >- gvs[]
-      >- gvs[]
-      >- (irule (cj 2 COND_PROB_FINITE)
-          >> gvs[]
-          >> namedCases_on ‘x'’ ["bs σs cs_p"]
-          >> irule EVENTS_INTER
-          >> gvs[]
-         )
-      >> irule (cj 1 COND_PROB_FINITE)
-      >> gvs[EVENTS_INTER]
-     )*)
   (* The function in the sum is the equivalent bit *)
   >> irule EXTREAL_SUM_IMAGE_EQ'
   >> gvs[]
@@ -2240,6 +1997,7 @@ Make our sum take all values over the input bitstring, the states,
   (* Introduce a variable b which tells us whether the current choice of
      (bs, σs, cs_p) is valid, or if it is self-contradictory (since a given
      choice of bs will correspond to only one specific choice of σs and cs_p) *)
+  (* 
   >> qabbrev_tac ‘b = ((bs, σs, cs_p) ∈ mdr_summed_out_values_2 n ts i x)’
   (* When the values being summed over are invalid (i.e. we have ¬b), then
      val2 will equal 0, so we can remove the if _ then _ else _.
@@ -2248,7 +2006,7 @@ Make our sum take all values over the input bitstring, the states,
      correspond to (bs, σs, cs_p) and also have the ith element of the input
      to be x, but when the values being summed over are invalid, we precisely
      know that at least one of these things is not the case.
-             *)
+   *)
   >> sg ‘¬b ⇒ val2 = 0’
   >- (rw[]
       >> unabbrev_all_tac
@@ -2258,17 +2016,18 @@ Make our sum take all values over the input bitstring, the states,
       >- gvs[]
       >> metis_tac[mdr_summed_out_values_mdr_summed_out_events_empty]
      )
+                         *)
   (* 
      Next step: p(ds | bs, cs_p, σs) = Π P(d_i | c_i)
 .
      That is, we split val1 up into a product of each individual received value
      given the corresponding sent value
-             *)
+    *)
   >> sg ‘b ⇒ val1 = TODO1’
   >- (unabbrev_all_tac
       >> rw[]
       >> gvs[mdr_summed_out_events_def]
-      (* The sent string taking a particular value abosorbs all other events
+      (* The sent string taking a particular value absorbs all other events
          in the denominator of the conditional probability *)
       >> gs[mdr_summed_out_values_def]
       >> gs[inter_input_state_sequence_eq_input]
@@ -2300,7 +2059,7 @@ Make our sum take all values over the input bitstring, the states,
 .
      Next step: split val2 up into p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)      
                 p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...
-             *)
+   *)
   >> sg ‘val2 = ARB’
   >- (unabbrev_all_tac
       >> gvs[event_input_bit_takes_value_mdr_summed_out_events_el_i_x]
