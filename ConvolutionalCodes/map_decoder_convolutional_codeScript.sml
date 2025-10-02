@@ -1782,12 +1782,12 @@ QED
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
 (* Theory:                                                                    *)
 (*                                                                            *)
-(* - MAP decoder = argmax p(b_s | ds)                                         *)
-(*               = argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs            *)
-(*               = argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''      *)
-(*   p(bs, cs_p, σs) = p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)                 *)
-(*                       p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...    *)
-(*   p(ds | bs, cs_p, σs) = Π P(d_i | c_i)                                    *)
+(* 1. MAP decoder = argmax p(b_s | ds)                                        *)
+(* 2.             = argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs           *)
+(* 3.             = argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''     *)
+(* 4.  p(bs, cs_p, σs) = p(σ_0)p(b_0)p(c_0_p,σ_1|b_0,σ_0)p(b_1)               *)
+(*                         p(c_1_p,σ_2|b_1,σ_1)p(b_2)p(c_2_p,σ_3|b_2,σ_2)...  *)
+(* 5.  p(ds | bs, cs_p, σs) = Π P(d_i | c_i)                                  *)
 (* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
   ∀ps qs ts n m p ds.
@@ -1806,6 +1806,10 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
           )
           (COUNT_LIST n)
 Proof
+  (* ------------------------------------------------------------------------ *)
+  (* Focus on proving that the inside of the argmax on the LHS is equal to    *)
+  (* the inside of the argmax on the RHS, up to a multiplicative constant.    *)
+  (* ------------------------------------------------------------------------ *)
   rw[]
   (* More standard properties showing that p represents a probability *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
@@ -1813,6 +1817,7 @@ Proof
   >> gvs[map_decoder_bitwise_def]
   (* We care about the inside of the MAP *)
   >> rw[MAP_EQ_f]
+  (* Simplify assumption *)
   >> gvs[MEM_COUNT_LIST]
   (* The function in argmax_bool differs by a multiplicative constant *)
   >> irule argmax_bool_mul_const
