@@ -1828,13 +1828,15 @@ Proof
   >> REVERSE conj_tac >- cheat
   (* Prove function equivalence when applied to all choices of x *)
   >> rw[FUN_EQ_THM]
-  (* For some reason, as I edited the theorem I was proving, this swapped
-     around *)
+  (* Flip the equality *)
   >> irule EQ_SYM
   (* Nicer names *)
   >> qmatch_abbrev_tac ‘C * cond_prob sp e1 e2 = RHS’
-  (* We are at the stage p(b_s | ds). Take a sum over σs, cs_p, and the
-      remaining elements of bs *)
+  (* ------------------------------------------------------------------------ *)
+  (* We are working with p(b_s | ds). The event e1 corresponds to b_s, and    *)
+  (* the event e2 corresponds to ds. To arrive at the next step, we need to   *)
+  (* sum over σs, cs_p, and the remaining elements of bs.                     *)
+  (* ------------------------------------------------------------------------ *)
   >> qspecl_then [‘sp’,
                   ‘mdr_summed_out_events (ps,qs) n (LENGTH ds) ts’,
                   ‘e1’,
@@ -1933,6 +1935,11 @@ Proof
       >> irule (cj 1 COND_PROB_FINITE)
       >> gvs[]
      )
+  (* ------------------------------------------------------------------------ *)
+  (* Focus on proving the equivalence of the inside of the sum                *)
+  (* TODO FINISH COMMENTS                                                     *)
+  (*                                                                          *)
+  (* ------------------------------------------------------------------------ *)
   (* The function in the sum is the equivalent bit *)
   >> irule EXTREAL_SUM_IMAGE_EQ'
   >> gvs[]
