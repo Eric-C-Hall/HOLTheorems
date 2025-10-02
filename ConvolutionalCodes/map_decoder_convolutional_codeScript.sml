@@ -2096,21 +2096,21 @@ Proof
      )
   (* Name the constant *)
   >> qmatch_abbrev_tac ‘C * ∑ _ _ = _’
-   (* Prove some helpful, reusable properties *)
-   >> sg ‘C ≠ −∞’ >- cheat
-   >> sg ‘C ≠ +∞’ >- cheat
-   (* Move the constant into the sum *)
-   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
-   >> conj_tac
-   >- (rpt conj_tac
-       >- gvs[]
-       >- gvs[]
-       >- gvs[]
-       >> disj2_tac
-       >> rw[]
-       >> irule (cj 1 COND_PROB_FINITE)
-       >> gvs[]
-      )
+  (* Prove some helpful, reusable properties *)
+  >> sg ‘C ≠ −∞’ >- cheat
+  >> sg ‘C ≠ +∞’ >- cheat
+  (* Move the constant into the sum *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- gvs[]
+      >- gvs[]
+      >- gvs[]
+      >> disj2_tac
+      >> rw[]
+      >> irule (cj 1 COND_PROB_FINITE)
+      >> gvs[]
+     )
   (* OUTDATED
 .
 Make our sum take all values over the input bitstring, the states,
