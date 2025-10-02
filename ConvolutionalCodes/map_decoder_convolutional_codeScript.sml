@@ -752,6 +752,7 @@ QED
 (*    it already has a value                                                  *)
 (* x: the value of the variable which does not need to be summed out          *)
 (* -------------------------------------------------------------------------- *)
+(* OLD VERSION OF mdr_summed_out_values
 Definition mdr_summed_out_values_def:
   mdr_summed_out_values (ps,qs) n ts i x =
   {(bs, σs, cs_p) | LENGTH bs = n ∧
@@ -760,10 +761,12 @@ Definition mdr_summed_out_values_def:
                     cs_p = encode_recursive_parity_equation (ps,qs) ts bs
                      }
 End
+*)
 
 (* -------------------------------------------------------------------------- *)
 (* An alternate form of mdr_summed_out_values which uses an IMAGE             *)
 (* -------------------------------------------------------------------------- *)
+(* OLD VERSION OF mdr_summed_out_values
 Theorem mdr_summed_out_values_alt:
   ∀ps qs n ts i x.
     mdr_summed_out_values (ps,qs) n ts i x =
@@ -775,6 +778,7 @@ Proof
   gvs[mdr_summed_out_values_def]
   >> ASM_SET_TAC[]
 QED
+ *)
 
 (* -------------------------------------------------------------------------- *)
 (* A more accurate version of the values that are summed out: we sum out all  *)
@@ -823,12 +827,14 @@ QED
 (* n: the size of the input to the encoder                                    *)
 (* ts: the intial state of the encoder                                        *)
 (* -------------------------------------------------------------------------- *)
+(* OLD VERSION OF mdr_summed_out_values
 Definition mdr_summed_out_values_complete_def:
   mdr_summed_out_values_complete n ts =
   (length_n_codes n)
   × (length_n_valid_state_sequences (n + 1) (LENGTH ts))
   × (length_n_codes n)
 End
+ *)
 
 (* -------------------------------------------------------------------------- *)
 (* An alternative form of mdr_summed_out_values_complete which is expressed   *)
@@ -838,6 +844,7 @@ End
 (* range of allowable types, which causes issues when we want to apply the    *)
 (* other definition but we don't know that we have the appropriate types.     *)
 (* -------------------------------------------------------------------------- *)
+(* OLD VERSION OF mdr_summed_out_values
 Theorem mdr_summed_out_values_complete_alt:
   ∀n ts.
     mdr_summed_out_values_complete n ts =
@@ -849,6 +856,7 @@ Proof
   rw[mdr_summed_out_values_complete_def, CROSS_DEF]
   >> ASM_SET_TAC[]
 QED
+ *)
 
 (* -------------------------------------------------------------------------- *)
 (* The event that the parity bits for a systematic recursive convolutional    *)
@@ -1094,6 +1102,7 @@ QED
 Proof
 QED*)
 
+(* OLD VERSION OF mdr_summed_out_values
 Theorem mdr_summed_out_values_subset_mdr_summed_out_values_complete:
   ∀ps qs n ts i x.
     (mdr_summed_out_values (ps,qs) n ts i x) ⊆ (mdr_summed_out_values_complete n ts)
@@ -1103,13 +1112,16 @@ Proof
   >> rw[]
   >> metis_tac[mem_encode_recursive_parity_equation_state_sequence_length]
 QED
+ *)
 
+(* OLD VERSION OF mdr_summed_out_values
 Theorem finite_mdr_summed_out_values[simp]:
   ∀ps qs n ts i x.
     FINITE (mdr_summed_out_values (ps,qs) n ts i x)
 Proof
   rw[mdr_summed_out_values_alt]
 QED
+ *)
 
 Theorem finite_mdr_summed_out_values_2[simp]:
   ∀ps qs n ts i x.
@@ -1119,6 +1131,7 @@ Proof
   >> gvs[mdr_summed_out_values_2_def]
 QED
 
+(* OLD VERSION OF mdr_summed_out_values
 Theorem finite_mdr_summed_out_values_complete[simp]:
   ∀n ts.
     FINITE (mdr_summed_out_values_complete n ts)
@@ -1126,6 +1139,7 @@ Proof
   rw[]
   >> gvs[mdr_summed_out_values_complete_def]
 QED
+ *)
 
 (* -------------------------------------------------------------------------- *)
 (* A version of BAYES_RULE which does not require prob p B ≠ 0, since HOL4    *)
@@ -2226,7 +2240,7 @@ Make our sum take all values over the input bitstring, the states,
   (* Introduce a variable b which tells us whether the current choice of
      (bs, σs, cs_p) is valid, or if it is self-contradictory (since a given
      choice of bs will correspond to only one specific choice of σs and cs_p) *)
-  >> qabbrev_tac ‘b = ((bs, σs, cs_p) ∈ mdr_summed_out_values (ps,qs) n ts i x)’
+  >> qabbrev_tac ‘b = ((bs, σs, cs_p) ∈ mdr_summed_out_values_2 n ts i x)’
   (* When the values being summed over are invalid (i.e. we have ¬b), then
      val2 will equal 0, so we can remove the if _ then _ else _.
 .
@@ -2241,10 +2255,7 @@ Make our sum take all values over the input bitstring, the states,
       >> gvs[]
       >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
       >> conj_tac
-      >- (gvs[]
-          >> irule EVENTS_INTER
-          >> gvs[]
-         )
+      >- gvs[]
       >> metis_tac[mdr_summed_out_values_mdr_summed_out_events_empty]
      )
   (* 
