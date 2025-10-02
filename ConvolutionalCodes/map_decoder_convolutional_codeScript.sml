@@ -2032,16 +2032,28 @@ Proof
       >> namedCases_on ‘i1’ ["bs1 σs1 cs1_p"]
       >> namedCases_on ‘i2’ ["bs2 σs2 cs2_p"]
       >> gvs[]
-      (* If bs1 ≠ bs2, then the first part is disjoint *)
+      (* If bs1 ≠ bs2, then the input string event is disjoint *)
       >> Cases_on ‘bs1 ≠ bs2’
-      >- gvs[mdr_summed_out_events_def, event_input_string_starts_with_def]
+      >- (gvs[mdr_summed_out_events_def, event_input_string_starts_with_def,
+              mdr_summed_out_values_2_alt]
+          >> disj1_tac >> disj1_tac
+          >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+         )
       >> gvs[]
       (* If σs1 ≠ σs2, then the next part is disjoint *)
       >> Cases_on ‘σs1 ≠ σs2’
-      >- gvs[mdr_summed_out_events_def, event_state_sequence_starts_with_def]
+      >- (gvs[mdr_summed_out_events_def, event_state_sequence_starts_with_def,
+              mdr_summed_out_values_2_alt]
+          >> disj1_tac
+          >> metis_tac[IS_PREFIX_LENGTH_ANTI,
+                       encode_recursive_parity_equation_state_sequence_length]
+         )
       >> gvs[]
       (* We have cs1_p ≠ cs2_p, and so the final part is disjoint *)
-      >> gvs[mdr_summed_out_events_def, event_srcc_parity_string_starts_with_def]
+      >> gvs[mdr_summed_out_events_def, event_srcc_parity_string_starts_with_def,
+             mdr_summed_out_values_2_alt]
+      >> metis_tac[IS_PREFIX_LENGTH_ANTI,
+                   encode_recursive_parity_equation_length]
      )
   (* The numerator of the conditional probability (i.e. the intersection of the
      two events in the conditional probability) is contained in the union of
@@ -2070,22 +2082,21 @@ Proof
      )
   (* Name the constant *)
   >> qmatch_abbrev_tac ‘C * ∑ _ _ = _’
-  (* Prove some helpful, reusable properties *)
-  >> sg ‘C ≠ −∞’ >- cheat
-  >> sg ‘C ≠ +∞’ >- cheat
-  (* Move the constant into the sum *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
-  >> conj_tac
-  >- (rpt conj_tac
-      >- gvs[]
-      >- gvs[]
-      >- gvs[]
-      >> disj2_tac
-      >> rw[]
-      >> irule (cj 1 COND_PROB_FINITE)
-      >> gvs[]
-      >> irule EVENTS_INTER >> gvs[]
-     )
+   (* Prove some helpful, reusable properties *)
+   >> sg ‘C ≠ −∞’ >- cheat
+   >> sg ‘C ≠ +∞’ >- cheat
+   (* Move the constant into the sum *)
+   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
+   >> conj_tac
+   >- (rpt conj_tac
+       >- gvs[]
+       >- gvs[]
+       >- gvs[]
+       >> disj2_tac
+       >> rw[]
+       >> irule (cj 1 COND_PROB_FINITE)
+       >> gvs[]
+      )
   (* OUTDATED
 .
 Make our sum take all values over the input bitstring, the states,
