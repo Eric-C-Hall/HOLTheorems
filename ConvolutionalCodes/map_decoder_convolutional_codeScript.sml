@@ -761,6 +761,12 @@ Definition event_input_state_parity_def:
   ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p)
 End
 
+Definition input_state_parity_valid_def:
+  input_state_parity_valid (ps,qs) ts (bs, σs, cs_p) =
+  ((σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs) ∧
+   (cs_p = encode_recursive_parity_equation (ps,qs) ts bs))
+End
+
 (* -------------------------------------------------------------------------- *)
 (* These intersection theorems are only helpful if we don't know that our     *)
 (* encoding function is injective, because otherwise we could simply use the  *)
@@ -934,7 +940,8 @@ Proof
   >> namedCases_on ‘psqs’ ["ps qs"]
   >> namedCases_on ‘bsσscs_p’ ["bs σs cs_p"]
   >> rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-  >> gvs[mdr_summeevent_input_state_parity      event_input_string_starts_with_def]
+  >> gvs[event_input_state_parity_def]
+  >> gvs[event_input_string_starts_with_def]
 QED
 
 Theorem finite_mdr_summed_out_values_2[simp]:
@@ -1224,21 +1231,58 @@ Proof
                                             el_encode_recursive_parity_equation_state_sequence]
 QED
 
-Theorem event_input_string_starts_with_inter_event_input_bit_takes_value[simp]:
-  ∀n m bs i.
-    i < LENGTH bs ⇒
-    (event_input_string_starts_with n m bs)
-    ∩ (event_input_bit_takes_value n m i (EL i bs)) =
-    event_input_string_starts_with n m bs
+(* -------------------------------------------------------------------------- *)
+(* TODO: Add this better version of is_prefix_el to the library               *)
+(* -------------------------------------------------------------------------- *)
+Theorem is_prefix_el_better:
+  ∀n l1 l2.
+    l1 ≼ l2 ∧
+    n < LENGTH l1 ⇒
+    EL n l1 = EL n l2
 Proof
-  rw[event_input_string_starts_with_def,
-     event_input_bit_takes_value_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[]
-  >> irule EQ_SYM
+  rw[]
   >> irule is_prefix_el
   >> gvs[]
-  >> ‘LENGTH bs ≤ LENGTH bs'’ by metis_tac[IS_PREFIX_LENGTH]
-  >> decide_tac
+  >> metis_tac[IS_PREFIX_LENGTH, LESS_LESS_EQ_TRANS]
+QED
+
+Theorem event_input_string_starts_with_inter_event_input_bit_takes_value:
+  ∀n m bs i x.
+    i < LENGTH bs ⇒
+    (event_input_string_starts_with n m bs)
+    ∩ (event_input_bit_takes_value n m i x) =
+    if x = EL i bs
+    then
+      event_input_string_starts_with n m bs
+    else
+      ∅
+Proof
+  rpt gen_tac
+  >> rpt disch_tac
+  >> gvs[event_input_string_starts_with_def,
+         event_input_bit_takes_value_def]
+  >> rw[EXTENSION]
+  >- (EQ_TAC >> rw[]
+      >> gvs[is_prefix_el_better]
+     )
+  >> CCONTR_TAC
+  >> gvs[is_prefix_el_better]
+QED
+
+(* A version of the above theorem which will only simplify, and not make the
+   expression more complicated, and thus can be used as a simp rule *)
+Theorem event_input_string_starts_with_inter_event_input_bit_takes_value_simp_rule[simp]:
+  ∀n m bs i x.
+    (i < LENGTH bs ∧ x = EL i bs ⇒
+     (event_input_string_starts_with n m bs)
+     ∩ (event_input_bit_takes_value n m i x) =
+     event_input_string_starts_with n m bs) ∧
+    (i < LENGTH bs ∧ x ≠ EL i bs ⇒
+     (event_input_string_starts_with n m bs)
+     ∩ (event_input_bit_takes_value n m i x) =
+     ∅)
+Proof
+  rw[event_input_string_starts_with_inter_event_input_bit_takes_value]
 QED
 
 Theorem event_state_sequence_starts_with_inter_event_state_takes_value[simp]:
@@ -1780,6 +1824,30 @@ QED
 (* Possible improvement: can we remove some of these assumptions, especially
    LENGTH ps = LENGTH ts + 1?*)
 
+Theorem event_input_bit_takes_value_inter_event_input_state_parity:
+  ∀n m i x ps qs ts bs σs cs_p.
+    i < LENGTH bs ⇒
+    (event_input_bit_takes_value n m i x)
+    ∩ (event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p)) =
+    if
+    (EL i bs = x)
+    then
+      event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p)
+    else
+      ∅
+Proof
+  rpt gen_tac
+  >> disch_tac
+  >> gvs[event_input_state_parity_def]
+  >> qmatch_goalsub_abbrev_tac ‘ev_ib ∩ (ev_is ∩ ev_ssq ∩ ev_pa)’
+  >> Q.SUBGOAL_THEN ‘ev_ib ∩ (ev_is ∩ ev_ssq ∩ ev_pa) =
+                     (ev_is ∩ ev_ib) ∩ ev_ssq ∩ ev_pa’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- gvs[AC INTER_COMM INTER_ASSOC]
+  >> unabbrev_all_tac
+  >> rw[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
 (* Theory:                                                                    *)
@@ -1988,19 +2056,23 @@ Proof
   >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
   >> simp[Abbr ‘C’, Abbr ‘val3’]
   >> qmatch_abbrev_tac ‘C * val1 * val2 = _’
-  (*
+  (* TODO FIX THE GENERAL IDEA HERE IS THAT IN THE SPEICAL CASE WHERE OUR
+     BS ΣS CS_P IS INVALID, VAL2 WILL BE 0, IN WHICH CASE THE LEFT AND RIGHT
+     WILL BE ZERO. ITS IMPORTANT TO HANDLE THIS BECAUSE VAL1 WILL BE INVALID.
+  >> sg ‘input_state_pariry_valid (ps,qs) ts (bs, σs, cs_p)’
   (* Introduce a variable b which tells us whether the current choice of
      (bs, σs, cs_p) is valid, or if it is self-contradictory (since a given
      choice of bs will correspond to only one specific choice of σs and cs_p) *) 
-  >> qabbrev_tac ‘b = ((bs, σs, cs_p) ∈ mdr_summed_out_values_2 n ts i x)’
+  >> qabbrev_tac ‘b = input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
   (* When the values being summed over are invalid (i.e. we have ¬b), then
-     val2 will equal 0, so we can remove the if _ then _ else _.
+     val2 will equal 0. 
+, so we can remove the if _ then _ else _.
 .
      This is because the event in val2 requries an element of the event to
      correspond to (bs, σs, cs_p) and also have the ith element of the input
      to be x, but when the values being summed over are invalid, we precisely
      know that at least one of these things is not the case.
-   *)
+                  *)
   >> sg ‘¬b ⇒ val2 = 0’
   >- (rw[]
       >> unabbrev_all_tac
@@ -2010,7 +2082,7 @@ Proof
       >- gvs[]
       >> metis_tac[mdr_summed_out_values_event_input_state_parity_empty]
      )
-  *)
+   *)
   (* ------------------------------------------------------------------------ *)
   (* We are currently up to step 4: split the probability of a given input,   *)
   (* state sequence and output into probabilities based on the transitions    *)
@@ -2021,7 +2093,7 @@ Proof
   (*                                                                          *)
   (* This is what is proven in split_mdr_events_prob.                         *)
   (* ------------------------------------------------------------------------ *)
-  >> sg ‘val2 = TODO1’
+  >> sg ‘val2 = TODO2’
   >- (unabbrev_all_tac
       >> gvs[event_input_bit_takes_value_event_input_state_parity_el_i_x,
              mdr_summed_out_values_2_def]
@@ -2037,13 +2109,26 @@ Proof
   (*                                                                          *)
   (* We are splitting val1 up.                                                *)
   (* ------------------------------------------------------------------------ *)
-  >> sg ‘val1 = TODO2’
+  >> sg ‘input_state_parity_valid (ps,qs) ts (bs, σs, cs_p) ⇒ val1 = TODO1’
   >- (unabbrev_all_tac
       (* As a first step, we're going to want to head towards
          p(ds | cs_p), so get rid of the input bit events and the state
          events. *)
       >> gvs[event_input_state_parity_def]
       >> gs[mdr_summed_out_values_2_def]
+      (* Merge the event that a certain input bit takes a value into the
+         event that an input string takes a value *)
+      >> qmatch_goalsub_abbrev_tac ‘ev_in_b ∩ (ev_in_s ∩ ev_st ∩ ev_pa)’
+      >> Q.SUBGOAL_THEN ‘ev_in_b ∩ (ev_in_s ∩ ev_st ∩ ev_pa) = (ev_in_b ∩ ev_in_s) ∩ ev_st ∩ ev_pa’
+          (fn th => PURE_REWRITE_TAC[th])
+      >- gvs[AC INTER_COMM INTER_ASSOC]
+      >> Q.SUBGOAL_THEN ‘ev_in_b ∩ ev_in_s = ev_in_s’
+          (fn th => PURE_REWRITE_TAC[th])
+      >- (unabbrev_all_tac
+          >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+          >> sg ‘x ⇔ EL i bs’ >> gvs[]
+          (*event_input_string_starts_with_inter_event_input_bit_takes_value *)
+         )
       (* *)
       >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_state_sequence_eq_input]
       >> conj_tac >- gs[]

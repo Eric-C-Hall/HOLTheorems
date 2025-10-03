@@ -12,6 +12,8 @@ Libs dep_rewrite;
 
 (* EXTREAL_PROD_IMAGE_THM *)
 
+(* If I worked on polarity search, is there potential for novelty in that direction? *)
+
 (* -------------------------------------------------------------------------- *)
 (* ALREADY DISCUSSED:                                                         *)
 (* -------------------------------------------------------------------------- *)
