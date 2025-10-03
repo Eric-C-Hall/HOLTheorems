@@ -6,6 +6,10 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Shandong tutoring *)
+
+(* What would I do if I did an internship *)
+
 (* EXTREAL_PROD_IMAGE_THM *)
 
 (* -------------------------------------------------------------------------- *)

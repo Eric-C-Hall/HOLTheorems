@@ -754,8 +754,8 @@ End
 (*                                                                            *)
 (* We sum over various choices of bs, σs, and cs_p                            *)
 (* -------------------------------------------------------------------------- *)
-Definition mdr_summed_out_events_def:
-  mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p) =
+Definition event_input_state_parity_def:
+  event_input_state_parity (ps,qs) n m ts (bs, σs, cs_p) =
   (event_input_string_starts_with n m bs)
   ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs)
   ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p)
@@ -925,17 +925,16 @@ Proof
   >> gvs[]
 QED
 
-Theorem mdr_summed_out_events_is_event[simp]:
+Theorem event_input_state_parity_is_event[simp]:
   ∀psqs n m p ts bsσscs_p.
-    mdr_summed_out_events psqs n m ts bsσscs_p
-                          ∈ events (ecc_bsc_prob_space n m p)
+    event_input_state_parity psqs n m ts bsσscs_p
+                 ∈ events (ecc_bsc_prob_space n m p)
 Proof
   rw[]
   >> namedCases_on ‘psqs’ ["ps qs"]
   >> namedCases_on ‘bsσscs_p’ ["bs σs cs_p"]
   >> rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-  >> gvs[mdr_summed_out_events_def,
-         event_input_string_starts_with_def]
+  >> gvs[mdr_summeevent_input_state_parity      event_input_string_starts_with_def]
 QED
 
 Theorem finite_mdr_summed_out_values_2[simp]:
@@ -950,6 +949,9 @@ QED
 (* A version of BAYES_RULE which does not require prob p B ≠ 0, since HOL4    *)
 (* treats undefined values as having a value of the appropriate type, and so  *)
 (* an undefined value multiplied by zero is equal to zero, not undefined.     *)
+(*                                                                            *)
+(* The old implementation of bayes rule has been updated to not require       *)
+(* prob p B ≠ 0, so this version of the theorem is no longer necessary        *)
 (* -------------------------------------------------------------------------- *)
 Theorem BAYES_RULE_GENERALIZED:
   ∀p A B.
@@ -978,18 +980,18 @@ QED
 (* is hurting more than it's helping.                                         *)
 (* -------------------------------------------------------------------------- *)
 (* TODO: fix this
-Theorem mdr_summed_out_values_mdr_summed_out_events:
+Theorem mdr_summed_out_values_event_input_state_parity:
   ∀ps qs n m ts i x bs σs cs_p.
     (bs, σs, cs_p) ∈ mdr_summed_out_values (ps,qs) n ts i x ⇔
       (event_input_bit_takes_value n m i x)
-      ∩ (mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p)) =
+      ∩ (event_input_state_parity (ps,qs) n m ts (bs, σs, cs_p)) =
       {(bs, ns) | ns | LENGTH ns = m}
 Proof
   (* This proof could probably be made neater *)
   rw[]
   >> EQ_TAC >> rw[]
   >- (gvs[mdr_summed_out_values_def,
-          mdr_summed_out_events_def,
+          event_input_state_parity_def,
           event_input_bit_takes_value_def,
           event_input_string_starts_with_def,
           event_state_sequence_starts_with_def,
@@ -1001,7 +1003,7 @@ Proof
   >> gvs[]
   >> gvs[event_input_bit_takes_value_def]
   >> gvs[mdr_summed_out_values_def,
-         mdr_summed_out_events_def,
+         event_input_state_parity_def,
          event_input_bit_takes_value_def,
          event_input_string_starts_with_def,
          event_state_sequence_starts_with_def,
@@ -1011,12 +1013,12 @@ QED*)
 (* Possible improvement: remove assumption that LENGTH bs = n (also remove
    this assumption from theorems this depends on) *)
 (* TODO: Fix this 
-Theorem mdr_summed_out_values_mdr_summed_out_events_empty:
+Theorem mdr_summed_out_values_event_input_state_parity_empty:
   ∀ps qs n m ts i x bs σs cs_p.
     LENGTH bs = n ⇒
     ((bs, σs, cs_p) ∉ mdr_summed_out_values (ps,qs) n ts i x ⇔
        (event_input_bit_takes_value n m i x)
-       ∩ (mdr_summed_out_events (ps,qs) n m ts (bs, σs, cs_p)) = ∅)
+       ∩ (event_input_state_parity (ps,qs) n m ts (bs, σs, cs_p)) = ∅)
 Proof
   (* This proof is a little messy and could be improved *)
   rw[]
@@ -1028,13 +1030,13 @@ Proof
   >> unabbrev_all_tac
   >> EQ_TAC
   >- (rw[]
-      >> drule (iffLR mdr_summed_out_values_mdr_summed_out_events)
+      >> drule (iffLR mdr_summed_out_values_event_input_state_parity)
       >> rw[]
       >> rw[EXTENSION]
       >> metis_tac[LENGTH_REPLICATE]
      )
   >> rw[]
-  >> irule (iffRL mdr_summed_out_values_mdr_summed_out_events)
+  >> irule (iffRL mdr_summed_out_values_event_input_state_parity)
   >> qexists ‘m’
   >> gvs[]
   >> gvs[EXTENSION]
@@ -1043,7 +1045,7 @@ Proof
   >- (rw[]
       >> Cases_on ‘x''’
       >> gvs[event_input_bit_takes_value_def,
-             mdr_summed_out_events_def]
+             event_input_state_parity_def]
       >> gvs[event_state_sequence_starts_with_def,
              event_srcc_parity_string_starts_with_def]
       >> rpt (pop_assum mp_tac)
@@ -1056,7 +1058,7 @@ Proof
      )
   >> rw[]
   >> gvs[mdr_summed_out_values_def,
-         mdr_summed_out_events_def,
+         event_input_state_parity_def,
          event_input_bit_takes_value_def,
          event_input_string_starts_with_def,
          event_state_sequence_starts_with_def,
@@ -1066,17 +1068,17 @@ QED*)
 
 (* Possible improvement: remove assumption that LENGTH bs = n (also remove
    this assumption from theorems this depends on) *)
-Theorem event_input_bit_takes_value_mdr_summed_out_events_el_i_x:
+Theorem event_input_bit_takes_value_event_input_state_parity_el_i_x:
   ∀n m i x ps qs ts bs σs cs_p.
     LENGTH bs = n ∧
     EL i bs = x ⇒
     (event_input_bit_takes_value n m i x)
-    ∩ (mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)) =
-    mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)
+    ∩ (event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p)) =
+    event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p)
 Proof
   rw[]
   >> gvs[event_input_bit_takes_value_def,
-         mdr_summed_out_events_def,
+         event_input_state_parity_def,
          event_input_string_starts_with_def,
          event_state_sequence_starts_with_def,
          event_srcc_parity_string_starts_with_def]
@@ -1426,7 +1428,7 @@ Theorem split_mdr_events_prob:
     LENGTH σs = n + 1 ∧
     LENGTH cs_p = n ⇒
     prob (ecc_bsc_prob_space n m p)
-         (mdr_summed_out_events (ps,qs) n m ts (bs,σs,cs_p)) =
+         (event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p)) =
     ∏ (λi.
          prob (ecc_bsc_prob_space n m p)
               (event_input_bit_takes_value n m i (EL i bs))
@@ -1760,7 +1762,7 @@ Proof
       >> gvs[EL_SNOC]
      )         
   (* Step 4: Combine the subtheorems to arrive at the final result *)
-  >> gvs[mdr_summed_out_events_def]
+  >> gvs[event_input_state_parity_def]
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> conj_tac
   >- gvs[le_lt]
@@ -1838,7 +1840,7 @@ Proof
   (* sum over σs, cs_p, and the remaining elements of bs.                     *)
   (* ------------------------------------------------------------------------ *)
   >> qspecl_then [‘sp’,
-                  ‘mdr_summed_out_events (ps,qs) n (LENGTH ds) ts’,
+                  ‘event_input_state_parity (ps,qs) n (LENGTH ds) ts’,
                   ‘e1’,
                   ‘e2’,
                   ‘mdr_summed_out_values_2 n ts i x’] assume_tac COND_PROB_EXTREAL_SUM_IMAGE_FN
@@ -1872,7 +1874,7 @@ Proof
       >> gvs[]
       (* If bs1 ≠ bs2, then the input string event is disjoint *)
       >> Cases_on ‘bs1 ≠ bs2’
-      >- (gvs[mdr_summed_out_events_def, event_input_string_starts_with_def,
+      >- (gvs[event_input_state_parity_def, event_input_string_starts_with_def,
               mdr_summed_out_values_2_alt]
           >> disj1_tac >> disj1_tac
           >> metis_tac[IS_PREFIX_LENGTH_ANTI]
@@ -1880,7 +1882,7 @@ Proof
       >> gvs[]
       (* If σs1 ≠ σs2, then the next part is disjoint *)
       >> Cases_on ‘σs1 ≠ σs2’
-      >- (gvs[mdr_summed_out_events_def, event_state_sequence_starts_with_def,
+      >- (gvs[event_input_state_parity_def, event_state_sequence_starts_with_def,
               mdr_summed_out_values_2_alt]
           >> disj1_tac
           >> metis_tac[IS_PREFIX_LENGTH_ANTI,
@@ -1888,7 +1890,7 @@ Proof
          )
       >> gvs[]
       (* We have cs1_p ≠ cs2_p, and so the final part is disjoint *)
-      >> gvs[mdr_summed_out_events_def, event_srcc_parity_string_starts_with_def,
+      >> gvs[event_input_state_parity_def, event_srcc_parity_string_starts_with_def,
              mdr_summed_out_values_2_alt]
       >> metis_tac[IS_PREFIX_LENGTH_ANTI,
                    encode_recursive_parity_equation_length]
@@ -1913,7 +1915,7 @@ Proof
           >> rw[]
           >> metis_tac[mem_encode_recursive_parity_equation_state_sequence_length]
          )
-      >> gs[mdr_summed_out_events_def,
+      >> gs[event_input_state_parity_def,
             event_input_string_starts_with_def,
             event_state_sequence_starts_with_def,
             event_srcc_parity_string_starts_with_def]
@@ -1937,22 +1939,20 @@ Proof
      )
   (* ------------------------------------------------------------------------ *)
   (* Focus on proving the equivalence of the inside of the sum                *)
-  (* TODO FINISH COMMENTS                                                     *)
-  (*                                                                          *)
   (* ------------------------------------------------------------------------ *)
-  (* The function in the sum is the equivalent bit *)
   >> irule EXTREAL_SUM_IMAGE_EQ'
   >> gvs[]
   >> qx_gen_tac ‘w’
   >> disch_tac
   >> namedCases_on ‘w’ ["bs σs cs_p"]
-  (* We are currently up to the step
-     argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs.
-     Next step:
-     argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
-.
-     That is, we apply Bayes' rule here
-   *)
+  (* ------------------------------------------------------------------------ *)
+  (* We have completed step 2, and are now on to step 3.                      *)
+  (*                                                                          *)
+  (* That is, we have argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs,        *)
+  (* and we want argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''        *)
+  (*                                                                          *)
+  (* That is, we apply Bayes' rule here.                                      *)
+  (* ------------------------------------------------------------------------ *)
   >> DEP_PURE_ONCE_REWRITE_TAC[BAYES_RULE_GENERALIZED]
   >> conj_tac
   >- (rpt conj_tac
@@ -1961,24 +1961,6 @@ Proof
       >- (irule EVENTS_INTER >> gvs[]
          )
       >- gvs[]
-     (*>> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
-             >> conj_tac
-             >- (gvs[]
-                 >> irule EVENTS_INTER >> gvs[]
-                )
-             >> gvs[EXTENSION]
-             >> namedCases_on ‘w’ ["bs σs cs_p"] >> gvs[]
-             >> gvs[mdr_summed_out_events_def]
-             >> qexists ‘(bs, REPLICATE (LENGTH ds) F)’
-             >> rpt conj_tac
-             >- gvs[event_input_bit_takes_value_def,
-                    mdr_summed_out_values_def]
-             >- gvs[event_input_string_starts_with_def,
-                    mdr_summed_out_values_def]
-             >- gvs[event_state_sequence_starts_with_def,
-                    mdr_summed_out_values_def]
-             >> gvs[event_srcc_parity_string_starts_with_def,
-                    mdr_summed_out_values_def]*)
      )
   (* Merge the constant part into the constant *)
   >> qmatch_goalsub_abbrev_tac ‘C * (val1 * val2 / val3)’
@@ -2006,10 +1988,10 @@ Proof
   >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
   >> simp[Abbr ‘C’, Abbr ‘val3’]
   >> qmatch_abbrev_tac ‘C * val1 * val2 = _’
+  (*
   (* Introduce a variable b which tells us whether the current choice of
      (bs, σs, cs_p) is valid, or if it is self-contradictory (since a given
-     choice of bs will correspond to only one specific choice of σs and cs_p) *)
-  (* 
+     choice of bs will correspond to only one specific choice of σs and cs_p) *) 
   >> qabbrev_tac ‘b = ((bs, σs, cs_p) ∈ mdr_summed_out_values_2 n ts i x)’
   (* When the values being summed over are invalid (i.e. we have ¬b), then
      val2 will equal 0, so we can remove the if _ then _ else _.
@@ -2026,24 +2008,48 @@ Proof
       >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
       >> conj_tac
       >- gvs[]
-      >> metis_tac[mdr_summed_out_values_mdr_summed_out_events_empty]
+      >> metis_tac[mdr_summed_out_values_event_input_state_parity_empty]
      )
-                         *)
-  (* 
-     Next step: p(ds | bs, cs_p, σs) = Π P(d_i | c_i)
-.
-     That is, we split val1 up into a product of each individual received value
-     given the corresponding sent value
-    *)
-  >> sg ‘b ⇒ val1 = TODO1’
+  *)
+  (* ------------------------------------------------------------------------ *)
+  (* We are currently up to step 4: split the probability of a given input,   *)
+  (* state sequence and output into probabilities based on the transitions    *)
+  (* through the state machine. That is:                                      *)
+  (*                                                                          *)
+  (* val2 = p(σ_0)p(b_0)p(c_0_p,σ_1|b_0,σ_0)p(b_1)p(c_1_p,σ_2|b_1,σ_1)p(b_2)  *)
+  (* p(c_2_p,σ_3|b_2,σ_2)...                                                  *)
+  (*                                                                          *)
+  (* This is what is proven in split_mdr_events_prob.                         *)
+  (* ------------------------------------------------------------------------ *)
+  >> sg ‘val2 = TODO1’
   >- (unabbrev_all_tac
-      >> rw[]
-      >> gvs[mdr_summed_out_events_def]
-      (* The sent string taking a particular value absorbs all other events
-         in the denominator of the conditional probability *)
-      >> gs[mdr_summed_out_values_def]
-      >> gs[inter_input_state_sequence_eq_input]
-      >> gs[inter_input_parity_eq_sent]
+      >> gvs[event_input_bit_takes_value_event_input_state_parity_el_i_x,
+             mdr_summed_out_values_2_def]
+      >> gvs[split_mdr_events_prob]
+      >> cheat
+     )
+  >> gvs[]
+  (* ------------------------------------------------------------------------ *)
+  (* We are now up to step 5: split the probability of an error over the      *)
+  (* channel up into the individual probabilities of an error in each bit.    *)
+  (*                                                                          *)
+  (* That is, p(ds | bs, cs_p, σs) = Π P(d_i | c_i)                           *)
+  (*                                                                          *)
+  (* We are splitting val1 up.                                                *)
+  (* ------------------------------------------------------------------------ *)
+  >> sg ‘val1 = TODO2’
+  >- (unabbrev_all_tac
+      (* As a first step, we're going to want to head towards
+         p(ds | cs_p), so get rid of the input bit events and the state
+         events. *)
+      >> gvs[event_input_state_parity_def]
+      >> gs[mdr_summed_out_values_2_def]
+      (* *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_state_sequence_eq_input]
+      >> conj_tac >- gs[]
+      >> Cases_on ‘cs_p = encode_recursive_parity_equation (ps,qs) ts bs’
+      >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_parity_eq_sent]
+      >> conj_tac >- gs[]
       >> qspecl_then [‘ps’, ‘qs’, ‘ts’] assume_tac
                      encode_recursive_parity_equation_with_systematic_inj
       >> gs[INJ_DEF]
@@ -2066,16 +2072,6 @@ Proof
   (* We can eliminate x because it is simply equal to EL i bs*)
   >> drule mdr_summed_out_values_2_el_i_x
   >> disch_tac >> gvs[]
-  (* We are currently up to the step
-     argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''
-.
-     Next step: split val2 up into p(σ_0)p(b_1)p(c_1_p,σ_1|b_1,σ_0)p(b_2)      
-                p(c_2_p,σ_2|b_2,σ_1)p(b_3)p(c_3_p,σ_3|b_3,σ_2)...
-   *)
-  >> sg ‘val2 = ARB’
-  >- (unabbrev_all_tac
-      >> gvs[event_input_bit_takes_value_mdr_summed_out_events_el_i_x]
-      >> 
-     )
+
 QED
 
