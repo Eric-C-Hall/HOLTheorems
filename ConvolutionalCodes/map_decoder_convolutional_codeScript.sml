@@ -949,26 +949,27 @@ QED
 Theorem inter_input_bit_sent_eq_sent:
   ∀enc n m psqs t bs i x.
     LENGTH bs = n ∧
-    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
-    EL i bs = x ⇒
+    (∀xs ys. enc xs ≼ enc ys ⇔ xs ≼ ys) ⇒
     (event_input_bit_takes_value n m i x)
     ∩ (event_sent_string_starts_with enc n m (enc bs)) =
-    event_sent_string_starts_with enc n m (enc bs)
+    if
+    EL i bs = x
+    then
+      event_sent_string_starts_with enc n m (enc bs)
+    else ∅
 Proof
   rw[]
+  >- (gvs[event_input_bit_takes_value_def,
+          event_sent_string_starts_with_def]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[]
+      >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+     )
+  >> rw[EXTENSION]
+  >> CCONTR_TAC
+  >> gvs[]
   >> gvs[event_input_bit_takes_value_def,
          event_sent_string_starts_with_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[]
-  >> last_assum $ qspec_then ‘bs’ assume_tac
-  >> last_x_assum $ qspec_then ‘bs'’ assume_tac
   >> metis_tac[IS_PREFIX_LENGTH_ANTI]
-  >> gvs[]
-  >> pop_assum (fn th => gvs[GSYM th])
-  
-               rw[]
-  >> gvs[GSYM event_input_string_starts_with_event_sent_string_starts_with]
-  >> gvs[event_input_bit_takes_value_def, event_input_string_starts_with_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 Theorem event_srcc_parity_string_starts_with_is_event[simp]:
