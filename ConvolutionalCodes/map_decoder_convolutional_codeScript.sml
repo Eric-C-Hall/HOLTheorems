@@ -945,6 +945,36 @@ Proof
                encode_recursive_parity_equation_length]
 QED
 
+Theorem inter_input_parity_eq_parity:
+  ∀n m ps qs ts bs cs_p.
+    LENGTH bs = n ∧
+    LENGTH cs_p = n ∧
+    LENGTH ps = LENGTH ts + 1 ∧
+    LAST ps ⇒
+    (event_input_string_starts_with n m bs)
+    ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p) =
+    if
+    cs_p = encode_recursive_parity_equation (ps,qs) ts bs
+    then
+      event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p
+    else
+      ∅
+Proof
+  rw[]
+  >- (gvs[event_input_string_starts_with_def,
+          event_srcc_parity_string_starts_with_def]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[]
+      >> irule (iffRL encode_recursive_parity_equation_prefix_inj)
+      >> qexistsl [‘ps’, ‘qs’, ‘ts’]
+      >> gvs[]
+     )
+  >> gvs[event_input_string_starts_with_def,
+         event_srcc_parity_string_starts_with_def]
+  >> rw[EXTENSION] >> CCONTR_TAC >> gvs[]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI,
+               encode_recursive_parity_equation_length]
+QED
+
 (* Possible improvement: remove requirement that LENGTH bs = n *)
 Theorem inter_input_bit_sent_eq_sent:
   ∀enc n m psqs t bs i x.
@@ -1906,7 +1936,9 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem event_input_state_parity_event_input_string_starts_with:
   ∀ps qs n m ts bs σs cs_p.
-    LENGTH bs = n ⇒
+    LENGTH bs = n ∧
+    LENGTH σs = n + 1 ∧
+    LENGTH cs_p = n ⇒
     event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p) =
     if
     σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ∧
@@ -1922,8 +1954,41 @@ Proof
       >> gvs[inter_input_parity_eq_input]
      )
   >> gvs[event_input_state_parity_def]
+  >> gvs[inter_input_state_eq_input]
+  >> rw[] >> gvs[]
+  >> gvs[inter_input_parity_eq_input]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* The event with a given input, state sequence, and encoded bits corresponds *)
+(* to the event with the corresponding encoded bits, assuming injectivity     *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_state_parity_event_srcc_parity_string_starts_with:
+  ∀ps qs n m ts bs σs cs_p.
+    LENGTH bs = n ∧
+    LENGTH σs = n + 1 ∧
+    LENGTH cs_p = n ∧
+    LENGTH ps = LENGTH ts + 1 ∧
+    LAST ps ⇒
+    event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p) =
+    if
+    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ∧
+    cs_p = encode_recursive_parity_equation (ps,qs) ts bs
+    then
+      event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p
+    else
+      ∅
+Proof
+  rw[]
+  >- (gvs[event_input_state_parity_def]
+      >> gvs[inter_input_state_eq_input]
+      >> gvs[inter_input_parity_eq_parity]
+     )
+  >> gvs[event_input_state_parity_def]
+  >> gvs[inter_input_state_eq_input]
+  >> rw[] >> gvs[]
+  >> gvs[inter_input_parity_eq_parity]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
