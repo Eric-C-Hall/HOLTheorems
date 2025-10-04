@@ -774,28 +774,6 @@ End
 (* a particular state sequence.                                               *)
 (* -------------------------------------------------------------------------- *)
 
-(* Should this be a simp rule, or is it wiser to avoid it being a simp rule
-   because in some situations one event will be more useful and in other
-   situations the other event will be more useful? *)
-(* Possible improvement: update this to better work with change where we now
-   use the event that the input starts with a prefix rather than the event that
-   the input is precisely equal to a value. This involves removing assumption
-   on length of bs. *)
-Theorem inter_input_state_sequence_eq_input:
-  ∀n m ps qs ts bs σs.
-    LENGTH bs = n ∧
-    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ⇒
-    (event_input_string_starts_with n m bs)
-    ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs) =
-    event_input_string_starts_with n m bs
-Proof
-  rw[]
-  >> gvs[event_input_string_starts_with_def,
-         event_state_sequence_starts_with_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
-  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
-QED
-
 Theorem DROP_ALL_BUT_ONE:
   ∀bs.
     bs ≠ [] ⇒
@@ -876,6 +854,28 @@ Proof
   >> metis_tac[]
 QED
 
+(* Should this be a simp rule, or is it wiser to avoid it being a simp rule
+   because in some situations one event will be more useful and in other
+   situations the other event will be more useful? *)
+(* Possible improvement: update this to better work with change where we now
+   use the event that the input starts with a prefix rather than the event that
+   the input is precisely equal to a value. This involves removing assumption
+   on length of bs. *)
+Theorem inter_input_state_eq_input:
+  ∀n m ps qs ts bs σs.
+    LENGTH bs = n ∧
+    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ⇒
+    (event_input_string_starts_with n m bs)
+    ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs) =
+    event_input_string_starts_with n m bs
+Proof
+  rw[]
+  >> gvs[event_input_string_starts_with_def,
+         event_state_sequence_starts_with_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+QED
+
 (* Possible improvement: update this to better work with change where we now
    use the event that the input starts with a prefix rather than the event that
    the input is precisely equal to a value. This involves removing assumption
@@ -902,6 +902,20 @@ Proof
   >> metis_tac[IS_PREFIX_APPEND_SECOND,
                encode_recursive_parity_equation_length,
                encode_recursive_parity_equation_prefix_mono]
+QED
+
+Theorem inter_input_parity_eq_input:
+  ∀n m ps qs ts bs cs_p.
+    LENGTH bs = n ∧
+    cs_p = encode_recursive_parity_equation (ps,qs) ts bs ⇒
+    (event_input_string_starts_with n m bs)
+    ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p) =
+    event_input_string_starts_with n m bs
+Proof
+  rw[]
+  >> gvs[event_input_string_starts_with_def,
+         event_srcc_parity_string_starts_with_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
 (* Possible improvement: remove requirement that LENGTH bs = n *)
@@ -1849,6 +1863,31 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* The event with a given input, state sequence, and encoded bits corresponds *)
+(* to the event with a given input.                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_state_parity_event_input_string_starts_with:
+  ∀ps qs n m ts bs σs cs_p.
+    LENGTH bs = n ⇒
+    event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p) =
+    if
+    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ∧
+    cs_p = encode_recursive_parity_equation (ps,qs) ts bs
+    then
+      event_input_string_starts_with n m bs
+    else
+      ∅
+Proof
+  rw[]
+  >- (gvs[event_input_state_parity_def]
+      >> gvs[inter_input_state_eq_input]
+      >> gvs[inter_input_parity_eq_input]
+     )
+  >> gvs[event_input_state_parity_def]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
 (* Theory:                                                                    *)
 (*                                                                            *)
@@ -2114,8 +2153,14 @@ Proof
       (* As a first step, we're going to want to head towards
          p(ds | cs_p), so get rid of the input bit events and the state
          events. *)
-      >> gvs[event_input_state_parity_def]
-      >> gs[mdr_summed_out_values_2_def]
+      >> DEP_PURE_ONCE_REWRITE_TAC[event_input_bit_takes_value_inter_event_input_state_parity]
+      >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+      >> REVERSE (rw[])
+      >- gvs[mdr_summed_out_values_2_def]
+      (* The event with a given input, state, and parity bits is equal to the
+         event with the given parity bits, assuming injectivity *)
+      >> 
+            
       (* Merge the event that a certain input bit takes a value into the
          event that an input string takes a value *)
       >> qmatch_goalsub_abbrev_tac ‘ev_in_b ∩ (ev_in_s ∩ ev_st ∩ ev_pa)’
@@ -2127,27 +2172,27 @@ Proof
       >- (unabbrev_all_tac
           >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
           >> sg ‘x ⇔ EL i bs’ >> gvs[]
-          (*event_input_string_starts_with_inter_event_input_bit_takes_value *)
+                                    (* event_input_string_starts_with_inter_event_input_bit_takes_value *)
          )
       (* *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_state_sequence_eq_input]
+      >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_state_eq_input]
       >> conj_tac >- gs[]
       >> Cases_on ‘cs_p = encode_recursive_parity_equation (ps,qs) ts bs’
       >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_parity_eq_sent]
-      >> conj_tac >- gs[]
-      >> qspecl_then [‘ps’, ‘qs’, ‘ts’] assume_tac
-                     encode_recursive_parity_equation_with_systematic_inj
-      >> gs[INJ_DEF]
-      >> gs[inter_input_bit_sent_eq_sent]
-      (* Now that we have simplified our conditional probability to just be
+          >> conj_tac >- gs[]
+          >> qspecl_then [‘ps’, ‘qs’, ‘ts’] assume_tac
+                         encode_recursive_parity_equation_with_systematic_inj
+          >> gs[INJ_DEF]
+          >> gs[inter_input_bit_sent_eq_sent]
+          (* Now that we have simplified our conditional probability to just be
          in terms of the received string taking a value given that the sent
          string takes a value, it is now more obvious that this conditional
          probability is the product of the probabilities of each individual
          received bit given the corresponding sent bit. *)
-      >> gvs[cond_prob_string_given_sent_prod]
-      (* While this isn't a product, it's an explicit expression for the
+          >> gvs[cond_prob_string_given_sent_prod]
+          (* While this isn't a product, it's an explicit expression for the
          probability, which will be equal to the product *)
-      >> cheat
+          >> cheat
      )
   >> ‘C * val1 * val2 = C * TODO1 * val2’ by (Cases_on ‘b’ >> gvs[])
   >> qpat_x_assum ‘b ⇒ val1 = _’ kall_tac
