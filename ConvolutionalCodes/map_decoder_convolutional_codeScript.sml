@@ -857,78 +857,115 @@ QED
 (* Should this be a simp rule, or is it wiser to avoid it being a simp rule
    because in some situations one event will be more useful and in other
    situations the other event will be more useful? *)
-(* Possible improvement: update this to better work with change where we now
-   use the event that the input starts with a prefix rather than the event that
-   the input is precisely equal to a value. This involves removing assumption
-   on length of bs. *)
+(* Possible improvement: can we remove the precondition LENGTH bs = n
+                         and LENGTH σs = n + 1*)
 Theorem inter_input_state_eq_input:
   ∀n m ps qs ts bs σs.
     LENGTH bs = n ∧
-    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ⇒
+    LENGTH σs = n + 1 ⇒
     (event_input_string_starts_with n m bs)
     ∩ (event_state_sequence_starts_with n m (ps,qs) ts σs) =
-    event_input_string_starts_with n m bs
+    if
+    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs
+    then
+      event_input_string_starts_with n m bs
+    else ∅
 Proof
   rw[]
+  >- (gvs[event_input_string_starts_with_def,
+          event_state_sequence_starts_with_def]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
+      >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+    )
   >> gvs[event_input_string_starts_with_def,
          event_state_sequence_starts_with_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[TAKE_LENGTH_ID_rwt]
-  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+  >> rw[EXTENSION] >> CCONTR_TAC >> gvs[]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI,
+               encode_recursive_parity_equation_state_sequence_length]
 QED
 
-(* Possible improvement: update this to better work with change where we now
-   use the event that the input starts with a prefix rather than the event that
-   the input is precisely equal to a value. This involves removing assumption
-   on length of bs. *)
+(* Possible improvement: can we remove the precondition LENGTH bs = n *)
 Theorem inter_input_parity_eq_sent:
   ∀n m ps qs ts bs cs_p.
     LENGTH bs = n ∧
-    cs_p = encode_recursive_parity_equation (ps,qs) ts bs ⇒
+    LENGTH cs_p = n ⇒
     (event_input_string_starts_with n m bs)
     ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p) =
-    event_sent_string_starts_with
-    (encode_recursive_parity_equation_with_systematic (ps,qs) ts) n m
-    (encode_recursive_parity_equation_with_systematic (ps,qs) ts bs)
+    if
+    cs_p = encode_recursive_parity_equation (ps,qs) ts bs
+    then
+      event_sent_string_starts_with
+      (encode_recursive_parity_equation_with_systematic (ps,qs) ts) n m
+      (encode_recursive_parity_equation_with_systematic (ps,qs) ts bs)
+    else
+      ∅
 Proof
   rw[]
+  >- (gvs[event_input_string_starts_with_def,
+          event_srcc_parity_string_starts_with_def,
+          event_sent_string_starts_with_def]
+      >> gvs[encode_recursive_parity_equation_with_systematic_def]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[]
+      >- metis_tac[IS_PREFIX_LENGTH_ANTI]
+      >- metis_tac[IS_PREFIX_APPEND_SECOND,
+                   encode_recursive_parity_equation_length]
+      >> metis_tac[IS_PREFIX_APPEND_SECOND,
+                   encode_recursive_parity_equation_length,
+                   encode_recursive_parity_equation_prefix_mono]
+     )
   >> gvs[event_input_string_starts_with_def,
-         event_srcc_parity_string_starts_with_def,
-         event_sent_string_starts_with_def]
-  >> gvs[encode_recursive_parity_equation_with_systematic_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[]
-  >- metis_tac[IS_PREFIX_LENGTH_ANTI]
-  >- metis_tac[IS_PREFIX_APPEND_SECOND,
+         event_srcc_parity_string_starts_with_def]
+  >> rw[EXTENSION] >> CCONTR_TAC >> gvs[]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI,
                encode_recursive_parity_equation_length]
-  >> metis_tac[IS_PREFIX_APPEND_SECOND,
-               encode_recursive_parity_equation_length,
-               encode_recursive_parity_equation_prefix_mono]
 QED
 
 Theorem inter_input_parity_eq_input:
   ∀n m ps qs ts bs cs_p.
     LENGTH bs = n ∧
-    cs_p = encode_recursive_parity_equation (ps,qs) ts bs ⇒
+    LENGTH cs_p = n ⇒
     (event_input_string_starts_with n m bs)
     ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p) =
-    event_input_string_starts_with n m bs
+    if
+    cs_p = encode_recursive_parity_equation (ps,qs) ts bs
+    then
+      event_input_string_starts_with n m bs
+    else
+      ∅
 Proof
   rw[]
+  >- (gvs[event_input_string_starts_with_def,
+          event_srcc_parity_string_starts_with_def]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+     )
   >> gvs[event_input_string_starts_with_def,
          event_srcc_parity_string_starts_with_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+  >> rw[EXTENSION] >> CCONTR_TAC >> gvs[]
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI,
+               encode_recursive_parity_equation_length]
 QED
 
 (* Possible improvement: remove requirement that LENGTH bs = n *)
 Theorem inter_input_bit_sent_eq_sent:
   ∀enc n m psqs t bs i x.
     LENGTH bs = n ∧
-    (∀xs ys. enc xs ≼ enc ys ⇔ xs ≼ ys) ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
     EL i bs = x ⇒
     (event_input_bit_takes_value n m i x)
     ∩ (event_sent_string_starts_with enc n m (enc bs)) =
     event_sent_string_starts_with enc n m (enc bs)
 Proof
   rw[]
+  >> gvs[event_input_bit_takes_value_def,
+         event_sent_string_starts_with_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[]
+  >> last_assum $ qspec_then ‘bs’ assume_tac
+  >> last_x_assum $ qspec_then ‘bs'’ assume_tac
+  >> metis_tac[IS_PREFIX_LENGTH_ANTI]
+  >> gvs[]
+  >> pop_assum (fn th => gvs[GSYM th])
+  
+               rw[]
   >> gvs[GSYM event_input_string_starts_with_event_sent_string_starts_with]
   >> gvs[event_input_bit_takes_value_def, event_input_string_starts_with_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[] >> metis_tac[IS_PREFIX_LENGTH_ANTI]
@@ -948,7 +985,7 @@ QED
 Theorem event_input_state_parity_is_event[simp]:
   ∀psqs n m p ts bsσscs_p.
     event_input_state_parity psqs n m ts bsσscs_p
-                 ∈ events (ecc_bsc_prob_space n m p)
+                             ∈ events (ecc_bsc_prob_space n m p)
 Proof
   rw[]
   >> namedCases_on ‘psqs’ ["ps qs"]
@@ -2111,7 +2148,7 @@ Proof
      correspond to (bs, σs, cs_p) and also have the ith element of the input
      to be x, but when the values being summed over are invalid, we precisely
      know that at least one of these things is not the case.
-                  *)
+   *)
   >> sg ‘¬b ⇒ val2 = 0’
   >- (rw[]
       >> unabbrev_all_tac
@@ -2160,7 +2197,7 @@ Proof
       (* The event with a given input, state, and parity bits is equal to the
          event with the given parity bits, assuming injectivity *)
       >> 
-            
+      
       (* Merge the event that a certain input bit takes a value into the
          event that an input string takes a value *)
       >> qmatch_goalsub_abbrev_tac ‘ev_in_b ∩ (ev_in_s ∩ ev_st ∩ ev_pa)’
