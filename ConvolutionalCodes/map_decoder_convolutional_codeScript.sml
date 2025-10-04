@@ -2299,27 +2299,15 @@ Proof
           >> pop_assum mp_tac >> gvs[]
           >> gvs[input_state_parity_valid_def]
          )
-      (* *)
-      >> 
-      (* *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_state_eq_input]
-      >> conj_tac >- gs[]
-      >> Cases_on ‘cs_p = encode_recursive_parity_equation (ps,qs) ts bs’
-                       >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_parity_eq_sent]
-          >> conj_tac >- gs[]
-          >> qspecl_then [‘ps’, ‘qs’, ‘ts’] assume_tac
-                         encode_recursive_parity_equation_with_systematic_inj
-          >> gs[INJ_DEF]
-          >> gs[inter_input_bit_sent_eq_sent]
-          (* Now that we have simplified our conditional probability to just be
+      (* Now that we have simplified our conditional probability to just be
          in terms of the received string taking a value given that the sent
          string takes a value, it is now more obvious that this conditional
          probability is the product of the probabilities of each individual
          received bit given the corresponding sent bit. *)
-          >> gvs[cond_prob_string_given_sent_prod]
-          (* While this isn't a product, it's an explicit expression for the
+      >> gvs[cond_prob_string_given_sent_prod]
+      (* While this isn't a product, it's an explicit expression for the
          probability, which will be equal to the product *)
-          >> cheat
+      >> cheat
      )
   >> ‘C * val1 * val2 = C * TODO1 * val2’ by (Cases_on ‘b’ >> gvs[])
   >> qpat_x_assum ‘b ⇒ val1 = _’ kall_tac
