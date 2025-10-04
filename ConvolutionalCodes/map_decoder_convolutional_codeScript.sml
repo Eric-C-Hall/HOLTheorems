@@ -1959,6 +1959,35 @@ Proof
   >> gvs[inter_input_parity_eq_input]
 QED
 
+Theorem event_input_state_parity_event_sent_string_starts_with:
+  ∀ps qs n m ts bs σs cs_p.
+    LENGTH bs = n ∧
+    LENGTH σs = n + 1 ∧
+    LENGTH cs_p = n ⇒
+    event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p) =
+    if
+    σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs ∧
+    cs_p = encode_recursive_parity_equation (ps,qs) ts bs
+    then
+      event_sent_string_starts_with
+      (encode_recursive_parity_equation_with_systematic (ps,qs) ts)
+      n
+      m
+      (encode_recursive_parity_equation_with_systematic (ps,qs) ts bs)
+    else
+      ∅
+Proof
+  rw[]
+  >- (gvs[event_input_state_parity_def]
+      >> gvs[inter_input_state_eq_input]
+      >> gvs[inter_input_parity_eq_sent]
+     )
+  >> gvs[event_input_state_parity_def]
+  >> gvs[inter_input_state_eq_input]
+  >> rw[] >> gvs[]
+  >> gvs[inter_input_parity_eq_sent]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The event with a given input, state sequence, and encoded bits corresponds *)
 (* to the event with the corresponding encoded bits, assuming injectivity     *)
@@ -2008,7 +2037,6 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
     in
       0 < p ∧ p < 1 ∧
       LENGTH ds = m ∧
-      LENGTH ps = LENGTH ts + 1 ∧
       (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
       map_decoder_bitwise enc n m p ds =
       MAP (λi.
@@ -2262,26 +2290,22 @@ Proof
       >- gvs[mdr_summed_out_values_2_def]
       (* The event with a given input, state, and parity bits is equal to the
          event with the given parity bits, assuming injectivity *)
-      >> 
-      
-      (* Merge the event that a certain input bit takes a value into the
-         event that an input string takes a value *)
-      >> qmatch_goalsub_abbrev_tac ‘ev_in_b ∩ (ev_in_s ∩ ev_st ∩ ev_pa)’
-      >> Q.SUBGOAL_THEN ‘ev_in_b ∩ (ev_in_s ∩ ev_st ∩ ev_pa) = (ev_in_b ∩ ev_in_s) ∩ ev_st ∩ ev_pa’
-          (fn th => PURE_REWRITE_TAC[th])
-      >- gvs[AC INTER_COMM INTER_ASSOC]
-      >> Q.SUBGOAL_THEN ‘ev_in_b ∩ ev_in_s = ev_in_s’
-          (fn th => PURE_REWRITE_TAC[th])
-      >- (unabbrev_all_tac
-          >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
-          >> sg ‘x ⇔ EL i bs’ >> gvs[]
-                                    (* event_input_string_starts_with_inter_event_input_bit_takes_value *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[event_input_state_parity_event_sent_string_starts_with]
+      >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+      (* Handle the case where we have an invalid state sequence or parity bits *)
+      >> REVERSE (rw[])
+      >- (gvs[]
+          >> ‘F’ suffices_by gvs[]
+          >> pop_assum mp_tac >> gvs[]
+          >> gvs[input_state_parity_valid_def]
          )
+      (* *)
+      >> 
       (* *)
       >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_state_eq_input]
       >> conj_tac >- gs[]
       >> Cases_on ‘cs_p = encode_recursive_parity_equation (ps,qs) ts bs’
-      >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_parity_eq_sent]
+                       >> DEP_PURE_ONCE_REWRITE_TAC[inter_input_parity_eq_sent]
           >> conj_tac >- gs[]
           >> qspecl_then [‘ps’, ‘qs’, ‘ts’] assume_tac
                          encode_recursive_parity_equation_with_systematic_inj
