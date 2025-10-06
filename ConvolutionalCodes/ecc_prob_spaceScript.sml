@@ -3605,6 +3605,13 @@ Proof
   >> gvs[REAL_ADD_RDISTRIB]
 QED
 
+Theorem sym_noise_mass_func_empty[simp]:
+  ∀p.
+    sym_noise_mass_func p [] = Normal 1
+Proof
+  gvs[sym_noise_mass_func_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Broken, not important enough to fix                                        *)
 (* -------------------------------------------------------------------------- *)
