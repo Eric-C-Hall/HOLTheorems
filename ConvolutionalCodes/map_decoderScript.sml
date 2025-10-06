@@ -42,7 +42,7 @@ val _ = hide "S";
 (* In particular, the guide for our proofs is the simplification of the       *)
 (* generic bitwise MAP decoder on page 326 (chapter 6)                        *)
 (* -------------------------------------------------------------------------- *)
-             
+
 (* -------------------------------------------------------------------------- *)
 (* We define the generic bitwise MAP decoder, and transform it into a form    *)
 (* which is closer to a factor graph.                                         *)
@@ -303,6 +303,18 @@ Overload ith_eq_codes = “λi b. {bs : bool list | EL i bs = b}”;
 
 Overload valid_inverse_codes = “λenc n.
                                   {cs | (∃bs. LENGTH bs = n ∧ enc bs = cs)}”;
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* We could also define this as p_space (ecc_bsc_prob_space n m p), but it's  *)
+(* usually more convenient to have it in this form.                           *)
+(*                                                                            *)
+(* Maybe give this a less generic name to avoid conflicts?                    *)
+(* -------------------------------------------------------------------------- *)
+
+Overload event_universal =
+“λn m. {(bs : bool list, ns : bool list) | LENGTH bs = n ∧ LENGTH ns = m}”
 
 (* -------------------------------------------------------------------------- *)
 (* Fixing the input string and the received string will also fix the          *)
@@ -1506,21 +1518,6 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* An expression for the received string taking a value in the special case   *)
-(* where the output length is 0.                                              *)
-(* -------------------------------------------------------------------------- *)
-Theorem event_received_string_starts_with_empty_output[simp]:
-  ∀enc n.
-    (∀xs. LENGTH xs = n ⇒ enc xs = []) ⇒
-    event_received_string_starts_with enc n 0 [] =
-    {(bs, []) | LENGTH bs = n}
-Proof
-  rw[event_received_string_starts_with_def]
-  >> rw[EXTENSION]
-  >> EQ_TAC >> rw[]
-QED
-
-(* -------------------------------------------------------------------------- *)
 (* An expression for the event of the input string taking a value in the      *)
 (* special case where the output length is 0                                  *)
 (* -------------------------------------------------------------------------- *)
@@ -1535,15 +1532,18 @@ Proof
   >> metis_tac[IS_PREFIX_LENGTH_ANTI]
 QED
 
-Theorem event_sent_string_starts_with_empty_output[simp]:
-  ∀enc n.
-    (∀xs. LENGTH xs = n ⇒ enc xs = []) ⇒
-    event_sent_string_starts_with enc n 0 [] = {(bs, []) | bs | LENGTH bs = n}
+Theorem event_sent_string_starts_with_empty[simp]:
+  ∀enc n m.
+    event_sent_string_starts_with enc n m [] = event_universal n m
 Proof
-  rw[]
-  >> gvs[event_sent_string_starts_with_def]
-  >> rw[EXTENSION]
-  >> EQ_TAC >> rw[]
+  rw[event_sent_string_starts_with_def]
+QED
+
+Theorem event_received_string_starts_with_empty[simp]:
+  ∀enc n m.
+    event_received_string_starts_with enc n m [] = event_universal n m
+Proof
+  rw[event_received_string_starts_with_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1801,6 +1801,80 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* event_universal is the universal event for ecc_bsc_prob_space.             *)
+(*                                                                            *)
+(* Sometimes it's convenient to consider it as a p_space, but more often it   *)
+(* is convenient to consider it as the set of pairs of strings of the right   *)
+(* length, which is why we define event_universal as we do.                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem p_space_ecc_bsc_prob_space:
+  ∀n m p.
+    p_space (ecc_bsc_prob_space n m p) = event_universal n m
+Proof
+  rw[]
+  >> gvs[p_space_def]
+  >> gvs[ecc_bsc_prob_space_def,
+         prod_measure_space_def,
+         length_n_codes_uniform_prob_space_def,
+         sym_noise_prob_space_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[]
+  >> Cases_on ‘x’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Possible improvement: I don't think this requires 0 ≤ p and p ≤ 1          *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_ecc_bsc_prob_space_event_universal[simp]:
+  ∀n m p.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    prob (ecc_bsc_prob_space n m p) (event_universal n m) = 1
+Proof
+  metis_tac[PROB_UNIV,
+            p_space_ecc_bsc_prob_space,
+            ecc_bsc_prob_space_is_prob_space]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Unfortunately, this doesn't work as a simp rule, because the simplifier    *)
+(* struggles to instantiate p with a value.                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_input_string_starts_with_event_universal[simp]:
+  ∀n m p E.
+    E ∈ events (ecc_bsc_prob_space n m p)
+    ⇒ E ∩ event_universal n m = E ∧ event_universal n m ∩ E = E
+Proof
+  rw[]
+  >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[]
+  >> (Cases_on ‘x’ >> gvs[]
+      >> last_x_assum drule
+      >> rw[])
+QED
+
+Theorem cond_prob_denom_event_universal[simp]:
+  ∀n m p e1.
+    0 ≤ p ∧ p ≤ 1 ∧
+    e1 ∈ events (ecc_bsc_prob_space n m p) ⇒
+    cond_prob (ecc_bsc_prob_space n m p) e1 (event_universal n m) =
+    prob (ecc_bsc_prob_space n m p) e1
+Proof
+  rw[]
+  >> gvs[cond_prob_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[cj 1 event_input_string_starts_with_event_universal]
+  >> metis_tac[] 
+QED
+
+Theorem event_universal_is_event[simp]:
+  ∀n m p.
+    event_universal n m ∈ events (ecc_bsc_prob_space n m p)
+Proof
+  rw[]
+  >> gvs[events_ecc_bsc_prob_space]
+  >> gvs[POW_DEF, CROSS_DEF]
+  >> ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A version of cond_prob_string_given_input_prod, calculated relative to the *)
 (* sent string taking a particular value rather than the input string taking  *)
 (* a particular value. It may be possible to remove the assumption that the   *)
@@ -1808,18 +1882,18 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem cond_prob_string_given_sent_prod:
   ∀enc n m p cs ds.
-    0 < p ∧ p < 1 ∧
-    LENGTH cs = m ∧
-    LENGTH ds = m ∧
-    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
-    (∃bs. LENGTH bs = n ∧ enc bs = cs) ∧
-    (∀xs ys. enc xs ≼ enc ys ⇔ xs ≼ ys) ⇒
+    0 ≤ p ∧ p ≤ 1 ∧
+    LENGTH cs = LENGTH ds ⇒
     cond_prob (ecc_bsc_prob_space n m p)
               (event_received_string_starts_with enc n m ds)
               (event_sent_string_starts_with enc n m cs) =
     sym_noise_mass_func p (bxor cs ds)
 Proof
-  rw[]
+  Induct_on ‘cs’ >> Cases_on ‘ds’ >> gvs[]
+  >> rw[]                                    
+
+
+       
   >> gvs[GSYM event_input_string_starts_with_event_sent_string_starts_with]
   >> metis_tac[cond_prob_string_given_input_prod]
 QED

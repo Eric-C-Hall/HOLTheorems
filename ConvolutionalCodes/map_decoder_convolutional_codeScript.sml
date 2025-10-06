@@ -59,10 +59,6 @@ Overload valid_state_sequences = “λn. {σs : bool list list | ∀σ. MEM σ �
 
 Overload length_n_valid_state_sequences =
 “λn l. {σs : bool list list | LENGTH σs = n ∧ (∀σ. MEM σ σs ⇒ LENGTH σ = l)}”
-
-(* Maybe give this a less generic name to avoid conflicts? *)
-Overload event_universal =
-“λn m. {(bs : bool list, ns : bool list) | LENGTH bs = n ∧ LENGTH ns = m}”
     
 (* I'm no longer sure that it's better to treat these components separately,
 v  because finiteness of the set only holds when both components are present. *)
@@ -1247,48 +1243,6 @@ Proof
   rw[event_state_takes_value_def]
 QED
 
-Theorem event_input_string_starts_with_event_universal[simp]:
-  ∀n m p E.
-    E ∈ events (ecc_bsc_prob_space n m p)
-    ⇒ E ∩ event_universal n m = E ∧ event_universal n m ∩ E = E
-Proof
-  rw[]
-  >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[]
-  >> (Cases_on ‘x’ >> gvs[]
-      >> last_x_assum drule
-      >> rw[])
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Perhaps I should just write event_universal n m in terms of                *)
-(* p_space ecc_bsc_prob_space n m p? But maybe the other interpretation is    *)
-(* more convenient sometimes?                                                 *)
-(* -------------------------------------------------------------------------- *)
-Theorem p_space_ecc_bsc_prob_space_event_universal:
-  ∀n m p.
-    event_universal n m = p_space (ecc_bsc_prob_space n m p)
-Proof
-  rw[]
-  >> gvs[p_space_def]
-  >> gvs[ecc_bsc_prob_space_def,
-         prod_measure_space_def,
-         length_n_codes_uniform_prob_space_def,
-         sym_noise_prob_space_def]
-  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[]
-  >> Cases_on ‘x’ >> gvs[]
-QED
-
-Theorem prob_ecc_bsc_prob_space_event_universal[simp]:
-  ∀n m p.
-    0 ≤ p ∧ p ≤ 1 ⇒
-    prob (ecc_bsc_prob_space n m p) (event_universal n m) = 1
-Proof
-  metis_tac[PROB_UNIV,
-            p_space_ecc_bsc_prob_space_event_universal,
-            ecc_bsc_prob_space_is_prob_space]
-QED
-
 Theorem IS_PREFIX_SNOC_L:
   ∀b bs cs.
     LENGTH bs + 1 ≤ LENGTH cs ⇒
@@ -2037,7 +1991,7 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
     in
       0 < p ∧ p < 1 ∧
       LENGTH ds = m ∧
-      (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
+      m = 2 * n ⇒
       map_decoder_bitwise enc n m p ds =
       MAP (λi.
              argmax_bool
@@ -2304,7 +2258,12 @@ Proof
          string takes a value, it is now more obvious that this conditional
          probability is the product of the probabilities of each individual
          received bit given the corresponding sent bit. *)
-      >> gvs[cond_prob_string_given_sent_prod]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_string_given_sent_prod]
+      >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+      >> rw[]
+      >- (gvs[encode_recursive_parity_equation_with_systematic_def]
+          >> 
+         )
       (* While this isn't a product, it's an explicit expression for the
          probability, which will be equal to the product *)
       >> cheat
@@ -2317,6 +2276,6 @@ Proof
   (* We can eliminate x because it is simply equal to EL i bs*)
   >> drule mdr_summed_out_values_2_el_i_x
   >> disch_tac >> gvs[]
-
+  >> 
 QED
 
