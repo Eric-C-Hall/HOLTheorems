@@ -6,6 +6,8 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* How do I add bitstringTheory to probheap *)
+
 (* Shandong tutoring *)
 
 (* What would I do if I did an internship *)
