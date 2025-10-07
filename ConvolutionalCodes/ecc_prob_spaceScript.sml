@@ -4,7 +4,7 @@ Theory ecc_prob_space
 
 Ancestors arithmetic real list pred_set probability bitstring metric measure sigma_algebra extreal_base cardinal extreal combin iterate realax real_sigma rich_list pair relation wellorder martingale lebesgue prim_rec divides bit jared_yeager_prob_space_product_space
 
-Libs ConseqConv dep_rewrite simpLib realLib;
+Libs extreal_to_realLib ConseqConv dep_rewrite simpLib realLib;
 
 val _ = hide "S";
 
@@ -462,6 +462,18 @@ Proof
   >> metis_tac[le_mul, pow_pos_le]
 QED
 
+Theorem sym_noise_mass_func_pos:
+  ∀p x. 0 < p ∧ p < 1 ⇒
+        0 < sym_noise_mass_func p x
+Proof
+  rpt strip_tac
+  >> drule_all complement_prob_lt >> strip_tac
+  >> Induct_on ‘x’ >> gvs[sym_noise_mass_func_def, lt_mul, pow_pos_lt]
+  >> rw[]
+  >> metis_tac[lt_mul, pow_pos_lt]
+QED
+
+(* TODO: This should say nonneg, not pos, right? Also, make a pos version. *)
 Theorem sym_noise_dist_pos:
   ∀p s. 0 ≤ p ∧ p ≤ 1 ∧ FINITE s ⇒
         0 ≤ sym_noise_dist p s
@@ -1433,23 +1445,81 @@ Proof
   >> gvs[o_DEF]
 QED
 
+Theorem cancel_left_mul_extreal:
+  ∀a b c : extreal.
+    a ≠ +∞ ∧
+    a ≠ −∞ ∧
+    b ≠ +∞ ∧
+    b ≠ −∞ ∧
+    c ≠ +∞ ∧
+    c ≠ −∞ ∧
+    a ≠ 0 ∧
+    c ≠ 0 ⇒
+    a * b / (a * c) = b / c
+Proof
+  Cases_on ‘a’ >> gvs[]
+  >> Cases_on ‘b’ >> gvs[]
+  >> Cases_on ‘c’ >> gvs[]
+  >> simp[SF EXTREAL_NORMFRAG_SS]
+QED
+
+(* If p = 0 or p = 1, then nontrivial S2 could have zero probability, making
+   the conditional probability undefined, which is a pain. *)
 Theorem cond_prob_ecc_bsc_prob_space:
   ∀n m p S1 S2.
-    0 ≤ p ∧ p ≤ 1 ∧
+    0 < p ∧ p < 1 ∧
     S1 ∈ events (ecc_bsc_prob_space n m p) ∧
-    S2 ∈ events (ecc_bsc_prob_space n m p) ⇒
+    S2 ∈ events (ecc_bsc_prob_space n m p) ∧
+    S2 ≠ ∅ ⇒
     cond_prob (ecc_bsc_prob_space n m p) S1 S2 =
     ARB
 (*1 / 2 pow n * ∑ (sym_noise_mass_func p ∘ SND) S*)
 Proof
   rw[]
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
   >> gvs[cond_prob_def]
+  (* Apply the formula for a probability in our probability space *)
   >> gvs[prob_ecc_bsc_prob_space, EVENTS_INTER]
-  (* Automatic extreal to real would be convenient here? *)
-  >> gvs[SF EXTREAL_NORMFRAG_SS] 
-
+  (* Automatically convert parts of extreal that can easily be converted
+     to reals to reals *)
+  >> simp[SF EXTREAL_NORMFRAG_SS]
+  (* Cancel out the left multiple *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[cancel_left_mul_extreal]
+  >> conj_tac
+  >- (gvs[]
+      >> rpt conj_tac
+      >~ [‘_ ≠ 0’]
+      >- (all_tac
+          (* In order to perform this cancellation, we need to be sure that
+             this sum in the denomoinator cannot be 0.
+.
+             Since all elements are positive, our sum will be positive, hence
+             cannot be 0. *)
+          >> ‘0 < ∑ (sym_noise_mass_func p ∘ SND) S2’ suffices_by (rw[]
+                                                                   >> CCONTR_TAC
+                                                                   >> gvs[])
+          >> irule EXTREAL_SUM_IMAGE_SPOS
+          >> gvs[]
+          >> REVERSE conj_tac
+          >- metis_tac[event_ecc_bsc_prob_space_finite, FINITE_INTER]
+          >> rw[]
+          >> simp[sym_noise_mass_func_pos]
+         )
+      (* Prove that these sums cannot be infinite, because none of the terms
+         are infinite and they are finite sums *)
+      >> (TRY (irule EXTREAL_SUM_IMAGE_NOT_POSINF)
+          >> TRY (irule EXTREAL_SUM_IMAGE_NOT_NEGINF)
+          >> rw[]
+          >- gvs[sym_noise_mass_func_not_inf,
+                 sym_noise_mass_func_not_neginf,
+                 SF EXTREAL_NORMFRAG_SS]
+          >> metis_tac[event_ecc_bsc_prob_space_finite,
+                       FINITE_INTER]
+         )
+     )
+  >> TODO: Can I do better than this?
 QED
-        
+
 Theorem prob_length_n_codes_uniform_prob_space:
   ∀n e1.
     e1 ∈ POW (length_n_codes n) ⇒
