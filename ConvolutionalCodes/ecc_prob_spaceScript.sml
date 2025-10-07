@@ -1024,8 +1024,8 @@ Theorem sigma_induct_in_space:
 Proof
   rw[]
   >> qspecl_then [‘λs. P s ∧ s ⊆ sp’, ‘sp’, ‘sts’] assume_tac sigma_induct
-  >> gvs[]
-  >> qsuff_tac ‘P s ∧ s ⊆ sp’ >- gvs[]
+  >> pop_assum mp_tac >> simp[] >> strip_tac (* Faster than gvs[] *)
+  >> qsuff_tac ‘P s ∧ s ⊆ sp’ >- simp[]
   >> pop_assum irule
   >> REVERSE $ rw[]
   >- ASM_SET_TAC[POW_DEF]
