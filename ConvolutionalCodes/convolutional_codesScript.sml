@@ -1,33 +1,10 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-open HolKernel Parse boolLib bossLib;
+Theory convolutional_codes
 
-val _ = new_theory "convolutional_codes";
+Ancestors arithmetic list marker rich_list infnum argmin hamming_distance useful_theorems state_machine trellis
 
-(* Standard library theories *)
-open arithmeticTheory;
-open listTheory;
-open markerTheory;
-open rich_listTheory;
-
-(* Standard library tactics, etc *)
-open dep_rewrite;
-open ConseqConv; (* SPEC_ALL_TAC *)
-open simpLib;
-
-(* My own libraries *)
-open donotexpandLib;
-open useful_tacticsLib;
-
-(* My own utility theories *)
-open infnumTheory;
-open argminTheory;
-open hamming_distanceTheory;
-open useful_theoremsTheory;
-
-(* My own core theories *)
-open state_machineTheory;
-open trellisTheory;
+Libs dep_rewrite ConseqConv simpLib donotexpandLib useful_tacticsLib;
 
 val _ = monadsyntax.enable_monadsyntax()
 val _ = monadsyntax.enable_monad "option"
