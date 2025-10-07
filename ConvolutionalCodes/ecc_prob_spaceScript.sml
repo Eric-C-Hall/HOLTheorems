@@ -1472,8 +1472,8 @@ Theorem cond_prob_ecc_bsc_prob_space:
     S2 ∈ events (ecc_bsc_prob_space n m p) ∧
     S2 ≠ ∅ ⇒
     cond_prob (ecc_bsc_prob_space n m p) S1 S2 =
-    ARB
-(*1 / 2 pow n * ∑ (sym_noise_mass_func p ∘ SND) S*)
+    ∑ (sym_noise_mass_func p ∘ SND) (S1 ∩ S2) /
+      ∑ (sym_noise_mass_func p ∘ SND) S2
 Proof
   rw[]
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
@@ -1517,7 +1517,7 @@ Proof
                        FINITE_INTER]
          )
      )
-  >> TODO: Can I do better than this?
+  >> simp[]
 QED
 
 Theorem prob_length_n_codes_uniform_prob_space:
