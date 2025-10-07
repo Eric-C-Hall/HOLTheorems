@@ -1,16 +1,8 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-open HolKernel Parse boolLib bossLib;
+Theory bcjr_factor_graph
 
-open factor_graphTheory;
-open extrealTheory;
-open probabilityTheory;
-
-open state_machineTheory;
-open wf_state_machineTheory;
-open binary_symmetric_channelTheory;
-
-val _ = new_theory "bcjr_factor_graph";
+Ancestors factor_graph extreal probability state_machine wf_state_machine binary_symmetric_channel
 
 (* -------------------------------------------------------------------------- *)
 (* Main reference:"Modern Coding Theory" by Tom Richardson and Rüdiger        *)
@@ -110,5 +102,3 @@ End*)
 Definition BCJR_decode_def:
   BCJR_decode m cs p = ARB
 End
-
-val _ = export_theory();

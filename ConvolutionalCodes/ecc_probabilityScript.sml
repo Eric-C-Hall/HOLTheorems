@@ -1,6 +1,4 @@
-open HolKernel Parse boolLib bossLib;
-
-val _ = new_theory "ecc_probability";
+Theory ecc_probability
 
 (* Want to prove: if the probability of an arbitrary bit flipping is less than
    0.5, and the probabilities of each bit flipping are i.i.d, then if the
@@ -14,5 +12,3 @@ val _ = new_theory "ecc_probability";
    definitions to use, and it is unclear if this would actually provide a more
    useful result than simply minimizing the number of errors, because the final
    result may actually be less easily interpretable. *)
-
-val _ = export_theory();

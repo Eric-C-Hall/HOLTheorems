@@ -299,5 +299,3 @@ Proof
   >> irule viterbi_correctness_general
   >> gvs[]
 QED
-
-val _ = export_theory();

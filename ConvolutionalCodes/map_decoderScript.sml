@@ -1,37 +1,10 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-open HolKernel Parse boolLib bossLib;
+Theory map_decoder
 
-val _ = new_theory "map_decoder";
+Ancestors ecc_prob_space argmin_extreal arithmetic bitstring pair pred_set probability extreal real rich_list sigma_algebra lebesgue list martingale measure topology
 
-(* My theories *)
-open ecc_prob_spaceTheory;
-open argmin_extrealTheory;
-
-(* My libraries *)
-open donotexpandLib;
-open useful_tacticsLib;
-
-(* Standard theories *)
-open arithmeticTheory;
-open bitstringTheory;
-open pairTheory;
-open pred_setTheory;
-open probabilityTheory;
-open extrealTheory;
-open realTheory;
-open rich_listTheory;
-open sigma_algebraTheory;
-open lebesgueTheory;
-open listTheory;
-open martingaleTheory;
-open measureTheory;
-open topologyTheory;
-
-(* Standard libraries *)
-open realLib;
-open dep_rewrite;
-open ConseqConv;
+Libs donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
 
 val _ = hide "S";
 
@@ -2750,5 +2723,3 @@ Proof
   >> gvs[]
 QED
  *)
-
-val _ = export_theory();

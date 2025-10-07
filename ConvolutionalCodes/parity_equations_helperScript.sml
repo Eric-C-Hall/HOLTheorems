@@ -1,22 +1,8 @@
-open HolKernel Parse boolLib bossLib;
+Theory parity_equations_helper
 
-val _ = new_theory "parity_equations_helper";
+Ancestors arithmetic list rich_list logroot numposrep bitstring state_machine
 
-(* Standard theories *)
-open arithmeticTheory
-open listTheory;
-open rich_listTheory;
-
-(* Less commonly used standard theories *)
-open logrootTheory; (* LOG2_LE_MONO *)
-open numposrepTheory; (* LENGTH_n2l *)
-open bitstringTheory;
-
-(* Standard libraries *)
-open dep_rewrite;
-
-(* My theories *)
-open state_machineTheory;
+Libs dep_rewrite;
 
 (* -------------------------------------------------------------------------- *)
 (* Note: There are two LOG2's. One is an overloading for logroot$LOG applied  *)
@@ -486,6 +472,3 @@ Proof
   rpt strip_tac
   >> Cases_on ‘v’ >> gvs[v2n]
 QED
-
-val _ = export_theory();
-

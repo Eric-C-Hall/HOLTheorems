@@ -1,35 +1,8 @@
-open HolKernel Parse boolLib bossLib;
+Theory message_passing_log_likelihood
 
-open arithmeticTheory;
-open boolTheory;
-open probabilityTheory;
-(*open listTheory;*)
-open fsgraphTheory;
-open genericGraphTheory;
-open pred_setTheory;
-open finite_mapTheory;
-open listTheory;
-open transcTheory;
-open prim_recTheory;
-open integerTheory;
+Ancestors arithmetic bool probability fsgraph genericGraph pred_set finite_map list transc prim_rec integer factor_graph partite_ea hyperbolic_functions lifting transfer
 
-open factor_graphTheory;
-
-open partite_eaTheory;
-open hyperbolic_functionsTheory;
-
-open donotexpandLib;
-
-(* I find DEP_PURE_ONCE_REWRITE_TAC, etc to be very helpful *)
-open dep_rewrite;
-
-open ConseqConv;
-open simpLib;
-
-(* Lifting and transfer libraries *)
-open liftLib liftingTheory transferLib transferTheory;
-
-val _ = new_theory "message_passing_log_likelihood";
+Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
 val _ = hide "S";
 
@@ -577,5 +550,3 @@ End
 (* before exporting the theory.                                               *)
 (* -------------------------------------------------------------------------- *)
 val _ = hide "message_domain"
-
-val _ = export_theory();

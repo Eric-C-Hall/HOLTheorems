@@ -1,8 +1,6 @@
-open HolKernel Parse boolLib bossLib;
+Theory log_likelihood
 
-val _ = new_theory "log_likelihood";
-
-open extrealTheory;
+Ancestors extreal
 
 (* -------------------------------------------------------------------------- *)
 (* Converts a probability into a log likelihood                               *)
@@ -10,5 +8,3 @@ open extrealTheory;
 Definition log_likelihood_def:
   log_likelihood (e : extreal) = ln (e / (1 - e))
 End
-
-val _ = export_theory();

@@ -1,17 +1,8 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-open HolKernel Parse boolLib bossLib;
+Theory bcjr
 
-val _ = new_theory "bcjr";
-
-open factor_graphTheory;
-open extrealTheory;
-open probabilityTheory;
-
-open state_machineTheory;
-open wf_state_machineTheory;
-open binary_symmetric_channelTheory;
-
+Ancestors factor_graph extreal probability state_machine wf_state_machine binary_symmetric_channel
 
 (* -------------------------------------------------------------------------- *)
 (* This is largely based on Fundamentals of Convolutional Coding by           *)
@@ -248,5 +239,3 @@ Definition bcjr_gamma_t_wfm_exclude_current_def:
                 s1 < wfm_num_states m ∧
                 s2 < wfm_num_states m }
 End
-
-val _ = export_theory();

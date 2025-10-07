@@ -1,29 +1,8 @@
-open HolKernel Parse boolLib bossLib;
+Theory trellis
 
-val _ = new_theory "trellis";
+Ancestors arithmetic divides list rich_list infnum hamming_distance argmin useful_theorems state_machine
 
-(* Standard library theories *)
-open arithmeticTheory;
-open dividesTheory;
-open listTheory;
-open rich_listTheory;
-
-(* Standard library tactics, etc *)
-open dep_rewrite;
-open ConseqConv; (* SPEC_ALL_TAC *)
-
-(* My own libraries *)
-open donotexpandLib;
-open useful_tacticsLib;
-
-(* My own utility theories *)
-open infnumTheory;
-open hamming_distanceTheory;
-open argminTheory;
-open useful_theoremsTheory;
-
-(* My own core theories *)
-open state_machineTheory;
+Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 
 (* -------------------------------------------------------------------------- *)
 (* VITERBI DECODING                                                           *)
@@ -1536,5 +1515,3 @@ QED
 Proof
   EVAL_TAC
 QED*)
-
-val _ = export_theory();

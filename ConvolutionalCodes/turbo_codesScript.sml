@@ -1,17 +1,13 @@
-open HolKernel Parse boolLib bossLib;
+Theory turbo_codes
 
-val _ = new_theory "turbo_codes";
-
-open recursive_parity_equationsTheory;
-open interleaveTheory;
-open bcjrTheory;
+Ancestors recursive_parity_equations interleave bcjr
 
 (* -------------------------------------------------------------------------- *)
 (* Idea: allow turbo codes to be defined in such a way that encoding and      *)
 (* decoding can be defined simultaneously, or the factor graph can be derived *)
 (* automatically based on the working that is being done.                     *)
 (*                                                                            *)
-(* The encoding algorithm takes an input and maps it to a codespace.          *)
+(* The encoding algorithm takes an input and maps it to a codespace.    XF      *)
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
@@ -166,6 +162,3 @@ QED*)
   (decode_parallel_turbo_code rs)
 Proof
 QED*)
-
-
-val _ = export_theory();

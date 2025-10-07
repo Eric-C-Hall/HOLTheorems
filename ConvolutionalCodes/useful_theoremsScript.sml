@@ -1,11 +1,6 @@
-open HolKernel Parse boolLib bossLib;
+Theory useful_theorems
 
-open arithmeticTheory;
-
-val _ = new_theory "useful_theorems";
-
-open listTheory;
-open rich_listTheory;
+Ancestors arithmetic list rich_list
 
 (* One of the more useful theorems in this file *)
 Theorem MAX_SUC:
@@ -149,5 +144,3 @@ Proof
      )
   >> qexists ‘0’ >> gvs[]
 QED
-
-val _ = export_theory();

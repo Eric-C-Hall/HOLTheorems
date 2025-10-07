@@ -1,13 +1,10 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-open HolKernel Parse boolLib bossLib;
+Theory wf_state_machine
 
-(* Lifting and transfer libraries *)
-open liftLib liftingTheory transferLib transferTheory;
+Ancestors lifting transfer state_machine
 
-open state_machineTheory;
-
-val _ = new_theory "wf_state_machine";
+Libs liftLib transferLib;
 
 Theorem wf_state_machines_exist[local]:
   ∃x. wfmachine x
@@ -138,5 +135,3 @@ End
   wfm_transition_inverse m s =
   {(s', b) | FST ((wfm_transition_fn m) (s', b)) = s}
 End*)
-
-val _ = export_theory();

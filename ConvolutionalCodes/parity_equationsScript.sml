@@ -1,4 +1,11 @@
-open HolKernel Parse boolLib bossLib;
+Theory parity_equations
+
+Ancestors arithmetic list rich_list logroot numposrep bitstring bit state_machine parity_equations_helper useful_theorems
+
+Libs dep_rewrite ConseqConv useful_tacticsLib;
+
+(* logroot: LOG2_LE_MONO *)
+(* numposrep: LENGTH_n2l *)
 
 (* TODO: In many instances, it may be possible to remove or weaken the
    precondition 0 < MAX_LIST (MAP LENGTH ps) - 1. This is because this
@@ -9,30 +16,6 @@ open HolKernel Parse boolLib bossLib;
    states. I should check to make sure that this precondition has been
    replaced by a weaker precondition where possible *)
 
-val _ = new_theory "parity_equations";
-
-(* Standard theories *)
-open arithmeticTheory
-open listTheory;
-open rich_listTheory;
-
-(* Less commonly used standard theories *)
-open logrootTheory; (* LOG2_LE_MONO *)
-open numposrepTheory; (* LENGTH_n2l *)
-open bitstringTheory;
-open bitTheory;
-
-(* Standard libraries *)
-open dep_rewrite;
-open ConseqConv;
-
-(* My theories *)
-open state_machineTheory;
-open parity_equations_helperTheory;
-open useful_theoremsTheory;
-
-(* My libraries *)
-open useful_tacticsLib;
 
 (* -------------------------------------------------------------------------- *)
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
@@ -1911,5 +1894,3 @@ Proof
       >> Cases_on ‘h''''’ >> Cases_on ‘h'''''’ >> EVAL_TAC)
   >> qsuff_tac ‘F’ >> gvs[LENGTH]
 QED
-
-val _ = export_theory();

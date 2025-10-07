@@ -1,16 +1,6 @@
-open HolKernel Parse boolLib bossLib;
+Theory recursive_parity_equations
 
-(* HOL4 theories *)
-open bitstringTheory;
-open listTheory;
-open rich_listTheory;
-
-(* My theories *)
-open parity_equationsTheory;
-open state_machineTheory;
-open wf_state_machineTheory;
-
-val _ = new_theory "recursive_parity_equations";
+Ancestors bitstring list rich_list parity_equations state_machine wf_state_machine
 
 (* -------------------------------------------------------------------------- *)
 (* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
@@ -429,5 +419,3 @@ QED
 (* which this assumption does not hold, because they are outside the scope of *)
 (* what the function needs to satisfy.                                        *)
 (* -------------------------------------------------------------------------- *)
-
-val _ = export_theory();

@@ -1,15 +1,8 @@
-open HolKernel Parse boolLib bossLib;
+Theory state_machine
 
-val _ = new_theory "state_machine";
+Ancestors arithmetic list rich_list pred_set logroot
 
-open arithmeticTheory;
-open listTheory;
-open rich_listTheory;
-open pred_setTheory;
-
-open logrootTheory;
-
-open dep_rewrite;
+Libs dep_rewrite;
 
 (* TODO: edit parts of the code that were modified in the change from record
    to pairs in order to make them cleaner. In particular, remove FST and SND
@@ -784,5 +777,3 @@ Theorem transition_inverse_test:
 Proof
   EVAL_TAC
 QED
-
-val _ = export_theory();

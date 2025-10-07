@@ -1,7 +1,5 @@
-open HolKernel Parse boolLib bossLib;
+Theory gen_convolutional_codes
 
-val _ = new_theory "gen_convolutional_codes";
-  
 (* -------------------------------------------------------------------------- *)
 (* Note: This code is outdated. It is designed for a more general definition  *)
 (* of a state machine where states can be any type, not just natural numbers, *)
@@ -142,7 +140,3 @@ Proof
   >- (rpt strip_tac >> gvs[gen_example_state_machine_def] >> Cases_on ‘i’ >> gvs[])
   >- (gvs[gen_example_state_machine_def])
 QED
-
-
-
-val _ = export_theory();

@@ -1,12 +1,8 @@
-open HolKernel Parse boolLib bossLib;
+Theory hamming_distance
 
-open arithmeticTheory;
-open bitstringTheory;
-open listTheory;
+Ancestors arithmetic bitstring list
 
-open dep_rewrite;
-
-val _ = new_theory "hamming_distance";
+Libs dep_rewrite;
 
 Definition hamming_distance_def:
   hamming_distance [] cs = 0n ∧
@@ -183,5 +179,3 @@ Theorem hamming_distance_test:
 Proof
   EVAL_TAC
 QED
-
-val _ = export_theory();

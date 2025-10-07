@@ -1,8 +1,6 @@
-open HolKernel Parse boolLib bossLib;
+Theory hyperbolic_functions
 
-val _ = new_theory "hyperbolic_functions";
-
-open extrealTheory;
+Ancestors extreal
 
 (* -------------------------------------------------------------------------- *)
 (* Euler's number                                                             *)
@@ -88,5 +86,3 @@ Definition extarctanh_def:
                              | −∞ => ARB 
                              | Normal r => Normal (arctanh r)
 End
-
-val _ = export_theory();

@@ -1,6 +1,4 @@
-open HolKernel Parse boolLib bossLib;
-
-val _ = new_theory "infnum";
+Theory infnum
 
 Datatype: infnum = INFINITY | N num
 End
@@ -189,5 +187,3 @@ Proof
   rpt strip_tac
   >> Cases_on ‘i’ >> Cases_on ‘j’ >> gvs[]
 QED
-
-val _ = export_theory();

@@ -1,13 +1,10 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-open HolKernel Parse boolLib bossLib;
+Theory binary_symmetric_channel
 
-open bitstringTheory;
-open extrealTheory;
+Ancestors bitstring extreal
 
-open realLib;
-
-val _ = new_theory "binary_symmetric_channel";
+Libs realLib;
 
 (* -------------------------------------------------------------------------- *)
 (* A binary symmetric channel is fully defined by its probability of error.   *)
@@ -59,5 +56,3 @@ Proof
       extreal_div_eq,
       bsc_apply_def]
 QED
-
-val _ = export_theory();

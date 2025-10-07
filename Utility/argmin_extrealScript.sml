@@ -1,10 +1,8 @@
-open HolKernel Parse boolLib bossLib;
+Theory argmin_extreal
 
-val _ = new_theory "argmin_extreal";
+Ancestors extreal pred_set
 
-open extrealTheory;
-open pred_setTheory;
-open dep_rewrite;
+Libs dep_rewrite;
 
 (* -------------------------------------------------------------------------- *)
 (* I attempted using iterate and ITSET for this, however, they require a base *)
@@ -274,6 +272,3 @@ QED*)
 (* its equality with another expression, only the fact that the result will   *)
 (* be minimal.                                                                *)
 (* -------------------------------------------------------------------------- *)
-
-
-val _ = export_theory();

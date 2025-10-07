@@ -1,10 +1,8 @@
-open HolKernel Parse boolLib bossLib;
+Theory argmin
 
-val _ = new_theory "argmin";
+Ancestors infnum
 
-open infnumTheory;
-open useful_tacticsLib;
-open dep_rewrite;
+Libs useful_tacticsLib dep_rewrite;
 
 (* -------------------------------------------------------------------------- *)
 (* Infnum argmin for pairs of elements                                        *)
@@ -198,5 +196,3 @@ Proof
   >> rpt strip_tac
   >> gvs[]
 QED
-
-val _ = export_theory();

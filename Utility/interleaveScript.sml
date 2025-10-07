@@ -1,13 +1,10 @@
-open HolKernel Parse boolLib bossLib;
+Theory interleave
 
-val _ = new_theory "interleave";
+Ancestors list rich_list arithmetic divides
 
-open listTheory;
-open rich_listTheory;
-open arithmeticTheory;
-open dividesTheory;
+Libs ConseqConv;
 
-open ConseqConv; (* SPEC_ALL_TAC *)
+(* ConseqConv: SPEC_ALL_TAC *)
 
 (* -------------------------------------------------------------------------- *)
 (* Takes a list of lists. Interleaves these lists.                            *)
@@ -159,5 +156,3 @@ QED*)
 
 Proof
 QED*)
-
-val _ = export_theory();

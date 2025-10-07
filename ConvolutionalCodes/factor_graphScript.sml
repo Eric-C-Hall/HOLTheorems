@@ -1,34 +1,8 @@
-open HolKernel Parse boolLib bossLib;
+Theory factor_graph
 
-open arithmeticTheory;
-open boolTheory;
-open probabilityTheory;
-(*open listTheory;*)
-open fsgraphTheory;
-open genericGraphTheory;
-open pred_setTheory;
-open finite_mapTheory;
-open listTheory;
-open transcTheory;
-open prim_recTheory;
-open integerTheory;
+Ancestors arithmetic bool probability fsgraph genericGraph pred_set finite_map list transc prim_rec integer partite_ea hyperbolic_functions lifting transfer
 
-open partite_eaTheory;
-open hyperbolic_functionsTheory;
-
-open donotexpandLib;
-open wordsLib;
-
-(* I find DEP_PURE_ONCE_REWRITE_TAC, etc to be very helpful *)
-open dep_rewrite;
-
-open ConseqConv;
-open simpLib;
-
-(* Lifting and transfer libraries *)
-open liftLib liftingTheory transferLib transferTheory;
-
-val _ = new_theory "factor_graph";
+Libs donotexpandLib wordsLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
 val _ = hide "S";
 
@@ -1314,5 +1288,3 @@ Definition fg_example_factor_graph_def:
     )
     fg_empty
 End
-
-val _ = export_theory();

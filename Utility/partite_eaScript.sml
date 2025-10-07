@@ -1,12 +1,8 @@
-open HolKernel Parse boolLib bossLib;
+Theory partite_ea
 
-open useful_tacticsLib;
-open dep_rewrite;
-open fsgraphTheory;
-open finite_mapTheory;
-open pred_setTheory;
+Ancestors fsgraph finite_map pred_set
 
-val _ = new_theory "partite_ea";
+Libs useful_tacticsLib dep_rewrite;
 
 val _ = hide "S"
 
@@ -148,5 +144,3 @@ Proof
   >- metis_tac[SUBSET_DEF, swap_edge]
   >- metis_tac[]
 QED
-
-val _ = export_theory();

@@ -1,47 +1,10 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-open HolKernel Parse boolLib bossLib;
+Theory ecc_prob_space
 
-val _ = new_theory "ecc_prob_space";
+Ancestors arithmetic real list pred_set probability bitstring metric measure sigma_algebra extreal_base cardinal extreal combin iterate realax real_sigma rich_list pair relation wellorder martingale lebesgue prim_rec divides bit jared_yeager_prob_space_product_space
 
-open arithmeticTheory;
-open realTheory;
-open listTheory;
-open pred_setTheory;
-open probabilityTheory;
-open bitstringTheory;
-open metricTheory;
-open measureTheory;
-open sigma_algebraTheory;
-open extreal_baseTheory;
-open cardinalTheory;
-open extrealTheory;
-open combinTheory; (* o_DEF *)
-open realTheory;
-open iterateTheory;
-open realaxTheory;
-open real_sigmaTheory;
-open bitstringTheory;
-open rich_listTheory;
-open pairTheory;
-open relationTheory;
-open wellorderTheory;
-open martingaleTheory;
-open lebesgueTheory;
-open prim_recTheory;
-open dividesTheory;
-open bitTheory;
-
-open RealArith;
-
-open jared_yeager_prob_space_product_spaceTheory;
-(*open WFTheoremsTheory;*)
-
-open ConseqConv;
-open dep_rewrite;
-open simpLib;
-
-open realLib;
+Libs ConseqConv dep_rewrite simpLib realLib;
 
 val _ = hide "S";
 
@@ -3778,6 +3741,3 @@ QED*)
     (measure (sym_err_chan_prob_space n p bs))
 Proof
 QED*)
-
-val _ = export_theory();
-

@@ -1,6 +1,4 @@
-open HolKernel Parse boolLib bossLib;
-
-val _ = new_theory "donotexpand";
+Theory donotexpand
 
 (* TODO: Find better way to do this *)
 Definition donotexpand_def:
@@ -23,5 +21,3 @@ Theorem MEM_DONOTEXPAND_thm:
 Proof
   rpt strip_tac >> EVAL_TAC
 QED
-
-val _ = export_theory();
