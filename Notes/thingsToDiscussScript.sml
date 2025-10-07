@@ -6,6 +6,9 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* cond_prob_ecc_bsc_prob_space is a tricky use case for converting an extreal
+   term into a real term *)
+
 (* How do I add bitstringTheory to probheap *)
 
 (* Shandong tutoring *)

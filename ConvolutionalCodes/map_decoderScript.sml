@@ -1889,11 +1889,31 @@ Theorem cond_prob_string_given_sent_prod:
               (event_sent_string_starts_with enc n m cs) =
     sym_noise_mass_func p (bxor cs ds)
 Proof
-  Induct_on ‘cs’ >> Cases_on ‘ds’ >> gvs[]
-  >> rw[]                                    
+  Induct_on ‘ds’ using SNOC_INDUCT >> Cases_on ‘cs’ using SNOC_CASES >> simp[]
+  >> rpt strip_tac
+  (* Better names *)
+  >> rename1 ‘bxor (SNOC c cs) (SNOC d ds)’
+  (* The relevant inductive hypothesis uses cs instead of SNOC c cs, uses
+     ds instead of SNOC d ds, and everything else is the same *)
+  >> last_x_assum (qspecl_then [‘enc’, ‘n’, ‘m’, ‘p’, ‘cs’] assume_tac)
+  >> gs[]
 
-
-       
+       prob_ecc_bsc_prob_space
+  (* ------------------------------------------------------------------------ *)
+  (* The event of strings starting with cs is equal to the intersection of    *)
+  (* the event of strings starting with SNOC c cs with the event of strings   *)
+  (* starting with SNOC (¬c) cs. These are disjoint, thus the conditional     *)
+  (* probability is the sum of these two events.                                *)
+  (*                                                                            *)
+  (*                                                                            *)
+  (* ------------------------------------------------------------------------ *)
+  (* -------------------------------------------------------------------------- *)
+  (* Every string starting with h is formed by prepending h to its              *)
+  (*                                                                            *)
+  (*                                                                            *)
+  (* -------------------------------------------------------------------------- *)
+  >> 
+  
   >> gvs[GSYM event_input_string_starts_with_event_sent_string_starts_with]
   >> metis_tac[cond_prob_string_given_input_prod]
 QED

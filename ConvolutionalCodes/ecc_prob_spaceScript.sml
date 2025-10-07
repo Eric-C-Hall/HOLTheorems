@@ -1470,6 +1470,23 @@ Proof
   >> gvs[o_DEF]
 QED
 
+Theorem cond_prob_ecc_bsc_prob_space:
+  ∀n m p S1 S2.
+    0 ≤ p ∧ p ≤ 1 ∧
+    S1 ∈ events (ecc_bsc_prob_space n m p) ∧
+    S2 ∈ events (ecc_bsc_prob_space n m p) ⇒
+    cond_prob (ecc_bsc_prob_space n m p) S1 S2 =
+    ARB
+(*1 / 2 pow n * ∑ (sym_noise_mass_func p ∘ SND) S*)
+Proof
+  rw[]
+  >> gvs[cond_prob_def]
+  >> gvs[prob_ecc_bsc_prob_space, EVENTS_INTER]
+  (* Automatic extreal to real would be convenient here? *)
+  >> gvs[SF EXTREAL_NORMFRAG_SS] 
+
+QED
+        
 Theorem prob_length_n_codes_uniform_prob_space:
   ∀n e1.
     e1 ∈ POW (length_n_codes n) ⇒
