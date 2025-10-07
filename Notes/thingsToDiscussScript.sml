@@ -6,6 +6,8 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* New header syntax for lib files? *)
+
 (* cond_prob_ecc_bsc_prob_space is a tricky use case for converting an extreal
    term into a real term *)
 
@@ -64,7 +66,7 @@ Libs dep_rewrite;
         i + (LENGTH x − (i + 1)) = LENGTH x − 1
 
         related to decide_tac
-        *)
+ *)
 
 
 (* ------------------------------------------ *)
