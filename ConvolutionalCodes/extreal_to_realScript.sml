@@ -4,7 +4,7 @@ Theory extreal_to_real
 
 Ancestors arithmetic extreal real probability
 
-Libs donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
+Libs donotexpandLib realLib dep_rewrite ConseqConv;
 
 val _ = hide "S";
 
@@ -93,7 +93,8 @@ Proof
   gvs[SF EXTREAL_NORMFRAG_SS]
   >> rw[SF EXTREAL_NORMFRAG_SS]
   (* First two goals *)
-  >> gvs[REAL_NOT_LT, real_reverse_trichotomy]
+  >- metis_tac[REAL_NOT_LT, REAL_LE_ANTISYM]
+  >- metis_tac[REAL_NOT_LT, REAL_LE_ANTISYM]
   (* Goal in the reals *)
   >> gvs[ADD_POW_2, AC REAL_ADD_SYM REAL_ADD_ASSOC]
 QED
