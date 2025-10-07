@@ -9,17 +9,31 @@ Libs dep_rewrite;
 (* New header syntax for lib files? *)
 
 (* cond_prob_ecc_bsc_prob_space is a tricky use case for converting an extreal
-   term into a real term *)
+   term into a real term
+
+   Before:
+    1 / 2 pow n * ∑ (sym_noise_mass_func p ∘ SND) (S1 ∩ S2) /
+        (1 / 2 pow n * ∑ (sym_noise_mass_func p ∘ SND) S2) =
+        ARB
+
+   After:
+        Normal (1 / 2 pow n) * ∑ (sym_noise_mass_func p ∘ SND) (S1 ∩ S2) /
+        (Normal (1 / 2 pow n) * ∑ (sym_noise_mass_func p ∘ SND) S2) =
+        ARB
+ *)
 
 (* How do I add bitstringTheory to probheap *)
 
-(* Shandong tutoring *)
+(* If I worked on polarity search, is there potential for novelty in that direction? *)
+
+(* How should I calculate the conditional probability for the event I'm
+ working with? *)
 
 (* What would I do if I did an internship *)
 
-(* EXTREAL_PROD_IMAGE_THM *)
+(* Shandong tutoring *)
 
-(* If I worked on polarity search, is there potential for novelty in that direction? *)
+(* EXTREAL_PROD_IMAGE_THM <- why did I write this here *)
 
 (* -------------------------------------------------------------------------- *)
 (* ALREADY DISCUSSED:                                                         *)
