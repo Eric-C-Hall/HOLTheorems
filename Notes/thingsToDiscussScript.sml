@@ -8,6 +8,13 @@ Libs dep_rewrite;
 
 (* New header syntax for lib files? *)
 
+(* It is intuitively obvious that if we have
+
+cond_prob (received (SNOC d ds)) (sent (SNOC c cs)), this is equivalent to 
+cond_prob (received d) (sent c) * cond_prob (received ds) (sent cs).
+
+However, formally this is not easy to prove. Would it be novel to develop methods for proving this according to intution? Where variables that "do not affect each other" can be seen easily to be independent? *)
+
 (* cond_prob_ecc_bsc_prob_space is a tricky use case for converting an extreal
    term into a real term
 
