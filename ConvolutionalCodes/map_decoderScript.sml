@@ -1889,6 +1889,16 @@ Proof
   >> Cases_on ‘x’ >> gvs[]
 QED
 
+Theorem event_sent_bit_takes_value_cross:
+  ∀enc n m i c.
+    event_sent_bit_takes_value enc n m i c =
+    {bs | LENGTH bs = n ∧ EL i (enc bs) = c} × length_n_codes m
+Proof
+  rw[event_sent_bit_takes_value_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[]
+  >> Cases_on ‘x’ >> gvs[]
+QED
+
 Theorem prob_event_sent_string_starts_with:
   ∀enc n m cs p.
     0 ≤ p ∧ p ≤ 1 ⇒
@@ -1899,6 +1909,22 @@ Theorem prob_event_sent_string_starts_with:
 Proof
   rw[]
   >> gvs[event_sent_string_starts_with_cross]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_cross]
+  >> conj_tac
+  >- (gvs[POW_DEF, SUBSET_DEF])
+  >> gvs[prob_sym_noise_prob_space_length_n_codes]
+QED
+
+Theorem prob_event_sent_bit_takes_value:
+  ∀enc n m p i c.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    prob (ecc_bsc_prob_space n m p)
+         (event_sent_bit_takes_value enc n m i c) =
+    prob (length_n_codes_uniform_prob_space n)
+         {bs | LENGTH bs = n ∧ EL i (enc bs) = c}
+Proof
+  rw[]
+  >> gvs[event_sent_bit_takes_value_cross]
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_cross]
   >> conj_tac
   >- (gvs[POW_DEF, SUBSET_DEF])
@@ -1925,7 +1951,8 @@ Proof
   rw[]
   >> gvs[prob_event_sent_string_starts_with]
   >> gvs[event_sent_string_starts_with_def, IMAGE_FST_CROSS]
-    
+
+        
   >> DEP_PURE_REWRITE_TAC[prob_ecc_bsc_prob_space]
   >> gvs[]
   >> cheat
