@@ -463,6 +463,17 @@ Proof
   >> (gvs[])
 QED
 
+Theorem event_sent_bit_takes_value_is_event[simp]:
+  ∀enc n m i c p.
+    event_sent_bit_takes_value enc n m i c ∈ events (ecc_bsc_prob_space n m p)
+Proof
+  rw[events_ecc_bsc_prob_space,
+     POW_DEF,
+     event_sent_bit_takes_value_def,
+     SUBSET_DEF]
+  >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* event_sent_string_starts_with is a valid event in the probability space it *)
 (* is designed for                                                            *)
@@ -474,6 +485,16 @@ Proof
   rw[event_sent_string_starts_with_def, events_ecc_bsc_prob_space,
      POW_DEF, SUBSET_DEF]
   >> (gvs[])
+QED
+
+Theorem event_received_bit_takes_value_is_event[simp]:
+  ∀enc n m i d p.
+    event_received_bit_takes_value enc n m i d ∈
+                                   events (ecc_bsc_prob_space n m p)
+Proof
+  rw[events_ecc_bsc_prob_space,
+     POW_DEF, SUBSET_DEF,
+     event_received_bit_takes_value_def] >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
