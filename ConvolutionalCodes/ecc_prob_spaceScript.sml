@@ -1351,6 +1351,9 @@ QED
 (*                                                                            *)
 (* Note that the sum makes this expression similar to sym_noise_dist, but not *)
 (* easily represented in terms of it.                                         *)
+(* In particular, sym_noise_dist p (IMAGE SND S) fails because SND is not     *)
+(* injective on S, thus multiple members of S will be combined and only       *)
+(* counted once instead of being counted individually.                        *)
 (*                                                                            *)
 (* It may sometimes be easier to instead break up S into the product of two   *)
 (* events, one in the space of bitstring, and one in the space of noises. If  *)
@@ -1362,7 +1365,7 @@ Theorem prob_ecc_bsc_prob_space:
     0 ≤ p ∧ p ≤ 1 ∧
     S ∈ events (ecc_bsc_prob_space n m p) ⇒
     prob (ecc_bsc_prob_space n m p) S =
-    1 / 2 pow n * ∑ (sym_noise_mass_func p ∘ SND) S
+    (1 / 2) pow n * ∑ (sym_noise_mass_func p ∘ SND) S
 Proof
   rw[]
   (* Our event is finite because our space is finite *)
@@ -1441,8 +1444,10 @@ Proof
       >> rw[]
       >> gvs[sym_noise_mass_func_not_neginf]
      )
-  (* Transform to composition *)
+  (* Transform away from composition *)
   >> gvs[o_DEF]
+  (* Distribute power over the division *)
+  >> gvs[pow_div]
 QED
 
 Theorem cancel_left_mul_extreal:

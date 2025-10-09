@@ -680,7 +680,7 @@ Theorem prob_event_input_string_starts_with[simp]:
     0 ≤ p ∧ p ≤ 1 ∧
     LENGTH bs = n ⇒
     prob (ecc_bsc_prob_space n m p) (event_input_string_starts_with n m bs) =
-    1 / (2 pow LENGTH bs)
+    (1 / 2) pow LENGTH bs
 Proof
   (* Use the expression for the probability in this probability space to
      simplify. *)
@@ -1493,7 +1493,7 @@ Theorem prob_ecc_bsc_prob_space_empty_output[simp]:
     0 ≤ p ∧ p ≤ 1 ∧
     S ∈ events (ecc_bsc_prob_space n 0 p) ⇒
     prob (ecc_bsc_prob_space n 0 p) S =
-    (1 / 2 pow n) * &CARD S
+    (1 / 2) pow n * &CARD S
 Proof
   rw[]
   (* Use the expression we have for the probability in our prob space *)
@@ -1780,15 +1780,11 @@ Proof
   >- gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF, bxor_length]
   (* Move the division to the RHS *)
   >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_eq]
-  >> rw[]
-  >- (irule lt_div_alt
-      >> rw[pow_not_infty]
-      >> gvs[pow_pos_lt]
-     )
-  >- (gvs[lt_posinf_neq_posinf]
-      >> irule (cj 1 div_not_infty_if_not_infty_alt)
+  >> conj_tac
+  >- (conj_tac
+      >- gvs[pow_pos_lt]
+      >> gvs[lt_posinf_neq_posinf]
       >> gvs[pow_not_infty]
-      >> gvs[pow_pos_lt]
      )
   (* Finish off the proof *)
   >> gvs[mul_comm]
@@ -1868,6 +1864,41 @@ Proof
   >> ASM_SET_TAC[]
 QED
 
+Theorem prob_event_sent_string_starts_with:
+  ∀enc n m cs p.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    prob (ecc_bsc_prob_space n m p)
+         (event_sent_string_starts_with enc n m cs) = ARB
+Proof
+  rw[]
+  >> gvs[prob_ecc_bsc_prob_space]
+  >> gvs[event_sent_string_starts_with_def]
+  >> cheat
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Prove that the event of (SNOC c cs) being sent has the same probability    *)
+(* as the event of cs being sent multiplied by the probability that c is sent *)
+(*                                                                            *)
+(* In other words, the event that c is sent is independent of the event that  *)
+(* cs is sent.                                                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_sent_snoc:
+  ∀enc n m p c cs.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    prob (ecc_bsc_prob_space n m p)
+         (event_sent_string_starts_with enc n m (SNOC c cs)) =
+    prob (ecc_bsc_prob_space n m p)
+         (event_sent_string_starts_with enc n m cs) *
+    prob (ecc_bsc_prob_space n m p)
+         (event_sent_bit_takes_value enc n m (LENGTH cs) c)
+Proof
+  rw[]
+  >> DEP_PURE_REWRITE_TAC[prob_ecc_bsc_prob_space]
+  >> gvs[]
+  >> cheat
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A version of cond_prob_string_given_input_prod, calculated relative to the *)
 (* sent string taking a particular value rather than the input string taking  *)
@@ -1907,7 +1938,7 @@ Proof
   (* cond_prob (received (SNOC d ds)) (sent (SNOC c cs))                      *)
   (*  = prob (received (SNOC d ds) and sent (SNOC c cs))                      *)
   (*    / prob (sent (SNOC c cs))                                             *)
-  (*  = prob (received d and received ds and sent c and sent cs / ...         *)
+  (*  = prob (received d and received ds and sent c and sent cs) / ...        *)
   (*  = prob (received d and sent c and received ds and sent cs) / ...        *)
   (*  = prob (received d and sent c) * prob (received ds and sent cs)         *)
   (*    / (prob (sent c) * prob (sent cs))                                    *)
@@ -2006,7 +2037,7 @@ Theorem map_decoder_bitwise_simp1:
     let
       map_decoder_bitstring_prob =
       λbs. (sym_noise_mass_func p (bxor (enc bs) ds)) *
-           (1 / 2 pow n);
+           (1 / 2) pow n;
       map_decoder_bit_prob =
       λi b.
         ∑ map_decoder_bitstring_prob {bs | LENGTH bs = n ∧ EL i bs = b};
@@ -2069,14 +2100,12 @@ Proof
       >> rw[]
       >> irule (cj 2 mul_not_infty2)
       >> rw[sym_noise_mass_func_not_neginf, sym_noise_mass_func_not_inf]
-      >> (‘1 ≠ +∞ ∧ 0 < 2 pow LENGTH bs ∧ 2 pow LENGTH bs ≠ +∞’ suffices_by
-            gvs[div_not_infty_if_not_infty_alt]
-          >> gvs[pow_pos_lt, pow_not_infty]
-         )
+      >> (gvs[pow_not_infty])
      )
   (* Cancel the multiplication and division *)
   >> PURE_ONCE_REWRITE_TAC[mul_comm]
   >> gvs[GSYM mul_assoc]
+  >> gvs[pow_div]
   >> DEP_PURE_ONCE_REWRITE_TAC[div_mul_refl_alt]
   >> gvs[pow_pos_lt, pow_not_infty]
   >> Cases_on ‘n = 0’ >> gvs[pow_zero_alt]
@@ -2496,12 +2525,8 @@ Proof
   (* Cancel out the multiplication *)
   >> DEP_PURE_ONCE_REWRITE_TAC[le_lmul]
   >> rw[]
-  >- (irule lt_div_alt
-      >> gvs[pow_pos_lt, pow_not_infty]
-     )
-  >- (irule (cj 1 div_not_infty_if_not_infty_alt)
-      >> gvs[pow_not_infty, pow_pos_lt]
-     )
+  >- gvs[pow_pos_lt]
+  >- gvs[pow_not_infty]
   (* Use expression for sym_noise_mass_func of bxor *)
   >> gvs[sym_noise_mass_func_bxor]
   (* Convert extreals to reals *)

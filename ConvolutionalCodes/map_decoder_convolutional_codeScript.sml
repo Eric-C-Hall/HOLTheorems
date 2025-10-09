@@ -2260,22 +2260,18 @@ Proof
          received bit given the corresponding sent bit. *)
       >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_string_given_sent_prod]
       >> conj_tac >- gvs[mdr_summed_out_values_2_def]
-      >> rw[]
-      >- (gvs[encode_recursive_parity_equation_with_systematic_def]
-          >> 
-         )
       (* While this isn't a product, it's an explicit expression for the
          probability, which will be equal to the product *)
       >> cheat
      )
-  >> ‘C * val1 * val2 = C * TODO1 * val2’ by (Cases_on ‘b’ >> gvs[])
+  (*  >> ‘C * val1 * val2 = C * TODO1 * val2’ by (Cases_on ‘b’ >> gvs[])
   >> qpat_x_assum ‘b ⇒ val1 = _’ kall_tac
   >> qpat_x_assum ‘Abbrev (val1 = _)’ kall_tac
   >> pop_assum (fn th => PURE_REWRITE_TAC[th])
   >> qmatch_abbrev_tac ‘C * val1 * val2 = _’
   (* We can eliminate x because it is simply equal to EL i bs*)
   >> drule mdr_summed_out_values_2_el_i_x
-  >> disch_tac >> gvs[]
-  >> 
+  >> disch_tac >> gvs[]*)
+  >> cheat
 QED
 
