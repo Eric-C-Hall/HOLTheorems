@@ -1932,31 +1932,12 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Prove that the event of (SNOC c cs) being sent has the same probability    *)
-(* as the event of cs being sent multiplied by the probability that c is sent *)
-(*                                                                            *)
-(* In other words, the event that c is sent is independent of the event that  *)
-(* cs is sent.                                                                *)
-(* -------------------------------------------------------------------------- *)
-Theorem prob_sent_snoc:
-  ∀enc n m p c cs.
-    0 ≤ p ∧ p ≤ 1 ⇒
-    prob (ecc_bsc_prob_space n m p)
-         (event_sent_string_starts_with enc n m (SNOC c cs)) =
-    prob (ecc_bsc_prob_space n m p)
-         (event_sent_string_starts_with enc n m cs) *
-    prob (ecc_bsc_prob_space n m p)
-         (event_sent_bit_takes_value enc n m (LENGTH cs) c)
-Proof
-  rw[]
-  >> gvs[prob_event_sent_string_starts_with]
-  >> gvs[event_sent_string_starts_with_def, IMAGE_FST_CROSS]
-
-        
-  >> DEP_PURE_REWRITE_TAC[prob_ecc_bsc_prob_space]
-  >> gvs[]
-  >> cheat
-QED
+(* It is not true that the event of (SNOC c cs) being sent has the same       *)
+(* probability as the product of the events of cs being sent and c being      *)
+(* sent. Depending on the encoding, the event of c being sent may not be      *)
+(* independent of the event of cs being sent. So don't try proving that       *)
+(* again.                                                                     *)
+(* ------ ------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
 (* A version of cond_prob_string_given_input_prod, calculated relative to the *)
