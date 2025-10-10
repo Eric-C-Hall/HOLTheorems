@@ -3,8 +3,8 @@ INCLUDES = ../Utility $(HOLDIR)/examples/generic_graphs
 all: $(DEFAULT_TARGETS)
 .PHONY: all
 
-probheap: $(SIGOBJ)/probabilityTheory.uo
-	$(HOLDIR)/bin/buildheap $< -o $@
+probheap: $(SIGOBJ)/probabilityTheory.uo $(SIGOBJ)/bitstringTheory.uo
+	$(HOLDIR)/bin/buildheap $< $(SIGOBJ)/bitstringTheory.uo -o $@
 
 HOLHEAP = probheap
 
