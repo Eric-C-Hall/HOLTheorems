@@ -3371,6 +3371,20 @@ Proof
   metis_tac[bxor_empty_left, bxor_comm]
 QED
 
+Theorem take_bxor:
+  ∀n bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    TAKE n (bxor bs cs) = bxor (TAKE n bs) (TAKE n cs)
+Proof
+  Induct_on ‘n’ >> rw[]
+  >> Cases_on ‘bxor bs cs’ >> gvs[TAKE]
+  >- (Cases_on ‘bs’ >> Cases_on ‘cs’ >> gvs[bxor_def])
+  >> Cases_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[bxor_cons]
+  >> gvs[]
+  >> gvs[LENGTH_TAKE_EQ]
+QED
+
 Theorem apply_noise_bnot_1:
   ∀ns bs.
     LENGTH ns = LENGTH bs ⇒
