@@ -1937,7 +1937,70 @@ QED
 (* sent. Depending on the encoding, the event of c being sent may not be      *)
 (* independent of the event of cs being sent. So don't try proving that       *)
 (* again.                                                                     *)
-(* ------ ------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* The event where cs starts with a value and ds starts with a value can be   *)
+(* broken down into the cross product of an event in the bs and an event in   *)
+(* the ns.                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem received_sent_inter_cross:
+  ∀enc n m cs ds.
+    LENGTH cs = LENGTH ds ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    (event_received_string_starts_with enc n m ds)
+    ∩ event_sent_string_starts_with enc n m cs =
+    {bs | LENGTH bs = n ∧ cs ≼ enc bs}
+                             × {ns | LENGTH ns = m ∧
+                                     ds = bxor cs (TAKE (LENGTH cs) ns)}
+Proof
+  rw[]
+  >> ‘LENGTH ds = LENGTH cs’ by gvs[] >> gvs[]
+  >> gvs[event_received_string_starts_with_def,
+         event_sent_string_starts_with_def]
+  >> cheat
+(*>> rw[EXTENSION] >> EQ_TAC
+         >- (rw[] >> gvs[]
+      (* We have:
+         ds ≼ bxor (enc bs) ns
+         cs ≼ enc bs
+         We want to prove:
+         bs = bxor cs (TAKE (LENGTH cs) ns)
+.
+         ds is the first few 
+         
+       *)
+      >> gvs[IS_PREFIX_EQ_TAKE']
+      >> gvs[LENGTH_TAKE_EQ]
+      >> rw[]
+      >> gvs[MIN_DEF]
+      >> pop_assum mp_tac >> rw[] >> gvs[bxor_length]
+      >> gvs[NOT_LESS]
+      >> metis_tac[LE_ANTISYM]
+                  
+     )
+      >> gvs[LENGTH_TAKE_2]
+      >> gvs[bxor_length]
+      >> gvs[MAX_DEF]
+      >> pop_assum mp_tac >> rw[]
+      >> gvs[MIN_DEF]
+      >> pop_assum mp_tac >> rw[]
+      >> 
+      
+      
+      >> DEP_PURE_ONCE_REWRITE_TAC[LENGTH_TAKE]
+                                  
+      >> sg ‘ds = TAKE (LENGTH ds) ’
+      (* ds is the first few chars of bxor.
+         cs is the first few chars fo *)
+      >> sg ‘cs = TAKE (LENGTH ds) (enc bs)’
+      >- gvs[]
+      >> gvs[]
+     )
+  >> rw[] >> gvs[]
+  >- 
+  >> ASM_SET_TAC[]*)
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* A version of cond_prob_string_given_input_prod, calculated relative to the *)
@@ -1945,7 +2008,7 @@ QED
 (* a particular value. It may be possible to remove the assumption that the   *)
 (* encoder is injective.                                                      *)
 (* -------------------------------------------------------------------------- *)
-Theorem cond_prob_string_given_sent_prod:
+Theorem cond_prob_received_string_given_sent:
   ∀enc n m p cs ds.
     0 ≤ p ∧ p ≤ 1 ∧
     LENGTH cs = LENGTH ds ⇒
@@ -1954,6 +2017,26 @@ Theorem cond_prob_string_given_sent_prod:
               (event_sent_string_starts_with enc n m cs) =
     sym_noise_mass_func p (bxor cs ds)
 Proof
+  rw[]
+  (* ------------------------------------------------------------------------ *)
+  (* Proof idea:                                                              *)
+  (* cond_prob (received starts with ds) given (sent starts with cs)          *)
+  (*   = prob (cs and ds) / prob (cs)                                         *)
+  (*                                                                          *)
+  (* Split cs and ds into a product in terms of the bs that arrive at cs, and *)
+  (* the ns that transform cs into ds.                                        *)
+  (*                                                                          *)
+  (* Thus, we can multiply the probability of the bs in the bs prob space     *)
+  (* with the probability of the ns in the ns prob space.                     *)
+  (*                                                                          *)
+  (* The probability of the bs in the bs prob space cancels with the          *)
+  (* denominator.                                                             *)
+  (*                                                                          *)
+  (* It should then be clear how to finish the proof.                         *)
+  (* ------------------------------------------------------------------------ *)
+  >> gvs[cond_prob_def]
+  >> 
+    
   Induct_on ‘ds’ using SNOC_INDUCT >> Cases_on ‘cs’ using SNOC_CASES >> simp[]
   >> rpt strip_tac
   (* Better names *)
@@ -1962,42 +2045,15 @@ Proof
      ds instead of SNOC d ds, and everything else is the same *)
   >> last_x_assum (qspecl_then [‘enc’, ‘n’, ‘m’, ‘p’, ‘cs’] assume_tac)
   >> gs[]
-  (* ------------------------------------------------------------------------ *)
-  (* We want to prove:                                                        *)
-  (* cond_prob (received (SNOC d ds)) (sent (SNOC c cs))                      *)
-  (*  = cond_prob (received d) (sent c) * cond_prob (received ds) (sent cs)   *)
+   (* For every choice of bs that produces the sent string cs, any choice of   *)
+  (* ns will work to produce that sent string.                                *)
   (*                                                                          *)
-  (* Then we could simply use our inductive hypthesis on the strings of one   *)
-  (* less length, and we could easily calculate the inductive step to be      *)
-  (* appropriate.                                                             *)
-  (*                                                                          *)
-  (* This is intuitively obvious because the value of a given bit is only     *)
-  (* affected by the relevant bit that was sent, not by any other bits that   *)
-  (* were sent or received.                                                   *)
-  (*                                                                          *)
-  (* cond_prob (received (SNOC d ds)) (sent (SNOC c cs))                      *)
-  (*  = prob (received (SNOC d ds) and sent (SNOC c cs))                      *)
-  (*    / prob (sent (SNOC c cs))                                             *)
-  (*  = prob (received d and received ds and sent c and sent cs) / ...        *)
-  (*  = prob (received d and sent c and received ds and sent cs) / ...        *)
-  (*  = prob (received d and sent c) * prob (received ds and sent cs)         *)
-  (*    / (prob (sent c) * prob (sent cs))                                    *)
-  (*  = cond_prob (received d) (sent c) * cond_prob (received ds) (sent cs)   *)
-  (*                                                                          *)
-  (* The tricky part in this proof sketch is proving that                     *)
-  (* (received d and sent c) is independent of (received ds and sent cs), and *)
-  (* that (sent c) is independent of (sent cs)                                *)
+  (* If the received string starts with ds and the sent string starts with    *)
+  (* cs, then there will be one choice of noise which                         *)
   (*                                                                          *)
   (*                                                                          *)
-       
-  (* Inductive hyp:                                                           *)
-  (* cond_prob R_ds S_cs = ...                                                *)
   (*                                                                          *)
-  (* Want to prove:                                                           *)
-  (* cond_prob (R_d::ds) (S_c::cs) = ...                                      *)
-  (* cond_prob R_d S_c * cond_prob R_ds S_cs                                  *)
   (*                                                                          *)
-  (* prob (R_cs ∩                                                             *)
   (*                                                                          *) 
   (* ------------------------------------------------------------------------ *)
   (* Let E_cs represent the event of strings starting with cs.                *)
@@ -2016,8 +2072,20 @@ Proof
   (* ------------------------------------------------------------------------ *)
   (* Every string starting with h is formed by prepending h to its              *)
   (* -------------------------------------------------------------------------- *)
+  >> gvs[event_received_string_starts_with_def]
+  >> gvs[event_sent_string_starts_with_def]
   >> cheat
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: write version of the above theorem that works for a single bit       *)
+(* -------------------------------------------------------------------------- *)
+Theorem cond_prob_received_bit_given_sent:
+  TODO
+Proof
+  cheat
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Simplify the conditional probability from map_decoder_bitwise_sum_bayes,   *)
