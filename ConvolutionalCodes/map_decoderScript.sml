@@ -2003,6 +2003,16 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* The probability that the received string will be ds and the sent string    *)
+(* will be cs.                                                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_received_string_and_sent:
+  TODO = TODO
+Proof
+  cheat
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A version of cond_prob_string_given_input_prod, calculated relative to the *)
 (* sent string taking a particular value rather than the input string taking  *)
 (* a particular value. It may be possible to remove the assumption that the   *)
@@ -2035,9 +2045,9 @@ Proof
   (* It should then be clear how to finish the proof.                         *)
   (* ------------------------------------------------------------------------ *)
   >> gvs[cond_prob_def]
-  >> 
-    
-  Induct_on ‘ds’ using SNOC_INDUCT >> Cases_on ‘cs’ using SNOC_CASES >> simp[]
+
+  (*
+  >> Induct_on ‘ds’ using SNOC_INDUCT >> Cases_on ‘cs’ using SNOC_CASES >> simp[]
   >> rpt strip_tac
   (* Better names *)
   >> rename1 ‘bxor (SNOC c cs) (SNOC d ds)’
@@ -2074,6 +2084,7 @@ Proof
   (* -------------------------------------------------------------------------- *)
   >> gvs[event_received_string_starts_with_def]
   >> gvs[event_sent_string_starts_with_def]
+     *)
   >> cheat
 QED
 

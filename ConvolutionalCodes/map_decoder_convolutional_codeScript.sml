@@ -2242,6 +2242,8 @@ Proof
       >> conj_tac >- gvs[mdr_summed_out_values_2_def]
       >> REVERSE (rw[])
       >- gvs[mdr_summed_out_values_2_def]
+      >> cheat
+     (*
       (* The event with a given input, state, and parity bits is equal to the
          event with the given parity bits, assuming injectivity *)
       >> DEP_PURE_ONCE_REWRITE_TAC[event_input_state_parity_event_sent_string_starts_with]
@@ -2263,6 +2265,7 @@ Proof
       (* While this isn't a product, it's an explicit expression for the
          probability, which will be equal to the product *)
       >> cheat
+         *)
      )
   (*  >> ‘C * val1 * val2 = C * TODO1 * val2’ by (Cases_on ‘b’ >> gvs[])
   >> qpat_x_assum ‘b ⇒ val1 = _’ kall_tac
