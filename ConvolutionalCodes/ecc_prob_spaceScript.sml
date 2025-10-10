@@ -3318,12 +3318,39 @@ Proof
   EVAL_TAC
 QED
 
+Theorem bitwise_empty[simp]:
+  ∀f bs cs.
+    bitwise f [] [] = []
+Proof
+  EVAL_TAC >> simp[]
+QED
+
 Theorem bxor_replicate_f_left_same_width:
   ∀bs n.
     LENGTH bs = n ⇒
     bxor (REPLICATE n F) bs = bs
 Proof
   Induct_on ‘n’ >> Cases_on ‘bs’ >> rw[]
+QED
+
+Theorem bitwise_empty_left:
+  ∀f bs.
+    bitwise f [] bs = bitwise f (REPLICATE (LENGTH bs) F) bs
+Proof
+  rw[]
+  >> PURE_ONCE_REWRITE_TAC[bitwise_fixwidth]
+  >> gvs[]
+  >> gvs[fixwidth_empty]
+QED
+
+Theorem bitwise_empty_right:
+  ∀f bs.
+    bitwise f bs [] = bitwise f bs (REPLICATE (LENGTH bs) F)
+Proof
+  rw[]
+  >> PURE_ONCE_REWRITE_TAC[bitwise_fixwidth]
+  >> gvs[]
+  >> gvs[fixwidth_empty]
 QED
 
 Theorem bxor_empty_left[simp]:
