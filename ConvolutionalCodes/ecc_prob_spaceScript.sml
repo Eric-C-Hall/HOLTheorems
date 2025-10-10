@@ -3280,6 +3280,70 @@ Proof
   >> gvs[bnot_bxor_1]
 QED
 
+
+Theorem extend_append:
+  ∀n v bs.
+    extend v n bs = REPLICATE n v ++ bs
+Proof
+  Induct_on ‘n’ >> rw[] >> gvs[extend_def]
+  >> gvs[GSYM SNOC_APPEND]
+QED
+
+Theorem extend_snoc:
+  ∀v n b bs.
+    extend v n (SNOC b bs) = SNOC b (extend v n bs)
+Proof
+  rw[]
+  >> gvs[extend_append]
+QED
+
+Theorem fixwidth_empty:
+  ∀n.
+    fixwidth n [] = REPLICATE n F
+Proof
+  Induct_on ‘n’ >> rw[]
+  >> gvs[fixwidth]
+  >> pop_assum mp_tac >> rw[] >> gvs[NOT_LT_ZERO_EQ_ZERO, extend_def]
+  >> qsuff_tac ‘extend F n [F] = SNOC F (extend F n []) ∧
+                F::REPLICATE n F = SNOC F (REPLICATE n F)’
+  >- simp[]
+  >> REVERSE conj_tac >- gvs[]
+  >> PURE_REWRITE_TAC[GSYM extend_snoc]
+  >> gvs[]
+QED
+
+Theorem bxor_empty[simp]:
+  bxor [] [] = []
+Proof
+  EVAL_TAC
+QED
+
+Theorem bxor_replicate_f_left_same_width:
+  ∀bs n.
+    LENGTH bs = n ⇒
+    bxor (REPLICATE n F) bs = bs
+Proof
+  Induct_on ‘n’ >> Cases_on ‘bs’ >> rw[]
+QED
+
+Theorem bxor_empty_left[simp]:
+  ∀bs.
+    bxor [] bs = bs
+Proof
+  rw[]
+  >> PURE_ONCE_REWRITE_TAC[bxor_fixwidth]
+  >> gvs[]
+  >> gvs[fixwidth_empty]
+  >> gvs[bxor_replicate_f_left_same_width]
+QED
+
+Theorem bxor_empty_right[simp]:
+  ∀bs.
+    bxor bs [] = bs
+Proof
+  metis_tac[bxor_empty_left, bxor_comm]
+QED
+
 Theorem apply_noise_bnot_1:
   ∀ns bs.
     LENGTH ns = LENGTH bs ⇒
@@ -3336,12 +3400,6 @@ Proof
   >> REVERSE $ Cases_on ‘h’ >> gvs[num_errors_cons]
   >> qspec_then ‘bs’ assume_tac num_errors_length
   >> gvs[]
-QED
-
-Theorem bxor_empty[simp]:
-  bxor [] [] = []
-Proof
-  EVAL_TAC
 QED
 
 Theorem apply_noise_n_repetition_bit_T:
