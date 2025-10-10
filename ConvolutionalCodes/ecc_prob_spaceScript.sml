@@ -3227,6 +3227,15 @@ Proof
   >> gvs[bitwise_comm_same_length, length_fixwidth, MAX_COMM]
 QED
 
+Theorem bxor_fixwidth:
+  ∀bs cs.
+    bxor bs cs =
+    bxor (fixwidth (MAX (LENGTH bs) (LENGTH cs)) bs)
+         (fixwidth (MAX (LENGTH bs) (LENGTH cs)) cs)
+Proof
+  gvs[bxor_def, GSYM bitwise_fixwidth]
+QED
+
 Theorem bxor_comm:
   ∀bs cs.
     bxor bs cs = bxor cs bs
