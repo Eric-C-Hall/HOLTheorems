@@ -3194,17 +3194,47 @@ Proof
   gvs[bxor_def]
 QED
 
+(* A helper function to solve bitwise_comm, for the special case of same-length
+   inputs *)
+Theorem bitwise_comm_same_length[local]:
+  ∀f bs cs.
+    (∀x y. f x y = f y x) ∧
+    LENGTH bs = LENGTH cs ⇒
+    bitwise f bs cs = bitwise f cs bs    
+Proof
+  Induct_on ‘bs’ >> Cases_on ‘cs’ >> rw[]
+  >> last_x_assum irule >> simp[]
+QED
+
+Theorem bitwise_fixwidth:
+  ∀f bs cs.
+    bitwise f bs cs =
+    bitwise f
+            (fixwidth (MAX (LENGTH bs) (LENGTH cs)) bs)
+            (fixwidth (MAX (LENGTH bs) (LENGTH cs)) cs)
+Proof
+  rw[]
+  >> gvs[bitwise_def]
+QED
+
+Theorem bitwise_comm:
+  ∀f bs cs.
+    (∀x y. f x y = f y x) ⇒
+    bitwise f bs cs = bitwise f cs bs
+Proof
+  rw[]
+  >> PURE_ONCE_REWRITE_TAC[bitwise_fixwidth]
+  >> gvs[bitwise_comm_same_length, length_fixwidth, MAX_COMM]
+QED
+
 Theorem bxor_comm:
   ∀bs cs.
-    LENGTH bs = LENGTH cs ⇒
     bxor bs cs = bxor cs bs
 Proof
-  strip_tac
-  >> Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
-  >> rpt strip_tac
-  >- (Cases_on ‘h’ >> Cases_on ‘h'’ >> gvs[])
-  >> last_x_assum $ qspec_then ‘t’ assume_tac
-  >> gvs[]
+  rw[bxor_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[bitwise_comm]
+  >> rw[]
+  >> metis_tac[]
 QED
 
 Theorem bnot_length[simp]:
@@ -3598,7 +3628,7 @@ let
 val
 in
   end
-                                *)
+ *)
 
 (*
 (* Given an expression of arithmetic operations where each term is of the form
@@ -3627,7 +3657,7 @@ in
   | _ => DECIDE “T”*)
                 
   end
-                               *)
+*)
 
 (*
 val Normal_CONV_test1 = “∀n : num. ∀r : real. ∃s : real. Normal s + ((- Normal r) pow n) * Normal 2 = Normal 0”
