@@ -6,6 +6,14 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* ALREADY DISCUSSED:                                                         *)
+(* -------------------------------------------------------------------------- *)
+
+(* Could build upon existing Kolmogorov complexity stuff *)
+
 (* New header syntax for lib files? *)
 
 (* It is intuitively obvious that if we have
@@ -13,7 +21,8 @@ Libs dep_rewrite;
 cond_prob (received (SNOC d ds)) (sent (SNOC c cs)), this is equivalent to 
 cond_prob (received d) (sent c) * cond_prob (received ds) (sent cs).
 
-However, formally this is not easy to prove. Would it be novel to develop methods for proving this according to intution? Where variables that "do not affect each other" can be seen easily to be independent? *)
+However, formally this is not easy to prove. Would it be novel to develop methods for proving this according to intution? Where variables that "do not affect each other" can be seen easily to be independent? ≤== Interesting *)
+
 
 (* cond_prob_ecc_bsc_prob_space is a tricky use case for converting an extreal
    term into a real term
@@ -31,7 +40,7 @@ However, formally this is not easy to prove. Would it be novel to develop method
 
 (* How do I add bitstringTheory to probheap *)
 
-(* If I worked on polarity search, is there potential for novelty in that direction? *)
+(* If I worked on polarity search, is there potential for novelty in that direction?  Too much human interaction requied. May need ethics approval for human experinebts*)
 
 (* How should I calculate the conditional probability for the event I'm
  working with? *)
