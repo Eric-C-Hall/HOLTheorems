@@ -4,7 +4,7 @@ Theory map_decoder
 
 Ancestors ecc_prob_space argmin_extreal arithmetic bitstring pair pred_set probability extreal real rich_list sigma_algebra lebesgue list martingale measure topology
 
-Libs donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
+Libs extreal_to_realLib donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
 
 val _ = hide "S";
 
@@ -746,48 +746,6 @@ Proof
   >> gvs[event_input_bit_takes_value_def]
   >> gvs[CROSS_DEF]
   >> ASM_SET_TAC[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* If we consider the cross of two events in the cross of two probability     *)
-(* spaces, then the probability is the product of the probabilities of the    *)
-(* events.                                                                    *)
-(* -------------------------------------------------------------------------- *)
-Theorem prob_cross:
-  ∀sp1 sp2 e1 e2.
-    prob_space sp1 ∧
-    prob_space sp2 ∧
-    e1 ∈ events sp1 ∧
-    e2 ∈ events sp2 ⇒
-    prob (sp1 × sp2) (e1 × e2) = prob sp1 e1 * prob sp2 e2
-Proof
-  rw[]
-  >> gvs[prob_def, prod_measure_space_def, prob_space_def, events_def]
-  >> gvs[PROD_MEASURE_CROSS]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* It is often useful to apply our probability space to the cross between two *)
-(* events. This allows us to calculate the probability of each of the crossed *)
-(* events separately, which may sometimes be simpler.                         *)
-(* -------------------------------------------------------------------------- *)
-Theorem prob_ecc_bsc_prob_space_cross:
-  ∀n m p e1 e2.
-    0 ≤ p ∧ p ≤ 1 ∧
-    e1 ∈ POW (length_n_codes n) ∧
-    e2 ∈ POW (length_n_codes m) ⇒
-    prob (ecc_bsc_prob_space n m p) (e1 × e2) =
-    prob (length_n_codes_uniform_prob_space n) e1 *
-    prob (sym_noise_prob_space m p) e2
-Proof
-  rw[]
-  >> gvs[ecc_bsc_prob_space_def]
-  >> DEP_PURE_ONCE_REWRITE_TAC[prob_cross]
-  >> conj_tac
-  >- gvs[length_n_codes_uniform_prob_space_def,
-         sym_noise_prob_space_def,
-         events_def]
-  >> gvs[]
 QED
 
 Theorem length_n_codes_ith_eq_codes_image:
@@ -2012,14 +1970,33 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* The probability that the received string will be ds and the sent string    *)
-(* will be cs.                                                                *)
+(* The probability that the received string will start with ds and the sent   *)
+(* string will start with cs.                                                 *)
 (* -------------------------------------------------------------------------- *)
 Theorem prob_received_string_and_sent:
-  TODO = TODO
+  ∀enc n m p cs ds.
+    0 ≤ p ∧ p ≤ 1 ∧
+    LENGTH cs = LENGTH ds ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    prob (ecc_bsc_prob_space n m p)
+         ((event_received_string_starts_with enc n m ds)
+          ∩ (event_sent_string_starts_with enc n m cs)) =
+    ARB
 Proof
-  cheat
+  rw[]
+  >> gvs[received_sent_inter_cross]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_cross]
+  >> conj_tac
+  >- gvs[POW_DEF, SUBSET_DEF]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_length_n_codes_uniform_prob_space]
+  >> conj_tac
+  >- gvs[POW_DEF, SUBSET_DEF]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_sym_noise_prob_space]
+  >> conj_tac
+  >- gvs[POW_DEF, SUBSET_DEF]
+  >> 
 QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* A version of cond_prob_string_given_input_prod, calculated relative to the *)
@@ -2030,7 +2007,8 @@ QED
 Theorem cond_prob_received_string_given_sent:
   ∀enc n m p cs ds.
     0 ≤ p ∧ p ≤ 1 ∧
-    LENGTH cs = LENGTH ds ⇒
+    LENGTH cs = LENGTH ds ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
     cond_prob (ecc_bsc_prob_space n m p)
               (event_received_string_starts_with enc n m ds)
               (event_sent_string_starts_with enc n m cs) =
@@ -2054,47 +2032,10 @@ Proof
   (* It should then be clear how to finish the proof.                         *)
   (* ------------------------------------------------------------------------ *)
   >> gvs[cond_prob_def]
+  >> gvs[received_sent_inter_cross]
+  >> gvs[]
+  
 
-  (*
-  >> Induct_on ‘ds’ using SNOC_INDUCT >> Cases_on ‘cs’ using SNOC_CASES >> simp[]
-  >> rpt strip_tac
-  (* Better names *)
-  >> rename1 ‘bxor (SNOC c cs) (SNOC d ds)’
-  (* The relevant inductive hypothesis uses cs instead of SNOC c cs, uses
-     ds instead of SNOC d ds, and everything else is the same *)
-  >> last_x_assum (qspecl_then [‘enc’, ‘n’, ‘m’, ‘p’, ‘cs’] assume_tac)
-  >> gs[]
-   (* For every choice of bs that produces the sent string cs, any choice of   *)
-  (* ns will work to produce that sent string.                                *)
-  (*                                                                          *)
-  (* If the received string starts with ds and the sent string starts with    *)
-  (* cs, then there will be one choice of noise which                         *)
-  (*                                                                          *)
-  (*                                                                          *)
-  (*                                                                          *)
-  (*                                                                          *)
-  (*                                                                          *) 
-  (* ------------------------------------------------------------------------ *)
-  (* Let E_cs represent the event of strings starting with cs.                *)
-  (*                                                                          *)
-  (*                                                                          *)
-  (* The event of strings starting with cs is equal to the intersection of    *)
-  (* the event of strings starting with SNOC c cs with the event of strings   *)
-  (* starting with SNOC (¬c) cs. These are disjoint, thus the conditional     *)
-  (* probability is the sum of these two events. Furthermore, the event of    *)
-  (* strings starting with SNOC (¬c cs) is equal to MAP-ing a function which  *)
-  (* negates the first element over the event of strings starting with        *)
-  (* SNOC c cs.                                                               *)
-  (*                                                                          *)
-  (* Let probC denote the probability of the event of stirngs starting with   *)
-  (*                                                                          *)
-  (* ------------------------------------------------------------------------ *)
-  (* Every string starting with h is formed by prepending h to its              *)
-  (* -------------------------------------------------------------------------- *)
-  >> gvs[event_received_string_starts_with_def]
-  >> gvs[event_sent_string_starts_with_def]
-     *)
-  >> cheat
 QED
 
 (* -------------------------------------------------------------------------- *)

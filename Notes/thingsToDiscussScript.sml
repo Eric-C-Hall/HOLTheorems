@@ -6,6 +6,10 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* It is not obvious how to search for terms like {bs | LENGTH bs = n ∧ cs ≼ enc bs} *)
+
+(* Notice how slow definitions are. for example, in map_decoderScript *)
+
 (* How do I easily apply a function to both sides of an equation. e.g. I have
    the assumption ls1 = ls2 and I want to prove LENGTH ls1 = LENGTH ls2 *)
 

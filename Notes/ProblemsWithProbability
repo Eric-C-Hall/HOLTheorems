@@ -1,0 +1,43 @@
+
+
+ ∀enc n m p cs ds.
+    LENGTH 
+    prob (ecc_bsc_prob_space n m p)
+         ((event_received_string_starts_with enc n m ds)
+          ∩ (event_sent_string_starts_with enc n m cs)) =
+    ARB
+    
+What if ds and cs have differing lengths?
+
+How can I calculate the cond_prob?
+
+
+---------------
+
+I can break down into products. Further, I can break down into products of the individual bits.
+
+A product of individual bits will have 
+
+----------------
+
+It's important that we can ignore parts of the string at will.
+
+--------------
+
+  0.  0 ≤ p
+    1.  p ≤ 1
+    2.  LENGTH cs = LENGTH ds
+    3.  ∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m
+   ------------------------------------
+        (1 / 2) pow n * &CARD {bs | LENGTH bs = n ∧ cs ≼ enc bs} *
+        ∑ (sym_noise_mass_func p)
+          {ns | LENGTH ns = m ∧ ds = bxor cs (TAKE (LENGTH ds) ns)} =
+        ARB
+        
+How to simplify, especially second sum      
+
+
+---------------
+
+
+        

@@ -3806,6 +3806,48 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* If we consider the cross of two events in the cross of two probability     *)
+(* spaces, then the probability is the product of the probabilities of the    *)
+(* events.                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_cross:
+  ∀sp1 sp2 e1 e2.
+    prob_space sp1 ∧
+    prob_space sp2 ∧
+    e1 ∈ events sp1 ∧
+    e2 ∈ events sp2 ⇒
+    prob (sp1 × sp2) (e1 × e2) = prob sp1 e1 * prob sp2 e2
+Proof
+  rw[]
+  >> gvs[prob_def, prod_measure_space_def, prob_space_def, events_def]
+  >> gvs[PROD_MEASURE_CROSS]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* It is often useful to apply our probability space to the cross between two *)
+(* events. This allows us to calculate the probability of each of the crossed *)
+(* events separately, which may sometimes be simpler.                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_ecc_bsc_prob_space_cross:
+  ∀n m p e1 e2.
+    0 ≤ p ∧ p ≤ 1 ∧
+    e1 ∈ POW (length_n_codes n) ∧
+    e2 ∈ POW (length_n_codes m) ⇒
+    prob (ecc_bsc_prob_space n m p) (e1 × e2) =
+    prob (length_n_codes_uniform_prob_space n) e1 *
+    prob (sym_noise_prob_space m p) e2
+Proof
+  rw[]
+  >> gvs[ecc_bsc_prob_space_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_cross]
+  >> conj_tac
+  >- gvs[length_n_codes_uniform_prob_space_def,
+         sym_noise_prob_space_def,
+         events_def]
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Broken, not important enough to fix                                        *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem REAL_ADD_NEG_RIGHT:

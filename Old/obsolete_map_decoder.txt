@@ -1,3 +1,45 @@
+ (*
+  >> Induct_on ‘ds’ using SNOC_INDUCT >> Cases_on ‘cs’ using SNOC_CASES >> simp[]
+  >> rpt strip_tac
+  (* Better names *)
+  >> rename1 ‘bxor (SNOC c cs) (SNOC d ds)’
+  (* The relevant inductive hypothesis uses cs instead of SNOC c cs, uses
+     ds instead of SNOC d ds, and everything else is the same *)
+  >> last_x_assum (qspecl_then [‘enc’, ‘n’, ‘m’, ‘p’, ‘cs’] assume_tac)
+  >> gs[]
+   (* For every choice of bs that produces the sent string cs, any choice of   *)
+  (* ns will work to produce that sent string.                                *)
+  (*                                                                          *)
+  (* If the received string starts with ds and the sent string starts with    *)
+  (* cs, then there will be one choice of noise which                         *)
+  (*                                                                          *)
+  (*                                                                          *)
+  (*                                                                          *)
+  (*                                                                          *)
+  (*                                                                          *) 
+  (* ------------------------------------------------------------------------ *)
+  (* Let E_cs represent the event of strings starting with cs.                *)
+  (*                                                                          *)
+  (*                                                                          *)
+  (* The event of strings starting with cs is equal to the intersection of    *)
+  (* the event of strings starting with SNOC c cs with the event of strings   *)
+  (* starting with SNOC (¬c) cs. These are disjoint, thus the conditional     *)
+  (* probability is the sum of these two events. Furthermore, the event of    *)
+  (* strings starting with SNOC (¬c cs) is equal to MAP-ing a function which  *)
+  (* negates the first element over the event of strings starting with        *)
+  (* SNOC c cs.                                                               *)
+  (*                                                                          *)
+  (* Let probC denote the probability of the event of stirngs starting with   *)
+  (*                                                                          *)
+  (* ------------------------------------------------------------------------ *)
+  (* Every string starting with h is formed by prepending h to its              *)
+  (* -------------------------------------------------------------------------- *)
+  >> gvs[event_received_string_starts_with_def]
+  >> gvs[event_sent_string_starts_with_def]
+     *)
+  >> cheat
+
+
 
   (* COMMENT FOR cond_prob_string_given_sent_prod: *)
   (* We want to prove:                                                        *)
