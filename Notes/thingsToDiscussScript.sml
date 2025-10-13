@@ -6,7 +6,13 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* How do I easily apply a function to both sides of an equation. e.g. I have
+   the assumption ls1 = ls2 and I want to prove LENGTH ls1 = LENGTH ls2 *)
 
+(* Does HOL have a profiling tool? *)
+
+(* Would be cool to be able to start with a left hand side, and apply rules
+   until we reach a right hand side, and then add this as an assumption *)
 
 (* -------------------------------------------------------------------------- *)
 (* ALREADY DISCUSSED:                                                         *)

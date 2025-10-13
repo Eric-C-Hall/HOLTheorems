@@ -1955,51 +1955,60 @@ Theorem received_sent_inter_cross:
                                      ds = bxor cs (TAKE (LENGTH cs) ns)}
 Proof
   rw[]
-  >> ‘LENGTH ds = LENGTH cs’ by gvs[] >> gvs[]
   >> gvs[event_received_string_starts_with_def,
          event_sent_string_starts_with_def]
-  >> cheat
-(*>> rw[EXTENSION] >> EQ_TAC
-         >- (rw[] >> gvs[]
+  >> rw[EXTENSION] >> EQ_TAC
+  >- (rw[] >> gvs[]
       (* We have:
-         ds ≼ bxor (enc bs) ns
-         cs ≼ enc bs
-         We want to prove:
-         bs = bxor cs (TAKE (LENGTH cs) ns)
+         ds a prefix of bxor sent_bits noise
+         cs a prefix of sent_bits
 .
-         ds is the first few 
-         
+         We know that the lengths on the left are equal.
+         We know that the lengths of sent_bits and noise are equal
+         We know that the sent_bits are of length m
+         We know that the noise is of length m
+.
+         We want:
+         ds = bxor cs (TAKE (LENGTH cs) noise)
+.
+         1. We deduce that bxor sent_bits noise has the same length as
+            sent_bits and noise (thus, the lengths on the right are equal)
+         2. We deduce that the lengths on the left must be less than the lengths
+         on the right (one is a prefix of the other).
+         3. We deduce that ds = TAKE _ (bxor sent_bits noise)
+         4. The underscore must be the length on the left, since that is the
+            length of the result, and the length of the other argument is
+            greater than that
+         5. Likewise, cs = TAKE _ sent_bits
+         6. The underscore must again be the length on the left, since the
+            length of the other argument is greater than that.
+         7. We need to prove:
+            TAKE left_length (bxor sent_bits noise) =
+              bxor (TAKE left_length sent_bits) (TAKE left_length noise).
+            This can be proven via lemma.
        *)
-      >> gvs[IS_PREFIX_EQ_TAKE']
-      >> gvs[LENGTH_TAKE_EQ]
-      >> rw[]
-      >> gvs[MIN_DEF]
-      >> pop_assum mp_tac >> rw[] >> gvs[bxor_length]
-      >> gvs[NOT_LESS]
-      >> metis_tac[LE_ANTISYM]
-                  
-     )
-      >> gvs[LENGTH_TAKE_2]
-      >> gvs[bxor_length]
-      >> gvs[MAX_DEF]
-      >> pop_assum mp_tac >> rw[]
-      >> gvs[MIN_DEF]
-      >> pop_assum mp_tac >> rw[]
-      >> 
-      
-      
-      >> DEP_PURE_ONCE_REWRITE_TAC[LENGTH_TAKE]
-                                  
-      >> sg ‘ds = TAKE (LENGTH ds) ’
-      (* ds is the first few chars of bxor.
-         cs is the first few chars fo *)
-      >> sg ‘cs = TAKE (LENGTH ds) (enc bs)’
+      >> sg ‘LENGTH (bxor (enc bs) ns) = LENGTH ns’ (* Step 1 *)
+      >- gvs[bxor_length]
+      >> sg ‘LENGTH cs ≤ LENGTH ns’ (* Step 2 *)
+      >- metis_tac[IS_PREFIX_LENGTH]
+      (* Steps 3 and 5 *)
+      >> rpt (qpat_x_assum ‘_ ≼ _’ mp_tac)
+      >> simp[IS_PREFIX_EQ_TAKE]
+      >> rpt strip_tac
+      (* Steps 4 and 6 *)
+      >> sg ‘n = LENGTH ds ∧ n' = LENGTH cs’ (* Steps 4 and 6 *)
       >- gvs[]
-      >> gvs[]
+      (* Step 7 *)
+      >> metis_tac[take_bxor]
      )
-  >> rw[] >> gvs[]
-  >- 
-  >> ASM_SET_TAC[]*)
+  >> rw[]
+  >- (namedCases_on ‘x’ ["bs ns"] >> gvs[]
+      >> gvs[IS_PREFIX_EQ_TAKE]
+      >> qexists ‘LENGTH ds’
+      >> gvs[bxor_length]
+      >> gvs[take_bxor]
+     )
+  >> Cases_on ‘x’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
