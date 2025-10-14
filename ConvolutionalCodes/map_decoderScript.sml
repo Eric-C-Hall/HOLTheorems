@@ -1981,22 +1981,61 @@ Theorem prob_received_string_and_sent:
     prob (ecc_bsc_prob_space n m p)
          ((event_received_string_starts_with enc n m ds)
           ∩ (event_sent_string_starts_with enc n m cs)) =
-    ARB
+    (prob (length_n_codes_uniform_prob_space n)
+          {bs | LENGTH bs = n ∧ cs ≼ enc bs}) *
+    prob (sym_noise_prob_space m p)
+         {ns | LENGTH ns = m ∧ ds = bxor cs (TAKE (LENGTH ds) ns)}
 Proof
   rw[]
   >> gvs[received_sent_inter_cross]
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_cross]
   >> conj_tac
   >- gvs[POW_DEF, SUBSET_DEF]
-  >> DEP_PURE_ONCE_REWRITE_TAC[prob_length_n_codes_uniform_prob_space]
-  >> conj_tac
-  >- gvs[POW_DEF, SUBSET_DEF]
-  >> DEP_PURE_ONCE_REWRITE_TAC[prob_sym_noise_prob_space]
-  >> conj_tac
-  >- gvs[POW_DEF, SUBSET_DEF]
-  >> 
+  (* It's possible to further simplify these probabilities, but I think it
+     makes it messier
+    >> DEP_PURE_ONCE_REWRITE_TAC[prob_length_n_codes_uniform_prob_space]
+    >> conj_tac
+    >- gvs[POW_DEF, SUBSET_DEF]
+    >> DEP_PURE_ONCE_REWRITE_TAC[prob_sym_noise_prob_space]
+    >> conj_tac
+    >- gvs[POW_DEF, SUBSET_DEF]*)
+  >> gvs[]
 QED
 
+Theorem eventups_sent_is_event[simp]:
+  ∀enc n (cs : bool list).
+    {bs | LENGTH bs = n ∧ cs ≼ enc bs}
+                             ∈ events (length_n_codes_uniform_prob_space n)
+Proof
+  rw[]
+  >> gvs[length_n_codes_uniform_prob_space_def, events_def,
+         POW_DEF, SUBSET_DEF]
+QED
+
+Theorem eventsnps_bxor_sent_take_received[simp]:
+  ∀m p cs ds.
+    {ns | LENGTH ns = m ∧ ds = bxor cs (TAKE (LENGTH ds) ns)}
+                                    ∈ events (sym_noise_prob_space m p)
+Proof
+  rw[]
+  >> gvs[sym_noise_prob_space_def, events_def,
+         POW_DEF, SUBSET_DEF]
+QED
+
+Theorem prob_length_n_codes_uniform_prob_space_zero:
+  ∀n S.
+    S ∈ events (length_n_codes_uniform_prob_space n) ⇒
+    (prob (length_n_codes_uniform_prob_space n) S = 0 ⇔ S = ∅)
+Proof
+  rw[]
+  >> EQ_TAC >> gvs[PROB_EMPTY]
+  >> rw[]
+  >> gvs[length_n_codes_uniform_prob_space_def, events_def, prob_def]
+  >> pop_assum mp_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[uniform_distribution_nonzero]
+  >> gvs[]
+  >> gvs[POW_DEF]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* A version of cond_prob_string_given_input_prod, calculated relative to the *)
@@ -2008,13 +2047,21 @@ Theorem cond_prob_received_string_given_sent:
   ∀enc n m p cs ds.
     0 ≤ p ∧ p ≤ 1 ∧
     LENGTH cs = LENGTH ds ∧
-    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
+    (∃bs. cs ≼ enc bs ∧ LENGTH bs = n) ⇒
     cond_prob (ecc_bsc_prob_space n m p)
               (event_received_string_starts_with enc n m ds)
               (event_sent_string_starts_with enc n m cs) =
     sym_noise_mass_func p (bxor cs ds)
 Proof
-  rw[]
+  rpt strip_tac
+  (* If the denominator is the empty set, *)
+  >> sg ‘event_sent_string_starts_with enc n m cs ≠ ∅’
+  >- (rw[EXTENSION]
+      >> gvs[event_sent_string_starts_with_def]
+      >> qexistsl [‘bs’, ‘REPLICATE m F’]
+      >> gvs[]
+     )
   (* ------------------------------------------------------------------------ *)
   (* Proof idea:                                                              *)
   (* cond_prob (received starts with ds) given (sent starts with cs)          *)
@@ -2032,9 +2079,25 @@ Proof
   (* It should then be clear how to finish the proof.                         *)
   (* ------------------------------------------------------------------------ *)
   >> gvs[cond_prob_def]
-  >> gvs[received_sent_inter_cross]
-  >> gvs[]
-  
+  >> gvs[prob_received_string_and_sent]
+  >> gvs[prob_event_sent_string_starts_with]
+  >> qmatch_goalsub_abbrev_tac ‘a * b / a = _’
+  >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[SF EXTREAL_NORMFRAG_SS]
+  >> Cases_on ‘r = 0’
+  >- (gvs[normal_0]
+      >> gvs[prob_length_n_codes_uniform_prob_space_zero]
+      >> ‘F’ suffices_by gvs[]
+      >> pop_assum mp_tac >> gvs[]
+      >> rw[EXTENSION]
+      >> metis_tac[]
+     )
+  >> gvs[SF EXTREAL_NORMFRAG_SS]
+  (* Not sure why this doesn't work by itself *)
+  >> ‘r * r' / r = r'’ by gvs[] >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+  >> qpat_x_assum ‘r ≠ 0’ kall_tac
+  >> qpat_x_assum ‘_ = Normal r’ kall_tac
+  >> qpat_x_assum ‘_ = Normal r'’ (fn th => PURE_REWRITE_TAC[GSYM th])
+  >> 
 
 QED
 

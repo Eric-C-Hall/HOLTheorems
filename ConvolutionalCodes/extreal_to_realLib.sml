@@ -58,6 +58,10 @@ rewrs = List.concat
                                          an explosion in things that need to be
                                          proven *)
                     ]
+                   ),
+                   ("probability",
+                    ["PROB_FINITE"
+                    ]
                    )
                  ]
             )

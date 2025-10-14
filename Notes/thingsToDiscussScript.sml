@@ -6,6 +6,13 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(*
+In cond_prob_received_string_given_sent
+
+  (* Not sure why this doesn't work by itself *)
+  >> ‘r * r' / r = r'’ by gvs[] >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+ *)
+
 (* It is not obvious how to search for terms like {bs | LENGTH bs = n ∧ cs ≼ enc bs} *)
 
 (* Notice how slow definitions are. for example, in map_decoderScript *)
@@ -17,6 +24,8 @@ Libs dep_rewrite;
 
 (* Would be cool to be able to start with a left hand side, and apply rules
    until we reach a right hand side, and then add this as an assumption *)
+
+(* I enjoy learning and teaching more than I do research *)
 
 (* -------------------------------------------------------------------------- *)
 (* ALREADY DISCUSSED:                                                         *)
