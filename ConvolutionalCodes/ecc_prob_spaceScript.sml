@@ -776,7 +776,7 @@ Proof
   >> gvs[]
 QED
 
-Theorem sym_noise_dist_length_n_codes:
+Theorem sym_noise_dist_length_n_codes[simp]:
   ∀n p.
     0 ≤ p ∧ p ≤ 1 ⇒
     sym_noise_dist p (length_n_codes n) = 1
@@ -789,6 +789,14 @@ Proof
   (* The probability of the two bitstrings [0, 1, 0] and [1, 1, 0]
      corresponds to the probability of the bitstring [1, 0], for example *)
   >> gvs[sym_noise_dist_suc]
+QED
+
+Theorem sum_sym_noise_mass_func_length_n_codes[simp]:
+  ∀n p.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    ∑ (sym_noise_mass_func p) (length_n_codes n) = 1
+Proof
+  metis_tac[sym_noise_dist_length_n_codes, sym_noise_dist_def]
 QED
 
 Theorem sym_noise_prob_space_is_prob_space[simp]:
