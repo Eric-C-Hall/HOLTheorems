@@ -2052,6 +2052,24 @@ Proof
   >> gvs[IS_PREFIX_EQ_TAKE_2]
 QED
 
+Theorem set_take_prefix_append:
+  ∀m p k ns_pre.
+    k ≤ m ∧
+    LENGTH ns_pre = k ⇒
+    ({ns | ns | LENGTH ns = m ∧ TAKE k ns = ns_pre}) =
+    {ns_pre ++ ns_suf | ns_suf | LENGTH ns_suf = m - LENGTH ns_pre}
+Proof
+  rpt strip_tac
+  >> rw[EXTENSION]
+  >> EQ_TAC >> rw[]
+  >- (qexists ‘DROP (LENGTH ns_pre) x’
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> gvs[]
+     )
+  >- gvs[]
+  >> gvs[TAKE_APPEND1]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Possible improvement: we could use this method to also prove that          *)
 (* splitting up our string in any way leads to the relevant mass functions    *)
@@ -2083,28 +2101,16 @@ Proof
   (* length_n_codes to finish the proof                                       *)
   (* ------------------------------------------------------------------------ *)
   rpt strip_tac
-  >> qmatch_goalsub_abbrev_tac ‘∑ f S = _’
   (* Step 1 *)
-  >> sg ‘S = {ns_pre ++ ns_suf | ns_suf | LENGTH ns_suf = m - LENGTH ns_pre}’
-  >- (unabbrev_all_tac
-      >> rw[EXTENSION]
-      >> EQ_TAC >> rw[]
-      >- (qexists ‘DROP (LENGTH ns_pre) x’
-          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
-          >> gvs[]
-         )
-      >- gvs[]
-      >> gvs[TAKE_APPEND1]
-     )
-  >> qpat_x_assum ‘S = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >> qpat_x_assum ‘Abbrev (S = _)’ kall_tac
+  >> gvs[set_take_prefix_append]
   >> qmatch_goalsub_abbrev_tac ‘∑ f S = _’
   (* Step 2 *)
   >> sg ‘S = IMAGE
              (λns_suf. ns_pre ++ ns_suf)
              {ns_suf | ns_suf | LENGTH ns_suf = m - LENGTH ns_pre}’
   >- (unabbrev_all_tac
-      >> rw[EXTENSION])
+      >> rw[EXTENSION]
+     )
   >> qpat_x_assum ‘S = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
   >> qpat_x_assum ‘Abbrev (S = _)’ kall_tac
   >> qmatch_goalsub_abbrev_tac ‘∑ f S = _’
