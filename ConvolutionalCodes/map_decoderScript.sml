@@ -2052,37 +2052,106 @@ Proof
   >> gvs[IS_PREFIX_EQ_TAKE_2]
 QED
 
-
-
+(* -------------------------------------------------------------------------- *)
+(* Possible improvement: we could use this method to also prove that          *)
+(* splitting up our string in any way leads to the relevant mass functions    *)
+(* being multiplied together, not just splitting it up by removing elements   *)
+(* from the start.                                                            *)
+(* -------------------------------------------------------------------------- *)
 Theorem sum_sym_noise_mass_func_take[simp]:
   ∀m p k ns_pre.
     0 ≤ p ∧ p ≤ 1 ∧
+    k ≤ m ∧
     LENGTH ns_pre = k ⇒
     ∑ (sym_noise_mass_func p)
       {ns | LENGTH ns = m ∧ TAKE k ns = ns_pre} =
                             sym_noise_mass_func p ns_pre
 Proof
   (* ------------------------------------------------------------------------ *)
-  (* Each element of this set is of the form ns_pre ++ ns_suf.                *)
-  (*                                                                          *)
-  (* Applying sym_noise_mass_func to an element of this form gets             *)
-  (*                                                                          *)
+  (* ∑ (sym_noise_mass_func p) {ns | LENGTH ns = m and TAKE k ns = ns_pre}    *)
+  (* = ∑ (sym_noise_mass_func p) {ns_pre ++ ns_suf | LENGTH ns_suf =          *)
+  (*      m - LENGTH ns_pre}         (Step 1)                                 *)
+  (* = ∑ (sym_noise_mass_func p) (IMAGE (ns_pre ++) {ns_suf | LENGTH ns_suf = *)
+  (*      m - LENGTH ns_pre}         (Step 2)                                 *)
+  (* = ∑ (sym_noise_mass_func p  o  (ns_pre ++)) {ns_suf | LENGTH ns_suf =    *)
+  (*      m - LENGTH ns_pre}         (Step 3)                                 *)
+  (* = ∑ (sym_noise_mass_func p ns_pre * sym_noise_mass_func p ns_suf)        *)
+  (*     {ns_suf | LENGTH ns_suf = m - LENGTH ns_pre}        (Step 4)         *)
+  (* = sym_noise_mass_func p ns_pre * ∑ (sym_noise_mass_func p)               *)
+  (*   {ns_suf | LENGTH ns_suf = m - LENGTH ns_pre}          (Step 5)         *)
+  (* Then we just use the expression for sym_noise_mass_func of               *)
+  (* length_n_codes to finish the proof                                       *)
   (* ------------------------------------------------------------------------ *)
-  
-  Induct_on ‘k’ >> rpt strip_tac >> gvs[]
-  >> 
-
-                                       
-  >> Cases_on ‘ns_pre’ >> gvs[]
-  >- (gvs[sym_noise_mass_func_def]
+  rpt strip_tac
+  >> qmatch_goalsub_abbrev_tac ‘∑ f S = _’
+  (* Step 1 *)
+  >> sg ‘S = {ns_pre ++ ns_suf | ns_suf | LENGTH ns_suf = m - LENGTH ns_pre}’
+  >- (unabbrev_all_tac
+      >> rw[EXTENSION]
+      >> EQ_TAC >> rw[]
+      >- (qexists ‘DROP (LENGTH ns_pre) x’
+          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+          >> gvs[]
+         )
+      >- gvs[]
+      >> gvs[TAKE_APPEND1]
      )
-  
-     rpt strip_tac
-  >> 
+  >> qpat_x_assum ‘S = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> qpat_x_assum ‘Abbrev (S = _)’ kall_tac
+  >> qmatch_goalsub_abbrev_tac ‘∑ f S = _’
+  (* Step 2 *)
+  >> sg ‘S = IMAGE
+             (λns_suf. ns_pre ++ ns_suf)
+             {ns_suf | ns_suf | LENGTH ns_suf = m - LENGTH ns_pre}’
+  >- (unabbrev_all_tac
+      >> rw[EXTENSION])
+  >> qpat_x_assum ‘S = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> qpat_x_assum ‘Abbrev (S = _)’ kall_tac
+  >> qmatch_goalsub_abbrev_tac ‘∑ f S = _’
+  (* Step 3 *)
+  >> unabbrev_all_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- gvs[]
+      >- gvs[INJ_DEF]
+      >> disj1_tac
+      >> rpt strip_tac
+      >> gvs[sym_noise_mass_func_not_neginf]
+     )
+  >> qmatch_goalsub_abbrev_tac ‘∑ f S = _’
+  (* Step 4 *)
+  >> sg ‘∑ f S = ∑ (λns_suf. sym_noise_mass_func p ns_pre *
+                             sym_noise_mass_func p ns_suf) S’
+  >- (irule EXTREAL_SUM_IMAGE_EQ'
+      >> rpt strip_tac
+      >- (unabbrev_all_tac >> gvs[]
+          >> gvs[sym_noise_mass_func_append])
+      >> unabbrev_all_tac >> gvs[]
+     )
+  >> qpat_x_assum ‘∑ f S = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> qpat_x_assum ‘Abbrev (f = _)’ kall_tac
+  >> qmatch_goalsub_abbrev_tac ‘∑ f S = _’
+  (* Step 5 *)
+  >> unabbrev_all_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_CMUL_ALT]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- gvs[]
+      >- gvs[sym_noise_mass_func_not_inf]
+      >- gvs[sym_noise_mass_func_not_neginf]
+      >> disj1_tac
+      >> rpt strip_tac
+      >> gvs[sym_noise_mass_func_not_neginf]
+     )
+  (* Finish the proof  *)
+  >> gvs[]
 QED
 
 Theorem sum_sym_noise_mass_func_pre[simp]:
   ∀p m k ns_pre.
+    0 ≤ p ∧ p ≤ 1 ∧
+    LENGTH ns_pre ≤ m ⇒
     ∑ (sym_noise_mass_func p) {ns | LENGTH ns = m ∧ ns_pre ≼ ns} =
                                                     sym_noise_mass_func p ns_pre
 Proof
@@ -2092,16 +2161,21 @@ QED
 
 Theorem sym_noise_dist_take[simp]:
   ∀m p k ns_pre.
+    0 ≤ p ∧ p ≤ 1 ∧
+    k ≤ m ∧
+    LENGTH ns_pre = k ⇒
     sym_noise_dist p {ns | LENGTH ns = m ∧ TAKE k ns = ns_pre} =
                                            sym_noise_mass_func p ns_pre
 Proof
   rw[]
   >> gvs[sym_noise_dist_def]
-  >> 
 QED
 
 Theorem prob_sym_noise_prob_space_take[simp]:
   ∀m p k ns_pre.
+    0 ≤ p ∧ p ≤ 1 ∧
+    k ≤ m ∧
+    LENGTH ns_pre = k ⇒
     prob (sym_noise_prob_space m p)
          {ns | LENGTH ns = m ∧ TAKE k ns = ns_pre} =
                                sym_noise_mass_func p ns_pre

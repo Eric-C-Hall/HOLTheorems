@@ -799,6 +799,14 @@ Proof
   metis_tac[sym_noise_dist_length_n_codes, sym_noise_dist_def]
 QED
 
+Theorem sum_lambda_sym_noise_mass_func_length_n_codes[simp]:
+  ∀n p.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    ∑ (λbs. sym_noise_mass_func p bs) (length_n_codes n) = 1
+Proof
+  gvs[SF ETA_ss]
+QED
+
 Theorem sym_noise_prob_space_is_prob_space[simp]:
   ∀n p.
     0 ≤ p ∧ p ≤ 1 ⇒
