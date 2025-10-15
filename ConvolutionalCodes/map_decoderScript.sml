@@ -2191,6 +2191,12 @@ Proof
   >> gvs[sym_noise_dist_take]
 QED
 
+Theorem djksfg:
+  ({ns | LENGTH ns = m ∧ ds = bxor cs (TAKE LENGTH ds) ns}) =
+  {ns | LENGTH ns = m ∧ ns = TAKE (LENGTH ds) }
+Proof
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A version of cond_prob_string_given_input_prod, calculated relative to the *)
 (* sent string taking a particular value rather than the input string taking  *)
