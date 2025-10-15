@@ -2,7 +2,7 @@
 
 Theory map_decoder
 
-Ancestors ecc_prob_space argmin_extreal arithmetic bitstring pair pred_set probability extreal real rich_list sigma_algebra lebesgue list martingale measure topology
+Ancestors ecc_prob_space argmin_extreal arithmetic bitstring pair pred_set probability extreal real rich_list sigma_algebra lebesgue list martingale measure topology fundamental
 
 Libs extreal_to_realLib donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
 
@@ -2035,6 +2035,80 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[uniform_distribution_nonzero]
   >> gvs[]
   >> gvs[POW_DEF]
+QED
+
+Theorem noise_pre_take:
+  ∀m ns_pre.
+    {ns | LENGTH ns = m ∧ ns_pre ≼ ns} =
+                          {ns | LENGTH ns = m ∧ TAKE (LENGTH ns_pre) ns = ns_pre}
+Proof
+  rpt strip_tac
+  >> rw[EXTENSION]
+  >> EQ_TAC
+  >- (rw[]
+      >> gvs[IS_PREFIX_EQ_TAKE_2])
+  >> rpt strip_tac
+  >- gvs[]
+  >> gvs[IS_PREFIX_EQ_TAKE_2]
+QED
+
+
+
+Theorem sum_sym_noise_mass_func_take[simp]:
+  ∀m p k ns_pre.
+    0 ≤ p ∧ p ≤ 1 ∧
+    LENGTH ns_pre = k ⇒
+    ∑ (sym_noise_mass_func p)
+      {ns | LENGTH ns = m ∧ TAKE k ns = ns_pre} =
+                            sym_noise_mass_func p ns_pre
+Proof
+  (* ------------------------------------------------------------------------ *)
+  (* Each element of this set is of the form ns_pre ++ ns_suf.                *)
+  (*                                                                          *)
+  (* Applying sym_noise_mass_func to an element of this form gets             *)
+  (*                                                                          *)
+  (* ------------------------------------------------------------------------ *)
+  
+  Induct_on ‘k’ >> rpt strip_tac >> gvs[]
+  >> 
+
+                                       
+  >> Cases_on ‘ns_pre’ >> gvs[]
+  >- (gvs[sym_noise_mass_func_def]
+     )
+  
+     rpt strip_tac
+  >> 
+QED
+
+Theorem sum_sym_noise_mass_func_pre[simp]:
+  ∀p m k ns_pre.
+    ∑ (sym_noise_mass_func p) {ns | LENGTH ns = m ∧ ns_pre ≼ ns} =
+                                                    sym_noise_mass_func p ns_pre
+Proof
+  rpt strip_tac
+  >> gvs[noise_pre_take]
+QED
+
+Theorem sym_noise_dist_take[simp]:
+  ∀m p k ns_pre.
+    sym_noise_dist p {ns | LENGTH ns = m ∧ TAKE k ns = ns_pre} =
+                                           sym_noise_mass_func p ns_pre
+Proof
+  rw[]
+  >> gvs[sym_noise_dist_def]
+  >> 
+QED
+
+Theorem prob_sym_noise_prob_space_take[simp]:
+  ∀m p k ns_pre.
+    prob (sym_noise_prob_space m p)
+         {ns | LENGTH ns = m ∧ TAKE k ns = ns_pre} =
+                               sym_noise_mass_func p ns_pre
+Proof
+  rw[]
+  >> gvs[sym_noise_prob_space_def, prob_def]
+  >> gvs[sym_noise_dist_take]
 QED
 
 (* -------------------------------------------------------------------------- *)

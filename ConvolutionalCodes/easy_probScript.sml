@@ -73,3 +73,20 @@ n1 + n2 = m ⇒
         prob (sym_noise_prob_space n1 p) ()
 Proof
 QED*)
+
+
+(*
+∀m p k ns_pre.
+   0 ≤ p ∧ p ≤ 1 ∧ LENGTH ns_pre = k ⇒
+   ∑ (sym_noise_mass_func p)
+   {ns | LENGTH ns = m ∧ TAKE k ns = ns_pre}
+   = sym_noise_mass_func p ns_pre: proof
+
+There is a bijection between this set and    
+
+The sum of all these elements is equal to the sum of applying the function
+to the prefix multiplied by applying the function 
+   
+I want to be able to easily say that the sum of all these 
+   
+*)
