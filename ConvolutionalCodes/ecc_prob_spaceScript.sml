@@ -3855,6 +3855,18 @@ Proof
   >> gvs[]
 QED
 
+Theorem sym_noise_mass_func_append:
+  ∀p bs cs.
+    sym_noise_mass_func p (bs ++ cs) =
+    sym_noise_mass_func p bs * sym_noise_mass_func p cs
+Proof
+  rpt strip_tac
+  >> Induct_on ‘bs’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[sym_noise_mass_func_def]
+  >> gvs[mul_comm, mul_assoc]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Broken, not important enough to fix                                        *)
 (* -------------------------------------------------------------------------- *)
