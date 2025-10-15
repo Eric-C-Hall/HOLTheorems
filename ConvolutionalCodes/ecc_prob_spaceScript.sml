@@ -37,7 +37,7 @@ End
 (* bs: the bitstring of errors                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition sym_noise_mass_func_def:
-  sym_noise_mass_func (p : extreal) [] = Normal 1 ∧
+  sym_noise_mass_func (p : extreal) [] = 1 ∧
   sym_noise_mass_func (p : extreal) (b::bs) =
   (if b then p else 1 - p) * sym_noise_mass_func p bs
 End
@@ -3808,7 +3808,7 @@ QED
 
 Theorem sym_noise_mass_func_empty[simp]:
   ∀p.
-    sym_noise_mass_func p [] = Normal 1
+    sym_noise_mass_func p [] = 1
 Proof
   gvs[sym_noise_mass_func_def]
 QED
