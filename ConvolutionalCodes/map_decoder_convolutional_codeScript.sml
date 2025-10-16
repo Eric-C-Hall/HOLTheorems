@@ -2242,7 +2242,12 @@ Proof
       >> conj_tac >- gvs[mdr_summed_out_values_2_def]
       >> REVERSE (rw[])
       >- gvs[mdr_summed_out_values_2_def]
-      >> cheat
+      >> DEP_PURE_ONCE_REWRITE_TAC[event_input_state_parity_event_sent_string_starts_with]
+      >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+      >> rw[]
+      >- (qmatch_goalsub_abbrev_tac ‘cond_prob (ecc_bsc_prob_space n _ p) (event_received_string_starts_with _ _ _ _) (event_input_string_starts_with _ _ _)’
+                                    DEP_PURE_ONCE_REWRITE_TAC[cond_prob_string_given_input]
+         )
      (*
       (* The event with a given input, state, and parity bits is equal to the
          event with the given parity bits, assuming injectivity *)

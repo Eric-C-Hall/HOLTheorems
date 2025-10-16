@@ -1514,7 +1514,7 @@ QED
 (* the input string taking a value is being accounted for multiple times.     *)
 (* -------------------------------------------------------------------------- *)
 (*
-Theorem joint_prob_string_and_input_prod:
+Theorem joint_prob_string_and_input:
   ∀enc n m p bs ds.
     0 ≤ p ∧ p ≤ 1 ∧
     LENGTH bs = n ∧
@@ -1557,7 +1557,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* I think I'll use a different approach to prove what I need to prove        *)
 (*
-Theorem cond_prob_string_given_input_prod_num:
+Theorem cond_prob_string_given_input_num:
   ∀enc n m p bs ds.
     0 ≤ p ∧ p ≤ 1 ∧
     LENGTH bs = n ∧
@@ -1698,7 +1698,7 @@ QED
 (* given that the input string takes a particular value into the probability  *)
 (* of the corresponding noise being the noise which was added to the string   *)
 (* -------------------------------------------------------------------------- *)
-Theorem cond_prob_string_given_input_prod:
+Theorem cond_prob_string_given_input:
   ∀enc n m p bs ds.
     0 < p ∧ p < 1 ∧
     LENGTH bs = n ∧
@@ -2258,7 +2258,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* A version of cond_prob_string_given_input_prod, calculated relative to the *)
+(* A version of cond_prob_string_given_input, calculated relative to the *)
 (* sent string taking a particular value rather than the input string taking  *)
 (* a particular value. It may be possible to remove the assumption that the   *)
 (* encoder is injective.                                                      *)
@@ -2330,13 +2330,14 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: write version of the above theorem that works for a single bit       *)
+(* Possible improvement: write version of the above theorem that works for a  *)
+(* single bit                                                                 *)
 (* -------------------------------------------------------------------------- *)
-Theorem cond_prob_received_bit_given_sent:
+(*Theorem cond_prob_received_bit_given_sent:
   TODO
 Proof
   cheat
-QED
+QED*)
 
 
 (* -------------------------------------------------------------------------- *)
@@ -2378,9 +2379,9 @@ Proof
   >> gvs[Abbr ‘f’, Abbr ‘g’]
   >> rw[FUN_EQ_THM]
   (* Simplify the function we are summing over using
-     cond_prob_string_given_input_prod *)
+     cond_prob_string_given_input *)
   >> irule EXTREAL_SUM_IMAGE_EQ'
-  >> gvs[cond_prob_string_given_input_prod]
+  >> gvs[cond_prob_string_given_input]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -3158,7 +3159,7 @@ Proof
       >> full_simp_tac ecc3_ss []
       >> rw[]
       (* Use lemma to simplify the conditional probability *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_string_given_sent_prod]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_string_given_sent]
       >> full_simp_tac ecc3_ss []
      )
   >> qpat_x_assum ‘Abbrev (LHS ⇔ _)’ kall_tac
