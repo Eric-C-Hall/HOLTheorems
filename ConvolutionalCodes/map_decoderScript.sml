@@ -2317,12 +2317,16 @@ Proof
   >> qpat_x_assum ‘r ≠ 0’ kall_tac
   >> qpat_x_assum ‘_ = Normal r’ kall_tac
   >> qpat_x_assum ‘_ = Normal r'’ (fn th => PURE_REWRITE_TAC[GSYM th])
+  >> gvs[normal_0, normal_1]
   >> DEP_PURE_ONCE_REWRITE_TAC[set_received_bxor_noise_bxor]
   >> conj_tac
   >- (gvs[]
       >> metis_tac[IS_PREFIX_LENGTH]
      )
-  >> 
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_sym_noise_prob_space_take]
+  >> gvs[]
+  >> gvs[bxor_length]
+  >> metis_tac[IS_PREFIX_LENGTH]
 QED
 
 (* -------------------------------------------------------------------------- *)
