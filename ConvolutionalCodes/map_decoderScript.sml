@@ -2214,74 +2214,47 @@ Proof
   >> gvs[EL]
 QED
 
-Theorem djksfg:
+Theorem bxor_swap:
+  ∀ls1 ls2 ls3.
+    LENGTH ls1 = LENGTH ls2 ∧
+    LENGTH ls2 = LENGTH ls3 ⇒
+    (ls1 = bxor ls2 ls3 ⇔ ls3 = bxor ls2 ls1)
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> gvs[bxor_inv]
+     )
+  >> rpt strip_tac
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> gvs[bxor_inv]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* For LENGTH (sent) = LENGTH (received),                                     *)
+(*   {noise | received = bxor sent noise_pre}                                 *)
+(*   = {noise | noise_pre = bxor sent received                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem set_received_bxor_noise_bxor:
   ∀m ds cs.
     LENGTH cs = LENGTH ds ∧
     LENGTH ds ≤ m ⇒
     ({ns | LENGTH ns = m ∧ ds = bxor cs (TAKE (LENGTH ds) ns)}) =
-    {ns | LENGTH ns = m ∧ TAKE (LENGTH ds) ns = TAKE (LENGTH ds) (bxor cs ds)}
+    {ns | LENGTH ns = m ∧ TAKE (LENGTH ds) ns = bxor cs ds}
 Proof
   rpt strip_tac
   >> gvs[EXTENSION]
   >> qx_gen_tac ‘ns’
-  >> EQ_TAC
-  >- (rpt strip_tac >> gvs[]
-      >> irule (iffRL TAKE_EQ_TAKE_EL)
-      >> REVERSE (rpt conj_tac)
-      >- gvs[bxor_length]
-      >- gvs[]
-      >> rpt strip_tac
-      >> 
-
-      >- last_assum (fn th => PURE_REWRITE_TAC[th])
-      >> gvs[]
-            gvs[bxor_length]
-            
-     )
-      
-  >> qpat_x_assum ‘LENGTH cs = LENGTH ds’ (fn th => assume_tac (GSYM th))
-  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> 
-  >- (first_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
-      >> Cases_on ‘LENGTH cs = LENGTH (TAKE (LENGTH cs) x)’
-      >- (gvs[bxor_inv]
-         )
-      >> DEP_PURE_ONCE_REWRITE_TAC[bxor_inv]
-
-
-                                  
+  >> EQ_TAC >> gvs[]
+  >- (rpt strip_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[GSYM bxor_swap]
       >> conj_tac
-      >- (gvs[LENGTH_TAKE_EQ]
-          >> rw[]
-          >> pop_assum mp_tac >> gvs[]
-          >> gvs[bxor_length]
-          >> gvs[MAX_DEF]
-          >> pop_assum mp_tac >> rw[]
-          >> gvs[NOT_LESS]
-          >> gvs[LENGTH_TAKE_EQ]
-         )
-         
-      >> gvs[bxor_length]
-      >> gvs[TAKE_TAKE]
-
-
-            Cases_on ‘LENGTH cs = LENGTH (TAKE (LENGTH cs) x)’
-      >- (gvs[bxor_inv]
-          >> gvs[LENGTH_TAKE_EQ]
-          >> rw[]
-          >> pop_assum mp_tac >> rw[]
-          >> gvs[bxor_length]
-          >> gvs[TAKE_TAKE]
-          >> pop_assum mp_tac
-          >> rw[]
-          >> gvs[LENGTH_TAKE_EQ]
-         )
-      >> gvs[LENGTH_TAKE_EQ]
-      >> rw[]
-      >> gvs[bxor_length]
-      >> pop_assum mp_tac >> gvs[]
-      >> g
-         
+      >- gvs[]
+      >> gvs[]
      )
+  >> rpt strip_tac
+  >> gvs[bxor_inv]
 QED
 
 (* -------------------------------------------------------------------------- *)
