@@ -1973,6 +1973,36 @@ Proof
   >> gvs[inter_input_parity_eq_parity]
 QED
 
+Theorem TODO_PREV_NAME_WAS_sym_noise_mass_func:
+  ∀n m p ps qs ts bs ds.
+    ∏ (λj.
+         cond_prob
+         (ecc_bsc_prob_space n m p)
+         (event_received_bit_takes_value
+          (encode_recursive_parity_equation_with_systematic (ps,qs) ts)
+          n m j (EL j ds))
+         (event_srcc_parity_bit_takes_value
+          (ps,qs) n m ts j
+          (EL j (encode_recursive_parity_equation (ps,qs) ts bs)))) (count m) =
+    sym_noise_mass_func
+    p (bxor (encode_recursive_parity_equation (ps,qs) ts bs) ds)
+Proof
+  rpt strip_tac
+  >> qmatch_goalsub_abbrev_tac ‘∏ f (count m) = sym_noise_mass_func p (bxor cs ds)’
+  (* Put it in a form so that we can induct on the number of terms we are taking
+     the product over. *)
+  >> sg ‘∀k. ∏ f (count k) =
+             sym_noise_mass_func p (bxor (TAKE k cs) (TAKE k ds))’
+  >- (Induct_on ‘k’ >> gvs[]
+      (* Translate the LHS from SUC n -> n, so that we can apply the inductive
+         hypothesis. *)
+      >> gvs[EXTREAL_PROD_IMAGE_COUNT_SUC]
+      >> Cases_on ‘cs’ >> gvs[TAKE]
+      >> Cases_on ‘ds’ >> gvs[TAKE]
+      >> Cases_on ‘k’ >> gvs[]
+     )
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
 (* Theory:                                                                    *)
@@ -2233,7 +2263,17 @@ Proof
   (*                                                                          *)
   (* We are splitting val1 up.                                                *)
   (* ------------------------------------------------------------------------ *)
-  >> sg ‘input_state_parity_valid (ps,qs) ts (bs, σs, cs_p) ⇒ val1 = TODO1’
+  >> sg ‘input_state_parity_valid (ps,qs) ts (bs, σs, cs_p) ⇒
+         val1 =
+         let
+           enc = encode_recursive_parity_equation_with_systematic (ps,qs) ts
+         in
+           ∏ (λj. cond_prob
+                  (ecc_bsc_prob_space n m p)
+                  (event_received_bit_takes_value enc n m j (EL j ds))
+                  (event_srcc_parity_bit_takes_value (ps,qs) n m ts j (EL j cs_p))
+             )
+                  (count m)’
   >- (unabbrev_all_tac
       (* As a first step, we're going to want to head towards
          p(ds | cs_p), so get rid of the input bit events and the state
@@ -2241,45 +2281,22 @@ Proof
       >> DEP_PURE_ONCE_REWRITE_TAC[event_input_bit_takes_value_inter_event_input_state_parity]
       >> conj_tac >- gvs[mdr_summed_out_values_2_def]
       >> REVERSE (rw[])
+      (* Handle the case where bs does not have x in the ith position, and is
+         thus invalid. *)
       >- gvs[mdr_summed_out_values_2_def]
       >> DEP_PURE_ONCE_REWRITE_TAC[event_input_state_parity_event_sent_string_starts_with]
       >> conj_tac >- gvs[mdr_summed_out_values_2_def]
-      >> rw[]
-      >- (qmatch_goalsub_abbrev_tac ‘cond_prob (ecc_bsc_prob_space n _ p) (event_received_string_starts_with _ _ _ _) (event_input_string_starts_with _ _ _)’
-                                    DEP_PURE_ONCE_REWRITE_TAC[cond_prob_string_given_input]
-         )
-     (*
-      (* The event with a given input, state, and parity bits is equal to the
-         event with the given parity bits, assuming injectivity *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[event_input_state_parity_event_sent_string_starts_with]
-      >> conj_tac >- gvs[mdr_summed_out_values_2_def]
-      (* Handle the case where we have an invalid state sequence or parity bits *)
       >> REVERSE (rw[])
-      >- (gvs[]
-          >> ‘F’ suffices_by gvs[]
-          >> pop_assum mp_tac >> gvs[]
-          >> gvs[input_state_parity_valid_def]
-         )
-      (* Now that we have simplified our conditional probability to just be
-         in terms of the received string taking a value given that the sent
-         string takes a value, it is now more obvious that this conditional
-         probability is the product of the probabilities of each individual
-         received bit given the corresponding sent bit. *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_string_given_sent_prod]
-      >> conj_tac >- gvs[mdr_summed_out_values_2_def]
-      (* While this isn't a product, it's an explicit expression for the
-         probability, which will be equal to the product *)
-      >> cheat
-         *)
+      (* Handle the case where σs or cs_p is invalid *)
+      >- gvs[input_state_parity_valid_def]
+      (* Simplify p(ds | cs_p) to its explicit value *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_received_string_given_sent]
+      >> conj_tac
+      >- (gvs[mdr_summed_out_values_2_def]
+          >> qexists ‘bs’ >> gvs[])
+      (* *)
+      >> 
      )
-  (*  >> ‘C * val1 * val2 = C * TODO1 * val2’ by (Cases_on ‘b’ >> gvs[])
-  >> qpat_x_assum ‘b ⇒ val1 = _’ kall_tac
-  >> qpat_x_assum ‘Abbrev (val1 = _)’ kall_tac
-  >> pop_assum (fn th => PURE_REWRITE_TAC[th])
-  >> qmatch_abbrev_tac ‘C * val1 * val2 = _’
-  (* We can eliminate x because it is simply equal to EL i bs*)
-  >> drule mdr_summed_out_values_2_el_i_x
-  >> disch_tac >> gvs[]*)
   >> cheat
 QED
 
