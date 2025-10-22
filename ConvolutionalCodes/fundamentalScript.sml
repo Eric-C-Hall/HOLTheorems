@@ -35,3 +35,22 @@ Proof
   >> metis_tac[EQ_TAKE_LENGTH_IMP_LENGTH_LEQ]
 QED
 
+Theorem bitwise_append:
+  ∀f bs1 bs2 cs1 cs2.
+    LENGTH bs1 = LENGTH bs2 ∧
+    LENGTH cs1 = LENGTH cs2 ⇒
+    bitwise f (bs1 ++ cs1) (bs2 ++ cs2) = bitwise f bs1 bs2 ++ bitwise f cs1 cs2
+Proof
+  rpt strip_tac
+  >> gvs[bitwise_def]
+  >> gvs[GSYM ZIP_APPEND, MAP_APPEND]
+QED
+
+Theorem bxor_append:
+  ∀bs1 bs2 cs1 cs2.
+    LENGTH bs1 = LENGTH bs2 ∧
+    LENGTH cs1 = LENGTH cs2 ⇒
+    bxor (bs1 ++ cs1) (bs2 ++ cs2) = bxor bs1 bs2 ++ bxor cs1 cs2
+Proof
+  gvs[bxor_def, bitwise_append]
+QED

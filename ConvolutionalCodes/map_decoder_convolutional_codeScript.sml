@@ -2,7 +2,7 @@
 
 Theory map_decoder_convolutional_code
 
-Ancestors ecc_prob_space argmin_extreal map_decoder parity_equations recursive_parity_equations useful_theorems arithmetic bitstring extreal list pred_set probability real rich_list sigma_algebra martingale measure topology
+Ancestors ecc_prob_space argmin_extreal fundamental map_decoder parity_equations recursive_parity_equations useful_theorems arithmetic bitstring extreal list pred_set probability real rich_list sigma_algebra martingale measure topology
 
 Libs donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -1973,8 +1973,9 @@ Proof
   >> gvs[inter_input_parity_eq_parity]
 QED
 
-Theorem TODO_PREV_NAME_WAS_sym_noise_mass_func:
+Theorem prod_received_given_sent_bit:
   ∀n m p ps qs ts bs ds.
+    0 ≤ p ∧ p ≤ 1 ⇒
     ∏ (λj.
          cond_prob
          (ecc_bsc_prob_space n m p)
@@ -1991,12 +1992,27 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘∏ f (count m) = sym_noise_mass_func p (bxor cs ds)’
   (* Put it in a form so that we can induct on the number of terms we are taking
      the product over. *)
-  >> sg ‘∀k. ∏ f (count k) =
-             sym_noise_mass_func p (bxor (TAKE k cs) (TAKE k ds))’
+  >> sg ‘∀k. k ≤ LENGTH cs ∧
+             k ≤ LENGTH ds ⇒
+             ∏ f (count k) =
+           sym_noise_mass_func p (bxor (TAKE k cs) (TAKE k ds))’
   >- (Induct_on ‘k’ >> gvs[]
+      >> rpt strip_tac
       (* Translate the LHS from SUC n -> n, so that we can apply the inductive
          hypothesis. *)
       >> gvs[EXTREAL_PROD_IMAGE_COUNT_SUC]
+      (* Remove the SUC from the RHS *)
+      >> gvs[TAKE_SUC]
+      >> DEP_PURE_ONCE_REWRITE_TAC[bxor_append]
+      >> gvs[sym_noise_mass_func_append]
+      >> DEP_PURE_ONCE_REWRITE_TAC[mul_lcancel]
+      >> conj_tac
+      >- (gvs[sym_noise_mass_func_not_inf,
+              sym_noise_mass_func_not_neginf]
+         )
+      >> 
+
+      
       >> Cases_on ‘cs’ >> gvs[TAKE]
       >> Cases_on ‘ds’ >> gvs[TAKE]
       >> Cases_on ‘k’ >> gvs[]
@@ -2271,12 +2287,12 @@ Proof
            ∏ (λj. cond_prob
                   (ecc_bsc_prob_space n m p)
                   (event_received_bit_takes_value enc n m j (EL j ds))
-                  (event_srcc_parity_bit_takes_value (ps,qs) n m ts j (EL j cs_p))
+                  (event_sent_bit_takes_value enc n m j (EL j (enc bs)))
              )
                   (count m)’
   >- (unabbrev_all_tac
       (* As a first step, we're going to want to head towards
-         p(ds | cs_p), so get rid of the input bit events and the state
+         p(ds | cs), so get rid of the input bit events and the state
          events. *)
       >> DEP_PURE_ONCE_REWRITE_TAC[event_input_bit_takes_value_inter_event_input_state_parity]
       >> conj_tac >- gvs[mdr_summed_out_values_2_def]
@@ -2287,9 +2303,9 @@ Proof
       >> DEP_PURE_ONCE_REWRITE_TAC[event_input_state_parity_event_sent_string_starts_with]
       >> conj_tac >- gvs[mdr_summed_out_values_2_def]
       >> REVERSE (rw[])
-      (* Handle the case where σs or cs_p is invalid *)
+      (* Handle the case where σs or cs is invalid *)
       >- gvs[input_state_parity_valid_def]
-      (* Simplify p(ds | cs_p) to its explicit value *)
+      (* Simplify p(ds | cs) to its explicit value *)
       >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_received_string_given_sent]
       >> conj_tac
       >- (gvs[mdr_summed_out_values_2_def]
