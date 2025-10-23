@@ -1976,17 +1976,72 @@ QED
 Theorem prod_received_given_sent_bit:
   ∀n m p ps qs ts bs ds.
     0 ≤ p ∧ p ≤ 1 ⇒
-    ∏ (λj.
-         cond_prob
-         (ecc_bsc_prob_space n m p)
-         (event_received_bit_takes_value
-          (encode_recursive_parity_equation_with_systematic (ps,qs) ts)
-          n m j (EL j ds))
-         (event_srcc_parity_bit_takes_value
-          (ps,qs) n m ts j
-          (EL j (encode_recursive_parity_equation (ps,qs) ts bs)))) (count m) =
-    sym_noise_mass_func
-    p (bxor (encode_recursive_parity_equation (ps,qs) ts bs) ds)
+    let
+      enc = encode_recursive_parity_equation_with_systematic (ps,qs) ts
+    in
+      ∏ (λj.
+           cond_prob
+           (ecc_bsc_prob_space n m p)
+           (event_received_bit_takes_value enc n m j (EL j ds))
+           (event_sent_bit_takes_value enc n m j (EL j (enc bs)))
+        ) (count m) =
+      sym_noise_mass_func p (bxor (enc bs) ds)
+Proof
+  rpt strip_tac
+  >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘∏ f (count m) = sym_noise_mass_func p (bxor cs ds)’
+  (* Put it in a form so that we can induct on the number of terms we are taking
+     the product over. *)
+  >> sg ‘∀k. k ≤ LENGTH cs ∧
+             k ≤ LENGTH ds ⇒
+             ∏ f (count k) =
+             sym_noise_mass_func p (bxor (TAKE k cs) (TAKE k ds))’
+  >- (Induct_on ‘k’ >> gvs[]
+      >> rpt strip_tac
+      (* Translate the LHS from SUC n -> n, so that we can apply the inductive
+         hypothesis. *)
+      >> gvs[EXTREAL_PROD_IMAGE_COUNT_SUC]
+      (* Remove the SUC from the RHS *)
+      >> gvs[TAKE_SUC]
+      >> DEP_PURE_ONCE_REWRITE_TAC[bxor_append]
+      >> gvs[sym_noise_mass_func_append]
+      (* Cancel the multiplication on the left *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[mul_lcancel]
+      >> conj_tac >- gvs[sym_noise_mass_func_not_inf,
+                         sym_noise_mass_func_not_neginf]
+      (* *)
+      >> disj2_tac
+      >> gvs[Abbr ‘f’]
+                        
+      >> DEP_PURE_ONCE_REWRITE_TAC[mul_lcancel]
+      >> conj_tac
+      >- (gvs[sym_noise_mass_func_not_inf,
+              sym_noise_mass_func_not_neginf]
+         )
+      >> 
+
+      
+      >> Cases_on ‘cs’ >> gvs[TAKE]
+      >> Cases_on ‘ds’ >> gvs[TAKE]
+      >> Cases_on ‘k’ >> gvs[]
+     )
+QED
+
+
+Theorem prod_received_given_sent_bit_TODO_PARITY_ONLY:
+  ∀n m p ps qs ts bs ds.
+  0 ≤ p ∧ p ≤ 1 ⇒
+  ∏ (λj.
+       cond_prob
+       (ecc_bsc_prob_space n m p)
+       (event_received_bit_takes_value
+        (encode_recursive_parity_equation_with_systematic (ps,qs) ts)
+        n m j (EL j ds))
+       (event_srcc_parity_bit_takes_value
+        (ps,qs) n m ts j
+        (EL j (encode_recursive_parity_equation (ps,qs) ts bs)))) (count m) =
+  sym_noise_mass_func
+  p (bxor (encode_recursive_parity_equation (ps,qs) ts bs) ds)
 Proof
   rpt strip_tac
   >> qmatch_goalsub_abbrev_tac ‘∏ f (count m) = sym_noise_mass_func p (bxor cs ds)’

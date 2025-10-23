@@ -2002,6 +2002,25 @@ Proof
   >> gvs[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Similar to prob_received_string_and_sent, but considers only a single      *)
+(* bit rather than an entire string                                           *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_received_bit_and_sent:
+  ∀enc n m p k c d.
+    0 ≤ p ∧ p ≤ 1 ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    prob (ecc_bsc_prob_space n m p)
+         ((event_received_bit_takes_value enc n m k d)
+          ∩ (event_received_bit_takes_value enc n m k c)) =
+    (prob (length_n_codes_uniform_prob_space n)
+          {bs | LENGTH bs = n ∧ EL k (enc bs) = c}) *
+    prob (sym_noise_prob_space m p)
+         {ns | LENGTH ns = m ∧ ds = bxor cs (TAKE (LENGTH ds) ns)}
+Proof
+QED
+
 Theorem eventups_sent_is_event[simp]:
   ∀enc n (cs : bool list).
     {bs | LENGTH bs = n ∧ cs ≼ enc bs}
@@ -2275,7 +2294,8 @@ Theorem cond_prob_received_string_given_sent:
     sym_noise_mass_func p (bxor cs ds)
 Proof
   rpt strip_tac
-  (* If the denominator is the empty set, *)
+  (* Prove that the denominator cannot be empty, and so we have a valid
+     conditional probability. *)
   >> sg ‘event_sent_string_starts_with enc n m cs ≠ ∅’
   >- (rw[EXTENSION]
       >> gvs[event_sent_string_starts_with_def]
@@ -2327,6 +2347,33 @@ Proof
   >> gvs[]
   >> gvs[bxor_length]
   >> metis_tac[IS_PREFIX_LENGTH]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Similar theorem and proof idea to cond_prob_received_string_given_sent,    *)               
+(* but we are only dealing with a single bit.                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value[simp]:
+  ∀n m p enc k c d.
+    0 ≤ p ∧ p ≤ 1 ∧
+    (∃bs. EL k (enc bs) = c ∧ LENGTH bs = n) ⇒
+    cond_prob
+    (ecc_bsc_prob_space n m p)
+    (event_received_bit_takes_value enc n m k d)
+    (event_sent_bit_takes_value enc n m k c) = sym_noise_mass_func p [c ⇎ d]
+Proof
+  rpt strip_tac
+  (* Prove that the denominator cannot be empty, and so we have a valid
+     conditional probability *)
+  >> sg ‘event_sent_bit_takes_value enc n m k c ≠ ∅’
+  >- (rw[EXTENSION]
+      >> gvs[event_sent_bit_takes_value_def]
+      >> qexistsl [‘bs’, ‘REPLICATE m F’]
+      >> gvs[]
+     )
+  (* Similar proof idea to cond_prob_received_string_given_sent *)
+  >> gvs[cond_prob_def]
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)
