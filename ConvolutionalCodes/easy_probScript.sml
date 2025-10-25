@@ -93,3 +93,12 @@ I want to be able to easily say that the sum of all these
 
 (* Proof ended up being based on the fact that sym_noise_mass_func (_ ++ _) = sym_noise_mass_func _ * sym_noise_mass_func _, and using the fact that the set we were summing over all had the same prefix prepended to it, thus we could use a theorem of extreals to move the IMAGE in the set to a concatenation in the function, and then it was straightforward from there. 
  *)
+
+(* -------------------------------------------------------------------------- *)
+(* In particular, in a conditional probability, it would be nice to be able   *)
+(* to use the fact that is "given" to narrow down the event we are taking the *)
+(* probability of, somehow. Like, we are assuming the given fact, right, and  *)
+(* we want to find the appropriate probability. In particular, a conditional  *)
+(* probability can be seen as saying "in every scenario where we have _, we   *)
+(* have a _ probability of the first event"                                   *)
+(* -------------------------------------------------------------------------- *)
