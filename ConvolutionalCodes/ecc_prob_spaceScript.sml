@@ -3875,6 +3875,44 @@ Proof
   >> gvs[mul_comm, mul_assoc]
 QED
 
+Theorem drop_bxor:
+  ∀n bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    DROP n (bxor bs cs) = bxor (DROP n bs) (DROP n cs)
+Proof
+  Induct_on ‘n’ >> rpt strip_tac >> gvs[DROP]
+  >> Cases_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+QED
+
+Theorem el_drop_hd:
+  ∀i bs.
+    i < LENGTH bs ⇒
+    EL i bs = HD (DROP i bs)
+Proof
+  Induct_on ‘i’ >> rpt strip_tac >> gvs[]
+  >> Cases_on ‘bs’ >> gvs[]
+QED
+
+Theorem hd_bxor:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ∧
+    bs ≠ [] ⇒
+    HD (bxor bs cs) = (HD bs ⇎ HD cs)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+QED
+
+Theorem el_bxor:
+  ∀i bs cs.
+    LENGTH bs = LENGTH cs ∧
+    i < LENGTH bs ⇒
+    EL i (bxor bs cs) = (EL i bs ⇎ EL i cs)
+Proof
+  rpt strip_tac
+  >> gvs[el_drop_hd, bxor_length, drop_bxor, hd_bxor]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Broken, not important enough to fix                                        *)
 (* -------------------------------------------------------------------------- *)
