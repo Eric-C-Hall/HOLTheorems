@@ -1970,8 +1970,48 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* A version of received_sent_inter_cross that works for an individual bit.   *)
+(*                                                                            *)
+(* The event where the sent bit takes a value and the received bit takes a    *)
+(* value is an event in terms of the input bitstring and the noise.           *)
+(*                                                                            *)
+(* This theorem splits it apart into a product of an event in terms of the    *)
+(* input bitstring with an event in terms of the noise.                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem received_sent_bit_inter_cross:
+  ∀enc n m k c d.
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
+    k < m ⇒
+    (event_received_bit_takes_value enc n m k d)
+    ∩ event_sent_bit_takes_value enc n m k c =
+    {bs | LENGTH bs = n ∧ EL k (enc bs) = c}
+                                           × {ns | LENGTH ns = m ∧
+                                                   EL k ns = (c ⇎ d)}
+Proof
+  rpt strip_tac
+  >> gvs[EXTENSION]
+  >> rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac >> gvs[event_received_bit_takes_value_def,
+                           event_sent_bit_takes_value_def]
+      >> EQ_TAC >> rpt strip_tac >> gvs[el_bxor]
+      >> metis_tac[]
+     )
+  >> rpt strip_tac
+  >- (gvs[event_received_bit_takes_value_def]
+      >> namedCases_on ‘x’ ["bs ns"] >> gvs[]
+      >> metis_tac[el_bxor]
+     )
+  >> gvs[event_sent_bit_takes_value_def]
+  >> namedCases_on ‘x’ ["bs ns"] >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* The probability that the received string will start with ds and the sent   *)
 (* string will start with cs.                                                 *)
+(*                                                                            *)
+(* Note: the first probability in this product is equal to                    *)
+(*       P(sent string starts with cs)                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem prob_received_string_and_sent:
   ∀enc n m p cs ds.
@@ -2000,60 +2040,6 @@ Proof
     >> conj_tac
     >- gvs[POW_DEF, SUBSET_DEF]*)
   >> gvs[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Similar to prob_received_string_and_sent, but considers only a single      *)
-(* bit rather than an entire string                                           *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-Theorem prob_received_bit_and_sent:
-  ∀enc n m p k c d.
-    0 ≤ p ∧ p ≤ 1 ∧
-    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
-    prob (ecc_bsc_prob_space n m p)
-         ((event_received_bit_takes_value enc n m k d)
-          ∩ (event_received_bit_takes_value enc n m k c)) =
-    (prob (length_n_codes_uniform_prob_space n)
-          {bs | LENGTH bs = n ∧ EL k (enc bs) = c}) *
-    prob (sym_noise_prob_space m p)
-         {ns | LENGTH ns = m ∧ ds = bxor cs (TAKE (LENGTH ds) ns)}
-Proof
-QED
-
-Theorem eventups_sent_is_event[simp]:
-  ∀enc n (cs : bool list).
-    {bs | LENGTH bs = n ∧ cs ≼ enc bs}
-                             ∈ events (length_n_codes_uniform_prob_space n)
-Proof
-  rw[]
-  >> gvs[length_n_codes_uniform_prob_space_def, events_def,
-         POW_DEF, SUBSET_DEF]
-QED
-
-Theorem eventsnps_bxor_sent_take_received[simp]:
-  ∀m p cs ds.
-    {ns | LENGTH ns = m ∧ ds = bxor cs (TAKE (LENGTH ds) ns)}
-                                    ∈ events (sym_noise_prob_space m p)
-Proof
-  rw[]
-  >> gvs[sym_noise_prob_space_def, events_def,
-         POW_DEF, SUBSET_DEF]
-QED
-
-Theorem prob_length_n_codes_uniform_prob_space_zero:
-  ∀n S.
-    S ∈ events (length_n_codes_uniform_prob_space n) ⇒
-    (prob (length_n_codes_uniform_prob_space n) S = 0 ⇔ S = ∅)
-Proof
-  rw[]
-  >> EQ_TAC >> gvs[PROB_EMPTY]
-  >> rw[]
-  >> gvs[length_n_codes_uniform_prob_space_def, events_def, prob_def]
-  >> pop_assum mp_tac
-  >> DEP_PURE_ONCE_REWRITE_TAC[uniform_distribution_nonzero]
-  >> gvs[]
-  >> gvs[POW_DEF]
 QED
 
 Theorem noise_pre_take:
@@ -2210,6 +2196,196 @@ Proof
   >> gvs[sym_noise_dist_take]
 QED
 
+(* For some reason this simplification wasn't happening automatically *)
+Theorem sub_add_simp[simp]:
+  ∀a b : num.
+    a - (a + b) = 0
+Proof
+  gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Similar working to sum_sym_noise_mass_func_take:                           *)
+(* 1. the set we are working with is equal to                                 *)
+(*    IMAGE (prepend a string to                                              *)
+(*            IMAGE (postpend a string to v) (length_n_codes)                 *)
+(*    ) (length_n_codes _)                                                    *)
+(* 2. These IMAGEs in the set we are applying the sum over can be moved to    *)
+(*    become composition of functions in the function that we are using to    *)
+(*    sum over the set                                                        *)
+(* 3. The new function can be simplified into a product of applying           *)
+(*    sym_noise_dist to [v] with applying sym_noise_dist to the rest of the   *)
+(*    bits                                                                    *)
+(* 4. Applying sym_noise_dist to v is a constant term and thus can be dragged *)
+(*    out of the sum                                                          *)
+(* 5. The remaining sum is taken over length_n_codes and thus sums to one.    *)
+(* -------------------------------------------------------------------------- *)
+Theorem sum_sym_noise_mass_func_el[simp]:
+  ∀m p k ns v.
+    0 ≤ p ∧ p ≤ 1 ∧
+    k < m ⇒
+    ∑ (sym_noise_mass_func p)
+      {ns | LENGTH ns = m ∧ EL k ns = v} = if v then p else 1 - p
+Proof
+  rpt strip_tac
+  >> qmatch_goalsub_abbrev_tac ‘∑ f S’
+  (* Rewrite the set we are summing over as an image *)
+  >> Q.SUBGOAL_THEN ‘S =
+                     IMAGE
+                     (λxs. TAKE k xs ++ v::(DROP k xs))
+                     (length_n_codes (m - 1))’
+      (fn th => PURE_REWRITE_TAC[th])
+  >- (unabbrev_all_tac
+      >> gvs[EXTENSION]
+      >> rpt strip_tac >> EQ_TAC >> rpt strip_tac >> gvs[]
+      >- (qexists ‘TAKE k x ++ DROP (k + 1) x’
+          >> gvs[TAKE_APPEND, DROP_APPEND, TAKE_TAKE]
+          >> gvs[DROP_TAKE]
+          >> metis_tac[TAKE_DROP_SUC, ADD1]
+         )
+      >> gvs[EL_APPEND]
+     )
+  (* Transform the image to a composition *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
+  >> conj_tac
+  >- (gvs[]
+      >> gvs[INJ_DEF]
+      >> rw[]
+      >- (qexists ‘xs’ >> gvs[])
+      >- (gvs[APPEND_11_LENGTH]
+          >> ‘TAKE k xs ++ DROP k xs = TAKE k xs' ++ DROP k xs'’ by metis_tac[]
+          >> gvs[]
+         )
+      >> disj1_tac
+      >> rpt strip_tac
+      >> gvs[]
+      >> unabbrev_all_tac
+      >> gvs[sym_noise_mass_func_not_neginf]
+     )
+  (* Simplify the function *)
+  >> unabbrev_all_tac
+  >> qmatch_goalsub_abbrev_tac ‘∑ f S’
+  >> Q.SUBGOAL_THEN ‘f = λxs. sym_noise_mass_func p [v] *
+                              sym_noise_mass_func p xs’
+      (fn th => PURE_REWRITE_TAC[th])
+  >- (unabbrev_all_tac
+      >> gvs[FUN_EQ_THM]
+      >> qx_gen_tac ‘xs’
+      >> gvs[sym_noise_mass_func_append]
+      >> gvs[sym_noise_mass_func_def]
+      >> qmatch_abbrev_tac ‘donotexpand1 = donotexpand2 * _ : extreal’
+      >> Q.SUBGOAL_THEN ‘xs = TAKE k xs ++ DROP k xs’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- gvs[]
+      >> unabbrev_all_tac
+      >> gvs[sym_noise_mass_func_append]
+      >> gvs[AC mul_comm mul_assoc]
+     )
+  (* Drag the constant out of the sum *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_CMUL_ALT]
+  >> conj_tac
+  >- (unabbrev_all_tac
+      >> gvs[sym_noise_mass_func_not_inf, sym_noise_mass_func_not_neginf]
+     )
+  (* Simplify sym_noise_mass_func of length_n_codes*)
+  >> unabbrev_all_tac
+  >> gvs[]
+  (* Now it solves easier from the definition of sym_noise_mass_func *)
+  >> gvs[sym_noise_mass_func_def]
+QED
+
+Theorem sym_noise_dist_el[simp]:
+  ∀m p k v.
+    0 ≤ p ∧ p ≤ 1 ∧
+    k < m ⇒
+    sym_noise_dist p {ns | LENGTH ns = m ∧ EL k ns = v} =
+                                           if v then p else 1 - p
+Proof
+  rpt strip_tac
+  >> gvs[sym_noise_dist_def]
+QED
+
+Theorem prob_sym_noise_prob_space_el[simp]:
+  ∀m p k v.
+    0 ≤ p ∧ p ≤ 1 ∧
+    k < m ⇒
+    prob (sym_noise_prob_space m p)
+         {ns | LENGTH ns = m ∧ EL k ns = v} = if v then p else 1 - p
+Proof
+  rpt strip_tac
+  >> gvs[sym_noise_prob_space_def, prob_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Similar to prob_received_string_and_sent, but considers only a single      *)
+(* bit rather than an entire string.                                          *)
+(*                                                                            *)
+(* P(sent bit ∩ received bit) = P(sent bit) * P(appropriate noise)            *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_received_bit_and_sent:
+  ∀enc n m p k c d.
+    0 ≤ p ∧ p ≤ 1 ∧
+    k < m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    prob (ecc_bsc_prob_space n m p)
+         ((event_received_bit_takes_value enc n m k d)
+          ∩ (event_sent_bit_takes_value enc n m k c)) =
+    prob (ecc_bsc_prob_space n m p)
+         (event_sent_bit_takes_value enc n m k c) *
+    if c ≠ d
+    then
+      p
+    else
+      1 - p
+Proof
+  rpt strip_tac
+  (* Split up our intersection event as a product of events *)
+  >> gvs[received_sent_bit_inter_cross]
+  (* Calculate the probability of each event in the product independently *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_cross]
+  >> conj_tac
+  >- gvs[POW_DEF, SUBSET_DEF]
+  (* Our theorem follows from a lemma about the probability of the event where
+     a given bit takes a given value. *)
+  >> gvs[prob_event_sent_bit_takes_value]
+  >> gvs[AC mul_comm mul_assoc] 
+QED
+
+Theorem eventups_sent_is_event[simp]:
+  ∀enc n (cs : bool list).
+    {bs | LENGTH bs = n ∧ cs ≼ enc bs}
+                             ∈ events (length_n_codes_uniform_prob_space n)
+Proof
+  rw[]
+  >> gvs[length_n_codes_uniform_prob_space_def, events_def,
+         POW_DEF, SUBSET_DEF]
+QED
+
+Theorem eventsnps_bxor_sent_take_received[simp]:
+  ∀m p cs ds.
+    {ns | LENGTH ns = m ∧ ds = bxor cs (TAKE (LENGTH ds) ns)}
+                                    ∈ events (sym_noise_prob_space m p)
+Proof
+  rw[]
+  >> gvs[sym_noise_prob_space_def, events_def,
+         POW_DEF, SUBSET_DEF]
+QED
+
+Theorem prob_length_n_codes_uniform_prob_space_zero:
+  ∀n S.
+    S ∈ events (length_n_codes_uniform_prob_space n) ⇒
+    (prob (length_n_codes_uniform_prob_space n) S = 0 ⇔ S = ∅)
+Proof
+  rw[]
+  >> EQ_TAC >> gvs[PROB_EMPTY]
+  >> rw[]
+  >> gvs[length_n_codes_uniform_prob_space_def, events_def, prob_def]
+  >> pop_assum mp_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[uniform_distribution_nonzero]
+  >> gvs[]
+  >> gvs[POW_DEF]
+QED
+
 Theorem TAKE_EQ_TAKE_EL:
   ∀n bs cs.
     n ≤ LENGTH bs ∧
@@ -2350,12 +2526,14 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Similar theorem and proof idea to cond_prob_received_string_given_sent,    *)               
+(* Similar theorem and proof idea to cond_prob_received_string_given_sent,    *)
 (* but we are only dealing with a single bit.                                 *)
 (* -------------------------------------------------------------------------- *)
 Theorem cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value[simp]:
   ∀n m p enc k c d.
     0 ≤ p ∧ p ≤ 1 ∧
+    k < m ∧
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
     (∃bs. EL k (enc bs) = c ∧ LENGTH bs = n) ⇒
     cond_prob
     (ecc_bsc_prob_space n m p)
@@ -2373,7 +2551,18 @@ Proof
      )
   (* Similar proof idea to cond_prob_received_string_given_sent *)
   >> gvs[cond_prob_def]
-  >> 
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_received_bit_and_sent]
+  >> conj_tac
+  >- gvs[]
+  >> gvs[sym_noise_mass_func_def]
+  >> qmatch_goalsub_abbrev_tac ‘a * b / a = b’
+  >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[SF EXTREAL_NORMFRAG_SS]
+  >- (pop_assum mp_tac >> rw[])
+     rw[SF EXTREAL_NORMFRAG_SS]
+  >> unabbrev_all_tac
+  >> gvs[]
+  >> Cases_on ‘r = 0’ >> gvs[SF EXTREAL_NORMFRAG_SS]
+                              
 QED
 
 (* -------------------------------------------------------------------------- *)

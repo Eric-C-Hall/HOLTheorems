@@ -102,3 +102,8 @@ I want to be able to easily say that the sum of all these
 (* probability can be seen as saying "in every scenario where we have _, we   *)
 (* have a _ probability of the first event"                                   *)
 (* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Choosing any selection of k bits from anywhere in the string should be     *)
+(* easily calculable as p^k probability                                       *)
+(* -------------------------------------------------------------------------- *)
