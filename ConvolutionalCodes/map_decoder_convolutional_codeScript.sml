@@ -2333,16 +2333,17 @@ Proof
   >> sg ‘input_state_parity_valid (ps,qs) ts (bs, σs, cs_p) ⇒
          val1 =
          let
-           enc = encode_recursive_parity_equation_with_systematic (ps,qs) ts
+           m = LENGTH ds;
+           enc = encode_recursive_parity_equation_with_systematic (ps,qs) ts;
          in
            ∏ (λj. cond_prob
                   (ecc_bsc_prob_space n m p)
                   (event_received_bit_takes_value enc n m j (EL j ds))
                   (event_sent_bit_takes_value enc n m j (EL j (enc bs)))
              )
-                  (count m)’
+             (count m)’
   >- (unabbrev_all_tac
-      (* We focus on the LHS first *)
+      (* We focus on simplifying the LHS first, and simplify the RHS later *)
       >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
       (* As a first step, we're going to want to head towards
          p(ds | cs), so get rid of the input bit events and the state
@@ -2358,8 +2359,8 @@ Proof
          parity bits are valid *)
       >> DEP_PURE_ONCE_REWRITE_TAC[event_input_state_parity_event_sent_string_starts_with]
       >> conj_tac >- gvs[mdr_summed_out_values_2_def]
-      >> REVERSE (rw[])
       (* Handle the case where σs or cs is invalid *)
+      >> REVERSE (rw[])
       >- gvs[input_state_parity_valid_def]
       (* Simplify p(ds | cs) to its explicit value *)
       >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_received_string_given_sent]
@@ -2368,19 +2369,14 @@ Proof
           >> qexists ‘bs’ >> gvs[])
       (* Now simplify the RHS to the same value *)
       >> unabbrev_all_tac
-      >> DEP_PURE_ONCE_REWRITE_TAC[prod_received_given_sent_bit]
       >> gvs[]
-      >> qspecl_then [‘n’, ‘m’, ‘p’, ‘ps’, ‘qs’, ‘ts’, ‘bs’, ‘ds’] mp_tac
-                     prod_received_given_sent_bit
-      >> qmatch_abbrev_tac ‘(b1 ⇒ b2) ⇒ _’
-      >> sg ‘b1’
-      >- (simp[Abbr ‘b1’]
-          >> gvs[input_state_parity_valid_def]
-          >> gvs[mdr_summed_out_values_2_def]
-         )
-         
-         
-          >> gvs[prod_received_given_sent_bit]
+      >> qmatch_goalsub_abbrev_tac ‘event_received_bit_takes_value enc _ _ _ _’
+      (* This lemma should prove the result, we just need to show that the
+         preconditions hold *)
+      >> irule (GSYM prod_received_given_sent_bit)
+      >> simp[]
+      >> gvs[mdr_summed_out_values_2_def]
+      >> unabbrev_all_tac >> simp[]
      )
   >> cheat
 QED
