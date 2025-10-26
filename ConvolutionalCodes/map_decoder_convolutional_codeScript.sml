@@ -4,7 +4,7 @@ Theory map_decoder_convolutional_code
 
 Ancestors ecc_prob_space argmin_extreal fundamental map_decoder parity_equations recursive_parity_equations useful_theorems arithmetic bitstring extreal list pred_set probability real rich_list sigma_algebra martingale measure topology
 
-Libs donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
+Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
 val _ = hide "S";
 
@@ -2260,28 +2260,36 @@ Proof
      )
   (* Merge the constant part into the constant *)
   >> qmatch_goalsub_abbrev_tac ‘C * (val1 * val2 / val3)’
-  >> sg ‘C * (val1 * val2 / val3) = (C / val3) * val1 * val2’
-  >- (sg ‘val1 ≠ +∞ ∧ val1 ≠ −∞ ∧ val2 ≠ +∞ ∧ val2 ≠ −∞ ∧ val3 ≠ +∞ ∧ val3 ≠ −∞’
-      >- (unabbrev_all_tac >> rpt conj_tac
-          >- cheat (*TODO_metis_tac[COND_PROB_FINITE, EVENTS_INTER]*)
-          >- cheat
-          >- gvs[PROB_FINITE]
-          >- gvs[PROB_FINITE]
-          >- gvs[PROB_FINITE]
-          >- gvs[PROB_FINITE]
+  >> sg ‘C * ((val1 * val2) / val3) = (C / val3) * val1 * val2’
+  >- (‘val3 ≠ +∞ ∧ val3 ≠ −∞’ by gvs[PROB_FINITE]
+      >> sg ‘val1 * val2 ≠ +∞ ∧ val1 * val2 ≠ −∞’
+      >- (Cases_on ‘val2 = 0’ >- gvs[] (* if val2 is zero, val1 is undefined. *)
+          >> unabbrev_all_tac >> gvs[cond_prob_def]
+          >> qmatch_goalsub_abbrev_tac ‘num / denom * denom’
+          >> Cases_on ‘num’ >> Cases_on ‘denom’ >> gvs[SF EXTREAL_NORMFRAG_SS]
          )
       >> Cases_on ‘C’ >> gvs[]
-      >> qpat_x_assum ‘Normal r = ARB’ (fn th => gvs[GSYM th])
       >> Cases_on ‘val1’ >> gvs[]
       >> Cases_on ‘val2’ >> gvs[]
-      >> Cases_on ‘val3’ >> gvs[]
-      >> Cases_on ‘r''' = 0’
-      >- cheat
-      >> gvs[extreal_mul_eq, extreal_div_eq]
+      >> (Cases_on ‘r = 0’ >> gvs[SF EXTREAL_NORMFRAG_SS]
+          >> rw[] >> gvs[SF EXTREAL_NORMFRAG_SS])
      )
   >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >> simp[Abbr ‘C’, Abbr ‘val3’]
+  >> simp[Abbr ‘C’]
   >> qmatch_abbrev_tac ‘C * val1 * val2 = _’
+  (* At this point, the constant is 1. But I wrote it this way because it means
+     we can keep track of all the constant terms in the variable C. If there
+     were additional constant terms we needed to collect, we could continue
+     collecting them in the variable C until we were able to cancel them all
+     out. *)
+  >> sg ‘C = 1’
+  >- (unabbrev_all_tac >> gvs[div_refl])
+  >> gvs[]
+  >> qpat_x_assum ‘val3 ≠ +∞’ kall_tac
+  >> qpat_x_assum ‘val3 ≠ −∞’ kall_tac
+  >> qpat_x_assum ‘0 < val3’ kall_tac
+  >> qpat_x_assum ‘Abbrev (val3 = _)’ kall_tac
+  >> qpat_x_assum ‘val3 / val3 = 1’ kall_tac
   (* TODO FIX THE GENERAL IDEA HERE IS THAT IN THE SPEICAL CASE WHERE OUR
      BS ΣS CS_P IS INVALID, VAL2 WILL BE 0, IN WHICH CASE THE LEFT AND RIGHT
      WILL BE ZERO. ITS IMPORTANT TO HANDLE THIS BECAUSE VAL1 WILL BE INVALID.
