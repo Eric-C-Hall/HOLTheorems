@@ -757,6 +757,13 @@ Definition event_input_state_parity_def:
   ∩ (event_srcc_parity_string_starts_with (ps,qs) n m ts cs_p)
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Possible improvement: perhaps I should use prefix instead of = here?       *)
+(*   If so, can update prob_event_input_state_parity_zero to not have some    *)
+(*   preconditions on the length.                                             *)
+(*   How would I handle it if bs was the prefix of what is intended by σs and *)
+(*   cs_p?                                                                    *)
+(* -------------------------------------------------------------------------- *)
 Definition input_state_parity_valid_def:
   input_state_parity_valid (ps,qs) ts (bs, σs, cs_p) =
   ((σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs) ∧
@@ -2070,26 +2077,57 @@ Proof
      )
 QED*)
 
+Theorem prob_event_input_state_parity_zero_imp:
+  ∀n m p ps qs ts bs σs cs_p.
+    0 < p ∧ p < 1 ∧
+    LENGTH bs ≤ n ∧
+    prob (ecc_bsc_prob_space n m p)
+         (event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p)) = 0 ⇒
+    ¬input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)
+Proof
+  rpt strip_tac
+  >> gvs[prob_ecc_bsc_prob_space_zero]
+  >> gvs[event_input_state_parity_def, input_state_parity_valid_def]
+  >> gvs[EXTENSION]
+  >> pop_assum mp_tac >> gvs[]
+  >> qexists ‘(bs ++ REPLICATE (n - LENGTH bs) F, REPLICATE m F)’
+  >> rpt conj_tac
+  >- gvs[event_input_string_starts_with_def]
+  >- (gvs[event_state_sequence_starts_with_def]
+      >> irule encode_recursive_parity_equation_state_sequence_prefix_imp
+      >> gvs[]
+     )
+  >> gvs[event_srcc_parity_string_starts_with_def]
+  >> irule encode_recursive_parity_equation_prefix_mono
+  >> gvs[]
+QED
+   
 Theorem prob_event_input_state_parity_zero:
   ∀n m p ps qs ts bs σs cs_p.
     0 < p ∧ p < 1 ∧
-    LENGTH bs ≤ n ⇒
+    LENGTH bs ≤ n ∧
+    LENGTH cs_p = 2 * LENGTH bs ⇒
     (prob (ecc_bsc_prob_space n m p)
           (event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p)) = 0 ⇔
        ¬input_state_parity_valid (ps,qs) ts (bs,σs,cs_p))
 Proof
   rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac
+  >- metis_tac[prob_event_input_state_parity_zero_imp]
   >> gvs[prob_ecc_bsc_prob_space_zero]
   >> gvs[event_input_state_parity_def, input_state_parity_valid_def]
-  >> EQ_TAC >> rpt strip_tac
-  >- (gvs[EXTENSION]
-      >> pop_assum mp_tac >> gvs[]
-      >> qexists ‘(bs ++ REPLICATE (n - LENGTH bs) F, REPLICATE m F)’
-      >> rpt conj_tac
-      >- gvs[event_input_string_starts_with_def]
-      >- gvs[event_state_sequence_starts_with_def]
+  >> gvs[EXTENSION]
+  >> rpt strip_tac
+  >> CCONTR_TAC >> gvs[]
+  >> namedCases_on ‘x’ ["bs_event ns_event"]
+  >> gvs[event_input_string_starts_with_def,
+         event_state_sequence_starts_with_def,
+         event_srcc_parity_string_starts_with_def]
+  >> qmatch_asmsub_abbrev_tac ‘b1 ⇒ cs_p ≠ _’
+  >> Cases_on ‘b1’ >> gvs[]
+  >- (qpat_x_assum ‘cs_p ≠ _’ mp_tac >> gvs[]
+      >> 
      )
-QED
 
 (* -------------------------------------------------------------------------- *)
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
