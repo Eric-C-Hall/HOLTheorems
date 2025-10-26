@@ -2525,13 +2525,28 @@ Proof
   >> metis_tac[IS_PREFIX_LENGTH]
 QED
 
+Theorem prob_event_sent_bit_takes_value_nonzero:
+  ∀n m p enc k c.
+    0 < p ∧ p < 1 ⇒
+    ((prob (ecc_bsc_prob_space n m p) (event_sent_bit_takes_value enc n m k c) ≠ 0)
+     ⇔ (∃bs. LENGTH bs = n ∧ EL k (enc bs) = c))
+Proof
+  rpt strip_tac
+  >> gvs[prob_ecc_bsc_prob_space_zero]
+  >> gvs[EXTENSION, event_sent_bit_takes_value_def] >> rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac
+  >- metis_tac[]
+  >> qexistsl [‘bs’, ‘REPLICATE m F’]
+  >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Similar theorem and proof idea to cond_prob_received_string_given_sent,    *)
 (* but we are only dealing with a single bit.                                 *)
 (* -------------------------------------------------------------------------- *)
 Theorem cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value[simp]:
   ∀n m p enc k c d.
-    0 ≤ p ∧ p ≤ 1 ∧
+    0 < p ∧ p < 1 ∧
     k < m ∧
     (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ∧
     (∃bs. EL k (enc bs) = c ∧ LENGTH bs = n) ⇒
@@ -2541,6 +2556,8 @@ Theorem cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value[simp
     (event_sent_bit_takes_value enc n m k c) = sym_noise_mass_func p [c ⇎ d]
 Proof
   rpt strip_tac
+  (* Common expression for probabilities *)
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
   (* Prove that the denominator cannot be empty, and so we have a valid
      conditional probability *)
   >> sg ‘event_sent_bit_takes_value enc n m k c ≠ ∅’
@@ -2557,12 +2574,12 @@ Proof
   >> gvs[sym_noise_mass_func_def]
   >> qmatch_goalsub_abbrev_tac ‘a * b / a = b’
   >> Cases_on ‘a’ >> Cases_on ‘b’ >> gvs[SF EXTREAL_NORMFRAG_SS]
-  >- (pop_assum mp_tac >> rw[])
-     rw[SF EXTREAL_NORMFRAG_SS]
-  >> unabbrev_all_tac
-  >> gvs[]
+  >- (pop_assum mp_tac >> rw[] >> gvs[SF EXTREAL_NORMFRAG_SS]
+      >> Cases_on ‘p’ >> gvs[SF EXTREAL_NORMFRAG_SS])
+  >- (pop_assum mp_tac >> rw[] >> gvs[SF EXTREAL_NORMFRAG_SS]
+      >> Cases_on ‘p’ >> gvs[SF EXTREAL_NORMFRAG_SS])
   >> Cases_on ‘r = 0’ >> gvs[SF EXTREAL_NORMFRAG_SS]
-                              
+  >> gvs[normal_0, normal_1, prob_ecc_bsc_prob_space_zero]
 QED
 
 (* -------------------------------------------------------------------------- *)
