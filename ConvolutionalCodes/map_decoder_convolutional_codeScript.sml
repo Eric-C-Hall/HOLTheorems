@@ -2112,11 +2112,21 @@ Proof
   >> gvs[MEM_COUNT_LIST]
   (* The function in argmax_bool differs by a multiplicative constant *)
   >> irule argmax_bool_mul_const
-  (* *)
-  >> qexists ‘ARB’
-  (* *)
-  >> conj_tac >- cheat
-  >> REVERSE conj_tac >- cheat
+  (* The multiplicative constant *)
+  >> qexists ‘prob (ecc_bsc_prob_space n (2 * n) p)
+              (event_received_string_starts_with
+               (encode_recursive_parity_equation_with_systematic (ps,qs) ts)
+               n (2 * n) ds
+              )’
+  >> qmatch_abbrev_tac ‘C ≠ +∞ ∧ _’
+  (* Prove some helpful, reusable properties *)
+  >> sg ‘C ≠ +∞ ∧ C ≠ −∞’ >- (unabbrev_all_tac >> gvs[PROB_FINITE])
+  >> sg ‘0 < C’
+  >- (‘0 ≤ C ∧ C ≠ 0’ suffices_by gvs[lt_le]
+      >> unabbrev_all_tac >> gvs[PROB_POSITIVE])
+  (* The multiplicative contant is between 0 and infinite (exclusive) *)
+  >> conj_tac >- simp[]
+  >> REVERSE conj_tac >- simp[]
   (* Prove function equivalence when applied to all choices of x *)
   >> rw[FUN_EQ_THM]
   (* Flip the equality *)
@@ -2211,9 +2221,6 @@ Proof
      )
   (* Name the constant *)
   >> qmatch_abbrev_tac ‘C * ∑ _ _ = _’
-  (* Prove some helpful, reusable properties *)
-  >> sg ‘C ≠ −∞’ >- cheat
-  >> sg ‘C ≠ +∞’ >- cheat
   (* Move the constant into the sum *)
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
   >> conj_tac
@@ -2255,15 +2262,13 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘C * (val1 * val2 / val3)’
   >> sg ‘C * (val1 * val2 / val3) = (C / val3) * val1 * val2’
   >- (sg ‘val1 ≠ +∞ ∧ val1 ≠ −∞ ∧ val2 ≠ +∞ ∧ val2 ≠ −∞ ∧ val3 ≠ +∞ ∧ val3 ≠ −∞’
-      >- (cheat
-         (*unabbrev_all_tac
-           >> gvs[PROB_FINITE, COND_PROB_FINITE]
-           >> rpt conj_tac
-           >- (irule (cj 1 COND_PROB_FINITE)
-               >> gvs[]
-               >> conj_tac
-               >> irule EVENTS_INTER >> gvs[]
-              )*)
+      >- (unabbrev_all_tac >> rpt conj_tac
+          >- cheat (*TODO_metis_tac[COND_PROB_FINITE, EVENTS_INTER]*)
+          >- cheat
+          >- gvs[PROB_FINITE]
+          >- gvs[PROB_FINITE]
+          >- gvs[PROB_FINITE]
+          >- gvs[PROB_FINITE]
          )
       >> Cases_on ‘C’ >> gvs[]
       >> qpat_x_assum ‘Normal r = ARB’ (fn th => gvs[GSYM th])
