@@ -2070,6 +2070,27 @@ Proof
      )
 QED*)
 
+Theorem prob_event_input_state_parity_zero:
+  ∀n m p ps qs ts bs σs cs_p.
+    0 < p ∧ p < 1 ∧
+    LENGTH bs ≤ n ⇒
+    (prob (ecc_bsc_prob_space n m p)
+          (event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p)) = 0 ⇔
+       ¬input_state_parity_valid (ps,qs) ts (bs,σs,cs_p))
+Proof
+  rpt strip_tac
+  >> gvs[prob_ecc_bsc_prob_space_zero]
+  >> gvs[event_input_state_parity_def, input_state_parity_valid_def]
+  >> EQ_TAC >> rpt strip_tac
+  >- (gvs[EXTENSION]
+      >> pop_assum mp_tac >> gvs[]
+      >> qexists ‘(bs ++ REPLICATE (n - LENGTH bs) F, REPLICATE m F)’
+      >> rpt conj_tac
+      >- gvs[event_input_string_starts_with_def]
+      >- gvs[event_state_sequence_starts_with_def]
+     )
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
 (* Theory:                                                                    *)
@@ -2092,16 +2113,55 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
       map_decoder_bitwise enc n m p ds =
       MAP (λi.
              argmax_bool
-             (λx. ∑ ARB (mdr_summed_out_values_2 n ts i x)
+             (λx. ∑ (λbs, σs, cs_p.
+                       (∏ (λj. prob (ecc_bsc_prob_space n (2 * n) p)
+                                    (event_input_bit_takes_value
+                                     n (2 * n) j (EL j bs)
+                                    )
+                          ) (count n) *
+                        prob (ecc_bsc_prob_space n (2 * n) p)
+                             (event_state_takes_value
+                              n (2 * n) (ps,qs) ts 0 (EL 0 σs)
+                             ) *
+                        ∏ (λj. cond_prob (ecc_bsc_prob_space n (2 * n) p)
+                                         (event_state_takes_value
+                                          n (2 * n) (ps,qs) ts (j + 1)
+                                          (EL (j + 1) σs)
+                                         )
+                                         (event_state_takes_value
+                                          n (2 * n) (ps,qs) ts j (EL j σs) ∩
+                                          event_input_bit_takes_value
+                                          n (2 * n) j (EL j bs)
+                                         )
+                          ) (count n) *
+                        ∏ (λj. cond_prob (ecc_bsc_prob_space n (2 * n) p)
+                                         (event_srcc_parity_bit_takes_value
+                                          (ps,qs) n (2 * n) ts j (EL j cs_p))
+                                         (event_state_takes_value
+                                          n (2 * n) (ps,qs) ts j (EL j σs) ∩
+                                          event_input_bit_takes_value
+                                          n (2 * n) j (EL j bs))
+                          ) (count n)
+                       ) *
+                       (∏ (λj.
+                             cond_prob (ecc_bsc_prob_space n m p)
+                                       (event_received_bit_takes_value
+                                        enc n m j (EL j ds))
+                                       (event_sent_bit_takes_value
+                                        enc n m j (EL j (enc bs)))
+                          )
+                          (count m)
+                       )
+                    ) (mdr_summed_out_values_2 n ts i x)
              )
-          )
-          (COUNT_LIST n)
+          ) (COUNT_LIST n)
 Proof
   (* ------------------------------------------------------------------------ *)
   (* Focus on proving that the inside of the argmax on the LHS is equal to    *)
   (* the inside of the argmax on the RHS, up to a multiplicative constant.    *)
   (* ------------------------------------------------------------------------ *)
   rw[]
+  >> qmatch_goalsub_abbrev_tac ‘∑ f _’
   (* More standard properties showing that p represents a probability *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
   (* Definition of bitwise decoder *)
@@ -2124,7 +2184,7 @@ Proof
   >> sg ‘0 < C’
   >- (‘0 ≤ C ∧ C ≠ 0’ suffices_by gvs[lt_le]
       >> unabbrev_all_tac >> gvs[PROB_POSITIVE])
-  (* The multiplicative contant is between 0 and infinite (exclusive) *)
+  (* The multiplicative contant is between 0 and infinity (exclusive) *)
   >> conj_tac >- simp[]
   >> REVERSE conj_tac >- simp[]
   (* Prove function equivalence when applied to all choices of x *)
@@ -2220,7 +2280,7 @@ Proof
             event_srcc_parity_string_starts_with_def]
      )
   (* Name the constant *)
-  >> qmatch_abbrev_tac ‘C * ∑ _ _ = _’
+  >> qmatch_abbrev_tac ‘C * ∑ _ _ = ∑ f _’
   (* Move the constant into the sum *)
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_ALT]
   >> conj_tac
@@ -2290,51 +2350,57 @@ Proof
   >> qpat_x_assum ‘0 < val3’ kall_tac
   >> qpat_x_assum ‘Abbrev (val3 = _)’ kall_tac
   >> qpat_x_assum ‘val3 / val3 = 1’ kall_tac
-  (* TODO FIX THE GENERAL IDEA HERE IS THAT IN THE SPEICAL CASE WHERE OUR
-     BS ΣS CS_P IS INVALID, VAL2 WILL BE 0, IN WHICH CASE THE LEFT AND RIGHT
-     WILL BE ZERO. ITS IMPORTANT TO HANDLE THIS BECAUSE VAL1 WILL BE INVALID.
-  >> sg ‘input_state_pariry_valid (ps,qs) ts (bs, σs, cs_p)’
-  (* Introduce a variable b which tells us whether the current choice of
-     (bs, σs, cs_p) is valid, or if it is self-contradictory (since a given
-     choice of bs will correspond to only one specific choice of σs and cs_p) *) 
-  >> qabbrev_tac ‘b = input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
-  (* When the values being summed over are invalid (i.e. we have ¬b), then
-     val2 will equal 0. 
-, so we can remove the if _ then _ else _.
-.
-     This is because the event in val2 requries an element of the event to
-     correspond to (bs, σs, cs_p) and also have the ith element of the input
-     to be x, but when the values being summed over are invalid, we precisely
-     know that at least one of these things is not the case.
-   *)
-  >> sg ‘¬b ⇒ val2 = 0’
-  >- (rw[]
+  (* TODO: we need to handle the case in which the
+     input/state sequence/parity bits are invalid, in which case val2 is
+     undefined *)
+  (* ------------------------------------------------------------------------ *)
+  (* We need to be careful about the special case where bs, σs, and cs_p are  *)
+  (* an invalid choice, in which case val1 is a division by zero.             *)
+  (*                                                                          *)
+  (* In this case, we will have val2 = 0 and f = 0, so the theorem holds.     *)
+  (*                                                                          *)
+  (* It is relatively easy to see at this point that if bs, σs and cs_p are   *)
+  (* invalid, then val2 = 0. We will soon transform val2, so we should add    *)
+  (* this to our known facts while it is still obvious.                       *)
+  (*                                                                          *)
+  (* Next step, we will transform val2 into a form which is contained in f.   *)
+  (* This will allow us to determine that f = 0, from which the theorem holds *)
+  (* trivially (in the case where bs, σs, and cs_p are invalid)               *)
+  (* ------------------------------------------------------------------------ *)
+  >> sg ‘¬input_state_parity_valid (ps,qs) ts (bs,σs,cs_p) ⇒ val2 = 0’
+  >- (rpt strip_tac
+      >> gvs[input_state_parity_valid_def]
       >> unabbrev_all_tac
-      >> gvs[]
-      >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
-      >> conj_tac
-      >- gvs[]
-      >> metis_tac[mdr_summed_out_values_event_input_state_parity_empty]
+      >> gvs[prob_ecc_bsc_prob_space_zero]
+      >> gvs[event_input_state_parity_def,
+             event_input_bit_takes_value_def,
+             event_input_string_starts_with_def,
+             event_state_sequence_starts_with_def,
+             event_srcc_parity_string_starts_with_def]
+      >> rw[EXTENSION]
+      >> disj2_tac
+      >> rw[]
+           disj1_tac
+      >> ASM_SET_TAC[]
      )
-   *)
-  (* ------------------------------------------------------------------------ *)
-  (* We are currently up to step 4: split the probability of a given input,   *)
-  (* state sequence and output into probabilities based on the transitions    *)
-  (* through the state machine. That is:                                      *)
-  (*                                                                          *)
-  (* val2 = p(σ_0)p(b_0)p(c_0_p,σ_1|b_0,σ_0)p(b_1)p(c_1_p,σ_2|b_1,σ_1)p(b_2)  *)
-  (* p(c_2_p,σ_3|b_2,σ_2)...                                                  *)
-  (*                                                                          *)
-  (* This is what is proven in split_mdr_events_prob.                         *)
-  (* ------------------------------------------------------------------------ *)
-  >> sg ‘val2 = TODO2’
-  >- (unabbrev_all_tac
-      >> gvs[event_input_bit_takes_value_event_input_state_parity_el_i_x,
-             mdr_summed_out_values_2_def]
-      >> gvs[split_mdr_events_prob]
-      >> cheat
-     )
-  >> gvs[]
+  >> Cases_on ‘input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
+             >- (unabbrev_all_tac >> gvs[AC mul_assoc mul_comm])
+             (* ------------------------------------------------------------------------ *)
+             (* We are currently up to step 4: split the probability of a given input,   *)
+             (* state sequence and output into probabilities based on the transitions    *)
+             (* through the state machine. That is:                                      *)
+             (*                                                                          *)
+             (* val2 = p(σ_0)p(b_0)p(c_0_p,σ_1|b_0,σ_0)p(b_1)p(c_1_p,σ_2|b_1,σ_1)p(b_2)  *)
+             (* p(c_2_p,σ_3|b_2,σ_2)...                                                  *)
+             (*                                                                          *)
+             (* This is what is proven in split_mdr_events_prob.                         *)
+             (* ------------------------------------------------------------------------ *)
+             >> simp[Abbr ‘val2’]
+             >> DEP_PURE_ONCE_REWRITE_TAC[event_input_bit_takes_value_event_input_state_parity_el_i_x]
+             >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+             >> DEP_PURE_ONCE_REWRITE_TAC[split_mdr_events_prob]
+             >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+             >> qmatch_goalsub_abbrev_tac ‘val1 * val2 = _’
   (* ------------------------------------------------------------------------ *)
   (* We are now up to step 5: split the probability of an error over the      *)
   (* channel up into the individual probabilities of an error in each bit.    *)
@@ -2391,6 +2457,19 @@ Proof
       >> gvs[mdr_summed_out_values_2_def]
       >> unabbrev_all_tac >> simp[]
      )
+  (* If the input/states/partity bits are valid, then we immediately have that
+     the left hand side and right hand side are equivalent *)
+  >> Cases_on ‘input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
+  >- (unabbrev_all_tac >> gvs[AC mul_assoc mul_comm])
+  (* If the input/states/parity bits are invalid, then f and val2 will both
+     be zero, and thus the LHS will equal the RHS. In particular, val2 is a
+     part of f, so we only need to prove that that will be zero in this case *)
+  >> unabbrev_all_tac >> gvs[]
+  >> qmatch_goalsub_abbrev_tac ‘irrelevant1 * val2 = val2 * irrelevant2’
+  >> ‘val2 = 0’ suffices_by gvs[]
+  >> simp[Abbr ‘irrelevant1’, Abbr ‘irrelevant2’]
+             
+             
   >> cheat
 QED
 
