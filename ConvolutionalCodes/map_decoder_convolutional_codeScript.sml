@@ -1975,7 +1975,10 @@ QED
 
 Theorem prod_received_given_sent_bit:
   ∀n m p ps qs ts bs ds.
-    0 ≤ p ∧ p ≤ 1 ⇒
+    0 < p ∧ p < 1 ∧
+    LENGTH bs = n ∧
+    LENGTH ds = m ∧
+    m = 2 * n ⇒
     let
       enc = encode_recursive_parity_equation_with_systematic (ps,qs) ts
     in
@@ -1988,6 +1991,7 @@ Theorem prod_received_given_sent_bit:
       sym_noise_mass_func p (bxor (enc bs) ds)
 Proof
   rpt strip_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
   >> gvs[]
   >> qmatch_goalsub_abbrev_tac ‘∏ f (count m) = sym_noise_mass_func p (bxor cs ds)’
   (* Put it in a form so that we can induct on the number of terms we are taking
@@ -2009,26 +2013,21 @@ Proof
       >> DEP_PURE_ONCE_REWRITE_TAC[mul_lcancel]
       >> conj_tac >- gvs[sym_noise_mass_func_not_inf,
                          sym_noise_mass_func_not_neginf]
-      (* *)
+      (* Use lemma for conditional probability of the received bit taking a
+         value given that the sent bit takes a value. *)
       >> disj2_tac
       >> gvs[Abbr ‘f’]
-                        
-      >> DEP_PURE_ONCE_REWRITE_TAC[mul_lcancel]
-      >> conj_tac
-      >- (gvs[sym_noise_mass_func_not_inf,
-              sym_noise_mass_func_not_neginf]
-         )
-      >> 
-
-      
-      >> Cases_on ‘cs’ >> gvs[TAKE]
-      >> Cases_on ‘ds’ >> gvs[TAKE]
-      >> Cases_on ‘k’ >> gvs[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value]
+      >> gvs[]
+      >> unabbrev_all_tac >> metis_tac[]
      )
+  >> pop_assum (qspec_then ‘LENGTH ds’ assume_tac)
+  >> gvs[]
+  >> unabbrev_all_tac >> gvs[]
+  >> gvs[TAKE_LENGTH_TOO_LONG]
 QED
 
-
-Theorem prod_received_given_sent_bit_TODO_PARITY_ONLY:
+(*Theorem prod_received_given_sent_bit_TODO_PARITY_ONLY:
   ∀n m p ps qs ts bs ds.
   0 ≤ p ∧ p ≤ 1 ⇒
   ∏ (λj.
@@ -2072,7 +2071,7 @@ Proof
       >> Cases_on ‘ds’ >> gvs[TAKE]
       >> Cases_on ‘k’ >> gvs[]
      )
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
