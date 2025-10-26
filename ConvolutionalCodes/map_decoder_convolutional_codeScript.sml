@@ -1974,21 +1974,18 @@ Proof
 QED
 
 Theorem prod_received_given_sent_bit:
-  ∀n m p ps qs ts bs ds.
+  ∀n m p enc bs ds.
     0 < p ∧ p < 1 ∧
     LENGTH bs = n ∧
     LENGTH ds = m ∧
-    m = 2 * n ⇒
-    let
-      enc = encode_recursive_parity_equation_with_systematic (ps,qs) ts
-    in
-      ∏ (λj.
-           cond_prob
-           (ecc_bsc_prob_space n m p)
-           (event_received_bit_takes_value enc n m j (EL j ds))
-           (event_sent_bit_takes_value enc n m j (EL j (enc bs)))
-        ) (count m) =
-      sym_noise_mass_func p (bxor (enc bs) ds)
+    (∀xs. LENGTH xs = n ⇒ LENGTH (enc xs) = m) ⇒
+    ∏ (λj.
+         cond_prob
+         (ecc_bsc_prob_space n m p)
+         (event_received_bit_takes_value enc n m j (EL j ds))
+         (event_sent_bit_takes_value enc n m j (EL j (enc bs)))
+      ) (count m) =
+    sym_noise_mass_func p (bxor (enc bs) ds)
 Proof
   rpt strip_tac
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
@@ -2019,7 +2016,7 @@ Proof
       >> gvs[Abbr ‘f’]
       >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value]
       >> gvs[]
-      >> unabbrev_all_tac >> metis_tac[]
+      >> metis_tac[]
      )
   >> pop_assum (qspec_then ‘LENGTH ds’ assume_tac)
   >> gvs[]
@@ -2345,6 +2342,8 @@ Proof
              )
                   (count m)’
   >- (unabbrev_all_tac
+      (* We focus on the LHS first *)
+      >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
       (* As a first step, we're going to want to head towards
          p(ds | cs), so get rid of the input bit events and the state
          events. *)
@@ -2354,6 +2353,9 @@ Proof
       (* Handle the case where bs does not have x in the ith position, and is
          thus invalid. *)
       >- gvs[mdr_summed_out_values_2_def]
+      (* The event of an input, state sequence, and parity bits is competely
+         defined by the event of the sent string, if the state sequence and
+         parity bits are valid *)
       >> DEP_PURE_ONCE_REWRITE_TAC[event_input_state_parity_event_sent_string_starts_with]
       >> conj_tac >- gvs[mdr_summed_out_values_2_def]
       >> REVERSE (rw[])
@@ -2364,8 +2366,21 @@ Proof
       >> conj_tac
       >- (gvs[mdr_summed_out_values_2_def]
           >> qexists ‘bs’ >> gvs[])
-      (* *)
-      >> 
+      (* Now simplify the RHS to the same value *)
+      >> unabbrev_all_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[prod_received_given_sent_bit]
+      >> gvs[]
+      >> qspecl_then [‘n’, ‘m’, ‘p’, ‘ps’, ‘qs’, ‘ts’, ‘bs’, ‘ds’] mp_tac
+                     prod_received_given_sent_bit
+      >> qmatch_abbrev_tac ‘(b1 ⇒ b2) ⇒ _’
+      >> sg ‘b1’
+      >- (simp[Abbr ‘b1’]
+          >> gvs[input_state_parity_valid_def]
+          >> gvs[mdr_summed_out_values_2_def]
+         )
+         
+         
+          >> gvs[prod_received_given_sent_bit]
      )
   >> cheat
 QED
