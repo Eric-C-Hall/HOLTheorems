@@ -382,7 +382,7 @@ Proof
   >> gvs[DROP_APPEND, LENGTH_TAKE]
 QED
 
-Theorem encode_recursive_parity_equation_state_sequence_prefix_imp:
+Theorem encode_recursive_parity_equation_state_sequence_prefix_mono:
   ∀ps qs ts bs1 bs2.
     bs1 ≼ bs2 ⇒
     (encode_recursive_parity_equation_state_sequence (ps,qs) ts bs1)
@@ -401,7 +401,7 @@ Theorem encode_recursive_parity_equation_state_sequence_prefix:
 Proof
   Induct_on ‘bs1’ >> rpt strip_tac >> gvs[]
   >- (Cases_on ‘bs2’ >> gvs[encode_recursive_parity_equation_state_sequence_def])
-  >> EQ_TAC >> gvs[encode_recursive_parity_equation_state_sequence_prefix_imp]
+  >> EQ_TAC >> gvs[encode_recursive_parity_equation_state_sequence_prefix_mono]
   >> Cases_on ‘bs2’ >> gvs[encode_recursive_parity_equation_state_sequence_def]
   >> disch_tac
   >> sg ‘h ⇔ h'’ (* This will be helpful in proving the second part *)

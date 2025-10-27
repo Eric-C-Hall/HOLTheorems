@@ -2094,40 +2094,70 @@ Proof
   >> rpt conj_tac
   >- gvs[event_input_string_starts_with_def]
   >- (gvs[event_state_sequence_starts_with_def]
-      >> irule encode_recursive_parity_equation_state_sequence_prefix_imp
+      >> irule encode_recursive_parity_equation_state_sequence_prefix_mono
       >> gvs[]
      )
   >> gvs[event_srcc_parity_string_starts_with_def]
   >> irule encode_recursive_parity_equation_prefix_mono
   >> gvs[]
 QED
-   
+
 Theorem prob_event_input_state_parity_zero:
   ∀n m p ps qs ts bs σs cs_p.
     0 < p ∧ p < 1 ∧
     LENGTH bs ≤ n ∧
-    LENGTH cs_p = 2 * LENGTH bs ⇒
+    LENGTH cs_p = LENGTH bs ∧
+    LENGTH σs = LENGTH bs + 1 ⇒
     (prob (ecc_bsc_prob_space n m p)
           (event_input_state_parity (ps,qs) n m ts (bs,σs,cs_p)) = 0 ⇔
        ¬input_state_parity_valid (ps,qs) ts (bs,σs,cs_p))
 Proof
   rpt strip_tac
+  (* prob = 0 ⇒ ¬valid was proven earlier. We now prove ¬valid ⇒ prob = 0 *)
   >> EQ_TAC >> rpt strip_tac
   >- metis_tac[prob_event_input_state_parity_zero_imp]
+  (* Our probability is zero if the event is empty *)
   >> gvs[prob_ecc_bsc_prob_space_zero]
   >> gvs[event_input_state_parity_def, input_state_parity_valid_def]
   >> gvs[EXTENSION]
+  (* Prove a contradiction if the event is non-empty*)
   >> rpt strip_tac
   >> CCONTR_TAC >> gvs[]
   >> namedCases_on ‘x’ ["bs_event ns_event"]
   >> gvs[event_input_string_starts_with_def,
          event_state_sequence_starts_with_def,
          event_srcc_parity_string_starts_with_def]
+  (* Either σs is invalid (contradiction) or cs_p is invalid (contradiction).
+     First we handle the case where σs is valid and thus cs_p is not. *)
   >> qmatch_asmsub_abbrev_tac ‘b1 ⇒ cs_p ≠ _’
   >> Cases_on ‘b1’ >> gvs[]
   >- (qpat_x_assum ‘cs_p ≠ _’ mp_tac >> gvs[]
-      >> 
+      >> irule (iffLR IS_PREFIX_LENGTH_ANTI)
+      >> gvs[encode_recursive_parity_equation_length]
+      (* Since bs ≼ bs_event, enc bs ≼ enc bs_event
+           (by encode_recursive_parity_equation_prefix_mono)
+         Combining this with cs_p ≼ enc bs, we get:
+         enc bs ≼ cs_p or cs_p ≼ enc bs (by prefixes_is_prefix_total)
+         In the second case, we are done immediately.
+         In the first case, since LENGTH cs_p = LENGTH bs, we have
+           cs_p = enc bs (by IS_PREFIX_EQ_REWRITE and
+                          encode_recursive_parity_equation_length).
+         Thus cs_p ≼ enc bs and we are done. *)
+      >> metis_tac[encode_recursive_parity_equation_prefix_mono,
+                   prefixes_is_prefix_total,
+                   IS_PREFIX_EQ_REWRITE,
+                   encode_recursive_parity_equation_length]
      )
+  (* Now we handle the case where σs is invalid. Very similar to the logic for
+     cs_p. *)
+  >> qpat_x_assum ‘σs ≠ _’ mp_tac >> gvs[]
+  >> irule (iffLR IS_PREFIX_LENGTH_ANTI)
+  >> gvs[encode_recursive_parity_equation_state_sequence_length]
+  >> metis_tac[encode_recursive_parity_equation_state_sequence_prefix_mono,
+               prefixes_is_prefix_total,
+               IS_PREFIX_EQ_REWRITE,
+               encode_recursive_parity_equation_state_sequence_length]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
