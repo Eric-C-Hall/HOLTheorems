@@ -10,14 +10,6 @@ Ancestors factor_graph extreal probability state_machine wf_state_machine binary
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* Split the                                                                  *)
-(*                                                                            *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-
-
-
-(* -------------------------------------------------------------------------- *)
 (* The factor graph corresponding to a state machine.                         *)
 (*                                                                            *)
 (* P(x_i | y) = Σ P(x,σ|y)                                                    *)
@@ -101,4 +93,43 @@ End*)
 (* -------------------------------------------------------------------------- *)
 Definition BCJR_decode_def:
   BCJR_decode m cs p = ARB
+End
+
+Definition rcc_factor_graph__:
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The factor graph for a recursive convolutional code.                       *)
+(*                                                                            *)
+(*                                                                            *)
+(*           P(x_1)P(y_1|x_1)  P(x_2)P(y_2|x_2)           P(x_n)P(y_n|x_n)    *)
+(*                  #                 #                          #            *)
+(*                  |                 |                          |            *)
+(*                  o x_1             o x_2                      o            *)
+(*          σ_0     |       σ_1       |       σ_2                |     σ_n    *)
+(*    # ---- o ---- # ------ o ------ # ------ o ------ ... ---- # ---- o     *)
+(*  P(σ_0)   P(x_1,σ_1|x_0,σ_0) P(x_2,σ_2|x_1,σ_1)  P(x_n,σ_n|x_(n-1),σ_(n-1))*)
+(*                  |                 |                          |            *)
+(*                  o x^p_1           o x^p_1                    o x^p_1      *)
+(*                  |                 |                          |            *)
+(*                  #                 #                          #            *)
+(*               P(y^p_1|x^p_1)  P(y^p_2|x^p_2)           P(y^p_3|x^p_3)      *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* The n variable nodes relating to the inputs x_i have labels 0 through n    *)
+(* The n variable nodes relating to the encoded inputs have labels n + 1      *)
+(*   through 2n                                                               *)
+(* The (n + 1) variable nodes relating to the states have labels 2n + 1       *)
+(*   through 3n + 1                                                           *)
+(*                                                                            *)
+(* The n function nodes relating to the probability of y_i given x_i have     *)
+(*   labels                                                                   *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition rcc_factor_graph_def:
+  state_machine_factor_graph n (ps,qs) =
+  fg_add_function_node
+  ([], λbs. )
+  (fg_add_n_variable_nodes (3 * n + 1) fg_empty)
 End
