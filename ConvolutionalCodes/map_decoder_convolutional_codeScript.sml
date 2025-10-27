@@ -2,7 +2,7 @@
 
 Theory map_decoder_convolutional_code
 
-Ancestors ecc_prob_space argmin_extreal fundamental map_decoder parity_equations recursive_parity_equations useful_theorems arithmetic bitstring extreal list pred_set probability real rich_list sigma_algebra martingale measure topology
+Ancestors ecc_prob_space argmin_extreal fundamental map_decoder parity_equations recursive_parity_equations useful_theorems arithmetic bitstring extreal list pred_set probability real rich_list sigma_algebra martingale marker measure topology
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -2437,38 +2437,38 @@ Proof
   (* ------------------------------------------------------------------------ *)
   >> sg ‘¬input_state_parity_valid (ps,qs) ts (bs,σs,cs_p) ⇒ val2 = 0’
   >- (rpt strip_tac
-      >> gvs[input_state_parity_valid_def]
       >> unabbrev_all_tac
-      >> gvs[prob_ecc_bsc_prob_space_zero]
-      >> gvs[event_input_state_parity_def,
-             event_input_bit_takes_value_def,
-             event_input_string_starts_with_def,
-             event_state_sequence_starts_with_def,
-             event_srcc_parity_string_starts_with_def]
-      >> rw[EXTENSION]
-      >> disj2_tac
-      >> rw[]
-           disj1_tac
-      >> ASM_SET_TAC[]
+      >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+      >> irule PROB_ZERO_INTER
+      >> gvs[]
+      >> gvs[mdr_summed_out_values_2_def, prob_event_input_state_parity_zero]
      )
-  >> Cases_on ‘input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
-             >- (unabbrev_all_tac >> gvs[AC mul_assoc mul_comm])
-             (* ------------------------------------------------------------------------ *)
-             (* We are currently up to step 4: split the probability of a given input,   *)
-             (* state sequence and output into probabilities based on the transitions    *)
-             (* through the state machine. That is:                                      *)
-             (*                                                                          *)
-             (* val2 = p(σ_0)p(b_0)p(c_0_p,σ_1|b_0,σ_0)p(b_1)p(c_1_p,σ_2|b_1,σ_1)p(b_2)  *)
-             (* p(c_2_p,σ_3|b_2,σ_2)...                                                  *)
-             (*                                                                          *)
-             (* This is what is proven in split_mdr_events_prob.                         *)
-             (* ------------------------------------------------------------------------ *)
-             >> simp[Abbr ‘val2’]
-             >> DEP_PURE_ONCE_REWRITE_TAC[event_input_bit_takes_value_event_input_state_parity_el_i_x]
-             >> conj_tac >- gvs[mdr_summed_out_values_2_def]
-             >> DEP_PURE_ONCE_REWRITE_TAC[split_mdr_events_prob]
-             >> conj_tac >- gvs[mdr_summed_out_values_2_def]
-             >> qmatch_goalsub_abbrev_tac ‘val1 * val2 = _’
+  (* ------------------------------------------------------------------------ *)
+  (* We are currently up to step 4: split the probability of a given input,   *)
+  (* state sequence and output into probabilities based on the transitions    *)
+  (* through the state machine. That is:                                      *)
+  (*                                                                          *)
+  (* val2 = p(σ_0)p(b_0)p(c_0_p,σ_1|b_0,σ_0)p(b_1)p(c_1_p,σ_2|b_1,σ_1)p(b_2)  *)
+  (* p(c_2_p,σ_3|b_2,σ_2)...                                                  *)
+  (*                                                                          *)
+  (* This is what is proven in split_mdr_events_prob.                         *)
+  (* ------------------------------------------------------------------------ *)
+  (* Modify the value of val2 without expanding it *)
+  >> qpat_x_assum ‘Abbrev (val2 = _)’ mp_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[event_input_bit_takes_value_event_input_state_parity_el_i_x]
+  >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[split_mdr_events_prob]
+  >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+  >> disch_tac                            
+  (* ------------------------------------------------------------------------ *)
+  (* The new version of val2 is contained in both val2 and f, so in the case  *)
+  (* where our input/state/parity is invalid, the theorem holds.              *)
+  (* So from this point onwards, we our input/state/parity is valid.          *)
+  (* ------------------------------------------------------------------------ *)
+  >> simp[Abbr ‘f’]
+  >> qmatch_goalsub_abbrev_tac ‘val1 * val2 = val2_rhs * val1_rhs’
+  >> ‘val2_rhs = val2’ by (unabbrev_all_tac >> simp[])
+  >> Cases_on ‘¬input_state_parity_valid (ps,qs) ts (bs, σs, cs_p)’ >> gvs[]
   (* ------------------------------------------------------------------------ *)
   (* We are now up to step 5: split the probability of an error over the      *)
   (* channel up into the individual probabilities of an error in each bit.    *)
@@ -2525,19 +2525,8 @@ Proof
       >> gvs[mdr_summed_out_values_2_def]
       >> unabbrev_all_tac >> simp[]
      )
-  (* If the input/states/partity bits are valid, then we immediately have that
-     the left hand side and right hand side are equivalent *)
-  >> Cases_on ‘input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
-  >- (unabbrev_all_tac >> gvs[AC mul_assoc mul_comm])
-  (* If the input/states/parity bits are invalid, then f and val2 will both
-     be zero, and thus the LHS will equal the RHS. In particular, val2 is a
-     part of f, so we only need to prove that that will be zero in this case *)
-  >> unabbrev_all_tac >> gvs[]
-  >> qmatch_goalsub_abbrev_tac ‘irrelevant1 * val2 = val2 * irrelevant2’
-  >> ‘val2 = 0’ suffices_by gvs[]
-  >> simp[Abbr ‘irrelevant1’, Abbr ‘irrelevant2’]
-             
-             
-  >> cheat
+  (* Finish the proof, now that the left hand side and right hand side
+     are obviously equivalent. *)
+  >> unabbrev_all_tac >> gvs[AC mul_assoc mul_comm]
 QED
 
