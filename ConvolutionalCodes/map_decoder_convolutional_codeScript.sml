@@ -2182,33 +2182,33 @@ Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
       MAP (λi.
              argmax_bool
              (λx. ∑ (λbs, σs, cs_p.
-                       (∏ (λj. prob (ecc_bsc_prob_space n (2 * n) p)
+                       (∏ (λj. prob (ecc_bsc_prob_space n m p)
                                     (event_input_bit_takes_value
-                                     n (2 * n) j (EL j bs)
+                                     n m j (EL j bs)
                                     )
                           ) (count n) *
-                        prob (ecc_bsc_prob_space n (2 * n) p)
+                        prob (ecc_bsc_prob_space n m p)
                              (event_state_takes_value
-                              n (2 * n) (ps,qs) ts 0 (EL 0 σs)
+                              n m (ps,qs) ts 0 (EL 0 σs)
                              ) *
-                        ∏ (λj. cond_prob (ecc_bsc_prob_space n (2 * n) p)
+                        ∏ (λj. cond_prob (ecc_bsc_prob_space n m p)
                                          (event_state_takes_value
-                                          n (2 * n) (ps,qs) ts (j + 1)
+                                          n m (ps,qs) ts (j + 1)
                                           (EL (j + 1) σs)
                                          )
                                          (event_state_takes_value
-                                          n (2 * n) (ps,qs) ts j (EL j σs) ∩
+                                          n m (ps,qs) ts j (EL j σs) ∩
                                           event_input_bit_takes_value
-                                          n (2 * n) j (EL j bs)
+                                          n m j (EL j bs)
                                          )
                           ) (count n) *
-                        ∏ (λj. cond_prob (ecc_bsc_prob_space n (2 * n) p)
+                        ∏ (λj. cond_prob (ecc_bsc_prob_space n m p)
                                          (event_srcc_parity_bit_takes_value
-                                          (ps,qs) n (2 * n) ts j (EL j cs_p))
+                                          (ps,qs) n m ts j (EL j cs_p))
                                          (event_state_takes_value
-                                          n (2 * n) (ps,qs) ts j (EL j σs) ∩
+                                          n m (ps,qs) ts j (EL j σs) ∩
                                           event_input_bit_takes_value
-                                          n (2 * n) j (EL j bs))
+                                          n m j (EL j bs))
                           ) (count n)
                        ) *
                        (∏ (λj.
