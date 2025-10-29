@@ -95,36 +95,73 @@ Definition BCJR_decode_def:
   BCJR_decode m cs p = ARB
 End
 
-Definition rcc_factor_graph__:
+(* -------------------------------------------------------------------------- *)
+(* Add the function nodes corresponding to the initial input probabilities    *)
+(* and errors in the systematic bits.                                         *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* fg: the factor graph we are modifying                                      *)
+(* n: the number of inputs                                                    *)
+(* i: the current node being added. Initially should be 0, ranges up to n.    *)
+(* prior: a list of the prior probabilities of each input being 1.            *)
+(* ds: the received systematic bits                                           *)
+(* -------------------------------------------------------------------------- *)
+Definition rcc_factor_graph_add_func_nodes_input_sys:
+  rcc_factor_graph_add_func_nodes_input_sys fg n i prior ds =
+  if i = n
+  then
+    fg
+  else
+    fg_add_function_node ([INR i], λbs. TODO_PRIOR * TODO_ERRIN ) fg
 End
 
 (* -------------------------------------------------------------------------- *)
-(* The factor graph for a recursive convolutional code.                       *)
+(* Add the function nodes corresponding to errors in the encoded bits         *)
+(* -------------------------------------------------------------------------- *)
+Definition rcc_factor_graph_add_func_nodes_enc:
+  rcc_factor_graph_add_func_nodes_enc
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Add the function nodes corresponding to the state transitions              *)
+(* -------------------------------------------------------------------------- *)
+Definition rcc_factor_graph_add_func_nodes_state:
+  rcc_factor_graph_add_func_nodes_state
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The factor graph for a recursive systematic convolutional code with one    *)
+(*   set of parity equations.                                                 *)
+(*                                                                            *)
+(*                                                     P(b_{n-1}) *           *)
+(*          P(b_0)P(d_0|b_0)    P(b_1)P(d_1|b_1)       P(d_{n-1}|b_{n-1})     *)
+(*                 #                 #                          #             *)
+(*                 |                 |                          |             *)
+(*                 o b_0             o b_1              b_{n-1} o             *)
+(* P(σ_0)  σ_0     |       σ_1       |       σ_2                |    σ_{n-1}  *)
+(*   # ---- o ---- # ------ o ------ # ------ o ------ ... ---- # ---- o      *)
+(*          P(cp_0,σ_1|       P(cp_1,σ_2|                P(cpn-1,σn|          *)
+(*                 b_0,σ_0)         b_1,σ_1)                   bn-1,σn-1)     *)
+(*                 |                 |                          |             *)
+(*                 o cp_0            o cp_1                     o cp_{n-1}    *)
+(*                 |                 |                          |             *)
+(*                 #                 #                          #             *)
+(*            P(dp_0|cp_0)        P(cp_1|b_1)             P(cp_{n-1}|b_{n-1})  *)
 (*                                                                            *)
 (*                                                                            *)
-(*           P(x_1)P(y_1|x_1)  P(x_2)P(y_2|x_2)           P(x_n)P(y_n|x_n)    *)
-(*                  #                 #                          #            *)
-(*                  |                 |                          |            *)
-(*                  o x_1             o x_2                      o            *)
-(*          σ_0     |       σ_1       |       σ_2                |     σ_n    *)
-(*    # ---- o ---- # ------ o ------ # ------ o ------ ... ---- # ---- o     *)
-(*  P(σ_0)   P(x_1,σ_1|x_0,σ_0) P(x_2,σ_2|x_1,σ_1)  P(x_n,σ_n|x_(n-1),σ_(n-1))*)
-(*                  |                 |                          |            *)
-(*                  o x^p_1           o x^p_1                    o x^p_1      *)
-(*                  |                 |                          |            *)
-(*                  #                 #                          #            *)
-(*               P(y^p_1|x^p_1)  P(y^p_2|x^p_2)           P(y^p_3|x^p_3)      *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* The n variable nodes relating to the inputs x_i have labels 0 through n    *)
-(* The n variable nodes relating to the encoded inputs have labels n + 1      *)
-(*   through 2n                                                               *)
-(* The (n + 1) variable nodes relating to the states have labels 2n + 1       *)
+(* The n variable nodes relating to the inputs b_i have labels 0 through n    *)
+(* The n variable nodes relating to the encoded inputs cp_i have labels       *)
+(*   n + 1 through 2n                                                         *)
+(* The (n + 1) variable nodes relating to the states σ_i have labels 2n + 1   *)
 (*   through 3n + 1                                                           *)
 (*                                                                            *)
-(* The n function nodes relating to the probability of y_i given x_i have     *)
-(*   labels                                                                   *)
+(* The n function nodes relating to the probability of c_i given b_i have     *)
+(*   labels 3n + 2 through 4n + 1                                             *)
+(* The n function nodes relating to the probability of cp_i given b_i have *)
+(*   labels 4n + 2 through 5n + 1                                             *)
+(* The n + 1 function nodes relating to the probability of the next state and *)
+(*   output given the current state have labels 5n + 2 through 6n + 2         *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Definition rcc_factor_graph_def:

@@ -6,8 +6,24 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
-(*
-In cond_prob_received_string_given_sent
+(* Arbitrary length words: words in factor graph implementation, need to be able
+   to have different lengths of bitstrings. *)
+
+(* Unclear: what variable type in factor graph? *)
+
+(* Unclear how to interface MAP decoder with factor graphs *)
+
+(* How do I easily apply a function to both sides of an equation. e.g. I have
+   the assumption ls1 = ls2 and I want to prove LENGTH ls1 = LENGTH ls2 *)
+
+(* Would be cool to be able to start with a left hand side, and apply rules
+   until we reach a right hand side, and then add this as an assumption *)
+
+(* -------------------------------------------------------------------------- *)
+(* ALREADY DISCUSSED:                                                         *)
+(* -------------------------------------------------------------------------- *)
+
+(*In cond_prob_received_string_given_sent
 
   (* Not sure why this doesn't work by itself *)
   >> ‘r * r' / r = r'’ by gvs[] >> pop_assum (fn th => PURE_REWRITE_TAC[th])
@@ -17,13 +33,7 @@ In cond_prob_received_string_given_sent
 
 (* Notice how slow definitions are. for example, in map_decoderScript *)
 
-(* How do I easily apply a function to both sides of an equation. e.g. I have
-   the assumption ls1 = ls2 and I want to prove LENGTH ls1 = LENGTH ls2 *)
-
 (* Does HOL have a profiling tool? *)
-
-(* Would be cool to be able to start with a left hand side, and apply rules
-   until we reach a right hand side, and then add this as an assumption *)
 
 (* I enjoy learning and teaching more than I do research *)
 

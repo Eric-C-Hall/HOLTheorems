@@ -2163,12 +2163,12 @@ QED
 (* General outline of plan of proof, following Chapter 6 of Modern Coding     *)
 (* Theory:                                                                    *)
 (*                                                                            *)
-(* 1. MAP decoder = argmax p(b_s | ds)                                        *)
+(* 1. MAP decoder = argmax p(b_i | ds)                                        *)
 (* 2.             = argmax Σ p(bs, cs_p, σs | ds) over bs, cs_p, σs           *)
 (* 3.             = argmax Σ p(ds | bs, cs_p, σs) p(bs, cs_p, σs) over ''     *)
 (* 4.  p(bs, cs_p, σs) = p(σ_0)p(b_0)p(c_0_p,σ_1|b_0,σ_0)p(b_1)               *)
 (*                         p(c_1_p,σ_2|b_1,σ_1)p(b_2)p(c_2_p,σ_3|b_2,σ_2)...  *)
-(* 5.  p(ds | bs, cs_p, σs) = Π P(d_i | c_i)                                  *)
+(* 5.  p(ds | bs, cs_p, σs) = Π P(d_j | c_j)                                  *)
 (* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
   ∀ps qs ts n m p ds.
