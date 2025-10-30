@@ -74,6 +74,10 @@ val _ = hide "S";
 (*       that variables are allowed to be a range of types required by the    *)
 (*       factor graph interpretation of the BCJR algorithm                    *)
 (* -------------------------------------------------------------------------- *)
+(* TODO: we don't need to include the list of variable labels in our          *)
+(*       function_map: we can assume that the inputs are provided in order    *)
+(*       from smallest to largest label.                                      *)
+(* -------------------------------------------------------------------------- *)
 Datatype:
   factor_graph_rep =
   <|
