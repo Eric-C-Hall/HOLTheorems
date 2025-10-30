@@ -66,12 +66,14 @@ val _ = hide "S";
 (* Factor Graph Datatype:                                                     *)
 (*                                                                            *)
 (* The "underlying_graph" variable represents the underlying factor graph.    *)
-(* This is based on fsgraph.                                                  *)
 (*                                                                            *)
 (* The "is_function_node" function takes a node and returns 1 if it is a      *)
 (* function node, and 0 if it is a variable node. This may be used to split   *)
 (* our graph into a set of function nodes and a set of variable nodes,        *)
 (* showing that our graph is bipartite.                                       *)
+(*                                                                            *)
+(* variable_length maps a variable node to the number of bits in the values   *)
+(* it can take.                                                               *)
 (*                                                                            *)
 (* function_map maps a function node to its function, as described in the     *)
 (* "Function representation" section above.                                   *)
@@ -89,33 +91,7 @@ Datatype:
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
     variable_length: (unit + num) |-> num;
-    function_map : (unit + num) |-> (unit + num) list # (β word list -> α);
-  |>
-End
-
-Theorem jgk:
-  ARB = (ARB : (α,β) factor_graph_rep)
-        with
-        <|
-          underlying_graph updated_by ARB;
-          function_map := FUPDATE FEMPTY (INR 0, (ARB, λbaz : word64 list.ARB));
-        |>
-Proof
-QED
-
-
-
-Definition fgdkjl:
-  baz = ARB : 3
-End
-
-Definition qux_def:
-  qux =
-  <|
-    underlying_graph := ;
-    function_nodes := ;
-    variable_length := ;
-    function_map := ;
+    function_map : (unit + num) |-> (bool list) list -> α;
   |>
 End
 
@@ -129,34 +105,14 @@ End
 (* - the underlying graph should be bipartite with respect to the function    *)
 (*   nodes and variable nodes                                                 *)
 (* - the domain of function_map should be the set of function nodes           *)
-(* - the variables used as input to each function must be valid nodes and     *)
-(*   they should be variable nodes, and one variable should not be used more  *)
-(*   than once                                                                *)
-(* - the edges in the graph should connect an function and variable if and    *)
-(*   only if that variable is one of the inputs to that function              *)
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
   wffactor_graph (fg : α factor_graph_rep) ⇔
     (gen_bipartite_ea fg.underlying_graph fg.function_nodes) ∧
+    (FDOM fg.variable_length = {INR i | i | INR i ∈ nodes fg.underlying_graph ∧
+                                            INR i ∉ fg.function_nodes }) ∧
     FDOM fg.function_map = fg.function_nodes ∧
-    (∀f.
-       f ∈ fg.function_nodes ⇒
-       (let
-          variables = FST (fg.function_map ' f)
-        in
-          ∀x. MEM x variables ⇒ (x ∈ nodes fg.underlying_graph ∧
-                                 x ∉ fg.function_nodes ∧
-                                 UNIQUE x variables
-                                )
-       )
-    ) ∧
-    (∀e. e ∈ fsgedges fg.underlying_graph ⇔
-           (∃f v. e = {f; v} ∧ f ∈ nodes fg.underlying_graph
-                          ∧ v ∈ nodes fg.underlying_graph
-                          ∧ f ∈ fg.function_nodes
-                          ∧ v ∉ fg.function_nodes
-                          ∧ MEM v (FST (fg.function_map ' f)))) ∧
     nodes fg.underlying_graph = {INR i | i < order fg.underlying_graph}
 End
 
@@ -278,6 +234,7 @@ Definition fg_empty0_def:
   <|
     underlying_graph := emptyG;
     function_nodes := ∅;
+    variable_length := FEMPTY;
     function_map := FEMPTY;
   |>
 End
@@ -411,19 +368,20 @@ QED
 val _ = liftdef fg_empty0_respects "fg_empty"
 
 (* -------------------------------------------------------------------------- *)
-(* Add a variable node to the factor_graph.                                   *)
+(* Add a variable node with length l to the factor_graph.                     *)
 (*                                                                            *)
 (* The first node added (variable or function) should be 0, the next node     *)
 (* should be 1, etc.                                                          *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_variable_node0_def:
-  fg_add_variable_node0 fg =
+  fg_add_variable_node0 fg l =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)))
   in
     fg with
        <|
          underlying_graph updated_by (fsgAddNode new_node);
+         variable_length updated_by (λf. FUPDATE f (new_node, l))
        |>
 End
 
@@ -487,32 +445,29 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* The node just beyond the current set of valid nodes is not a valid node,   *)
-(* and thus, it cannot be one of the variables associated with a function     *)
-(* node.                                                                      *)
+(* A newly added node is not in the function nodes of the graph before the    *)
+(* node was added.                                                            *)
+(*                                                                            *)
+(* This version of this theorem works even when wffactor_graph has been       *)
+(* expanded out.                                                              *)
 (* -------------------------------------------------------------------------- *)
-Theorem inr_card_not_in_mem_function_map[simp]:
-  ∀fg f.
-    wffactor_graph fg ∧
-    f ∈ fg.function_nodes ⇒
-    ¬MEM (INR (CARD (nodes fg.underlying_graph))) (FST (fg.function_map ' f))
+Theorem inr_card_not_in_function_nodes_expanded_wffactor_graph[simp]:
+  ∀fg n.
+    gen_bipartite_ea fg.underlying_graph fg.function_nodes ∧
+    (nodes fg.underlying_graph = {INR i | i < n}) ⇒
+    INR n ∉ fg.function_nodes                                    
 Proof
   rpt strip_tac
-  >> drule (cj 3 (iffLR wffactor_graph_def)) >> disch_tac
-  >> pop_assum drule >> disch_tac
   >> gvs[]
-  >> pop_assum drule >> disch_tac
-  >> gvs[]
-  >> gvs[inr_in_nodes_underlying_graph]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Adding a variable node maintains well-formedness                           *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_variable_node0_wf:
-  ∀fg.
+  ∀fg l.
     wffactor_graph fg ⇒
-    wffactor_graph (fg_add_variable_node0 fg)
+    wffactor_graph (fg_add_variable_node0 fg l)
 Proof
   rpt strip_tac
   >> simp[wffactor_graph_def, fg_add_variable_node0_def]
@@ -525,31 +480,14 @@ Proof
                    inr_card_not_in_function_nodes,
                    wffactor_graph_def]
      )
+  (* Valid domain of variable length map *)
+  >- (gvs[EXTENSION] >> rpt strip_tac
+      >> EQ_TAC >> rpt strip_tac >> gvs[wffactor_graph_def])
   (* Valid domain of function map *)
   >- gvs[wffactor_graph_def]
-  (* Inputs to all functions are valid variable nodes *)
-  >- (drule (cj 3 (iffLR wffactor_graph_def)) >> disch_tac
-      >> strip_tac >> strip_tac
-      >> first_x_assum drule >> strip_tac
-      >> gvs[]
-     )
-  (* Edges correspond to which variables are used as input to which functions *)
-  >- (drule (cj 4 (iffLR wffactor_graph_def)) >> disch_tac
-      >> gvs[]
-      >> pop_assum kall_tac
-      >> rw[]
-      >> EQ_TAC
-      >- (rw[] >> qexistsl [‘f’, ‘v’] >> gvs[])
-      >- (strip_tac
-          >- (qexistsl [‘f’, ‘v’] >> gvs[])
-          >- gvs[inr_card_not_in_function_nodes]
-          >- gvs[inr_card_not_in_function_nodes]
-          >- (qexistsl [‘f’, ‘v’] >> gvs[])
-         )
-     )
   (* The set of nodes is the set of consecutive natural numbers starting from
      zero. *)
-  >- (drule (cj 5 (iffLR wffactor_graph_def)) >> disch_tac
+  >- (drule (cj 4 (iffLR wffactor_graph_def)) >> disch_tac
       >> qmatch_goalsub_abbrev_tac ‘S1 INSERT _ = S2’
       >> simp[]
       >> unabbrev_all_tac

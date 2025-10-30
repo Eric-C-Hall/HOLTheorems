@@ -6,6 +6,14 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Review wffactor_graph, in particular the third requirement *)
+
+(* Why use finite map rather than function? *)
+
+(* Changed from function being defined as a tuple of the label orders and the
+   function itself to assuming that the inputs are provided in order of
+   labels (smallest to largest) *)
+
 (* Arbitrary length words: words in factor graph implementation, need to be able
    to have different lengths of bitstrings. *)
 
