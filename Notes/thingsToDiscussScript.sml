@@ -6,6 +6,11 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Is there something which applies a function f : α -> α repeatedly n times,
+   within the world of HOL? *)
+
+(* Review fg_add_variable_node0_respects *)
+
 (* Review wffactor_graph, in particular the third requirement *)
 
 (* Why use finite map rather than function? *)

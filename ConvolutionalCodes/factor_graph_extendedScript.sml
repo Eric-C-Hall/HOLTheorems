@@ -91,7 +91,7 @@ Datatype:
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
     variable_length: (unit + num) |-> num;
-    function_map : (unit + num) |-> (bool list) list -> α;
+    function_map : (unit + num) |-> (bool list) list -> extreal;
   |>
 End
 
@@ -372,9 +372,11 @@ val _ = liftdef fg_empty0_respects "fg_empty"
 (*                                                                            *)
 (* The first node added (variable or function) should be 0, the next node     *)
 (* should be 1, etc.                                                          *)
+(*                                                                            *)
+(* fg is the final argument to allow for easy composition.                    *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_variable_node0_def:
-  fg_add_variable_node0 fg l =
+  fg_add_variable_node0 l fg =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)))
   in
@@ -472,7 +474,7 @@ QED
 Theorem fg_add_variable_node0_wf:
   ∀fg l.
     wffactor_graph fg ⇒
-    wffactor_graph (fg_add_variable_node0 fg l)
+    wffactor_graph (fg_add_variable_node0 l fg)
 Proof
   rpt strip_tac
   >> simp[wffactor_graph_def, fg_add_variable_node0_def]
@@ -510,8 +512,7 @@ QED
 (* fg_add_variable_node to our abstract type                                  *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_variable_node0_respects:
-  ∀fg.
-    (fgequiv ===> fgequiv) fg_add_variable_node0 fg_add_variable_node0
+  ((=) ===> fgequiv ===> fgequiv) fg_add_variable_node0 fg_add_variable_node0
 Proof
   rpt strip_tac
   >> gvs[FUN_REL_def]
@@ -520,7 +521,7 @@ Proof
 QED
 
 val _ = liftdef fg_add_variable_node0_respects "fg_add_variable_node"
-                
+
 (* -------------------------------------------------------------------------- *)
 (* Adds n variable nodes to the factor graph                                  *)
 (*                                                                            *)
@@ -531,14 +532,14 @@ val _ = liftdef fg_add_variable_node0_respects "fg_add_variable_node"
 (* factor graph, e.g. adding both variable nodes and function nodes           *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_n_variable_nodes_def:
-  fg_add_n_variable_nodes 0 fg = fg ∧
-  fg_add_n_variable_nodes (SUC n) fg =
-  fg_add_variable_node (fg_add_n_variable_nodes n fg)
+  fg_add_n_variable_nodes 0 l fg = fg ∧
+  fg_add_n_variable_nodes (SUC n) l fg =
+  fg_add_variable_node l (fg_add_n_variable_nodes n l fg)
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Add the edges between a function node being added to the graph and the     *)
-(* variable nodes that it relies on.                                          *)
+(* variable nodes that it takes as input.                                     *)
 (*                                                                            *)
 (* We assume that the related function node has only just been added to the   *)
 (* graph, so that its label is CARD (nodes fg.underlying_graph) - 1           *)
@@ -547,32 +548,35 @@ End
 (* fg is the last input to allow for easy composition: see comment for        *)
 (* fg_add_n_variable_nodes_def                                                *)
 (* -------------------------------------------------------------------------- *)
+(* TODO: *)
 Definition fg_add_edges_for_function_node0_def:
   fg_add_edges_for_function_node0 vs (g : fsgraph) =
-  let
-    currnode = INR (CARD (nodes g) - 1)
-  in
-    fsgAddEdges (LIST_TO_SET (MAP (λv. {v; currnode}) vs)) g
+          let
+            currnode = INR (CARD (nodes g) - 1)
+          in
+            fsgAddEdges (LIST_TO_SET (MAP (λv. {v; currnode}) vs)) g
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Determine if a function is invalid with respect to a factor graph          *)
+(* Called before adding a function node to the factor graph, to check that    *)
+(* we have been given valid arguments. This way, we can ensure that adding a  *)
+(* function node will always return a valid factor graph.                     *)
 (* -------------------------------------------------------------------------- *)
 Definition wf_fg_fn_def:
-  wf_fg_fn fn fg ⇔ (∀x. MEM x (FST fn) ⇒
-                        x ∈ nodes fg.underlying_graph ∧
-                        x ∉ fg.function_nodes ∧
-                        UNIQUE x (FST fn)
-                   )
+  wf_fg_fn inputs fg ⇔ (∀x. x ∈ inputs ⇒
+                            x ∈ nodes fg.underlying_graph ∧
+                            x ∉ fg.function_nodes
+                       )
 End
-
+                
 (* -------------------------------------------------------------------------- *)
 (* Add a function node to the factor graph.                                   *)
 (*                                                                            *)
 (* Input:                                                                     *)
-(* - fn, the function to be added, as a tuple (variable_labels, function)     *)
-(*   we expect the variable labels to be valid nodes, which are variable      *)
-(*   nodes, and we expect there to be no duplicates in these nodes.           *)
+(* - inputs, the set of labels of variable nodes that are inputs to the       *)
+(*   function                                                                 *)
+(*                                                                            *)
+(* - fn, the function to be added. Takes a list of bool lists and outputs     *)
 (*                                                                            *)
 (* - fg, the factor graph                                                     *)
 (*                                                                            *)
@@ -589,7 +593,7 @@ End
 (* fg_add_n_variable_nodes_def                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_function_node0_def:
-  fg_add_function_node0 fn fg =
+  fg_add_function_node0 inputs fn fg =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)));
   in
