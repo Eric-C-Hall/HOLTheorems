@@ -80,6 +80,8 @@ val _ = hide "S";
 (*                                                                            *)
 (* We expect the nodes of the factor graph to be consecutive natural numbers  *)
 (* starting from 0.                                                           *)
+(*                                                                            *)
+(* The outputs of our functions take an arbitrary type α                      *)
 (* -------------------------------------------------------------------------- *)
 (* Considered using β word for variables, but that would require all the      *)
 (* words to be the same length. In particular, some of the inputs to a        *)
@@ -91,7 +93,7 @@ Datatype:
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
     variable_length: (unit + num) |-> num;
-    function_map : (unit + num) |-> (bool list) list -> extreal;
+    function_map : (unit + num) |-> (bool list) list -> α;
   |>
 End
 
@@ -538,26 +540,6 @@ Definition fg_add_n_variable_nodes_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Add the edges between a function node being added to the graph and the     *)
-(* variable nodes that it takes as input.                                     *)
-(*                                                                            *)
-(* We assume that the related function node has only just been added to the   *)
-(* graph, so that its label is CARD (nodes fg.underlying_graph) - 1           *)
-(*                                                                            *)
-(*                                                                            *)
-(* fg is the last input to allow for easy composition: see comment for        *)
-(* fg_add_n_variable_nodes_def                                                *)
-(* -------------------------------------------------------------------------- *)
-(* TODO: *)
-Definition fg_add_edges_for_function_node0_def:
-  fg_add_edges_for_function_node0 vs (g : fsgraph) =
-          let
-            currnode = INR (CARD (nodes g) - 1)
-          in
-            fsgAddEdges (LIST_TO_SET (MAP (λv. {v; currnode}) vs)) g
-End
-
-(* -------------------------------------------------------------------------- *)
 (* Called before adding a function node to the factor graph, to check that    *)
 (* we have been given valid arguments. This way, we can ensure that adding a  *)
 (* function node will always return a valid factor graph.                     *)
@@ -575,19 +557,14 @@ End
 (* Input:                                                                     *)
 (* - inputs, the set of labels of variable nodes that are inputs to the       *)
 (*   function                                                                 *)
-(*                                                                            *)
 (* - fn, the function to be added. Takes a list of bool lists and outputs     *)
-(*                                                                            *)
+(*   an output of type α.                                                     *)
 (* - fg, the factor graph                                                     *)
 (*                                                                            *)
 (* Output:                                                                    *)
-(* - the factor graph with the new function node. The edges to the variable   *)
-(*   nodes depended upon by this function are also added. If the function     *)
-(*   which is being added is invalid, then we simply return the original      *)
-(*   graph. It is invalid if its inputs aren't nodes in the graph, or they    *)
-(*   are function nodes rather than variable nodes, or the same input is      *)
-(*   provided twice, or there is an input to the function that would output   *)
-(*   a value outside the valid range of probabilities, i.e. [0,1].            *)
+(* - the factor graph with the new function node, connected by edges to the   *)
+(*   variable nodes it depends on. If the function isn't valid, the graph is  *)
+(*   returned unchanged.                                                      *)
 (*                                                                            *)
 (* fg is the last input to allow for easy composition: see comment for        *)
 (* fg_add_n_variable_nodes_def                                                *)
@@ -597,12 +574,14 @@ Definition fg_add_function_node0_def:
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)));
   in
-    if wf_fg_fn fn fg
+    if wf_fg_fn inputs fg
     then
       fg with
          <|
-           underlying_graph updated_by ((fg_add_edges_for_function_node0 (FST fn))
-                                        ∘ (fsgAddNode new_node));
+           underlying_graph updated_by
+                            (fsgAddEdges (IMAGE (λi. {i; new_node}) inputs) ∘
+                                         (fsgAddNode new_node)
+                            );
            function_nodes updated_by ($INSERT new_node);
            function_map updated_by (λf. FUPDATE f (new_node, fn));
          |>
