@@ -14,8 +14,35 @@ val _ = hide "S"
 Definition gen_bipartite_ea_def:
   gen_bipartite_ea g A ⇔
     A ⊆ nodes g ∧
-    ∀e. e ∈ fsgedges g ⇒ ∃n1 n2. e = {n1; n2} ∧ n1 ∈ A ∧ n2 ∉ A
+    ∀n1 n2. {n1; n2} ∈ fsgedges g ⇒ (n1 ∈ A ⇎ n2 ∈ A)
 End
+
+(* -------------------------------------------------------------------------- *)
+(* An alternative definition of gen_bipartite_ea                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem gen_bipartite_ea_alt:
+  ∀g A.
+    gen_bipartite_ea g A ⇔
+      A ⊆ nodes g ∧
+      ∀e. e ∈ fsgedges g ⇒ ∃n1 n2. e = {n1; n2} ∧ n1 ∈ A ∧ n2 ∉ A
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac >> gvs[gen_bipartite_ea_def]
+  >- (‘∃n1 n2. e = {n1;n2}’ by (gvs[fsgedges_def] >> metis_tac[])
+      >> Cases_on ‘n1 ∈ A’
+      >- metis_tac[]
+      >> qexistsl [‘n2’, ‘n1’]
+      >> conj_tac
+      >- (rw[EXTENSION] >> EQ_TAC >> rw[])
+      >> metis_tac[]
+     )
+  >> rpt strip_tac
+  >> last_x_assum drule
+  >> gvs[]
+  >> rpt strip_tac
+  >> gvs[EXTENSION]
+  >> metis_tac[]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* If a node is already in a graph, then adding it to the graph does not      *)
@@ -64,7 +91,7 @@ Theorem gen_bipartite_ea_fsgAddNode_special_case_2[local]:
     n ∉ nodes g ⇒
     (gen_bipartite_ea (fsgAddNode n g) S ⇔ gen_bipartite_ea g (S DELETE n))
 Proof
-  rw[gen_bipartite_ea_def, EQ_IMP_THM]
+  rw[gen_bipartite_ea_alt, EQ_IMP_THM]
     >>~- ([‘_ ⊆ _ (*g*)’], ASM_SET_TAC[])
   >> (first_assum drule
       >> dsimp[PULL_EXISTS, genericGraphTheory.INSERT2_lemma]
@@ -137,10 +164,11 @@ Theorem gen_bipartite_ea_insert_new_node:
          {n; m} ∉ fsgedges g) ⇒
     gen_bipartite_ea g (n INSERT S)
 Proof
-  rw[gen_bipartite_ea_def] >> gvs[gen_bipartite_ea_def]
+  rw[gen_bipartite_ea_alt] >> gvs[gen_bipartite_ea_alt]
   >> last_x_assum drule >> strip_tac
   >> Cases_on ‘n1 = n’ >> Cases_on ‘n2 = n’ >> gvs[]
   >- metis_tac[]
   >- metis_tac[SUBSET_DEF, swap_edge]
   >- metis_tac[]
 QED
+
