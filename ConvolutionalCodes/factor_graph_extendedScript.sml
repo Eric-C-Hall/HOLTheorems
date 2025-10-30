@@ -6,6 +6,10 @@ Libs donotexpandLib wordsLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
 val _ = hide "S";
 
+val _ = augment_srw_ss [rewrites[fsgedges_addNode
+                                ]
+                       ];
+
 (* -------------------------------------------------------------------------- *)
 (* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
 (* Rüdiger Urbanke.                                                           *)
@@ -550,7 +554,7 @@ Definition wf_fg_fn_def:
                             x ∉ fg.function_nodes
                        )
 End
-                
+
 (* -------------------------------------------------------------------------- *)
 (* Add a function node to the factor graph.                                   *)
 (*                                                                            *)
@@ -761,38 +765,33 @@ QED
 (* Theorem describing how the edges are updated when adding a function node   *)
 (* -------------------------------------------------------------------------- *)
 Theorem fsgedges_fg_add_function_node0_underlying_graph:
-  ∀fn fg.
+  ∀inputs fn fg.
     wffactor_graph fg ⇒
-    fsgedges (fg_add_function_node0 fn fg).underlying_graph =
-    if wf_fg_fn fn fg
+    fsgedges (fg_add_function_node0 inputs fn fg).underlying_graph =
+    if wf_fg_fn inputs fg
     then
       fsgedges fg.underlying_graph ∪
-               {{v; (INR (CARD (nodes fg.underlying_graph)))} | MEM v (FST fn)}
+               IMAGE (λv. {v; INR (CARD (nodes fg.underlying_graph))}) inputs
     else
       fsgedges fg.underlying_graph
 Proof
   rpt strip_tac
-  >> Cases_on ‘¬wf_fg_fn fn fg’ >- gvs[fg_add_function_node0_def]
-  >> gvs[]
-  >> gvs[fg_add_function_node0_def]
-  >> gvs[fsgedges_fg_add_edges_for_function_node0]
-  >> DEP_PURE_ONCE_REWRITE_TAC[fsgedges_fg_add_edges_for_function_node0]
-  >> conj_tac
-  >- (rw[]
-      >- (gvs[wf_fg_fn_def]
-          >> CCONTR_TAC >> gvs[]
-          >> first_x_assum drule >> strip_tac
-          >> gvs[inr_in_nodes_underlying_graph])
-      >- (CCONTR_TAC >> gvs[]
-          >> gvs[wf_fg_fn_def]
-         )
-      >- gvs[wf_fg_fn_def, SUBSET_DEF]
-      >- (disj2_tac
-          >> gvs[inr_in_nodes_underlying_graph]
-         )
-     )
-  >> gvs[fsgedges_addNode]
+  >> simp[fg_add_function_node0_def]
   >> rw[]
+  >> simp[fsgedges_fsgAddEdges]
+  >> gvs[EXTENSION] >> rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac >> simp[] >> gvs[]
+  >- metis_tac[] >- metis_tac[] >- metis_tac[]
+  >> qmatch_abbrev_tac ‘_ ∨ b’
+  >> Cases_on ‘b’ >> gvs[]
+  >> qexistsl [‘v’, ‘INR (CARD (nodes fg.underlying_graph))’]
+  >> gvs[]
+  >> conj_tac
+  >- gvs[wf_fg_fn_def]
+  >> conj_tac
+  >- (qexists ‘v’ >> gvs[])
+  >> ‘v ∈ nodes fg.underlying_graph’ by gvs[wf_fg_fn_def]
+  >> CCONTR_TAC
   >> gvs[inr_in_nodes_underlying_graph]
 QED
 
@@ -807,6 +806,13 @@ Theorem wffactor_graph_edges_in_not_in:
         (a ∈ fg.function_nodes ⇔ b ∉ fg.function_nodes)
 Proof
   rpt strip_tac
+  >> gvs[wffactor_graph_def]
+  >> gvs[gen_bipartite_ea_def]
+  >> Cases_on ‘b ∈ fg.function_nodes’ >> gvs[]
+  >- (CCONTR_TAC >> gvs[]
+     )
+  >> metis_tac[]
+  
   >> drule (cj 4 (iffLR wffactor_graph_def)) >> strip_tac
   >> pop_assum (fn th => drule (iffLR th)) >> strip_tac
   >> gvs[INSERT2_lemma]
@@ -1038,7 +1044,7 @@ QED
 val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 
 Theorem FDOM_FMAP_MAP2[simp] = GEN_ALL (cj 1 FMAP_MAP2_THM);
-                
+
 (*(* -------------------------------------------------------------------------- *)
 (* If the factor graphs are equivalent then their underlying graphs are the   *)
 (* same                                                                       *)
