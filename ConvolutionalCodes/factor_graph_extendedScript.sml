@@ -458,6 +458,11 @@ Theorem inr_card_not_in_function_nodes_expanded_wffactor_graph[simp]:
     INR n ∉ fg.function_nodes                                    
 Proof
   rpt strip_tac
+  >> gvs[gen_bipartite_ea_def]
+  >> gvs[SUBSET_DEF]
+  >> last_x_assum drule
+  >> rpt strip_tac
+  >> ‘n = i’ by gvs[]
   >> gvs[]
 QED
 
