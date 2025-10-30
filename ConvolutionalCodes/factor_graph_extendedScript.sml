@@ -744,9 +744,9 @@ QED
 (* node                                                                       *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_function_node0_function_map:
-  ∀fn fg.
-    (fg_add_function_node0 fn fg).function_map =
-    if wf_fg_fn fn fg
+  ∀inputs fn fg.
+    (fg_add_function_node0 inputs fn fg).function_map =
+    if wf_fg_fn inputs fg
     then
       fg.function_map |+ (INR (CARD (nodes fg.underlying_graph)),fn)
     else
@@ -754,7 +754,7 @@ Theorem fg_add_function_node0_function_map:
 Proof
   rpt strip_tac
   >> gvs[fg_add_function_node0_def]
-  >> Cases_on ‘wf_fg_fn fn fg’ >> gvs[]
+  >> Cases_on ‘wf_fg_fn inputs fg’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
