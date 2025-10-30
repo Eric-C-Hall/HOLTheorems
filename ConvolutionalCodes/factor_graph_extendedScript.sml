@@ -653,7 +653,7 @@ QED
 (* If the edges being added aren't between nodes of the same type, then       *)
 (* adding edges to a graph doesn't affect partiteness.                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem gen_partite_ea_fg_add_edges_for_function_node0:
+(*Theorem gen_partite_ea_fg_add_edges_for_function_node0:
   ∀(vs : (unit + num) list) S g.
     (INR (CARD (nodes g) - 1)) ∈ S ∧
     (∀x. MEM x vs ⇒ x ∈ nodes g ∧ x ∉ S) ⇒
@@ -691,7 +691,7 @@ Proof
      )
   >> drule alledges_valid >> strip_tac
   >> gvs[]
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Add nodes_fsgAddNode to the simpset                                        *)
@@ -726,9 +726,9 @@ QED
 (* function node                                                              *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_function_node0_function_nodes:
-  ∀fn fg.
+  ∀fn inputs fg.
     (fg_add_function_node0 inputs fn fg).function_nodes =
-    if wf_fg_fn fn fg
+    if wf_fg_fn inputs fg
     then
       (INR (CARD (nodes fg.underlying_graph))) INSERT fg.function_nodes
     else
@@ -736,25 +736,7 @@ Theorem fg_add_function_node0_function_nodes:
 Proof
   rpt strip_tac
   >> gvs[fg_add_function_node0_def]
-  >> Cases_on ‘wf_fg_fn fn fg’ >> gvs[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Theorem describing how the domain of the map from function nodes to        *)
-(* functions is updated when adding a function node                           *)
-(* -------------------------------------------------------------------------- *)
-Theorem FDOM_fg_add_function_node0:
-  ∀fn fg.
-    FDOM (fg_add_function_node0 fn fg).function_map =
-    if wf_fg_fn fn fg
-    then
-      (INR (CARD (nodes fg.underlying_graph))) INSERT FDOM (fg.function_map)
-    else
-      FDOM (fg.function_map)
-Proof
-  rpt strip_tac
-  >> gvs[fg_add_function_node0_def]
-  >> Cases_on ‘wf_fg_fn fn fg’ >> gvs[]
+  >> Cases_on ‘wf_fg_fn inputs fg’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
