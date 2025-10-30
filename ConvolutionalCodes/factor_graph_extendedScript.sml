@@ -590,17 +590,6 @@ Definition fg_add_function_node0_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Adding edges doesn't affect the nodes of a graph                           *)
-(* -------------------------------------------------------------------------- *)
-Theorem nodes_fg_add_edges_for_function_node0[simp]:
-  ∀m vs g.
-    nodes (fg_add_edges_for_function_node0 vs g) = nodes g
-Proof
-  rpt strip_tac
-  >> gvs[fg_add_edges_for_function_node0_def]
-QED
-
-(* -------------------------------------------------------------------------- *)
 (* Insert a single edge at a time                                             *)
 (*                                                                            *)
 (* Nodes that {e} = e INSERT {}, which causes a loop when attempting to use   *)
@@ -658,136 +647,6 @@ Theorem fsgAddEdges_empty[simp]:
     fsgAddEdges ∅ g = g
 Proof
   gvs[fsgAddEdges_def]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Apply fg_add_edges_for_function_node0 for a single step                    *)
-(* -------------------------------------------------------------------------- *)
-Theorem fg_add_edges_for_function_node0_step:
-  ∀v vs g.
-    fg_add_edges_for_function_node0 (v::vs) g =
-    fg_add_edges_for_function_node0
-    vs (fsgAddEdges {{v; INR (CARD (nodes g) - 1)}} g)
-Proof
-  rw[]
-  >> gvs[fg_add_edges_for_function_node0_def]
-  >> gvs[UNION_DEF, INSERT_DEF, DISJ_SYM]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* After adding edges, a edge is in the new graph if and only if it is either *)
-(* in the old graph or it is one of the new edges that were added.            *)
-(* -------------------------------------------------------------------------- *)
-Theorem in_fsgedges_fg_add_edges_for_function_node0:
-  ∀e vs g.
-    e ⊆ nodes g ∧ CARD e = 2 ⇒
-    (e ∈ fsgedges (fg_add_edges_for_function_node0 vs g) ⇔
-       e ∈ fsgedges g ∨ (∃v. MEM v vs ∧ e = {v; INR (CARD (nodes g) - 1)}))
-Proof  
-  Induct_on ‘vs’ >> gvs[]
-  >- rw[fg_add_edges_for_function_node0_def, fsgAddEdges_def]
-  >> rw[]
-  >> gvs[fg_add_edges_for_function_node0_step]
-  >> EQ_TAC >> rw[]
-  >- (gvs[fsgedges_fsgAddEdges]
-      >> disj2_tac
-      >> qexists ‘h’ >> gvs[])
-  >- (disj2_tac
-      >> qexists ‘v’ >> gvs[])
-  >- (disj1_tac
-      >> gvs[fsgedges_fsgAddEdges])
-  >- (qmatch_goalsub_abbrev_tac ‘_ ∨ b’
-      >> Cases_on ‘b’ >> gvs[]
-      >> gvs[fsgedges_fsgAddEdges]
-      >> Cases_on ‘{h; INR (CARD (nodes g) - 1)} ∈ fsgedges g’ >> gvs[]
-      >> qexistsl [‘h’, ‘INR (CARD (nodes g) - 1)’]
-      >> gvs[]
-      >> CCONTR_TAC
-      >> gs[]
-     )
-  >- (disj2_tac
-      >> qexists ‘v’ >> gvs[]
-     )
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* An expression for the new set of edges after adding the edges              *)
-(* corresponding to a function node.                                          *)
-(* -------------------------------------------------------------------------- *)
-Theorem fsgedges_fg_add_edges_for_function_node0:
-  ∀vs g.
-    ¬MEM (INR (CARD (nodes g) - 1)) vs ∧
-    set (vs) ⊆ nodes g ∧
-    INR (CARD (nodes g) - 1) ∈ nodes g ⇒
-    fsgedges (fg_add_edges_for_function_node0 vs g) =
-    fsgedges g ∪ {{v; INR (CARD (nodes g) - 1)} | MEM v vs}
-Proof
-  rpt strip_tac
-  >> gvs[EXTENSION]
-  >> rw[]
-  >> Cases_on ‘x ⊆ nodes g ∧ CARD x = 2’
-  >- (DEP_PURE_ONCE_REWRITE_TAC[in_fsgedges_fg_add_edges_for_function_node0]
-      >> gvs[]
-      >> EQ_TAC
-      >- (rw[] >> gvs[]
-          >> Cases_on ‘v = INR (CARD (nodes g) - 1)’ >> gvs[]
-          >> disj2_tac
-          >> qexists ‘v’ >> gvs[]
-         )
-      >> rw[] >> gvs[]
-      >> Cases_on ‘x ∈ fsgedges g’ >> gvs[]
-      >> Cases_on ‘x = {v; INR (CARD (nodes g) - 1)}’
-      >- (qexists ‘v’ >> gvs[])
-      >> gvs[EXTENSION]
-     )
-  >> EQ_TAC
-  >- (rpt strip_tac
-      >> drule alledges_valid >> strip_tac
-      >> gvs[]
-     )
-  >> rw[]
-  >- (rpt strip_tac
-      >> drule alledges_valid >> strip_tac
-      >> gvs[]
-     )
-  >> sg ‘x = {v; INR (CARD (nodes g) - 1)}’
-  >- gvs[EXTENSION]
-  >> gvs[]
-  >> Cases_on ‘v = INR (CARD (nodes g) - 1)’ >> gvs[]
-  >> gvs[SUBSET_DEF]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* An alternative, weaker expression for the new set of edges after adding    *)
-(* edges for the function node to the factor graph                            *)
-(* -------------------------------------------------------------------------- *)
-Theorem fsgedges_fg_add_edges_for_function_node0_wffactor_graph:
-  ∀fg fn.
-    wffactor_graph fg ∧
-    wf_fg_fn fn fg ∧
-    (INR (CARD (nodes fg.underlying_graph) - 1)) ∈ fg.function_nodes ∧
-    fg.function_map ' (INR (CARD (nodes fg.underlying_graph) - 1)) = fn ⇒
-    fsgedges (fg_add_edges_for_function_node0 (FST fn) fg.underlying_graph) =
-    fsgedges fg.underlying_graph ∪ {{v; INR (CARD (nodes fg.underlying_graph) - 1)} | MEM v (FST fn)}
-Proof
-  rpt strip_tac
-  >> Cases_on ‘CARD (nodes fg.underlying_graph) = 0’
-  >- gvs[wffactor_graph_def]
-  >> irule fsgedges_fg_add_edges_for_function_node0
-  >> rpt conj_tac
-  >- (drule (cj 3 (iffLR wffactor_graph_def)) >> strip_tac
-      >> pop_assum drule >> strip_tac
-      >> gvs[]
-      >> CCONTR_TAC
-      >> gvs[]
-     )
-  >- (gvs[inr_in_nodes_underlying_graph]
-      >> CCONTR_TAC
-      >> gvs[]
-     )
-  >- (gvs[wf_fg_fn_def]
-      >> gvs[SUBSET_DEF]
-     )
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -868,7 +727,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_function_node0_function_nodes:
   ∀fn fg.
-    (fg_add_function_node0 fn fg).function_nodes =
+    (fg_add_function_node0 inputs fn fg).function_nodes =
     if wf_fg_fn fn fg
     then
       (INR (CARD (nodes fg.underlying_graph))) INSERT fg.function_nodes
