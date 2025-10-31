@@ -125,7 +125,7 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Simplify INR x ∈ nodes fg.underlying_graph                                *)
 (* -------------------------------------------------------------------------- *)
-Theorem inr_in_nodes_underlying_graph:
+Theorem inr_in_nodes_underlying_graph[simp]:
   ∀fg x.
     wffactor_graph fg ⇒
     (INR x ∈ nodes fg.underlying_graph ⇔ x < CARD (nodes fg.underlying_graph))
@@ -500,11 +500,8 @@ Proof
   >- gvs[wffactor_graph_def]
   (* The set of nodes is the set of consecutive natural numbers starting from
      zero. *)
-  >- (drule (cj 4 (iffLR wffactor_graph_def)) >> disch_tac
-      >> qmatch_goalsub_abbrev_tac ‘S1 INSERT _ = S2’
-      >> simp[]
-      >> unabbrev_all_tac
-      >> pop_assum kall_tac
+  >- (drule_then (fn th => PURE_REWRITE_TAC[th])
+                 (cj 4 (iffLR wffactor_graph_def))
       >> gvs[order_fsgAddNode]
       >> rw[]
       >- gvs[wffactor_graph_def]
@@ -811,15 +808,38 @@ Proof
   >> metis_tac[]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* Adding edges to a graph maintains the order of the graph                   *)
-(* -------------------------------------------------------------------------- *)
-Theorem order_fg_add_edges_for_function_node0[simp]:
-  ∀fg vs.
-    order (fg_add_edges_for_function_node0 vs fg) = order fg
+Theorem alledges_valid_alt:
+  ∀g n1 n2.
+    {n1; n2} ∈ fsgedges g ⇒
+         n1 ∈ nodes g ∧
+         n2 ∈ nodes g ∧
+         n1 ≠ n2
 Proof
-  rpt strip_tac
-  >> gvs[fg_add_edges_for_function_node0_def]
+QED
+
+Theorem foo:
+  ∀n fg.
+    wffactor_graph fg ∧
+    n ∈ nodes fg.underlying_graph ⇒
+    ((n = INR (CARD (nodes fg.underlying_graph))) ⇔ F)
+Proof
+  cheat
+QED
+
+gvs[fsgedges_members, foo]
+
+gvs[alledges_valid, foo]
+
+       gvs[alledges_valid, inr_in_nodes_underlying_graph]
+
+(* -------------------------------------------------------------------------- *)
+(* If an edge is in the nodes of                                              *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem in_edge_not_inr_card_nodes[simp]:
+
+Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -830,38 +850,54 @@ QED
 (* with the newly added function are valid nodes and variable nodes.          *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_function_node0_wf[simp]:
-  ∀fg fn.
+  ∀inputs fg fn.
     wffactor_graph fg ⇒
-    wffactor_graph (fg_add_function_node0 fn fg)
+    wffactor_graph (fg_add_function_node0 inputs fn fg)
 Proof
   rpt strip_tac
   (* Handle situation in which input function is invalid*)
-  >> Cases_on ‘¬wf_fg_fn fn fg’
+  >> Cases_on ‘¬wf_fg_fn inputs fg’
   >- gvs[fg_add_function_node0_def]
   >> gvs[]
   (* Prove each well-formedness property indivudually *)
   >> simp[wffactor_graph_def] >> rpt conj_tac
   (* Bipartiteness is retained *)
   >- (drule (cj 1 (iffLR wffactor_graph_def)) >> disch_tac
-      >> simp[fg_add_function_node0_def]
-      (* TODO: use new tactic that Michael wrote for me here *)
-      >> Cases_on ‘(INR (CARD (nodes (fsgAddNode (INR (CARD (nodes fg.underlying_graph))) fg.underlying_graph)) − 1) ∈ INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes ∧ ∀x. MEM x (FST fn) ⇒ x ∈ nodes (fsgAddNode (INR (CARD (nodes fg.underlying_graph))) fg.underlying_graph) ∧ x ∉ INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes)’
-      >- (DEP_PURE_ONCE_REWRITE_TAC[gen_partite_ea_fg_add_edges_for_function_node0]
-          >> (conj_tac >- gvs[]) >> pop_assum kall_tac
-          >> gvs[gen_bipartite_ea_fsgAddNode]
-          >> rw[]
-          >- (irule gen_bipartite_ea_insert_new_node
-              >> rw[]
-              >> CCONTR_TAC
-              >> gvs[]
-              >> drule alledges_valid >> strip_tac
-              >> gvs[edges_equal]
-              >> gvs[inr_in_nodes_underlying_graph]
-             )
-          >> gvs[DELETE_INSERT]
-          >> DEP_PURE_ONCE_REWRITE_TAC[DELETE_NON_ELEMENT_RWT]
-          >> gvs[]
+      (* Expand out definition of bipartiteness, and of adding a function node *)
+      >> simp[gen_bipartite_ea_def, fg_add_function_node0_def]
+      >> rpt strip_tac
+      >- gvs[gen_bipartite_ea_def]
+      (* There are four possibilities:
+         - Our edge is between two nodes in the original graph
+      
+       *)
+      >> qpat_x_assum ‘_ ∈ _’ mp_tac
+      >> simp[fsgedges_fsgAddEdges]
+      >> REVERSE conj_tac
+      >- (CCONTR_TAC >> gvs[]
+          >> 
          )
+      >> metis_tac[gen_bipartite_ea_def]
+
+
+                  
+      (* If neither node in the edge was newly added, then the result follows
+         from bipartiteness of the original graph. *)
+      >> Cases_on ‘n1 ∈ nodes fg.underlying_graph ∧
+                   n2 ∈ nodes fg.underlying_graph’
+      >- (gvs[gen_bipartite_ea_def]
+          >> Cases_on ‘n1 = INR (CARD (nodes fg.underlying_graph))’
+          >- gvs[inr_in_nodes_underlying_graph]
+          >> Cases_on ‘n2 = INR (CARD (nodes fg.underlying_graph))’
+          >- gvs[inr_in_nodes_underlying_graph]
+          >> gvs[]
+          >> metis_tac[]
+         )
+      (* If at least one node in the edge was newly added, then without loss of
+         generality, n1 is the newly added node. *)
+      >> 
+
+
       >> qmatch_asmsub_abbrev_tac ‘¬(last_node_is_function_node ∧
                                      all_input_nodes_are_valid_variable_nodes)’
       >> fs[]
@@ -893,115 +929,14 @@ Proof
          )
      )
   (* Domain of function map is correct *)
-  >- (gvs[wffactor_graph_def, fg_add_function_node0_def])
-  (* All the functions have only variable nodes as inputs *)
-  >- (gen_tac >> disch_tac >> gen_tac >> disch_tac
-      >> gvs[fg_add_function_node0_def, wf_fg_fn_def]
-      (* The current function was added just now by fg_add_function_node0 *)
-      >- (CCONTR_TAC >> gvs[]
-          >> first_x_assum drule >> strip_tac
-          >> gvs[inr_in_nodes_underlying_graph])
-      (* The current function node was already present before applying
-         fg_add_function_node0 *)
-      >- (DEP_PURE_ONCE_REWRITE_TAC[NOT_EQ_FAPPLY]
-          >> conj_tac
-          >- (CCONTR_TAC >> gvs[])
-          >> pop_assum mp_tac
-          >> DEP_PURE_ONCE_REWRITE_TAC[NOT_EQ_FAPPLY]
-          >> conj_tac
-          >- (CCONTR_TAC >> gvs[])
-          >> drule (cj 3 (iffLR wffactor_graph_def)) >> strip_tac
-          >> pop_assum drule >> strip_tac
-          >> gvs[]
-          >> rw[]
-          >> CCONTR_TAC >> gvs[]
-         )
+  >- (gvs[fg_add_function_node0_def, wffactor_graph_def]
+      >> rw[EXTENSION] >> EQ_TAC >> rw[]
      )
-  >- (rw[]
-      >> REVERSE EQ_TAC
-      (* Prove that if we have f and v such that the variable node is an input
-         to the funciton node, then the new graph has an edge between them *)
-      >- (rw[]
-          >> gnvs[fg_add_function_node0_def]
-          >> Cases_on ‘f = v’ >- gvs[]
-          >> DEP_PURE_ONCE_REWRITE_TAC[in_fsgedges_fg_add_edges_for_function_node0]
-          >> conj_tac >- gvs[]
-          >> gnvs[]
-          >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
-          >> Cases_on ‘b’ >> gnvs[inr_in_nodes_underlying_graph]
-          >> qmatch_goalsub_abbrev_tac ‘b ∨ _’
-          >> Cases_on ‘b’ >> gnvs[]
-          >> Cases_on ‘f = INR (CARD (nodes fg.underlying_graph))’
-          >- (qexists ‘v’
-              >> gvs[swap_edge]
-             )
-          >> Cases_on ‘v = INR (CARD (nodes fg.underlying_graph))’
-          >- gvs[]
-          >> ‘F’ suffices_by gvs[]
-          >> qpat_x_assum ‘MEM _ _’ mp_tac
-          >> DEP_PURE_ONCE_REWRITE_TAC[NOT_EQ_FAPPLY]
-          >> conj_tac >- gvs[inr_in_nodes_underlying_graph]
-          >> strip_tac
-          >> gvs[]
-          >> drule (cj 4 (iffLR wffactor_graph_def)) >> strip_tac
-          >> metis_tac[]
-         )
-      (* Prove that if we have an edge in the new graph, then f and v are
-        valid function/variable nodes such that the variable node is an input
-        to the function node*)
-      >- (rw[]
-          >> gvs[fsgedges_fg_add_function_node0_underlying_graph]
-          (* The edge is in the underlying graph *)
-          >- (drule alledges_valid >> strip_tac
-              (* We have either a ∈ function_nodes or b ∈ function_nodes *)
-              >> sg ‘¬(a ∉ fg.function_nodes ∧ b ∉ fg.function_nodes)’
-              >- (CCONTR_TAC >> gvs[]
-                  >> metis_tac[wffactor_graph_edges_in_not_in]
-                 )
-              (* Without loss of generality, we can take a ∈ function_nodes *)
-              >> wlog_tac ‘a ∈ fg.function_nodes’ [‘a’, ‘b’]
-              >- (first_x_assum irule
-                  >> qexistsl [‘b’, ‘a’]
-                  >> gvs[]
-                  >> gvs[INSERT2_lemma]
-                 )
-              >> gvs[]
-              (* If a ∈ function_nodes, then b ∉ function_nodes *)
-              >> sg ‘b ∉ fg.function_nodes’
-              >- metis_tac[wffactor_graph_edges_in_not_in]
-              >> qexistsl [‘a’, ‘b’]
-              >> gvs[]
-              >> gvs[fg_add_function_node0_def]
-              >> conj_tac
-              >- (CCONTR_TAC >> gvs[]
-                  >> gvs[inr_in_nodes_underlying_graph]
-                 )
-              >> gvs[cj 4 (iffLR wffactor_graph_def)]
-              >> gvs[INSERT2_lemma]
-             )
-          (* The edge is newly added *)
-          >- (qexistsl [‘INR (CARD (nodes fg.underlying_graph))’, ‘v’]
-              >> gvs[INSERT2_lemma]
-              >> rpt conj_tac
-              >- gvs[fg_add_function_node0_def]
-              >- gvs[fg_add_function_node0_def, wf_fg_fn_def]
-              >- gvs[fg_add_function_node0_def]
-              >- (gvs[fg_add_function_node0_def, wf_fg_fn_def]
-                  >> CCONTR_TAC >> gvs[]
-                  >> first_x_assum drule >> strip_tac
-                  >> gvs[inr_in_nodes_underlying_graph]
-                 )
-              >- gvs[fg_add_function_node0_def]
-             )
-         )
-     )
-  (* The nodes of our new graph are of the correct form. *)
-  >- (gvs[fg_add_function_node0_def]
-      >> drule (cj 5 (iffLR wffactor_graph_def)) >> strip_tac
-      >> gvs[order_fsgAddNode]
-      >> gvs[EXTENSION] >> rw[]
-      >> Cases_on ‘x’ >> gvs[]
-     )
+  (* Domain of function map is correct*)
+  >- (gvs[fg_add_function_node0_def, wffactor_graph_def])
+     (* *)
+  >> gvs[fg_add_function_node0_def, wffactor_graph_def]
+  >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[order_fsgAddNode]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1090,3 +1025,4 @@ Definition fg_example_factor_graph_def:
     )
     fg_empty
 End
+
