@@ -808,14 +808,7 @@ Proof
   rpt strip_tac
   >> gvs[wffactor_graph_def]
   >> gvs[gen_bipartite_ea_def]
-  >> Cases_on ‘b ∈ fg.function_nodes’ >> gvs[]
-  >- (CCONTR_TAC >> gvs[]
-     )
   >> metis_tac[]
-  
-  >> drule (cj 4 (iffLR wffactor_graph_def)) >> strip_tac
-  >> pop_assum (fn th => drule (iffLR th)) >> strip_tac
-  >> gvs[INSERT2_lemma]
 QED
 
 (* -------------------------------------------------------------------------- *)
