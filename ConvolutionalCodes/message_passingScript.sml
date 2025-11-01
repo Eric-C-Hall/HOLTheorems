@@ -6,6 +6,9 @@ Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
 val _ = hide "S";
 
+(* TODO: This currently is broken as a result of a change to the factor graphs
+code
+
 (* -------------------------------------------------------------------------- *)
 (* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
 (* Rüdiger Urbanke.                                                           *)
@@ -474,3 +477,5 @@ End
 (* before exporting the theory.                                               *)
 (* -------------------------------------------------------------------------- *)
 val _ = hide "message_domain"
+
+ *)

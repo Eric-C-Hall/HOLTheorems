@@ -107,28 +107,28 @@ End
 (* prior: a list of the prior probabilities of each input being 1.            *)
 (* ds: the received systematic bits                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition rcc_factor_graph_add_func_nodes_input_sys:
+(*Definition rcc_factor_graph_add_func_nodes_input_sys:
   rcc_factor_graph_add_func_nodes_input_sys fg n i prior ds =
   if i = n
   then
     fg
   else
     fg_add_function_node ([INR i], λbs. TODO_PRIOR * TODO_ERRIN ) fg
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Add the function nodes corresponding to errors in the encoded bits         *)
 (* -------------------------------------------------------------------------- *)
-Definition rcc_factor_graph_add_func_nodes_enc:
+(*Definition rcc_factor_graph_add_func_nodes_enc:
   rcc_factor_graph_add_func_nodes_enc
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Add the function nodes corresponding to the state transitions              *)
 (* -------------------------------------------------------------------------- *)
-Definition rcc_factor_graph_add_func_nodes_state:
+(*Definition rcc_factor_graph_add_func_nodes_state:
   rcc_factor_graph_add_func_nodes_state
-End
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* The factor graph for a recursive systematic convolutional code with one    *)
@@ -164,9 +164,10 @@ End
 (*   output given the current state have labels 5n + 2 through 6n + 2         *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition rcc_factor_graph_def:
+(*Definition rcc_factor_graph_def:
   state_machine_factor_graph n (ps,qs) =
   fg_add_function_node
   ([], λbs. )
   (fg_add_n_variable_nodes (3 * n + 1) fg_empty)
 End
+ *)
