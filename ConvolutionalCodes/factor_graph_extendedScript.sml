@@ -922,7 +922,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_function_node0_respects:
   ∀fg.
-    ((=) ===> fgequiv ===> fgequiv) fg_add_function_node0 fg_add_function_node0
+    ((=) ===> (=) ===> fgequiv ===> fgequiv) fg_add_function_node0 fg_add_function_node0
 Proof
   gvs[FUN_REL_def]
   >> gvs[fgequiv_def]
@@ -976,11 +976,11 @@ val _ = liftdef underlying_graph_respects "underlying_graph_abs"*)
 (* -------------------------------------------------------------------------- *)
 Definition fg_example_factor_graph_def:
   fg_example_factor_graph
-  = ((fg_add_n_variable_nodes 6)
-     ∘ (fg_add_function_node ([INR 0n; INR 1n; INR 2n], λbs. Normal (1 / 8)))
-     ∘ (fg_add_function_node ([INR 0n; INR 3n; INR 5n], λbs. Normal (1 / 8)))
-     ∘ (fg_add_function_node ([INR 3n], λbs. Normal (1 / 2)))
-     ∘ (fg_add_function_node ([INR 3n; INR 4n], λbs. Normal (1 / 4)))
+  = ((fg_add_n_variable_nodes 6 1)
+     ∘ (fg_add_function_node {INR 0n; INR 1n; INR 2n} (λbs. Normal (1 / 8)))
+     ∘ (fg_add_function_node {INR 0n; INR 3n; INR 5n} (λbs. Normal (1 / 8)))
+     ∘ (fg_add_function_node {INR 3n} (λbs. Normal (1 / 2)))
+     ∘ (fg_add_function_node {INR 3n; INR 4n} (λbs. Normal (1 / 4)))
     )
     fg_empty
 End
