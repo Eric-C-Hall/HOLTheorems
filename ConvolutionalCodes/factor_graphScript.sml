@@ -1,4 +1,4 @@
-Theory factor_graph_extended
+Theory factor_graph
 
 Ancestors arithmetic bool probability fsgraph genericGraph pred_set finite_map list transc prim_rec integer partite_ea hyperbolic_functions lifting transfer words
 
