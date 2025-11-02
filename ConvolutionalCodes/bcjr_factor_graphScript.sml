@@ -113,10 +113,11 @@ Definition rcc_factor_graph_add_func_nodes_input_sys:
   then
     fg
   else
-    fg_add_function_node
-    {INR i}
-    (λbs. (EL i prior) * (if EL i ds ⇎ HD (HD bs) then p else 1 - p))
-    (rcc_factor_graph_add_func_nodes_input_sys n p (i + 1) prior ds fg)
+    (rcc_factor_graph_add_func_nodes_input_sys n p (i + 1) prior ds)
+    (fg_add_function_node
+     {INR i}
+     (λbss. (EL i prior) * (if EL i ds ⇎ HD (HD bss) then p else 1 - p))
+     fg)
 Termination
   WF_REL_TAC ‘measure (λ(n,p,i,prior,ds,fg). n - i)’
 End
@@ -129,7 +130,6 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition rcc_factor_graph_add_func_nodes_enc_def:
   rcc_factor_graph_add_func_nodes_enc fg =
-  
 End
 
 (* -------------------------------------------------------------------------- *)
