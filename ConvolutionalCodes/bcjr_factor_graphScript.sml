@@ -107,7 +107,7 @@ End
 (* fg: the factor graph we are modifying (fg is the last argument to make it  *)
 (*     easier to compose this function with other functions)                  *)
 (* -------------------------------------------------------------------------- *)
-Definition rcc_factor_graph_add_func_nodes_input_sys:
+Definition rcc_factor_graph_add_func_nodes_input_sys_def:
   rcc_factor_graph_add_func_nodes_input_sys n p i prior ds_s fg =
   if n ≤ i
   then
@@ -214,10 +214,13 @@ End
 (*   output given the current state have labels 5n + 2 through 6n + 2         *)
 (* -------------------------------------------------------------------------- *)
 Definition rcc_factor_graph_def:
-  state_machine_factor_graph n (ps,qs) =
-  (rcc_factor_graph_add_func_nodes_state)
-  ∘ (rcc_factor_graph_add_func_nodes_enc)
-  ∘ (rcc_factor_graph_add_func_nodes_input_sys)
-  ∘ (fg_add_n_variable_nodes (3 * n + 1)) fg_empty
+  rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p) =
+  ((rcc_factor_graph_add_func_nodes_state n (ps,qs) ts 0)
+   ∘ (rcc_factor_graph_add_func_nodes_enc n p 0 ds_p)
+   ∘ (rcc_factor_graph_add_func_nodes_input_sys n p 0 prior ds_s)
+   ∘ (fg_add_n_variable_nodes (n + 1) (LENGTH ts))
+   ∘ (fg_add_n_variable_nodes n 1)
+   ∘ (fg_add_n_variable_nodes n 1))
+  fg_empty
 End
 
