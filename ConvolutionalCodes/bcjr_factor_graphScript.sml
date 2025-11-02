@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors factor_graph extreal probability state_machine wf_state_machine binary_symmetric_channel
+Ancestors factor_graph extreal prim_rec probability state_machine wf_state_machine binary_symmetric_channel
 
 (* -------------------------------------------------------------------------- *)
 (* Main reference:"Modern Coding Theory" by Tom Richardson and Rüdiger        *)
@@ -99,36 +99,45 @@ End
 (* Add the function nodes corresponding to the initial input probabilities    *)
 (* and errors in the systematic bits.                                         *)
 (*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* fg: the factor graph we are modifying                                      *)
-(* n: the number of inputs                                                    *)
+(* n: the number of bits as input to the convolutional code                   *)
+(* p: the probability of an error                                             *)
 (* i: the current node being added. Initially should be 0, ranges up to n.    *)
-(* prior: a list of the prior probabilities of each input being 1.            *)
+(* prior: a list of the prior probabilities of each input bit being 1         *)
 (* ds: the received systematic bits                                           *)
+(* fg: the factor graph we are modifying (fg is the last argument to make it  *)
+(*     easier to compose)                                                     *)
 (* -------------------------------------------------------------------------- *)
-(*Definition rcc_factor_graph_add_func_nodes_input_sys:
-  rcc_factor_graph_add_func_nodes_input_sys fg n i prior ds =
-  if i = n
+Definition rcc_factor_graph_add_func_nodes_input_sys:
+  rcc_factor_graph_add_func_nodes_input_sys n p i prior ds fg =
+  if n ≤ i
   then
     fg
   else
-    fg_add_function_node ([INR i], λbs. TODO_PRIOR * TODO_ERRIN ) fg
-End*)
+    fg_add_function_node
+    {INR i}
+    (λbs. (EL i prior) * (if EL i ds ⇎ HD (HD bs) then p else 1 - p))
+    (rcc_factor_graph_add_func_nodes_input_sys n p (i + 1) prior ds fg)
+Termination
+  WF_REL_TAC ‘measure (λ(n,p,i,prior,ds,fg). n - i)’
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Add the function nodes corresponding to errors in the encoded bits         *)
+(*                                                                            *)
+(* fg                                                                         *)
+(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-(*Definition rcc_factor_graph_add_func_nodes_enc:
-  rcc_factor_graph_add_func_nodes_enc
-End*)
+Definition rcc_factor_graph_add_func_nodes_enc_def:
+  rcc_factor_graph_add_func_nodes_enc fg =
+  
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Add the function nodes corresponding to the state transitions              *)
 (* -------------------------------------------------------------------------- *)
-(*Definition rcc_factor_graph_add_func_nodes_state:
-  rcc_factor_graph_add_func_nodes_state
-End*)
+Definition rcc_factor_graph_add_func_nodes_state_def:
+  rcc_factor_graph_add_func_nodes_state fg = ARB
+End
 
 (* -------------------------------------------------------------------------- *)
 (* The factor graph for a recursive systematic convolutional code with one    *)
@@ -162,12 +171,12 @@ End*)
 (*   labels 4n + 2 through 5n + 1                                             *)
 (* The n + 1 function nodes relating to the probability of the next state and *)
 (*   output given the current state have labels 5n + 2 through 6n + 2         *)
-(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-(*Definition rcc_factor_graph_def:
+Definition rcc_factor_graph_def:
   state_machine_factor_graph n (ps,qs) =
-  fg_add_function_node
-  ([], λbs. )
-  (fg_add_n_variable_nodes (3 * n + 1) fg_empty)
+  (rcc_factor_graph_add_func_nodes_state)
+  ∘ (rcc_factor_graph_add_func_nodes_enc)
+  ∘ (rcc_factor_graph_add_func_nodes_input_sys)
+  ∘ (fg_add_n_variable_nodes (3 * n + 1)) fg_empty
 End
- *)
+
