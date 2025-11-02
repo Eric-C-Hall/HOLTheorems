@@ -6,6 +6,11 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Textbook reccomendations for automated proof, learning about how best to
+   theorem prove, *)
+
+(* Formal verification feels awful and slow. Is there a better way? *)
+
 (* Is there something which applies a function f : α -> α repeatedly n times,
    within the world of HOL? *)
 

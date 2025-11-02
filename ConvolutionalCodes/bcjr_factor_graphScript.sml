@@ -48,18 +48,9 @@ Ancestors factor_graph extreal prim_rec probability state_machine wf_state_machi
 (*  P(σ_0)   P(x_1,σ_1|x_0,σ_0) P(x_2,σ_2|x_1,σ_1)  P(x_n,σ_n|x_(n-1),σ_(n-1))*)
 (*                                                                            *)
 (*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
 (*              σ_0                                                           *)
 (*        # ---- o ---- #                                                     *)
 (*      P(σ_0)                                                                *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
 (*                                                                            *)
 (* Based on "Modern Coding Theory" by Tom Richardson and Rüdiger Urbanke,     *)
 (* with modifications to work with arbitrary state machines rather than just  *)
@@ -79,21 +70,6 @@ Ancestors factor_graph extreal prim_rec probability state_machine wf_state_machi
 (*Definition state_machine_factor_graph_def:
   state_machine_factor_graph m = fg_add_n_variable_nodes () fg_empty
 End*)
-
-(* -------------------------------------------------------------------------- *)
-(* Decode assuming transmission over a binary symmetric channel               *)
-(*                                                                            *)
-(* m: the state machine used to encode the message                            *)
-(* cs: the message to decode (bs represents the original message, and ds      *)
-(*     represents the decoded message)                                        *)
-(* p: the probability of an error when a bit is sent over the binary          *)
-(*    symmetric channel.                                                      *)
-(*                                                                            *)
-(* TODO: implement this                                                       *)
-(* -------------------------------------------------------------------------- *)
-Definition BCJR_decode_def:
-  BCJR_decode m cs p = ARB
-End
 
 (* -------------------------------------------------------------------------- *)
 (* Add the function nodes corresponding to the initial input probabilities    *)
@@ -224,3 +200,18 @@ Definition rcc_factor_graph_def:
   fg_empty
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Decode assuming transmission over a binary symmetric channel               *)
+(*                                                                            *)
+(* m: the state machine used to encode the message                            *)
+(* cs: the message to decode (bs represents the original message, and ds      *)
+(*     represents the decoded message)                                        *)
+(* p: the probability of an error when a bit is sent over the binary          *)
+(*    symmetric channel.                                                      *)
+(*                                                                            *)
+(* TODO: implement this                                                       *)
+(* -------------------------------------------------------------------------- *)
+Definition BCJR_decode_def:
+  BCJR_decode m cs p = ARB
+                       (* TODO_message_passing applied to factor graph *)                
+End

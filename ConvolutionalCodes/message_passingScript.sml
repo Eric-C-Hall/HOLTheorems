@@ -6,9 +6,6 @@ Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
 val _ = hide "S";
 
-(* TODO: This currently is broken as a result of a change to the factor graphs
-code
-
 (* -------------------------------------------------------------------------- *)
 (* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
 (* Rüdiger Urbanke.                                                           *)
@@ -107,6 +104,60 @@ Definition sp_partially_apply_function_def:
     (f (bs1 ⧺ [T] ⧺ bs2), f (bs1 ⧺ [F] ⧺ bs2))
 End
 
+Definition sum_out_node_def:
+  sum_out_node fg node
+  = ∑ () {bs : bool list | LENGTH bs = fg.variable_length ' node}
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Sum-product message calculation:                                           *)
+(*                                                                            *)
+(* Attempts to calculate the value of a single message on the factor graph    *)
+(* using sum-product message passing.                                         *)
+(*                                                                            *)
+(* fg: factor graph                                                           *)
+(* org: origin node for message                                               *)
+(* dst: destination node for message                                          *)
+(* msgs: all previous messages that have been calculated                      *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_calculate_message_def:
+  sp_calculate_message fg org dst msgs =
+  let
+    incoming_msg_edges = {(n, org) | n | n ∈ nodes fg.underlying_graph ∧
+                                         adjacent fg.underlying_graph n org ∧
+                                         n ≠ dst };
+  in
+    if ¬(incoming_msg_edges ⊆ FDOM msgs) then
+      NONE (* Incoming messages aren't available yet *)
+    else
+      if org ∈ fg.function_nodes
+      then
+        λbs. ∑ (fg.function_map ' org)
+               {bss | LENGTH bss = ∧
+                      (∀i. LENGTH (EL i bss) = fg.variable_length ' ) ∧
+                      EL j bss = bs
+               }
+
+               iterate
+               (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
+               ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
+               (fg.function_map ' org)
+        )
+      else
+        (* Multiply each message together pointwise.
+           If there are no messages, returns (1, 1) *)
+        SOME (ITSET
+              (λmsg_edge (n1,n2).
+                 let
+                   (m1, m2) = msgs ' msg_edge
+                 in
+                   (m1 * n1 : extreal, m2 * n2 : extreal)
+              )
+              incoming_msg_edges
+              (1, 1)
+             )
+End
+
 (* -------------------------------------------------------------------------- *)
 (* Sum-product message calculation:                                           *)
 (*                                                                            *)
@@ -135,7 +186,7 @@ Definition sp_calculate_message_def:
                                          n ≠ dst };
   in
     if ¬(incoming_msg_edges ⊆ FDOM msgs) then
-      NONE
+      NONE (* Some of the incoming messages haven't been calculated yet *)
     else
       if org ∈ fg.function_nodes
       then
@@ -143,10 +194,13 @@ Definition sp_calculate_message_def:
             values of the kernal multiplied by the incoming messages.
             Note that this works even in the case of a leaf node, as partially
             applying all other variables will partially apply nothing. *)
-        SOME (iterate
-              (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
-              ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
-              (sp_partially_apply_function (fg.function_map ' org) dst)
+        SOME (∑ () {bs | LENGTH bs = LENGTH }
+
+
+                                            iterate
+                           (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
+                           ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
+                           (sp_partially_apply_function (fg.function_map ' org) dst)
              )
       else
         (* Multiply each message together pointwise.
@@ -477,5 +531,3 @@ End
 (* before exporting the theory.                                               *)
 (* -------------------------------------------------------------------------- *)
 val _ = hide "message_domain"
-
- *)
