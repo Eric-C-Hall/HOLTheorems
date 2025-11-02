@@ -103,33 +103,48 @@ End
 (* p: the probability of an error                                             *)
 (* i: the current node being added. Initially should be 0, ranges up to n.    *)
 (* prior: a list of the prior probabilities of each input bit being 1         *)
-(* ds: the received systematic bits                                           *)
+(* ds_s: the received systematic bits                                         *)
 (* fg: the factor graph we are modifying (fg is the last argument to make it  *)
-(*     easier to compose)                                                     *)
+(*     easier to compose this function with other functions)                  *)
 (* -------------------------------------------------------------------------- *)
 Definition rcc_factor_graph_add_func_nodes_input_sys:
-  rcc_factor_graph_add_func_nodes_input_sys n p i prior ds fg =
+  rcc_factor_graph_add_func_nodes_input_sys n p i prior ds_s fg =
   if n ≤ i
   then
     fg
   else
-    (rcc_factor_graph_add_func_nodes_input_sys n p (i + 1) prior ds)
+    (rcc_factor_graph_add_func_nodes_input_sys n p (i + 1) prior ds_s)
     (fg_add_function_node
      {INR i}
-     (λbss. (EL i prior) * (if EL i ds ⇎ HD (HD bss) then p else 1 - p))
+     (λbss. (EL i prior) * (if EL i ds_s ⇎ HD (HD bss) then p else 1 - p))
      fg)
 Termination
-  WF_REL_TAC ‘measure (λ(n,p,i,prior,ds,fg). n - i)’
+  WF_REL_TAC ‘measure (λ(n,p,i,prior,ds_s,fg). n - i)’
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Add the function nodes corresponding to errors in the encoded bits         *)
 (*                                                                            *)
-(* fg                                                                         *)
-(*                                                                            *)
+(* n: the number of bits as input to the convolutional code                   *)
+(* p: the probability of an error                                             *)
+(* i: the current node being added. Initially should be 0, ranges up to n.    *)
+(* ds_p: the received parity bits                                             *)
+(* fg: the factor graph we are modifying (fg is the last argument to make it  *)
+(*     easier to compose this function with other functions)                  *)
 (* -------------------------------------------------------------------------- *)
 Definition rcc_factor_graph_add_func_nodes_enc_def:
-  rcc_factor_graph_add_func_nodes_enc fg =
+  rcc_factor_graph_add_func_nodes_enc n p i ds_p fg =
+  if n ≤ i
+  then
+    fg
+  else
+    (rcc_factor_graph_add_func_nodes_enc n p (i+1) ds_p)
+    (fg_add_function_node
+     {INR (n + 1 + i)}
+     (λbss. if ds_p ⇎ HD (HD bss) then p else 1 - p)
+     fg)
+Termination
+  WF_REL_TAC ‘measure (λ(n,p,i,ds_s,fg). n - i)’
 End
 
 (* -------------------------------------------------------------------------- *)
