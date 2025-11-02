@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors factor_graph extreal prim_rec probability state_machine wf_state_machine binary_symmetric_channel
+Ancestors factor_graph extreal prim_rec probability state_machine wf_state_machine binary_symmetric_channel recursive_parity_equations
 
 (* -------------------------------------------------------------------------- *)
 (* Main reference:"Modern Coding Theory" by Tom Richardson and Rüdiger        *)
@@ -149,9 +149,35 @@ End
 
 (* -------------------------------------------------------------------------- *)
 (* Add the function nodes corresponding to the state transitions              *)
+(*                                                                            *)
+(* n: the number of bits as input to the convolutional code                   *)
+(* i: the current node being added. Initially should be 0, ranges up to n.    *)
+(* fg: the factor graph we are modifying (fg is the last argument to make it  *)
+(*     easier to compose this function with other functions)                  *)
 (* -------------------------------------------------------------------------- *)
 Definition rcc_factor_graph_add_func_nodes_state_def:
-  rcc_factor_graph_add_func_nodes_state fg = ARB
+  rcc_factor_graph_add_func_nodes_state n (ps,qs) ts i fg =
+  if n < i
+  then
+    fg
+  else
+    (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts (i + 1))
+    (fg_add_function_node
+     ({INR i; INR (n + 1 + i); INR (2*n + 1 + i); INR (2*n + 1 + i + 1)})
+     (λbss.
+        if encode_recursive_parity_equation_state
+           (ps,qs) (EL 2 bss) (EL 0 bss) = EL 3 bss
+           ∧ encode_recursive_parity_equation (ps,qs) (EL 2 bss) (EL 0 bss) =
+             EL 1 bss
+        then
+          1 : extreal
+        else
+          0 : extreal
+     )
+     fg
+    )
+Termination
+  WF_REL_TAC ‘measure (λ(n,(ps,qs),ts,i,fg). n + 1 - i)’
 End
 
 (* -------------------------------------------------------------------------- *)
