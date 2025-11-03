@@ -464,7 +464,7 @@ Proof
       >> gvs[order_fsgAddNode]
       >> rw[]
       >- gvs[wffactor_graph_def]
-      >> gvs[gsize_def, ADD1]
+      >> gvs[EXTENSION] >> rpt strip_tac >> EQ_TAC >> rpt strip_tac >> gvs[]
      )
 QED
 
