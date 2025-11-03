@@ -54,7 +54,7 @@ Datatype:
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
     variable_length: (unit + num) |-> num;
-    function_map : (unit + num) |-> (unit + num |-> bool list) -> α
+    function_map : (unit + num) |-> (unit + num |-> bool list) |-> α
   |>
 End
 
