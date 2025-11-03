@@ -78,51 +78,27 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Partially applies a function to all variables other than a specified one,  *)
-(* using a provided set of values                                             *)
-(*                                                                            *)
-(* Undefined behaviour if the specified variable is not in the input          *)
-(* variables to the function                                                  *)
-(*                                                                            *)
-(* f: the function which is being partially applied                           *)
-(* vs: the variables that are input to the function                           *)
-(* dst: the variable which is not being set to a value                        *)
-(* bs: the values that each of the remaining variables are set to             *)
-(*                                                                            *)
-(* Output: The new function after having partially applied all variables      *)
-(*         other than dst in f, represented as a binary tuple, where the      *)
-(*         first element represents the output of the function when dst is    *)
-(*         true, and the second element represents the output when dst is     *)
-(*         false.                                                             *)
-(* -------------------------------------------------------------------------- *)
-Definition sp_partially_apply_function_def:
-  sp_partially_apply_function (vs, f) dst bs =
-  let
-    dst_index = INDEX_OF dst vs;
-    (bs1, bs2) = (TAKE (THE dst_index) bs, DROP (THE dst_index) bs);
-  in
-    (f (bs1 ⧺ [T] ⧺ bs2), f (bs1 ⧺ [F] ⧺ bs2))
-End
-
-Definition sum_out_node_def:
-  sum_out_node fg node
-  = ∑ () {bs : bool list | LENGTH bs = fg.variable_length ' node}
-End
-
-(* -------------------------------------------------------------------------- *)
 (* Sum-product message calculation:                                           *)
 (*                                                                            *)
 (* Attempts to calculate the value of a single message on the factor graph    *)
 (* using sum-product message passing.                                         *)
 (*                                                                            *)
+(* A message has type (bool list |-> α) option. Each message corresponds to   *)
+(* precisely one free variable: it takes as input the value of that free      *)
+(* variable and outputs the value of the message in the case that the free    *)
+(* variable takes that value.                                                 *)
+(*                                                                            *)
 (* fg: factor graph                                                           *)
 (* org: origin node for message                                               *)
 (* dst: destination node for message                                          *)
-(* msgs: all previous messages that have been calculated                      *)
+(* msgs: all previous messages that have been calculated. Has type            *)
+(*       node label |-> (bool list |-> α) option                              *)
 (* -------------------------------------------------------------------------- *)
 Definition sp_calculate_message_def:
   sp_calculate_message fg org dst msgs =
   let
+    adjacent_nodes = {n | n ∈ nodes fg.underlying_graph ∧
+                          adjacent fg.underlying_graph n org};
     incoming_msg_edges = {(n, org) | n | n ∈ nodes fg.underlying_graph ∧
                                          adjacent fg.underlying_graph n org ∧
                                          n ≠ dst };
@@ -132,79 +108,19 @@ Definition sp_calculate_message_def:
     else
       if org ∈ fg.function_nodes
       then
-        λbs. ∑ (fg.function_map ' org)
-               {bss | LENGTH bss = ∧
-                      (∀i. LENGTH (EL i bss) = fg.variable_length ' ) ∧
-                      EL j bss = bs
-               }
-
-               iterate
-               (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
-               ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
-               (fg.function_map ' org)
+        (* Outgoing message at a variable node (leaf or non-leaf) *)
+        λdst_val.
+          ∑ (λval_map. (fg.function_map ' org) val_map *
+                       ∏ (λ. msgs) {cur_node | cur_node ∈ adjacent_nodes }
+                                                        TODO_INCOMING_MESSAGES_APPLIED_TO_APPROPRIATE_VARIABLE_VALUES)
+            {val_map | FDOM val_map = adjacent_nodes ∧
+                       (∀n. n ∈ adjacent_nodes ⇒ LENGTH (val_map ' n) =
+                                                 fg.variable_length ' n) ∧
+                       val_map ' dst = dst_val
+                         }
         )
       else
-        (* Multiply each message together pointwise.
-           If there are no messages, returns (1, 1) *)
-        SOME (ITSET
-              (λmsg_edge (n1,n2).
-                 let
-                   (m1, m2) = msgs ' msg_edge
-                 in
-                   (m1 * n1 : extreal, m2 * n2 : extreal)
-              )
-              incoming_msg_edges
-              (1, 1)
-             )
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Sum-product message calculation:                                           *)
-(*                                                                            *)
-(* Attempts to calculate the value of a single message on the factor graph    *)
-(* using sum-product message passing.                                         *)
-(*                                                                            *)
-(* Calculates values for both function and variable nodes, and for both leaf  *)
-(* and non-leaf nodes (outgoing messages from leaf nodes have                 *)
-(* incoming_msg_edges = {}, so this function always returns a value for them) *)
-(*                                                                            *)
-(* fg: factor graph                                                           *)
-(* org: origin node for message                                               *)
-(* dst: destination node for message                                          *)
-(* msgs: all previous messages that have been calculated                      *)
-(*                                                                            *)
-(* Output:                                                                    *)
-(* - NONE     | if we haven't received incoming messages from all other nodes *)
-(*              and thus we cannot calculate the message                      *)
-(* - SOME msg | otherwise                                                     *)
-(* -------------------------------------------------------------------------- *)
-Definition sp_calculate_message_def:
-  sp_calculate_message fg org dst msgs =
-  let
-    incoming_msg_edges = {(n, org) | n | n ∈ nodes fg.underlying_graph ∧
-                                         adjacent fg.underlying_graph n org ∧
-                                         n ≠ dst };
-  in
-    if ¬(incoming_msg_edges ⊆ FDOM msgs) then
-      NONE (* Some of the incoming messages haven't been calculated yet *)
-    else
-      if org ∈ fg.function_nodes
-      then
-        (* Take the sum over all possible combinations of incoming edge
-            values of the kernal multiplied by the incoming messages.
-            Note that this works even in the case of a leaf node, as partially
-            applying all other variables will partially apply nothing. *)
-        SOME (∑ () {bs | LENGTH bs = LENGTH }
-
-
-                                            iterate
-                           (λ(m1,m2) (n1,n2). (m1 + n1, m2 + n2))
-                           ({bs | LENGTH bs = LENGTH (FST (fg.function_map ' org)) - 1})
-                           (sp_partially_apply_function (fg.function_map ' org) dst)
-             )
-      else
-        (* Multiply each message together pointwise.
-           If there are no messages, returns (1, 1) *)
+        (* Outgoing message at a variable node (leaf or non-leaf) *)
         SOME (ITSET
               (λmsg_edge (n1,n2).
                  let
