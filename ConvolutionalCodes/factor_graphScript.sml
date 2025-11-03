@@ -70,6 +70,9 @@ End
 (* - the domain of variable_length should be the set of variable nodes (i.e.  *)
 (*   nodes that are not function nodes)                                       *)
 (* - the domain of function_map should be the set of function nodes           *)
+(* - After applying function_map, the domain of the new map is the set of     *)
+(*   all maps which have a domain equal to the adjacent nodes and each output *)
+(*   has an appropriate length as per the variable length of that node.       *)
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
 (* -------------------------------------------------------------------------- *)
 Definition wffactor_graph_def:
@@ -78,6 +81,17 @@ Definition wffactor_graph_def:
     (FDOM fg.variable_length = {INR i | i | INR i ∈ nodes fg.underlying_graph ∧
                                             INR i ∉ fg.function_nodes }) ∧
     FDOM fg.function_map = fg.function_nodes ∧
+    (∀n. n ∈ FDOM fg.function_map ⇒
+         FDOM (fg.function_map ' n) =
+         {val_map |
+         (FDOM val_map =
+          ({adj_n | adj_n ∈ nodes fg.underlying_graph ∧
+                    adjacent fg.underlying_graph adj_n n}) ∧
+          (∀m. m ∈ FDOM val_map ⇒
+               LENGTH (val_map ' m) = fg.variable_length ' m)
+         )
+         }
+    ) ∧
     nodes fg.underlying_graph = {INR i | i < order fg.underlying_graph}
 End
 
