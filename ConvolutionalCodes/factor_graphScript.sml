@@ -495,6 +495,9 @@ Proof
   >- (rpt strip_tac
       (* Use corresponding property of the original graph *)
       >> drule_then (fn th => gvs[th]) (cj 4 (iffLR wffactor_graph_def))
+      (* This code was written before adj_var_assignments was defined, so
+         expand adj_var_assignments out *)
+      >> gvs[adj_var_assignments_def]
       (* The left hand side and right hand side are mostly the same: we just
          need to show equivalence in the places where they differ. *)
       >> simp[EXTENSION] >> rpt strip_tac
