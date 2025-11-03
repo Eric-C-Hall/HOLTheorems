@@ -59,6 +59,22 @@ Datatype:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* All possible assignments to the variables adjacent to a node               *)
+(*                                                                            *)
+(* fg: the factor graph                                                       *)
+(* n: the function node from which we want to find all assignments to         *)
+(*    adjacent variable nodes.                                                *)
+(* -------------------------------------------------------------------------- *)
+Definition adj_var_assignments_def:
+  adj_var_assignments fg n = 
+  {val_map | FDOM val_map = ({adj_n | adj_n ∈ nodes fg.underlying_graph ∧
+                                      adjacent fg.underlying_graph adj_n n}) ∧
+              (∀m. m ∈ FDOM val_map ⇒
+                   LENGTH (val_map ' m) = fg.variable_length ' m)
+                   }
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Well-formedness of a factor graph.                                         *)
 (*                                                                            *)
 (* Used to create an abstract factor_graph type based on the underlying       *)
@@ -82,15 +98,7 @@ Definition wffactor_graph_def:
                                             INR i ∉ fg.function_nodes }) ∧
     FDOM fg.function_map = fg.function_nodes ∧
     (∀n. n ∈ FDOM fg.function_map ⇒
-         FDOM (fg.function_map ' n) =
-         {val_map |
-         (FDOM val_map =
-          ({adj_n | adj_n ∈ nodes fg.underlying_graph ∧
-                    adjacent fg.underlying_graph adj_n n}) ∧
-          (∀m. m ∈ FDOM val_map ⇒
-               LENGTH (val_map ' m) = fg.variable_length ' m)
-         )
-         }
+         FDOM (fg.function_map ' n) = adj_var_assignments fg n
     ) ∧
     nodes fg.underlying_graph = {INR i | i < order fg.underlying_graph}
 End
@@ -908,6 +916,11 @@ Proof
      )
   (* Domain of function map is correct *)
   >- (gvs[fg_add_function_node0_def, wffactor_graph_def])
+  >- (rpt strip_tac
+      >> gvs[fg_add_function_node0_def]
+      >> drule_then assume_tac (cj 4 (iffLR wffactor_graph_def))
+      >> 
+     )
   (* The nodes have the correct labels *)
   >> gvs[fg_add_function_node0_def, wffactor_graph_def]
   >> rw[EXTENSION] >> EQ_TAC >> rw[] >> gvs[order_fsgAddNode]
