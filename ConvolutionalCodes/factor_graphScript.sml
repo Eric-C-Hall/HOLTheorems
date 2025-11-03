@@ -447,6 +447,18 @@ Proof
   >> gvs[]
 QED
 
+Theorem newly_added_not_adjacent[simp]:
+  ∀fg n.
+    wffactor_graph fg ⇒
+    ¬adjacent fg.underlying_graph (INR (CARD (nodes fg.underlying_graph))) n ∧
+    ¬adjacent fg.underlying_graph n (INR (CARD (nodes fg.underlying_graph)))
+Proof
+  rpt strip_tac
+  >> (‘INR (CARD (nodes fg.underlying_graph)) ∉
+       nodes fg.underlying_graph’ by gvs[]
+      >> metis_tac[adjacent_members])
+QED
+        
 (* -------------------------------------------------------------------------- *)
 (* Adding a variable node maintains well-formedness                           *)
 (* -------------------------------------------------------------------------- *)
@@ -471,10 +483,40 @@ Proof
       >> EQ_TAC >> rpt strip_tac >> gvs[wffactor_graph_def])
   (* Valid domain of function map *)
   >- gvs[wffactor_graph_def]
+  (* Valid domain of map mapped to by function map *)
+  >- (rpt strip_tac
+      (* Use corresponding property of the original graph *)
+      >> drule_then (fn th => gvs[th]) (cj 4 (iffLR wffactor_graph_def))
+      (* The left hand side and right hand side are mostly the same: we just
+         need to show equivalence in the places where they differ. *)
+      >> simp[EXTENSION] >> rpt strip_tac
+      >> qmatch_goalsub_abbrev_tac ‘b_prev1 ∧ b_prev2 ⇔ b_new1 ∧ b_new2’
+      (* Split up into showing the equivalence of the individual properties.
+         The second property is easier to work with if we already know the
+         first property. *)
+      >> ‘(b_prev1 ⇔ b_new1) ∧
+          (b_prev1 ∧ b_new1 ⇒ (b_prev2 ⇔ b_new2))’ suffices_by metis_tac[]
+      (* Prove first property: *)
+      >> conj_tac >> unabbrev_all_tac
+      >- (‘∀x. x = INR (CARD (nodes fg.underlying_graph)) ⇒
+               ¬adjacent fg.underlying_graph x n’ suffices_by metis_tac[]
+          >> simp[newly_added_not_adjacent]
+         )
+      (* Prove second property *)
+      >> rpt strip_tac
+      >> qmatch_goalsub_abbrev_tac ‘fg.variable_length |+ new_pair’
+      >> ‘∀m. m ∈ FDOM x ⇒ (fg.variable_length |+ new_pair) ' m =
+                           fg.variable_length ' m’ suffices_by gvs[]
+      >> unabbrev_all_tac >> rpt strip_tac
+      >> gvs[FAPPLY_FUPDATE_THM]
+      >> rw[]
+      (* New node cannot be adjacent to n *)
+      >> metis_tac[newly_added_not_adjacent]
+     )
   (* The set of nodes is the set of consecutive natural numbers starting from
      zero. *)
   >- (drule_then (fn th => PURE_REWRITE_TAC[th])
-                 (cj 4 (iffLR wffactor_graph_def))
+                 (cj 5 (iffLR wffactor_graph_def))
       >> gvs[order_fsgAddNode]
       >> rw[]
       >- gvs[wffactor_graph_def]
