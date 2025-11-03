@@ -43,19 +43,18 @@ val _ = augment_srw_ss [rewrites[fsgedges_addNode
 (* it can take. For example, a variable node with length 3 could take the     *)
 (* value [1; 0; 0] or the value [1; 1; 1], etc.                               *)
 (*                                                                            *)
-(* function_map maps a function node to its function. The function takes a    *)
-(* list representing the values that the input variables take, and outputs    *)
-(* an α. We expect that the order of the arguments is the numerical order of  *)
-(* the labels of the input variables.                                         *)
+(* function_map maps a function node to its function. The function takes the  *)
+(* values associated with each of the input variables (represented as a       *)
+(* finite map from the labels of the input variables to the values they take) *)
+(* and outputs an α.                                                          *)
 (* -------------------------------------------------------------------------- *)
-
 Datatype:
   factor_graph_rep = 
   <|
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
     variable_length: (unit + num) |-> num;
-    function_map : (unit + num) |-> (bool list) list -> α;
+    function_map : (unit + num) |-> (unit + num |-> bool list) -> α
   |>
 End
 
@@ -68,6 +67,8 @@ End
 (*                                                                            *)
 (* - the underlying graph should be bipartite with respect to the function    *)
 (*   nodes and variable nodes                                                 *)
+(* - the domain of variable_length should be the set of variable nodes (i.e.  *)
+(*   nodes that are not function nodes)                                       *)
 (* - the domain of function_map should be the set of function nodes           *)
 (* - the nodes should be the consecutive natural numbers starting from 0      *)
 (* -------------------------------------------------------------------------- *)
