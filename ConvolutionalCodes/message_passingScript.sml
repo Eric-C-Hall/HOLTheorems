@@ -83,7 +83,7 @@ QED
 (* Attempts to calculate the value of a single message on the factor graph    *)
 (* using sum-product message passing.                                         *)
 (*                                                                            *)
-(* A message has type (bool list |-> α) option. Each message corresponds to   *)
+(* A message has type (bool list |-> α). Each message corresponds to          *)
 (* precisely one free variable: it takes as input the value of that free      *)
 (* variable and outputs the value of the message in the case that the free    *)
 (* variable takes that value.                                                 *)
@@ -91,8 +91,8 @@ QED
 (* fg: factor graph                                                           *)
 (* org: origin node for message                                               *)
 (* dst: destination node for message                                          *)
-(* msgs: all previous messages that have been calculated. Has type            *)
-(*       node label |-> (bool list |-> α) option                              *)
+(* msgs: all previous messages that have been calculated. A finite map from   *)
+(*       message_domain to message.                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition sp_calculate_message_def:
   sp_calculate_message fg org dst msgs =
@@ -109,16 +109,20 @@ Definition sp_calculate_message_def:
       if org ∈ fg.function_nodes
       then
         (* Outgoing message at a variable node (leaf or non-leaf) *)
-        λdst_val.
-          ∑ (λval_map. (fg.function_map ' org) val_map *
-                       ∏ (λ. msgs) {cur_node | cur_node ∈ adjacent_nodes }
-                                                        TODO_INCOMING_MESSAGES_APPLIED_TO_APPROPRIATE_VARIABLE_VALUES)
-            {val_map | FDOM val_map = adjacent_nodes ∧
-                       (∀n. n ∈ adjacent_nodes ⇒ LENGTH (val_map ' n) =
-                                                 fg.variable_length ' n) ∧
-                       val_map ' dst = dst_val
+        SOME (FUN_FMAP
+              (λdst_val.
+                 ∑ (λval_map.
+                      (fg.function_map ' org) val_map *
+                      ∏ (λcur_node. THE (msgs ' {cur_node; org}) ' (val_map ' cur_node) )
+                        {cur_node | cur_node ∈ adjacent_nodes }
+                   )
+                  {val_map | FDOM val_map = adjacent_nodes ∧
+                             (∀n. n ∈ adjacent_nodes ⇒ LENGTH (val_map ' n) =
+                                                       fg.variable_length ' n) ∧
+                             val_map ' dst = dst_val
                          }
-        )
+              ) {bs | LENGTH bs = }
+             )
       else
         (* Outgoing message at a variable node (leaf or non-leaf) *)
         SOME (ITSET
