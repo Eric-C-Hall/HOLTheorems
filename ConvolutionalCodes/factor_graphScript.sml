@@ -575,15 +575,13 @@ End
 (* we have been given valid arguments. This way, we can ensure that adding a  *)
 (* function node will always return a valid factor graph.                     *)
 (* -------------------------------------------------------------------------- *)
-Definition wf_fg_fn_def:
-  wf_fg_fn fn fg ⇔
-    FDOM
-    
-    (∀x. x ∈ inputs ⇒
-         x ∈ nodes fg.underlying_graph ∧
-         x ∉ fg.function_nodes
-                   )
-End
+(* This definition has simplified, and it is no longer worth using a          *)
+(* definition for this concept, so we just use the expression directly        *)
+(* -------------------------------------------------------------------------- *)
+(*Definition wf_fg_fn_def:
+  wf_fg_fn inputs fn fg ⇔
+    FDOM fn = var_assignments fg inputs
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Add a function node to the factor graph.                                   *)
@@ -602,11 +600,11 @@ End
 (* fg_add_n_variable_nodes_def                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_function_node0_def:
-  fg_add_function_node0 fn fg =
+  fg_add_function_node0 inputs fn fg =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)));
   in
-    if wf_fg_fn inputs fg
+    if FDOM fn = var_assignments fg inputs
     then
       fg with
          <|
@@ -760,7 +758,7 @@ QED
 Theorem fg_add_function_node0_function_nodes:
   ∀fn inputs fg.
     (fg_add_function_node0 inputs fn fg).function_nodes =
-    if wf_fg_fn inputs fg
+    if FDOM fn = var_assignments fg inputs
     then
       (INR (CARD (nodes fg.underlying_graph))) INSERT fg.function_nodes
     else
@@ -778,7 +776,7 @@ QED
 Theorem fg_add_function_node0_function_map:
   ∀inputs fn fg.
     (fg_add_function_node0 inputs fn fg).function_map =
-    if wf_fg_fn inputs fg
+    if FDOM fn = var_assignments fg inputs
     then
       fg.function_map |+ (INR (CARD (nodes fg.underlying_graph)),fn)
     else
