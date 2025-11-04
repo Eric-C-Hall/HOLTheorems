@@ -604,7 +604,7 @@ Definition fg_add_function_node0_def:
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)));
   in
-    if FDOM fn = var_assignments fg inputs
+    if wf_fg_fn inputs fn fg
     then
       fg with
          <|
@@ -758,7 +758,7 @@ QED
 Theorem fg_add_function_node0_function_nodes:
   ∀fn inputs fg.
     (fg_add_function_node0 inputs fn fg).function_nodes =
-    if FDOM fn = var_assignments fg inputs
+    if wf_fg_fn inputs fn fg 
     then
       (INR (CARD (nodes fg.underlying_graph))) INSERT fg.function_nodes
     else
@@ -776,7 +776,7 @@ QED
 Theorem fg_add_function_node0_function_map:
   ∀inputs fn fg.
     (fg_add_function_node0 inputs fn fg).function_map =
-    if FDOM fn = var_assignments fg inputs
+    if wf_fg_fn inputs fn fg 
     then
       fg.function_map |+ (INR (CARD (nodes fg.underlying_graph)),fn)
     else
@@ -794,7 +794,7 @@ Theorem fsgedges_fg_add_function_node0_underlying_graph:
   ∀inputs fn fg.
     wffactor_graph fg ⇒
     fsgedges (fg_add_function_node0 inputs fn fg).underlying_graph =
-    if wf_fg_fn inputs fg
+    if wf_fg_fn inputs fn fg 
     then
       fsgedges fg.underlying_graph ∪
                IMAGE (λv. {v; INR (CARD (nodes fg.underlying_graph))}) inputs
