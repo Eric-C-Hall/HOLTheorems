@@ -61,8 +61,11 @@ End
 Overload adjacent_nodes = “λfg cur_node.
                              {adj_node |
                              adj_node ∈ nodes fg.underlying_graph ∧
-                             adjacent fg.underlying_graph adj_node cur_node }”
+                             adjacent fg.underlying_graph adj_node cur_node }”;
 
+Overload var_nodes = “λfg. {n | n ∈ nodes fg.underlying_graph ∧
+                                n ∉ fg.function_nodes}”;
+                     
 (* -------------------------------------------------------------------------- *)
 (* All possible assignments to the variables adjacent to a node               *)
 (*                                                                            *)
@@ -71,8 +74,8 @@ Overload adjacent_nodes = “λfg cur_node.
 (*    adjacent variable nodes.                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition var_assignments_def:
-  var_assignments fg var_nodes = 
-  {val_map | FDOM val_map = var_nodes ∧
+  var_assignments fg assign_nodes = 
+  {val_map | FDOM val_map = assign_nodes ∧
              (∀m. m ∈ FDOM val_map ⇒
                   LENGTH (val_map ' m) = fg.variable_length ' m)
                    }
@@ -98,8 +101,7 @@ End
 Definition wffactor_graph_def:
   wffactor_graph (fg : α factor_graph_rep) ⇔
     (gen_bipartite_ea fg.underlying_graph fg.function_nodes) ∧
-    (FDOM fg.variable_length = {INR i | i | INR i ∈ nodes fg.underlying_graph ∧
-                                            INR i ∉ fg.function_nodes }) ∧
+    FDOM fg.variable_length = var_nodes fg ∧
     FDOM fg.function_map = fg.function_nodes ∧
     (∀n. n ∈ FDOM fg.function_map ⇒
          FDOM (fg.function_map ' n) = var_assignments fg (adjacent_nodes fg n)
@@ -575,13 +577,11 @@ End
 (* we have been given valid arguments. This way, we can ensure that adding a  *)
 (* function node will always return a valid factor graph.                     *)
 (* -------------------------------------------------------------------------- *)
-(* This definition has simplified, and it is no longer worth using a          *)
-(* definition for this concept, so we just use the expression directly        *)
-(* -------------------------------------------------------------------------- *)
-(*Definition wf_fg_fn_def:
+Definition wf_fg_fn_def:
   wf_fg_fn inputs fn fg ⇔
+    inputs ⊆ var_nodes fg ∧
     FDOM fn = var_assignments fg inputs
-End*)
+End
 
 (* -------------------------------------------------------------------------- *)
 (* Add a function node to the factor graph.                                   *)
