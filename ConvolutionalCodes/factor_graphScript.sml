@@ -878,8 +878,8 @@ Theorem fg_add_function_node0_wf[simp]:
     wffactor_graph (fg_add_function_node0 inputs fn fg)
 Proof
   rpt strip_tac
-  (* Handle situation in which input function is invalid*)
-  >> Cases_on ‘¬wf_fg_fn inputs fg’
+  (* Handle situation in which input function is invalid *)
+  >> Cases_on ‘¬wf_fg_fn inputs fn fg’
   >- gvs[fg_add_function_node0_def]
   >> gvs[]
   (* Prove each well-formedness property indivudually *)
@@ -914,7 +914,7 @@ Proof
       >> Cases_on ‘n = m’ >> gvs[]
       (* *)
       >> gvs[INSERT2_lemma]
-      >> CCONTR_TAC >> gvs[wf_fg_fn_def]
+      >> CCONTR_TAC >> gvs[wf_fg_fn_def] >> ASM_SET_TAC[]
      )
   (* Domain of function map is correct *)
   >- (gvs[fg_add_function_node0_def, wffactor_graph_def]
@@ -925,9 +925,109 @@ Proof
   (* Domain of map obtained after applying function map to a node is correct *)
   >- (rpt strip_tac
       >> gvs[fg_add_function_node0_def]
-      (* First prove the case where the function *)
-      >- 
+      (* First prove the case where the node we are applying the function map
+         to is the newly added node *)
+      >- (gvs[wf_fg_fn_def]
+          >> gvs[var_assignments_def]
+          >> gvs[EXTENSION] >> rpt strip_tac
+          >> qmatch_goalsub_abbrev_tac ‘b1_old ∧ b2_old ⇔ b1_new ∧ b2_old’
+          >> ‘b2_old ⇒ (b1_old ⇔ b1_new)’ suffices_by metis_tac[]
+          >> rpt strip_tac
+          >> unabbrev_all_tac
+          (* For each specific x, it satisfies the condition on the left if and
+             only if it satisfies the condition on the right, which is certainly
+             sufficient to prove this statement *)
+          >> ‘∀x'. (x' ∈ FDOM x ⇔ x' ∈ inputs) ⇔
+                     (x' ∈ FDOM x ⇔
+                        (x' = INR (CARD (nodes fg.underlying_graph)) ∨
+                         x' ∈ nodes fg.underlying_graph) ∧
+                        x' ≠ INR (CARD (nodes fg.underlying_graph)) ∧
+                        (x' = INR (CARD (nodes fg.underlying_graph)) ∨
+                         x' ∈ nodes fg.underlying_graph) ∧
+                        ∃i. (∀x. x = x' ∨ x = INR (CARD (nodes fg.underlying_graph)) ⇔
+                                   x = i ∨ x = INR (CARD (nodes fg.underlying_graph))) ∧
+                            i ∈ inputs)
+             ’ suffices_by gvs[]
+          >> rpt strip_tac
+          (* *)
+          >> qmatch_abbrev_tac ‘(b1_left ⇔ b2_left) ⇔ (b1_left ⇔ b2_right)’
+          >> ‘b2_left ⇔ b2_right’ suffices_by (rpt (pop_assum kall_tac) >> metis_tac[])
+          >> unabbrev_all_tac
+          (* *)
+          >> REVERSE EQ_TAC
+          >- (rpt strip_tac >> metis_tac[])
+          >> rpt strip_tac
+          >- ASM_SET_TAC[]
+          >- (‘x' ∈ nodes fg.underlying_graph’ by ASM_SET_TAC[]
+              >> gvs[])
+          >- ASM_SET_TAC[]
+          >- metis_tac[]
+         )
+      (* Now prove the case where the node we are applying the function map to
+         is not the newly added node *)
+      (* Simplify because we are applying the map to a node that wasn't the
+         recently added node *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[NOT_EQ_FAPPLY]
+      >> conj_tac
+      >- (CCONTR_TAC >> gvs[]
+          >> gvs[wffactor_graph_def])
+      (* Use this property from the original map *)
+      >> drule_then (fn th => gvs[th]) (cj 4 (iffLR wffactor_graph_def))
+      (*  *)
+      >> gvs[var_assignments_def]
+      (* This is quite similar to the proof we just did in the case where
+         we are applying the function map to the newly added node, so we
+         copy/paste some code from that proof *)
+      (* BEGIN COPY/PASTED CODE *)
+      >> gvs[EXTENSION] >> rpt strip_tac
+      >> qmatch_goalsub_abbrev_tac ‘b1_old ∧ b2_old ⇔ b1_new ∧ b2_old’
+      >> ‘b2_old ⇒ (b1_old ⇔ b1_new)’ suffices_by metis_tac[]
+      >> rpt strip_tac
+      >> unabbrev_all_tac
+      (* See comments above in code copy/pasted from *)
+      >> ‘∀x'. (x' ∈ FDOM x ⇔
+                  x' ∈ nodes fg.underlying_graph ∧ adjacent fg.underlying_graph x' n) ⇔
+                 (x' ∈ FDOM x ⇔
+                    (x' = INR (CARD (nodes fg.underlying_graph)) ∨
+                     x' ∈ nodes fg.underlying_graph) ∧
+                    (adjacent fg.underlying_graph x' n ∨
+                     x' ≠ n ∧
+                     (x' = INR (CARD (nodes fg.underlying_graph)) ∨
+                      x' ∈ nodes fg.underlying_graph) ∧
+                     (n = INR (CARD (nodes fg.underlying_graph)) ∨
+                      n ∈ nodes fg.underlying_graph) ∧
+                     ∃i. (∀x. x = x' ∨ x = n ⇔
+                                x = i ∨ x = INR (CARD (nodes fg.underlying_graph))) ∧
+                         i ∈ inputs))
+         ’ suffices_by gvs[]
+      >> rpt strip_tac
+      (* *)
+      >> qmatch_abbrev_tac ‘(b1_left ⇔ b2_left) ⇔ (b1_left ⇔ b2_right)’
+      >> ‘b2_left ⇔ b2_right’ suffices_by (rpt (pop_assum kall_tac) >> metis_tac[])
+      >> unabbrev_all_tac
+      (* *)
+      >> EQ_TAC
+      >- (rpt strip_tac >> metis_tac[])
+      >> rpt strip_tac >> gvs[]
+      >- (gvs[wf_fg_fn_def, SUBSET_DEF]
+          >> ‘i = n’ by metis_tac[]
+          >> gvs[]
+          >> 
+                
+          >> metis_tac[]
+         )
+
+                             
+      >- ASM_SET_TAC[]
+      >- (‘x' ∈ nodes fg.underlying_graph’ by ASM_SET_TAC[]
+          >> gvs[])
+      >- ASM_SET_TAC[]
+      >- metis_tac[]
+      (* END COPY/PASTED CODE *)
+                  
       >> 
+      
+      >> gvs[]
      )
   (* The nodes have the correct labels *)
   >> gvs[fg_add_function_node0_def, wffactor_graph_def]

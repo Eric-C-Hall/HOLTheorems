@@ -6,10 +6,25 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
-(* Textbook reccomendations for automated proof, learning about how best to
-   theorem prove, *)
+(* Want to apply the assumption as irule:
 
-(* Formal verification feels awful and slow. Is there a better way? *)
+    ∀x. b1 x ⇔ b2 x ⇒ ((∀x. b1 x) ⇔ ∀x. b2 x)
+   ------------------------------------
+        (∀x'. x' ∈ FDOM x ⇔ x' ∈ inputs) ⇔
+        ∀x'.
+          x' ∈ FDOM x ⇔
+          (x' = INR (CARD (nodes fg.underlying_graph)) ∨
+           x' ∈ nodes fg.underlying_graph) ∧
+          x' ≠ INR (CARD (nodes fg.underlying_graph)) ∧
+          (x' = INR (CARD (nodes fg.underlying_graph)) ∨
+           x' ∈ nodes fg.underlying_graph) ∧
+          ∃i. (∀x. x = x' ∨ x = INR (CARD (nodes fg.underlying_graph)) ⇔
+                   x = i ∨ x = INR (CARD (nodes fg.underlying_graph))) ∧
+              i ∈ inputs
+ *)
+
+(* Textbook recomendations for automated proof, learning about how best to
+   theorem prove, *)
 
 (* Is there something which applies a function f : α -> α repeatedly n times,
    within the world of HOL? *)
