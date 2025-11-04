@@ -102,7 +102,7 @@ Definition wffactor_graph_def:
                                             INR i ∉ fg.function_nodes }) ∧
     FDOM fg.function_map = fg.function_nodes ∧
     (∀n. n ∈ FDOM fg.function_map ⇒
-         FDOM (fg.function_map ' n) = adj_var_assignments fg n
+         FDOM (fg.function_map ' n) = var_assignments fg (adjacent_nodes fg n)
     ) ∧
     nodes fg.underlying_graph = {INR i | i < order fg.underlying_graph}
 End
@@ -499,9 +499,9 @@ Proof
   >- (rpt strip_tac
       (* Use corresponding property of the original graph *)
       >> drule_then (fn th => gvs[th]) (cj 4 (iffLR wffactor_graph_def))
-      (* This code was written before adj_var_assignments was defined, so
-         expand adj_var_assignments out *)
-      >> gvs[adj_var_assignments_def]
+      (* This code was written before var_assignments was defined, so
+         expand var_assignments out *)
+      >> gvs[var_assignments_def]
       (* The left hand side and right hand side are mostly the same: we just
          need to show equivalence in the places where they differ. *)
       >> simp[EXTENSION] >> rpt strip_tac
