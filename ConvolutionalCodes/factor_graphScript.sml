@@ -919,9 +919,11 @@ Proof
      )
   (* Domain of function map is correct *)
   >- (gvs[fg_add_function_node0_def, wffactor_graph_def])
+  (* Domain of map obtained after applying function map to a node is correct *)
   >- (rpt strip_tac
       >> gvs[fg_add_function_node0_def]
-      >> drule_then assume_tac (cj 4 (iffLR wffactor_graph_def))
+      (* First prove the case where the function *)
+      >- 
       >> 
      )
   (* The nodes have the correct labels *)
