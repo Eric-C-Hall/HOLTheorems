@@ -58,6 +58,11 @@ Datatype:
   |>
 End
 
+Overload adjacent_nodes = “λfg cur_node.
+                             {adj_node |
+                             adj_node ∈ nodes fg.underlying_graph ∧
+                             adjacent fg.underlying_graph adj_node cur_node }”
+
 (* -------------------------------------------------------------------------- *)
 (* All possible assignments to the variables adjacent to a node               *)
 (*                                                                            *)
@@ -65,12 +70,11 @@ End
 (* n: the function node from which we want to find all assignments to         *)
 (*    adjacent variable nodes.                                                *)
 (* -------------------------------------------------------------------------- *)
-Definition adj_var_assignments_def:
-  adj_var_assignments fg n = 
-  {val_map | FDOM val_map = ({adj_n | adj_n ∈ nodes fg.underlying_graph ∧
-                                      adjacent fg.underlying_graph adj_n n}) ∧
-              (∀m. m ∈ FDOM val_map ⇒
-                   LENGTH (val_map ' m) = fg.variable_length ' m)
+Definition var_assignments_def:
+  var_assignments fg var_nodes = 
+  {val_map | FDOM val_map = var_nodes ∧
+             (∀m. m ∈ FDOM val_map ⇒
+                  LENGTH (val_map ' m) = fg.variable_length ' m)
                    }
 End
 
@@ -572,18 +576,19 @@ End
 (* function node will always return a valid factor graph.                     *)
 (* -------------------------------------------------------------------------- *)
 Definition wf_fg_fn_def:
-  wf_fg_fn inputs fg ⇔ (∀x. x ∈ inputs ⇒
-                            x ∈ nodes fg.underlying_graph ∧
-                            x ∉ fg.function_nodes
-                       )
+  wf_fg_fn fn fg ⇔
+    FDOM
+    
+    (∀x. x ∈ inputs ⇒
+         x ∈ nodes fg.underlying_graph ∧
+         x ∉ fg.function_nodes
+                   )
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Add a function node to the factor graph.                                   *)
 (*                                                                            *)
 (* Input:                                                                     *)
-(* - inputs, the set of labels of variable nodes that are inputs to the       *)
-(*   function                                                                 *)
 (* - fn, the function to be added. Takes a list of bool lists and outputs     *)
 (*   an output of type α.                                                     *)
 (* - fg, the factor graph                                                     *)
@@ -597,7 +602,7 @@ End
 (* fg_add_n_variable_nodes_def                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_add_function_node0_def:
-  fg_add_function_node0 inputs fn fg =
+  fg_add_function_node0 fn fg =
   let
     new_node = (INR (CARD (nodes fg.underlying_graph)));
   in
