@@ -766,7 +766,7 @@ Theorem fg_add_function_node0_function_nodes:
 Proof
   rpt strip_tac
   >> gvs[fg_add_function_node0_def]
-  >> Cases_on ‘wf_fg_fn inputs fg’ >> gvs[]
+  >> Cases_on ‘wf_fg_fn inputs fn fg’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -784,7 +784,7 @@ Theorem fg_add_function_node0_function_map:
 Proof
   rpt strip_tac
   >> gvs[fg_add_function_node0_def]
-  >> Cases_on ‘wf_fg_fn inputs fg’ >> gvs[]
+  >> Cases_on ‘wf_fg_fn inputs fn fg’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -813,10 +813,10 @@ Proof
   >> qexistsl [‘v’, ‘INR (CARD (nodes fg.underlying_graph))’]
   >> gvs[]
   >> conj_tac
-  >- gvs[wf_fg_fn_def]
+  >- (gvs[wf_fg_fn_def] >> ASM_SET_TAC[])
   >> conj_tac
   >- (qexists ‘v’ >> gvs[])
-  >> ‘v ∈ nodes fg.underlying_graph’ by gvs[wf_fg_fn_def]
+  >> ‘v ∈ nodes fg.underlying_graph’ by (gvs[wf_fg_fn_def] >> ASM_SET_TAC[])
   >> CCONTR_TAC
   >> gvs[inr_in_nodes_underlying_graph]
 QED
