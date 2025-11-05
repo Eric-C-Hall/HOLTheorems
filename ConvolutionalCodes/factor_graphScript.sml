@@ -1058,8 +1058,7 @@ QED
 (* as factor graphs                                                           *)
 (* -------------------------------------------------------------------------- *)
 Theorem fg_add_function_node0_respects:
-  ∀fg.
-    ((=) ===> (=) ===> fgequiv ===> fgequiv) fg_add_function_node0 fg_add_function_node0
+  ((=) ===> (=) ===> fgequiv ===> fgequiv) fg_add_function_node0 fg_add_function_node0
 Proof
   gvs[FUN_REL_def]
   >> gvs[fgequiv_def]
@@ -1068,6 +1067,25 @@ QED
 val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 
 Theorem FDOM_FMAP_MAP2[simp] = GEN_ALL (cj 1 FMAP_MAP2_THM);
+
+(* -------------------------------------------------------------------------- *)
+(* The representation hides variable_length, but this is useful when adding   *)
+(* function nodes because we need to be able to determine the domain of the   *)
+(* function being added which depends on the variable lengths, so we should   *)
+(* expoise the variable length.                                               *)
+(* -------------------------------------------------------------------------- *)
+Definition get_variable_length0_def:
+  get_variable_length0 fg = fg.variable_length
+End
+
+Theorem get_variable_length0_respects:
+  (fgequiv ===> (=)) get_variable_length0 get_variable_length0
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef get_variable_length0_respects "get_variable_length";
 
 (*(* -------------------------------------------------------------------------- *)
 (* If the factor graphs are equivalent then their underlying graphs are the   *)
@@ -1114,16 +1132,33 @@ val _ = liftdef underlying_graph_respects "underlying_graph_abs"*)
 
 Definition fg_example_factor_graph_def:
   fg_example_factor_graph
-  = ((fg_add_n_variable_nodes 6 1)
-     ∘ (fg_add_function_node
-        {INR 0n; INR 1n; INR 2n} (FUN_FMAP (λbs. Normal (1 / 8)) {INR 0n; INR 1n; INR 2n}))
-     ∘ (fg_add_function_node
-        {INR 0n; INR 3n; INR 5n} (FUN_FMAP (λbs. Normal (1 / 8)) {INR 0n; INR 3n; INR 5n}))
-     ∘ (fg_add_function_node
-        {INR 3n} (FUN_FMAP (λbs. Normal (1 / 2)) {INR 3n}))
-     ∘ (fg_add_function_node
-        {INR 3n; INR 4n} (FUN_FMAP (λbs. Normal (1 / 4)) {INR 3n; INR 4n})
-       )
-    ) fg_empty
+  = let
+      fg_with_var_nodes = (fg_add_n_variable_nodes 6 1) fg_empty;
+    in
+      ((fg_add_function_node
+        ({INR 0n; INR 1n; INR 2n})
+        (FUN_FMAP
+         (λbs. Normal (1 / 8))
+         (var_assignments {INR 0n; INR 1n; INR 2n} (get_variable_length fg_with_var_nodes))
+        ))
+       ∘ (fg_add_function_node
+          ({INR 0n; INR 3n; INR 5n})
+          (FUN_FMAP
+           (λbs. Normal (1 / 8))
+           (var_assignments {INR 0n; INR 3n; INR 5n} (get_variable_length fg_with_var_nodes))
+          ))
+       ∘ (fg_add_function_node
+          {INR 3n}
+          (FUN_FMAP
+           (λbs. Normal (1 / 2))
+           (var_assignments {INR 3n} (get_variable_length fg_with_var_nodes))))
+       ∘ (fg_add_function_node
+          ({INR 3n; INR 4n})
+          (FUN_FMAP
+           (λbs. Normal (1 / 4))
+           (var_assignments {INR 3n; INR 4n} (get_variable_length fg_with_var_nodes)))
+         )
+      )
+      fg_with_var_nodes
 End
 
