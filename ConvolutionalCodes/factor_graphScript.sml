@@ -69,15 +69,19 @@ Overload var_nodes = “λfg. {n | n ∈ nodes fg.underlying_graph ∧
 (* -------------------------------------------------------------------------- *)
 (* All possible assignments to the variables adjacent to a node               *)
 (*                                                                            *)
-(* fg: the factor graph                                                       *)
-(* n: the function node from which we want to find all assignments to         *)
-(*    adjacent variable nodes.                                                *)
+(* assign_nodes: a list of nodes that we are assigning values                 *)
+(* assign_lengths: a map from nodes to variable lengths: must contain at      *)
+(*                 least all nodes in assign_nodes. fg.variable_length is a   *)
+(*                 possible candidate for this argument.                      *)
+(*                                                                            *)
+(* Returns: a set of all possible finite maps that assign the given nodes to  *)
+(*          values of the given lengths                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition var_assignments_def:
-  var_assignments fg assign_nodes = 
+  var_assignments assign_nodes assign_lengths =
   {val_map | FDOM val_map = assign_nodes ∧
              (∀m. m ∈ FDOM val_map ⇒
-                  LENGTH (val_map ' m) = fg.variable_length ' m)
+                  LENGTH (val_map ' m) = assign_lengths ' m)
                    }
 End
 
@@ -1105,14 +1109,19 @@ val _ = liftdef underlying_graph_respects "underlying_graph_abs"*)
 (* -------------------------------------------------------------------------- *)
 (* This example factor graphtor graph is based on Example 2.2.                *)
 (* -------------------------------------------------------------------------- *)
+
 Definition fg_example_factor_graph_def:
   fg_example_factor_graph
   = ((fg_add_n_variable_nodes 6 1)
-     ∘ (fg_add_function_node {INR 0n; INR 1n; INR 2n} (λbs. Normal (1 / 8)))
-     ∘ (fg_add_function_node {INR 0n; INR 3n; INR 5n} (λbs. Normal (1 / 8)))
-     ∘ (fg_add_function_node {INR 3n} (λbs. Normal (1 / 2)))
-     ∘ (fg_add_function_node {INR 3n; INR 4n} (λbs. Normal (1 / 4)))
-    )
-    fg_empty
+     ∘ (fg_add_function_node
+        {INR 0n; INR 1n; INR 2n} (FUN_FMAP (λbs. Normal (1 / 8)) {INR 0n; INR 1n; INR 2n}))
+     ∘ (fg_add_function_node
+        {INR 0n; INR 3n; INR 5n} (FUN_FMAP (λbs. Normal (1 / 8)) {INR 0n; INR 3n; INR 5n}))
+     ∘ (fg_add_function_node
+        {INR 3n} (FUN_FMAP (λbs. Normal (1 / 2)) {INR 3n}))
+     ∘ (fg_add_function_node
+        {INR 3n; INR 4n} (FUN_FMAP (λbs. Normal (1 / 4)) {INR 3n; INR 4n})
+       )
+    ) fg_empty
 End
 
