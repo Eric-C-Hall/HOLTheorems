@@ -108,7 +108,9 @@ Definition wffactor_graph_def:
     FDOM fg.variable_length = var_nodes fg ∧
     FDOM fg.function_map = fg.function_nodes ∧
     (∀n. n ∈ FDOM fg.function_map ⇒
-         FDOM (fg.function_map ' n) = var_assignments fg (adjacent_nodes fg n)
+         FDOM (fg.function_map ' n) = var_assignments
+                                      (adjacent_nodes fg n)
+                                      (fg.variable_length)
     ) ∧
     nodes fg.underlying_graph = {INR i | i < order fg.underlying_graph}
 End
@@ -584,7 +586,7 @@ End
 Definition wf_fg_fn_def:
   wf_fg_fn inputs fn fg ⇔
     inputs ⊆ var_nodes fg ∧
-    FDOM fn = var_assignments fg inputs
+    FDOM fn = var_assignments inputs fg.variable_length
 End
 
 (* -------------------------------------------------------------------------- *)
