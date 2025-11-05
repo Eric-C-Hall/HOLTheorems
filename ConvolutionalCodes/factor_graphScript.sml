@@ -1009,24 +1009,19 @@ Proof
       >> EQ_TAC
       >- (rpt strip_tac >> metis_tac[])
       >> rpt strip_tac >> gvs[]
-      >- (gvs[wf_fg_fn_def, SUBSET_DEF]
-          >> ‘i = n’ by metis_tac[]
-          >> gvs[]
-          >> 
-                
-          >> metis_tac[]
-         )
-
-                             
-      >- ASM_SET_TAC[]
-      >- (‘x' ∈ nodes fg.underlying_graph’ by ASM_SET_TAC[]
-          >> gvs[])
-      >- ASM_SET_TAC[]
-      >- metis_tac[]
       (* END COPY/PASTED CODE *)
-                  
-      >> 
-      
+      >- (‘i = n’ by metis_tac[]
+          >> gvs[wffactor_graph_def, wf_fg_fn_def, SUBSET_DEF]
+         )
+      >- (‘i = n’ by metis_tac[] >> gvs[]
+          >> gvs[wffactor_graph_def, wf_fg_fn_def, SUBSET_DEF]
+         )
+      >- gvs[wf_fg_fn_def, SUBSET_DEF, wffactor_graph_def]
+      >> ‘x' = INR (CARD (nodes fg.underlying_graph)) ∨ x' = i’ by metis_tac[]
+      >- gvs[]
+      >> gvs[]
+      >> ‘n = INR (CARD (nodes fg.underlying_graph)) ∨ n = i’ by metis_tac[]
+      >- gvs[]
       >> gvs[]
      )
   (* The nodes have the correct labels *)
