@@ -54,3 +54,28 @@ Theorem bxor_append:
 Proof
   gvs[bxor_def, bitwise_append]
 QED
+
+Theorem BIGUNION_IMAGE_INTER:
+  ∀S1 S2 F.
+    BIGUNION (IMAGE (λx. S1 ∩ F x) S2) = S1 ∩ BIGUNION (IMAGE (λx. F x) S2)
+Proof
+  rpt strip_tac
+  >> simp[EXTENSION, Excl "IN_BIGUNION"]
+  >> rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac >> gvs[] >> metis_tac[])
+  >> rpt strip_tac
+  >> gvs[]
+  >> qexists ‘S1 ∩ F' x'’
+  >> conj_tac >- simp[]
+  >> qexists ‘x'’ >> simp[]
+QED
+
+Theorem IMAGE_CHANGE_FUN:
+  ∀f g S.
+    (∀x. x ∈ S ⇒ f x = g x) ⇒
+    IMAGE f S = IMAGE g S
+Proof
+  rpt strip_tac
+  >> ASM_SET_TAC[]
+QED

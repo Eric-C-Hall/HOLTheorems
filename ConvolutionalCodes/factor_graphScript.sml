@@ -1,12 +1,13 @@
 Theory factor_graph
 
-Ancestors arithmetic bool probability fsgraph genericGraph pred_set finite_map list transc prim_rec integer partite_ea hyperbolic_functions lifting transfer words
+Ancestors arithmetic bool ecc_prob_space probability fsgraph fundamental genericGraph pred_set finite_map list transc prim_rec integer partite_ea hyperbolic_functions lifting transfer words
 
 Libs donotexpandLib wordsLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
 val _ = hide "S";
 
-val _ = augment_srw_ss [rewrites[fsgedges_addNode
+val _ = augment_srw_ss [rewrites[fsgedges_addNode,
+                                 FDOM_FMAP
                                 ]
                        ];
 
@@ -39,7 +40,7 @@ val _ = augment_srw_ss [rewrites[fsgedges_addNode
 (* require all variables to be the same length, but in the BCJR algorithm, we *)
 (* want some variables to be length 1 and some variables to be length l)      *)
 (*                                                                            *)
-(* variable_length maps a variable node to the number of bits in the values   *)
+(* variable_length_map maps a variable node to the number of bits in the values   *)
 (* it can take. For example, a variable node with length 3 could take the     *)
 (* value [1; 0; 0] or the value [1; 1; 1], etc.                               *)
 (*                                                                            *)
@@ -53,7 +54,7 @@ Datatype:
   <|
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
-    variable_length: (unit + num) |-> num;
+    variable_length_map: (unit + num) |-> num;
     function_map : (unit + num) |-> (unit + num |-> bool list) |-> α
   |>
 End
@@ -65,25 +66,174 @@ Overload adjacent_nodes = “λfg cur_node.
 
 Overload var_nodes = “λfg. {n | n ∈ nodes fg.underlying_graph ∧
                                 n ∉ fg.function_nodes}”;
-                     
+
+Theorem var_nodes_finite[simp]:
+  ∀fg.
+    FINITE (var_nodes fg)
+Proof
+  rpt strip_tac
+  >> ‘var_nodes fg ⊆ nodes fg.underlying_graph’ by ASM_SET_TAC[]
+  >> metis_tac[SUBSET_FINITE, FINITE_nodes]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* All possible assignments to the variables adjacent to a node               *)
 (*                                                                            *)
 (* assign_nodes: a list of nodes that we are assigning values                 *)
 (* assign_lengths: a map from nodes to variable lengths: must contain at      *)
-(*                 least all nodes in assign_nodes. fg.variable_length is a   *)
-(*                 possible candidate for this argument.                      *)
+(*                 least all nodes in assign_nodes. fg.variable_length_map is *)
+(*                 a possible candidate for this argument.                    *)
 (*                                                                            *)
 (* Returns: a set of all possible finite maps that assign the given nodes to  *)
 (*          values of the given lengths                                       *)
+(*                                                                            *)
+(* We require the type that is being assigned to the variables to be          *)
+(*   bool list: we could allow more general types, but restricting to bool    *)
+(*   list ensures that we have only finitely many assignments.                *)
 (* -------------------------------------------------------------------------- *)
 Definition var_assignments_def:
   var_assignments assign_nodes assign_lengths =
   {val_map | FDOM val_map = assign_nodes ∧
              (∀m. m ∈ FDOM val_map ⇒
-                  LENGTH (val_map ' m) = assign_lengths ' m)
+                  LENGTH (val_map ' m : bool list) = assign_lengths ' m)
                    }
 End
+
+Theorem var_assignments_finite[simp]:
+  ∀assign_nodes assign_lengths.
+    FINITE assign_nodes ⇒ FINITE (var_assignments assign_nodes assign_lengths)
+Proof
+
+  rpt strip_tac
+  >> Induct_on ‘assign_nodes’ using FINITE_INDUCT
+  >> gvs[var_assignments_def]
+  >> conj_tac
+  (* Base case *)
+  >- (qmatch_abbrev_tac ‘FINITE S’
+      >> sg ‘S = {FEMPTY}’
+      >- (rw[EXTENSION]
+          >> unabbrev_all_tac >> EQ_TAC >> gvs[] >> rpt strip_tac
+          >> gvs[FDOM_EQ_EMPTY]
+         )
+      >> gvs[]
+     )
+  (* Inductive step *)
+  >> rpt strip_tac
+  >> qmatch_asmsub_abbrev_tac ‘FINITE S_hyp’
+  >> qmatch_abbrev_tac ‘FINITE S_ind’
+  (* Split this set up into sets depeding on what value is taken at e. Since
+     there are only finitely many of them, and they each have the same size as
+     the inductive hypothesis, which is finite, this means that the ultimate
+     result must be finite. *)
+  >> qsuff_tac ‘S_ind = BIGUNION
+                        (IMAGE (λval. IMAGE (λval_map. val_map |+ (e, val)) S_hyp)
+                               {val | LENGTH val = assign_lengths ' e})’
+  >- (rpt strip_tac
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> irule FINITE_BIGUNION
+      >> conj_tac
+      (* Each set we have split up into is finite *)
+      >- (rpt strip_tac >> gvs[])
+      (* We have split up into a finite number of sets in total*)
+      >> irule IMAGE_FINITE
+      >> gvs[]
+     )
+  (* This is a union of intersections, where a given set in the union is S_ind 
+     intersected with the maps that take the value val at e. Thus, we try to
+     go towards a form that can be simplified using INTER_BIGUNION *) 
+  >> qsuff_tac ‘∀val.
+                  LENGTH val = assign_lengths ' e ⇒
+                  IMAGE (λval_map. val_map |+ (e,val)) S_hyp =
+                  S_ind ∩ {val_map | val_map ' e = val}’
+  >- (rpt strip_tac
+      >> Q.SUBGOAL_THEN
+          ‘IMAGE (λval. IMAGE (λval_map. val_map |+ (e,val)) S_hyp)
+           = (λval. S_ind ∩ {val_map | val_map ' e = val}) S_hyp’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (
+       )
+      >> simp[]
+      >> simp[BIGUNION_IMAGE_INTER]
+      >> qmatch_abbrev_tac ‘S_ind = S_ind ∩ BIGUNION (IMAGE f S)’
+      >> Q.SUBGOAL_THEN ‘BIGUNION (IMAGE f S) =
+                         {val_map | LENGTH (val_map ' e) = assign_lengths ' e}’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (rw[EXTENSION]
+          >> EQ_TAC >> rw[] >> gvs[]
+          >- (unabbrev_all_tac >> gvs[IN_DEF])
+          >> unabbrev_all_tac
+          >> qexists ‘{val_map | val_map ' e = x ' e}’ >> gvs[]
+          >> qexists ‘x ' e’ >> gvs[]
+         )
+      >> rw[EXTENSION]
+      >> EQ_TAC >> gvs[]
+      >> rpt strip_tac
+      >> unabbrev_all_tac >> gvs[]
+     )
+  (* Prove that adding a mapping from e to val to every val_map in a bunch of
+     nodes excluding e is equivalent to restricting the set of all choices of
+     val_map in the nodes including e to just those which map e to val *)
+  >> qx_gen_tac ‘val’ >> disch_tac
+  >> simp[EXTENSION]
+  >> qx_gen_tac ‘cur_map’
+  >> EQ_TAC
+  (* If the current map is in the set obtained by adding a mapping from e to
+     val, then it is in the set obtained by restricting to mappings which map e
+     to val *)
+  >- (rpt strip_tac
+      >> simp[Abbr ‘S_hyp’, Abbr ‘S_ind’]
+      >> pop_assum (fn th => assume_tac (REWRITE_RULE [IN_DEF] th)) >> gvs[]
+      >> qx_gen_tac ‘cur_node’ >> disch_tac
+      >> gvs[]
+      >> gvs[FAPPLY_FUPDATE_THM]
+      >> rw[]
+      >> ASM_SET_TAC[]
+     )
+  (* If the current map is in the set obtained by restricting to mappings
+     which map e to val, then it is in the set obtained by adding a mapping
+     from e to val *)
+  >> rpt strip_tac
+  >> qexists ‘DRESTRICT cur_map assign_nodes’
+  >> REVERSE conj_tac
+  >- (unabbrev_all_tac >> gvs[FDOM_DRESTRICT]
+      >> conj_tac
+      >- ASM_SET_TAC[]
+      >> rpt strip_tac
+      >> gvs[DRESTRICT_DEF]
+     )
+  >> unabbrev_all_tac >> gvs[]
+  >> gvs[fmap_EXT]
+  >> conj_tac
+  >- (gvs[FDOM_DRESTRICT] >> ASM_SET_TAC[])
+  >> qx_gen_tac ‘cur_node’
+  >> rpt strip_tac
+  >- gvs[]
+  >> gvs[FAPPLY_FUPDATE_THM]
+  >> rw[]
+  >> gvs[DRESTRICT_DEF]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A special case of var_assignments_finite where we have                     *)
+(* assign_nodes ⊆ var_nodes fg and we have                                   *)
+(* assign_lengths = fg.variable_length_map. If we just used                   *)
+(* var_assignments_finite, this wouldn't be automatically recognised by the   *)
+(* simplifier because to determine FINITE inputs, we would need to use the    *)
+(* fact that FINITE S /\ inputs SUBSET S implies FINITE inputs, but this      *)
+(* would require choosing an S which the simplifier cannot do. However, this  *)
+(* version of the theorem can be used by the simplifier.                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem var_assignments_finite_subset_var_nodes[simp]:
+  ∀assign_nodes.
+    assign_nodes ⊆ var_nodes fg ⇒
+    FINITE (var_assignments assign_nodes fg.variable_length_map)
+Proof
+  rpt strip_tac
+  >> irule var_assignments_finite
+  >> irule SUBSET_FINITE
+  >> qexists ‘var_nodes fg’
+  >> simp[]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Well-formedness of a factor graph.                                         *)
@@ -94,8 +244,8 @@ End
 (*                                                                            *)
 (* - the underlying graph should be bipartite with respect to the function    *)
 (*   nodes and variable nodes                                                 *)
-(* - the domain of variable_length should be the set of variable nodes (i.e.  *)
-(*   nodes that are not function nodes)                                       *)
+(* - the domain of variable_length_map should be the set of variable nodes    *)
+(*   (i.e. nodes that are not function nodes)                                 *)
 (* - the domain of function_map should be the set of function nodes           *)
 (* - After applying function_map, the domain of the new map is the set of     *)
 (*   all maps which have a domain equal to the adjacent nodes and each output *)
@@ -105,12 +255,12 @@ End
 Definition wffactor_graph_def:
   wffactor_graph (fg : α factor_graph_rep) ⇔
     (gen_bipartite_ea fg.underlying_graph fg.function_nodes) ∧
-    FDOM fg.variable_length = var_nodes fg ∧
+    FDOM fg.variable_length_map = var_nodes fg ∧
     FDOM fg.function_map = fg.function_nodes ∧
     (∀n. n ∈ FDOM fg.function_map ⇒
          FDOM (fg.function_map ' n) = var_assignments
                                       (adjacent_nodes fg n)
-                                      (fg.variable_length)
+                                      (fg.variable_length_map)
     ) ∧
     nodes fg.underlying_graph = {INR i | i < order fg.underlying_graph}
 End
@@ -233,7 +383,7 @@ Definition fg_empty0_def:
   <|
     underlying_graph := emptyG;
     function_nodes := ∅;
-    variable_length := FEMPTY;
+    variable_length_map := FEMPTY;
     function_map := FEMPTY;
   |>
 End
@@ -382,7 +532,7 @@ Definition fg_add_variable_node0_def:
     fg with
        <|
          underlying_graph updated_by (fsgAddNode new_node);
-         variable_length updated_by (λf. FUPDATE f (new_node, l))
+         variable_length_map updated_by (λf. FUPDATE f (new_node, l))
        |>
 End
 
@@ -527,9 +677,9 @@ Proof
          )
       (* Prove second property *)
       >> rpt strip_tac
-      >> qmatch_goalsub_abbrev_tac ‘fg.variable_length |+ new_pair’
-      >> ‘∀m. m ∈ FDOM x ⇒ (fg.variable_length |+ new_pair) ' m =
-                           fg.variable_length ' m’ suffices_by gvs[]
+      >> qmatch_goalsub_abbrev_tac ‘fg.variable_length_map |+ new_pair’
+      >> ‘∀m. m ∈ FDOM x ⇒ (fg.variable_length_map |+ new_pair) ' m =
+                           fg.variable_length_map ' m’ suffices_by gvs[]
       >> unabbrev_all_tac >> rpt strip_tac
       >> gvs[FAPPLY_FUPDATE_THM]
       >> rw[]
@@ -583,18 +733,22 @@ End
 (* we have been given valid arguments. This way, we can ensure that adding a  *)
 (* function node will always return a valid factor graph.                     *)
 (* -------------------------------------------------------------------------- *)
-Definition wf_fg_fn_def:
+(* Due to changes, this has been replaced with its first conjunct (the second
+   conjunct is no longer necessary and so it is no longer necessary to have this
+   definition, but I'm keeping it for now in case I change my mind again.) *)
+(*Definition wf_fg_fn_def:
   wf_fg_fn inputs fn fg ⇔
     inputs ⊆ var_nodes fg ∧
-    FDOM fn = var_assignments inputs fg.variable_length
-End
+    FDOM fn = var_assignments inputs fg.variable_length_map
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Add a function node to the factor graph.                                   *)
 (*                                                                            *)
 (* Input:                                                                     *)
-(* - fn, the function to be added. Takes a list of bool lists and outputs     *)
-(*   an output of type α.                                                     *)
+(* - fn, the function to be added. Takes a mapping from variables to values   *)
+(*   and returns an output of type α. Not a map, but a function: this is      *)
+(*   turned into a map after being added.                                     *)
 (* - fg, the factor graph                                                     *)
 (*                                                                            *)
 (* Output:                                                                    *)
@@ -608,9 +762,10 @@ End
 Definition fg_add_function_node0_def:
   fg_add_function_node0 inputs fn fg =
   let
+    fn_fmap = FUN_FMAP fn (var_assignments inputs fg.variable_length_map);
     new_node = (INR (CARD (nodes fg.underlying_graph)));
   in
-    if wf_fg_fn inputs fn fg
+    if inputs ⊆ var_nodes fg
     then
       fg with
          <|
@@ -619,7 +774,7 @@ Definition fg_add_function_node0_def:
                                          (fsgAddNode new_node)
                             );
            function_nodes updated_by ($INSERT new_node);
-           function_map updated_by (λf. FUPDATE f (new_node, fn));
+           function_map updated_by (λf. FUPDATE f (new_node, fn_fmap));
          |>
     else
       fg
@@ -764,7 +919,7 @@ QED
 Theorem fg_add_function_node0_function_nodes:
   ∀fn inputs fg.
     (fg_add_function_node0 inputs fn fg).function_nodes =
-    if wf_fg_fn inputs fn fg 
+    if inputs ⊆ var_nodes fg 
     then
       (INR (CARD (nodes fg.underlying_graph))) INSERT fg.function_nodes
     else
@@ -772,7 +927,7 @@ Theorem fg_add_function_node0_function_nodes:
 Proof
   rpt strip_tac
   >> gvs[fg_add_function_node0_def]
-  >> Cases_on ‘wf_fg_fn inputs fn fg’ >> gvs[]
+  >> Cases_on ‘inputs ⊆ var_nodes fg’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -782,15 +937,15 @@ QED
 Theorem fg_add_function_node0_function_map:
   ∀inputs fn fg.
     (fg_add_function_node0 inputs fn fg).function_map =
-    if wf_fg_fn inputs fn fg 
+    if inputs ⊆ var_nodes fg 
     then
-      fg.function_map |+ (INR (CARD (nodes fg.underlying_graph)),fn)
+      fg.function_map |+ (INR (CARD (nodes fg.underlying_graph)),FUN_FMAP fn (var_assignments inputs fg.variable_length_map))
     else
       fg.function_map
 Proof
   rpt strip_tac
   >> gvs[fg_add_function_node0_def]
-  >> Cases_on ‘wf_fg_fn inputs fn fg’ >> gvs[]
+  >> Cases_on ‘inputs ⊆ var_nodes fg’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -800,7 +955,7 @@ Theorem fsgedges_fg_add_function_node0_underlying_graph:
   ∀inputs fn fg.
     wffactor_graph fg ⇒
     fsgedges (fg_add_function_node0 inputs fn fg).underlying_graph =
-    if wf_fg_fn inputs fn fg 
+    if inputs ⊆ var_nodes fg 
     then
       fsgedges fg.underlying_graph ∪
                IMAGE (λv. {v; INR (CARD (nodes fg.underlying_graph))}) inputs
@@ -819,10 +974,10 @@ Proof
   >> qexistsl [‘v’, ‘INR (CARD (nodes fg.underlying_graph))’]
   >> gvs[]
   >> conj_tac
-  >- (gvs[wf_fg_fn_def] >> ASM_SET_TAC[])
+  >- ASM_SET_TAC[]
   >> conj_tac
   >- (qexists ‘v’ >> gvs[])
-  >> ‘v ∈ nodes fg.underlying_graph’ by (gvs[wf_fg_fn_def] >> ASM_SET_TAC[])
+  >> ‘v ∈ nodes fg.underlying_graph’ by ASM_SET_TAC[]
   >> CCONTR_TAC
   >> gvs[inr_in_nodes_underlying_graph]
 QED
@@ -885,7 +1040,7 @@ Theorem fg_add_function_node0_wf[simp]:
 Proof
   rpt strip_tac
   (* Handle situation in which input function is invalid *)
-  >> Cases_on ‘¬wf_fg_fn inputs fn fg’
+  >> Cases_on ‘¬(inputs ⊆ var_nodes fg)’
   >- gvs[fg_add_function_node0_def]
   >> gvs[]
   (* Prove each well-formedness property indivudually *)
@@ -920,7 +1075,7 @@ Proof
       >> Cases_on ‘n = m’ >> gvs[]
       (* *)
       >> gvs[INSERT2_lemma]
-      >> CCONTR_TAC >> gvs[wf_fg_fn_def] >> ASM_SET_TAC[]
+      >> CCONTR_TAC >> gvs[] >> ASM_SET_TAC[]
      )
   (* Domain of function map is correct *)
   >- (gvs[fg_add_function_node0_def, wffactor_graph_def]
@@ -933,7 +1088,7 @@ Proof
       >> gvs[fg_add_function_node0_def]
       (* First prove the case where the node we are applying the function map
          to is the newly added node *)
-      >- (gvs[wf_fg_fn_def]
+      >- (gvs[FDOM_FMAP]
           >> gvs[var_assignments_def]
           >> gvs[EXTENSION] >> rpt strip_tac
           >> qmatch_goalsub_abbrev_tac ‘b1_old ∧ b2_old ⇔ b1_new ∧ b2_old’
@@ -1017,12 +1172,12 @@ Proof
       >> rpt strip_tac >> gvs[]
       (* END COPY/PASTED CODE *)
       >- (‘i = n’ by metis_tac[]
-          >> gvs[wffactor_graph_def, wf_fg_fn_def, SUBSET_DEF]
+          >> gvs[wffactor_graph_def, SUBSET_DEF]
          )
       >- (‘i = n’ by metis_tac[] >> gvs[]
-          >> gvs[wffactor_graph_def, wf_fg_fn_def, SUBSET_DEF]
+          >> gvs[wffactor_graph_def, SUBSET_DEF]
          )
-      >- gvs[wf_fg_fn_def, SUBSET_DEF, wffactor_graph_def]
+      >- gvs[SUBSET_DEF, wffactor_graph_def]
       >> ‘x' = INR (CARD (nodes fg.underlying_graph)) ∨ x' = i’ by metis_tac[]
       >- gvs[]
       >> gvs[]
@@ -1069,23 +1224,23 @@ val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 Theorem FDOM_FMAP_MAP2[simp] = GEN_ALL (cj 1 FMAP_MAP2_THM);
 
 (* -------------------------------------------------------------------------- *)
-(* The representation hides variable_length, but this is useful when adding   *)
-(* function nodes because we need to be able to determine the domain of the   *)
-(* function being added which depends on the variable lengths, so we should   *)
-(* expoise the variable length.                                               *)
+(* The representation hides variable_length_map, but this is useful when      *)
+(* adding function nodes because we need to be able to determine the domain   *)
+(* of the function being added which depends on the variable lengths, so we   *)
+(* should expoise the variable length.                                        *)
 (* -------------------------------------------------------------------------- *)
-Definition get_variable_length0_def:
-  get_variable_length0 fg = fg.variable_length
+Definition get_variable_length_map0_def:
+  get_variable_length_map0 fg = fg.variable_length_map
 End
 
-Theorem get_variable_length0_respects:
-  (fgequiv ===> (=)) get_variable_length0 get_variable_length0
+Theorem get_variable_length_map0_respects:
+  (fgequiv ===> (=)) get_variable_length_map0 get_variable_length_map0
 Proof
   gvs[FUN_REL_def]
   >> gvs[fgequiv_def]
 QED
 
-val _ = liftdef get_variable_length0_respects "get_variable_length";
+val _ = liftdef get_variable_length_map0_respects "get_variable_length_map";
 
 (*(* -------------------------------------------------------------------------- *)
 (* If the factor graphs are equivalent then their underlying graphs are the   *)
@@ -1139,24 +1294,24 @@ Definition fg_example_factor_graph_def:
         ({INR 0n; INR 1n; INR 2n})
         (FUN_FMAP
          (λbs. Normal (1 / 8))
-         (var_assignments {INR 0n; INR 1n; INR 2n} (get_variable_length fg_with_var_nodes))
+         (var_assignments {INR 0n; INR 1n; INR 2n} (get_variable_length_map fg_with_var_nodes))
         ))
        ∘ (fg_add_function_node
           ({INR 0n; INR 3n; INR 5n})
           (FUN_FMAP
            (λbs. Normal (1 / 8))
-           (var_assignments {INR 0n; INR 3n; INR 5n} (get_variable_length fg_with_var_nodes))
+           (var_assignments {INR 0n; INR 3n; INR 5n} (get_variable_length_map fg_with_var_nodes))
           ))
        ∘ (fg_add_function_node
           {INR 3n}
           (FUN_FMAP
            (λbs. Normal (1 / 2))
-           (var_assignments {INR 3n} (get_variable_length fg_with_var_nodes))))
+           (var_assignments {INR 3n} (get_variable_length_map fg_with_var_nodes))))
        ∘ (fg_add_function_node
           ({INR 3n; INR 4n})
           (FUN_FMAP
            (λbs. Normal (1 / 4))
-           (var_assignments {INR 3n; INR 4n} (get_variable_length fg_with_var_nodes)))
+           (var_assignments {INR 3n; INR 4n} (get_variable_length_map fg_with_var_nodes)))
          )
       )
       fg_with_var_nodes
