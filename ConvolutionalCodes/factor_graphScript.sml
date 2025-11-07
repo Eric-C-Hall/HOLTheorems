@@ -103,7 +103,6 @@ Theorem var_assignments_finite[simp]:
   ∀assign_nodes assign_lengths.
     FINITE assign_nodes ⇒ FINITE (var_assignments assign_nodes assign_lengths)
 Proof
-
   rpt strip_tac
   >> Induct_on ‘assign_nodes’ using FINITE_INDUCT
   >> gvs[var_assignments_def]
@@ -148,10 +147,14 @@ Proof
   >- (rpt strip_tac
       >> Q.SUBGOAL_THEN
           ‘IMAGE (λval. IMAGE (λval_map. val_map |+ (e,val)) S_hyp)
-           = (λval. S_ind ∩ {val_map | val_map ' e = val}) S_hyp’
+           (length_n_codes (assign_lengths ' e))
+           = IMAGE (λval. S_ind ∩ {val_map | val_map ' e = val})
+                   (length_n_codes (assign_lengths ' e))’
           (fn th => PURE_ONCE_REWRITE_TAC[th])
-      >- (
-       )
+      >- (irule IMAGE_CHANGE_FUN
+          >> rpt strip_tac
+          >> gvs[]
+         )
       >> simp[]
       >> simp[BIGUNION_IMAGE_INTER]
       >> qmatch_abbrev_tac ‘S_ind = S_ind ∩ BIGUNION (IMAGE f S)’
