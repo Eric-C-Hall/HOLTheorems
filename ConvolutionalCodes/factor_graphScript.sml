@@ -227,7 +227,7 @@ QED
 (* version of the theorem can be used by the simplifier.                      *)
 (* -------------------------------------------------------------------------- *)
 Theorem var_assignments_finite_subset_var_nodes[simp]:
-  ∀assign_nodes.
+  ∀fg assign_nodes.
     assign_nodes ⊆ var_nodes fg ⇒
     FINITE (var_assignments assign_nodes fg.variable_length_map)
 Proof
@@ -1287,36 +1287,15 @@ val _ = liftdef underlying_graph_respects "underlying_graph_abs"*)
 (* -------------------------------------------------------------------------- *)
 (* This example factor graphtor graph is based on Example 2.2.                *)
 (* -------------------------------------------------------------------------- *)
-
 Definition fg_example_factor_graph_def:
   fg_example_factor_graph
   = let
       fg_with_var_nodes = (fg_add_n_variable_nodes 6 1) fg_empty;
     in
-      ((fg_add_function_node
-        ({INR 0n; INR 1n; INR 2n})
-        (FUN_FMAP
-         (λbs. Normal (1 / 8))
-         (var_assignments {INR 0n; INR 1n; INR 2n} (get_variable_length_map fg_with_var_nodes))
-        ))
-       ∘ (fg_add_function_node
-          ({INR 0n; INR 3n; INR 5n})
-          (FUN_FMAP
-           (λbs. Normal (1 / 8))
-           (var_assignments {INR 0n; INR 3n; INR 5n} (get_variable_length_map fg_with_var_nodes))
-          ))
-       ∘ (fg_add_function_node
-          {INR 3n}
-          (FUN_FMAP
-           (λbs. Normal (1 / 2))
-           (var_assignments {INR 3n} (get_variable_length_map fg_with_var_nodes))))
-       ∘ (fg_add_function_node
-          ({INR 3n; INR 4n})
-          (FUN_FMAP
-           (λbs. Normal (1 / 4))
-           (var_assignments {INR 3n; INR 4n} (get_variable_length_map fg_with_var_nodes)))
-         )
-      )
+      ((fg_add_function_node {INR 0n; INR 1n; INR 2n} (λbs. Normal (1 / 8)))
+       ∘ (fg_add_function_node {INR 0n; INR 3n; INR 5n} (λbs. Normal (1 / 8)))
+       ∘ (fg_add_function_node {INR 3n} (λbs. Normal (1 / 2)))
+       ∘ (fg_add_function_node {INR 3n; INR 4n} (λbs. Normal (1 / 4))))
       fg_with_var_nodes
 End
 
