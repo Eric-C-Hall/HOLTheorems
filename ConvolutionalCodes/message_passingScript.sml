@@ -92,49 +92,43 @@ QED
 (* org: origin node for message                                               *)
 (* dst: destination node for message                                          *)
 (* msgs: all previous messages that have been calculated. A finite map from   *)
-(*       message_domain to message.                                           *)
+(*       message_domain to message option                                     *)
+(*                                                                            *)
+(* Returns a message option                                                   *)
 (* -------------------------------------------------------------------------- *)
 Definition sp_calculate_message_def:
   sp_calculate_message fg org dst msgs =
   let
-    adjacent_nodes = {n | n ∈ nodes fg.underlying_graph ∧
-                          adjacent fg.underlying_graph n org};
-    incoming_msg_edges = {(n, org) | n | n ∈ nodes fg.underlying_graph ∧
-                                         adjacent fg.underlying_graph n org ∧
-                                         n ≠ dst };
+    adjacent_nodes_not_dst = {n | n ∈ adjacent_nodes fg org ∧
+                                  n ≠ dst};
+    incoming_msg_edges = {(n, org) | n | n ∈ adjacent_nodes_not_dst };
   in
     if ¬(incoming_msg_edges ⊆ FDOM msgs) then
       NONE (* Incoming messages aren't available yet *)
     else
-      if org ∈ fg.function_nodes
-      then
-        (* Outgoing message at a variable node (leaf or non-leaf) *)
-        SOME (FUN_FMAP
-              (λdst_val.
-                 ∑ (λval_map.
-                      (fg.function_map ' org) val_map *
-                      ∏ (λcur_node. THE (msgs ' {cur_node; org}) ' (val_map ' cur_node) )
-                        {cur_node | cur_node ∈ adjacent_nodes }
-                   )
-                  {val_map | FDOM val_map = adjacent_nodes ∧
-                             (∀n. n ∈ adjacent_nodes ⇒ LENGTH (val_map ' n) =
-                                                       fg.variable_length ' n) ∧
-                             val_map ' dst = dst_val
+      SOME (FUN_FMAP
+            (if org ∈ fg.function_nodes
+             then
+               (λdst_val.
+                  ∑ (λval_map.
+                       (fg.function_map ' org) val_map *
+                       ∏ (λcur_node.
+                            THE (msgs ' {cur_node; org}) ' (val_map ' cur_node))
+                         {cur_node | cur_node ∈ adjacent_nodes fg org }
+                    )
+                    {val_map | FDOM val_map = adjacent_nodes fg org ∧
+                               (∀n. n ∈ adjacent_nodes fg org ⇒
+                                    LENGTH (val_map ' n) =
+                                    fg.variable_length_map ' n) ∧
+                               val_map ' dst = dst_val
                          }
-              ) {bs | LENGTH bs = }
-             )
-      else
-        (* Outgoing message at a variable node (leaf or non-leaf) *)
-        SOME (ITSET
-              (λmsg_edge (n1,n2).
-                 let
-                   (m1, m2) = msgs ' msg_edge
-                 in
-                   (m1 * n1 : extreal, m2 * n2 : extreal)
-              )
-              incoming_msg_edges
-              (1, 1)
-             )
+               )
+             else
+               λdst_val.
+                 ∏ (λcur_node. msgs ' cur_node ' dst_val)
+                   adjacent_nodes_not_dst
+            ) (length_n_codes (fg.variable_length_map ' dst))
+           )
 End
 
 (* Theorem for showing equivalence of finite maps: fmap_EQ_THM.

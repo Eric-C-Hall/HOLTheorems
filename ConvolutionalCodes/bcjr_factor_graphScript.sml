@@ -4,6 +4,8 @@ Theory bcjr_factor_graph
 
 Ancestors factor_graph extreal prim_rec probability state_machine wf_state_machine binary_symmetric_channel recursive_parity_equations
 
+(* TODO: fix after changes
+
 (* -------------------------------------------------------------------------- *)
 (* Main reference:"Modern Coding Theory" by Tom Richardson and Rüdiger        *)
 (* Urbanke.                                                                   *)
@@ -215,3 +217,4 @@ Definition BCJR_decode_def:
   BCJR_decode m cs p = ARB
                        (* TODO_message_passing applied to factor graph *)                
 End
+*)
