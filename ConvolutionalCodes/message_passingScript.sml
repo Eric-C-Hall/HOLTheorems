@@ -114,9 +114,9 @@ Definition sp_calculate_message_def:
                  λdst_val.
                    ∑ (λval_map.
                         (fg.function_map ' org) val_map *
-                        ∏ (λcur_node.
-                             THE (msgs ' {cur_node; org}) ' (val_map ' cur_node))
-                          {cur_node | cur_node ∈ adjacent_nodes fg org }
+                        ∏ (λcur_msg_edge.
+                             THE (msgs ' cur_msg_edge) ' (val_map ' cur_node))
+                          incoming_msg_edges
                      )
                      {val_map | FDOM val_map = adjacent_nodes fg org ∧
                                 (∀n. n ∈ adjacent_nodes fg org ⇒
@@ -132,7 +132,7 @@ Definition sp_calculate_message_def:
       else
         SOME (FUN_FMAP
               (λorg_val.
-                 ∏ (λcur_node. msgs ' cur_node ' org_val)
+                 ∏ (λcur_msg_edge. THE (msgs ' cur_msg_edge) ' org_val : extreal)
                    incoming_msg_edges)
               (length_n_codes (fg.variable_length_map ' org))
              )
