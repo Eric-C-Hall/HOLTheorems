@@ -411,7 +411,7 @@ Definition sp_calculate_messages0_def:
     then
       msgs
     else
-      sp_calculate_messages fg (new_msgs)
+      sp_calculate_messages0 fg (new_msgs)
 Termination
   (* We expect that at least one message will be added in each step. The number
      of possible messages is limited above by the (finite) number of pairs of
@@ -462,15 +462,15 @@ Termination
   >> gvs[FDOM_DRESTRICT]
 End
 
-Theorem sp_calculate_single_message0_respects:
-  (fgequiv ===> (=) ===> (=) ===> (=) ===> (=))
-  sp_calculate_single_message0 sp_calculate_single_message0
+Theorem sp_calculate_messages0_respects:
+  (fgequiv ===> (=) ===> (=))
+  sp_calculate_messages0 sp_calculate_messages0
 Proof
   gvs[FUN_REL_def]
   >> gvs[fgequiv_def]
 QED
 
-val _ = liftdef sp_calculate_single_message0_respects "sp_calculate_single_message";
+val _ = liftdef sp_calculate_messages0_respects "sp_calculate_messages";
 
 (* -------------------------------------------------------------------------- *)
 (* This overload is useful for my purposes, but it may overlap with the more  *)
