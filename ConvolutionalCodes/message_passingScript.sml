@@ -96,8 +96,8 @@ QED
 (*                                                                            *)
 (* Returns a message option                                                   *)
 (* -------------------------------------------------------------------------- *)
-Definition sp_calculate_message_def:
-  sp_calculate_message fg org dst msgs =
+Definition sp_calculate_single_message0_def:
+  sp_calculate_single_message0 fg org dst msgs =
   let
     adjacent_nodes_not_dst = {n | n ∈ adjacent_nodes fg org ∧
                                   n ≠ dst};
@@ -109,25 +109,21 @@ Definition sp_calculate_message_def:
       if org ∈ fg.function_nodes
       then
         SOME (FUN_FMAP
-              (if adjacent_nodes fg org ≠ ∅
-               then
-                 λdst_val.
-                   ∑ (λval_map.
-                        (fg.function_map ' org) ' val_map *
-                        ∏ (λcur_msg_edge.
-                             msgs ' cur_msg_edge '
-                                  (val_map ' (FST cur_msg_edge))
-                          ) incoming_msg_edges
-                     )
-                     {val_map | FDOM val_map = adjacent_nodes fg org ∧
-                                (∀n. n ∈ adjacent_nodes fg org ⇒
-                                     LENGTH (val_map ' n) =
-                                     fg.variable_length_map ' n) ∧
-                                val_map ' dst = dst_val
-                         }
-               else
-                 λdst_val.
-                   ARB
+              (
+              λdst_val.
+                ∑ (λval_map.
+                     (fg.function_map ' org) ' val_map *
+                     ∏ (λcur_msg_edge.
+                          msgs ' cur_msg_edge '
+                               (val_map ' (FST cur_msg_edge))
+                       ) incoming_msg_edges
+                  )
+                  {val_map | FDOM val_map = adjacent_nodes fg org ∧
+                             (∀n. n ∈ adjacent_nodes fg org ⇒
+                                  LENGTH (val_map ' n) =
+                                  fg.variable_length_map ' n) ∧
+                             val_map ' dst = dst_val
+                         }                         
               ) (length_n_codes (fg.variable_length_map ' dst))
              )
       else
@@ -138,6 +134,16 @@ Definition sp_calculate_message_def:
               (length_n_codes (fg.variable_length_map ' org))
              )
 End
+
+Theorem sp_calculate_single_message0_respects:
+  (fgequiv ===> (=) ===> (=) ===> (=) ===> (=))
+  sp_calculate_single_message0 sp_calculate_single_message0
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef sp_calculate_single_message0_respects "sp_calculate_single_message";
 
 (* Theorem for showing equivalence of finite maps: fmap_EQ_THM.
    We also have fmap_EXT, which I think is better. *)
@@ -153,17 +159,27 @@ End
 (* Output: the map containing all messages that can be directly calculated    *)
 (*         from the messages that have been calculated so far.                *)
 (* -------------------------------------------------------------------------- *)
-Definition sp_calculate_messages_step_def:
-  sp_calculate_messages_step fg msgs =
+Definition sp_calculate_messages_step0_def:
+  sp_calculate_messages_step0 fg msgs =
   let
     calculated_messages =
-    FUN_FMAP (λ(org, dst). sp_calculate_message fg org dst msgs)
+    FUN_FMAP (λ(org, dst). sp_calculate_single_message0 fg org dst msgs)
              (message_domain fg);
     restricted_messages = RRESTRICT calculated_messages {SOME x | T};
   in
     (* Change from option type into the underlying message type *)
     FMAP_MAP2 (THE ∘ SND) restricted_messages
 End
+
+Theorem sp_calculate_messages_step0_respects:
+  (fgequiv ===> (=) ===> (=))
+  sp_calculate_messages_step0 sp_calculate_messages_step0 
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef sp_calculate_messages_step0_respects "sp_calculate_messages_step";
 
 (* -------------------------------------------------------------------------- *)
 (* Restricting a domain gives you a domain which is a subset of the initial   *)
@@ -195,9 +211,9 @@ Theorem factor_graphs_FDOM_FMAP[simp] = FDOM_FMAP;
 
 Theorem sp_calculate_messages_step_in_message_domain[simp]:
   ∀fg msg.
-    FDOM (sp_calculate_messages_step fg msg) ⊆ message_domain fg
+    FDOM (sp_calculate_messages_step0 fg msg) ⊆ message_domain fg
 Proof
-  rw[sp_calculate_messages_step_def]
+  rw[sp_calculate_messages_step0_def]
   >> irule FDOM_RRESTRICT_SUBSET_IMPLIES
   >> gvs[RRESTRICT_DEF]
 QED
@@ -219,10 +235,10 @@ Proof
   >> gvs[DRESTRICT_DEF]
 QED
 
-Theorem drestrict_sp_calculate_messages_step_drestrict[simp]:
+Theorem drestrict_sp_calculate_messages_step0_drestrict[simp]:
   ∀fg msgs.
-    DRESTRICT (sp_calculate_messages_step fg msgs) (message_domain fg) =
-    sp_calculate_messages_step fg msgs
+    DRESTRICT (sp_calculate_messages_step0 fg msgs) (message_domain fg) =
+    sp_calculate_messages_step0 fg msgs
 Proof
   metis_tac[FDOM_SUBSET_DRESTRICT, sp_calculate_messages_step_in_message_domain,
             FDOM_DRESTRICT, INTER_SUBSET]
@@ -347,7 +363,7 @@ QED
 
 Theorem fdom_sp_calculate_messages_step_in_message_domain:
   ∀msgs fg step_msg.
-    step_msg ∈ FDOM (sp_calculate_messages_step fg msgs) ⇒
+    step_msg ∈ FDOM (sp_calculate_messages_step0 fg msgs) ⇒
     step_msg ∈ message_domain fg
 Proof
   rw[]
@@ -386,10 +402,10 @@ QED
 (* this way, but that may be due to other differences in the definition       *)
 (* (although to be honest I'm not sure what that might have been)             *)
 (* -------------------------------------------------------------------------- *)
-Definition sp_calculate_messages_def:
-  sp_calculate_messages fg msgs =
+Definition sp_calculate_messages0_def:
+  sp_calculate_messages0 fg msgs =
   let
-    new_msgs = sp_calculate_messages_step fg msgs ⊌ msgs
+    new_msgs = sp_calculate_messages_step0 fg msgs ⊌ msgs
   in
     if FDOM new_msgs = FDOM msgs
     then
@@ -445,6 +461,16 @@ Termination
   >> qexists ‘x’
   >> gvs[FDOM_DRESTRICT]
 End
+
+Theorem sp_calculate_single_message0_respects:
+  (fgequiv ===> (=) ===> (=) ===> (=) ===> (=))
+  sp_calculate_single_message0 sp_calculate_single_message0
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef sp_calculate_single_message0_respects "sp_calculate_single_message";
 
 (* -------------------------------------------------------------------------- *)
 (* This overload is useful for my purposes, but it may overlap with the more  *)

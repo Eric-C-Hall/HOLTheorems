@@ -6,6 +6,10 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Not sure if I should be lifting factor graphs to an abstract type. See message passing script *)
+
+(* --- ALREADY DISCUSSED --- *)
+
 (* Want to apply the assumption as irule:
 
     ∀x. b1 x ⇔ b2 x ⇒ ((∀x. b1 x) ⇔ ∀x. b2 x)

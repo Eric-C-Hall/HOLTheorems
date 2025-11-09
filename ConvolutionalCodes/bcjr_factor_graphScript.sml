@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors factor_graph extreal prim_rec probability state_machine wf_state_machine binary_symmetric_channel recursive_parity_equations
+Ancestors binary_symmetric_channel extreal factor_graph map_decoder_convolutional_code message_passing prim_rec probability recursive_parity_equations state_machine wf_state_machine
 
 (* -------------------------------------------------------------------------- *)
 (* Main reference:"Modern Coding Theory" by Tom Richardson and Rüdiger        *)
@@ -226,13 +226,20 @@ End
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem rcc_factor_graph_compute:
-  rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p) =
-  
+  ∀n p ps qs ts prior ds_s ds_p.
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    m = 2 * n ⇒
+    sp_calculate_messages (rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p))
+                          FEMPTY
+    = map_decoder_bitwise
+      (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
+      n m p (ds_s ++ ds_p)
 Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Computing the factor graph                                                 *)
+(* Computing the factor graph can give us a                                   *)
 (*                                                                            *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
