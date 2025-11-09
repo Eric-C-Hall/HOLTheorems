@@ -106,29 +106,36 @@ Definition sp_calculate_message_def:
     if ¬(incoming_msg_edges ⊆ FDOM msgs) then
       NONE (* Incoming messages aren't available yet *)
     else
-      SOME (FUN_FMAP
-            (if org ∈ fg.function_nodes
-             then
-               (λdst_val.
-                  ∑ (λval_map.
-                       (fg.function_map ' org) val_map *
-                       ∏ (λcur_node.
-                            THE (msgs ' {cur_node; org}) ' (val_map ' cur_node))
-                         {cur_node | cur_node ∈ adjacent_nodes fg org }
-                    )
-                    {val_map | FDOM val_map = adjacent_nodes fg org ∧
-                               (∀n. n ∈ adjacent_nodes fg org ⇒
-                                    LENGTH (val_map ' n) =
-                                    fg.variable_length_map ' n) ∧
-                               val_map ' dst = dst_val
+      if org ∈ fg.function_nodes
+      then
+        SOME (FUN_FMAP
+              (if adjacent_nodes fg org ≠ ∅
+               then
+                 λdst_val.
+                   ∑ (λval_map.
+                        (fg.function_map ' org) val_map *
+                        ∏ (λcur_node.
+                             THE (msgs ' {cur_node; org}) ' (val_map ' cur_node))
+                          {cur_node | cur_node ∈ adjacent_nodes fg org }
+                     )
+                     {val_map | FDOM val_map = adjacent_nodes fg org ∧
+                                (∀n. n ∈ adjacent_nodes fg org ⇒
+                                     LENGTH (val_map ' n) =
+                                     fg.variable_length_map ' n) ∧
+                                val_map ' dst = dst_val
                          }
-               )
-             else
-               λdst_val.
-                 ∏ (λcur_node. msgs ' cur_node ' dst_val)
-                   adjacent_nodes_not_dst
-            ) (length_n_codes (fg.variable_length_map ' dst))
-           )
+               else
+                 λdst_val.
+                   ARB
+              ) (length_n_codes (fg.variable_length_map ' dst))
+             )
+      else
+        SOME (FUN_FMAP
+              (λorg_val.
+                 ∏ (λcur_node. msgs ' cur_node ' org_val)
+                   adjacent_nodes_not_dst)
+              (length_n_codes (fg.variable_length_map ' org))
+             )
 End
 
 (* Theorem for showing equivalence of finite maps: fmap_EQ_THM.
