@@ -112,7 +112,20 @@ For example, by default, I'm fairly sure gvs[] can't solve the following:
 
 (* cSimp: I think there's something like this or something *)
 
-Include the following: 
+Include the following:  (* Wait, what am I supposed to include? *)
+
+(* FUNPOW: apply a function repeatedly n times, in the world of HOL *)
+
+(* Q.AP_TERM: `LENGTH` (|- ls1 = ls2) = |- LENGTH ls1 = LENGTH ls2 *)
+
+Theorem jfsdf:
+  p ⇒ q
+Proof
+  strip_tac
+  >> ‘1 + 10 * 4 = 1 + 10 * 4n’ by simp[]
+  >> ‘_ = 1 + 40’ by simp[]
+  >> ‘_ = 41’
+QED
 
 val _ = export_theory();
 
