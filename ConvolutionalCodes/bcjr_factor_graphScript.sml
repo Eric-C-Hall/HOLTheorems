@@ -4,8 +4,6 @@ Theory bcjr_factor_graph
 
 Ancestors factor_graph extreal prim_rec probability state_machine wf_state_machine binary_symmetric_channel recursive_parity_equations
 
-(* TODO: fix after changes
-
 (* -------------------------------------------------------------------------- *)
 (* Main reference:"Modern Coding Theory" by Tom Richardson and Rüdiger        *)
 (* Urbanke.                                                                   *)
@@ -94,7 +92,9 @@ Definition rcc_factor_graph_add_func_nodes_input_sys_def:
     (rcc_factor_graph_add_func_nodes_input_sys n p (i + 1) prior ds_s)
     (fg_add_function_node
      {INR i}
-     (λbss. (EL i prior) * (if EL i ds_s ⇎ HD (HD bss) then p else 1 - p))
+     (λval_map.
+        (EL i prior) *
+        (if [EL i ds_s] ≠ val_map ' (INR i) then p else 1 - p))
      fg)
 Termination
   WF_REL_TAC ‘measure (λ(n,p,i,prior,ds_s,fg). n - i)’
@@ -119,7 +119,7 @@ Definition rcc_factor_graph_add_func_nodes_enc_def:
     (rcc_factor_graph_add_func_nodes_enc n p (i+1) ds_p)
     (fg_add_function_node
      {INR (n + 1 + i)}
-     (λbss. if ds_p ⇎ HD (HD bss) then p else 1 - p)
+     (λval_map. if [EL i ds_p] ≠ val_map ' (INR (n + 1 + i)) then p else 1 - p)
      fg)
 Termination
   WF_REL_TAC ‘measure (λ(n,p,i,ds_s,fg). n - i)’
@@ -142,11 +142,13 @@ Definition rcc_factor_graph_add_func_nodes_state_def:
     (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts (i + 1))
     (fg_add_function_node
      ({INR i; INR (n + 1 + i); INR (2*n + 1 + i); INR (2*n + 1 + i + 1)})
-     (λbss.
+     (λval_map.
         if encode_recursive_parity_equation_state
-           (ps,qs) (EL 2 bss) (EL 0 bss) = EL 3 bss
-           ∧ encode_recursive_parity_equation (ps,qs) (EL 2 bss) (EL 0 bss) =
-             EL 1 bss
+           (ps,qs) (val_map ' (INR (2*n + 1 + i))) (val_map ' (INR i)) =
+           (val_map ' (INR (2*n + 1 + i + 1)))
+           ∧ encode_recursive_parity_equation
+             (ps,qs) (val_map ' (INR (2*n + 1 + i))) (val_map ' (INR i)) =
+             val_map ' (INR (n + 1 + i))
         then
           1 : extreal
         else
@@ -217,4 +219,3 @@ Definition BCJR_decode_def:
   BCJR_decode m cs p = ARB
                        (* TODO_message_passing applied to factor graph *)                
 End
-*)
