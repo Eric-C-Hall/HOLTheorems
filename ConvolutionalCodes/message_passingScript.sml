@@ -133,7 +133,7 @@ Definition sp_calculate_message_def:
         SOME (FUN_FMAP
               (λorg_val.
                  ∏ (λcur_node. msgs ' cur_node ' org_val)
-                   adjacent_nodes_not_dst)
+                   incoming_msg_edges)
               (length_n_codes (fg.variable_length_map ' org))
              )
 End
