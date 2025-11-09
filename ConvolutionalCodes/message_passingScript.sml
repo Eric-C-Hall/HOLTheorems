@@ -472,8 +472,42 @@ QED
 
 val _ = liftdef sp_calculate_messages0_respects "sp_calculate_messages";
 
+(* -------------------------------------------------------------------------- *)
+(* Runs the message passing algorithm on a factor graph and returns a         *)
+(* finite map which takes a variable node and returns the final result of the *)
+(* message passing algorithm at that node.                                    *)
+(*                                                                            *)
+(* fg: The factor graph to apply the message passing algorithm to             *)
+(*                                                                            *)
+(* The output at a given node has type (bool list |-> α), just like a         *)
+(* message.                                                                   *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_run_message_passing0_def:
+  sp_run_message_passing0 fg =
+  let
+    msgs = sp_calculate_messages0 fg FEMPTY
+  in
+    FUN_FMAP
+    (λcur_var_node.
+       FUN_FMAP
+       (λcur_var_node_val.
+          ∏ (λcur_msg_edge. msgs ' cur_msg_edge ' cur_var_node_val : extreal)
+            {(adj_node, cur_var_node)
+          | adj_node ∈ adjacent_nodes fg cur_var_node}
+       ) (length_n_codes (fg.variable_length_map ' cur_var_node))
+    )
+    (var_nodes fg)
+End
 
+Theorem sp_run_message_passing0_respects:
+  (fgequiv ===> (=))
+  sp_run_message_passing0 sp_run_message_passing0
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
 
+val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
 (* -------------------------------------------------------------------------- *)
 (* This overload is useful for my purposes, but it may overlap with the more  *)
