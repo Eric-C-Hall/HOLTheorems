@@ -113,10 +113,11 @@ Definition sp_calculate_message_def:
                then
                  λdst_val.
                    ∑ (λval_map.
-                        (fg.function_map ' org) val_map *
+                        (fg.function_map ' org) ' val_map *
                         ∏ (λcur_msg_edge.
-                             THE (msgs ' cur_msg_edge) ' (val_map ' cur_node))
-                          incoming_msg_edges
+                             THE (msgs ' cur_msg_edge) '
+                                 (val_map ' (FST cur_msg_edge))
+                          ) incoming_msg_edges
                      )
                      {val_map | FDOM val_map = adjacent_nodes fg org ∧
                                 (∀n. n ∈ adjacent_nodes fg org ⇒
