@@ -72,6 +72,22 @@ Ancestors factor_graph extreal prim_rec probability state_machine wf_state_machi
 End*)
 
 (* -------------------------------------------------------------------------- *)
+(* Decode assuming transmission over a binary symmetric channel               *)
+(*                                                                            *)
+(* m: the state machine used to encode the message                            *)
+(* cs: the message to decode (bs represents the original message, and ds      *)
+(*     represents the decoded message)                                        *)
+(* p: the probability of an error when a bit is sent over the binary          *)
+(*    symmetric channel.                                                      *)
+(*                                                                            *)
+(* TODO: implement this                                                       *)
+(* -------------------------------------------------------------------------- *)
+(*Definition BCJR_decode_def:
+  BCJR_decode m cs p = ARB
+                       (* TODO_message_passing applied to factor graph *)                
+End*)
+
+(* -------------------------------------------------------------------------- *)
 (* Add the function nodes corresponding to the initial input probabilities    *)
 (* and errors in the systematic bits.                                         *)
 (*                                                                            *)
@@ -205,17 +221,20 @@ Definition rcc_factor_graph_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Decode assuming transmission over a binary symmetric channel               *)
 (*                                                                            *)
-(* m: the state machine used to encode the message                            *)
-(* cs: the message to decode (bs represents the original message, and ds      *)
-(*     represents the decoded message)                                        *)
-(* p: the probability of an error when a bit is sent over the binary          *)
-(*    symmetric channel.                                                      *)
 (*                                                                            *)
-(* TODO: implement this                                                       *)
+(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition BCJR_decode_def:
-  BCJR_decode m cs p = ARB
-                       (* TODO_message_passing applied to factor graph *)                
-End
+Theorem rcc_factor_graph_compute:
+  rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p) =
+  
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Computing the factor graph                                                 *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+
