@@ -472,6 +472,9 @@ QED
 
 val _ = liftdef sp_calculate_messages0_respects "sp_calculate_messages";
 
+
+
+
 (* -------------------------------------------------------------------------- *)
 (* This overload is useful for my purposes, but it may overlap with the more  *)
 (* general concept of "the set of all pairs of adjacent nodes" in a scenario  *)

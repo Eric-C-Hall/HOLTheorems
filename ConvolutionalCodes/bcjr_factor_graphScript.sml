@@ -9,7 +9,7 @@ Ancestors binary_symmetric_channel extreal factor_graph map_decoder_convolutiona
 (* Urbanke.                                                                   *)
 (* -------------------------------------------------------------------------- *)
 
-(* -------------------------------------------------------------------------- *)
+(* ------------------------------------------------------3-------------------- *)
 (* The factor graph corresponding to a state machine.                         *)
 (*                                                                            *)
 (* P(x_i | y) = Σ P(x,σ|y)                                                    *)
@@ -219,6 +219,31 @@ Definition rcc_factor_graph_def:
    ∘ (fg_add_n_variable_nodes n 1))
   fg_empty
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Given a received message ds, decode it to the most likely original message *)
+(*                                                                            *)
+(* p: the probability of error when a bit is sent over the noisy channel      *)
+(* (ps,qs): the numerator and denominator parity equations for the recursive  *)
+(*          convolutional code (lists of booleans)                            *)
+(* ts: the initial state for the recursive convolutional code                 *)
+(* ds: the received string to decode                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition rcc_bcjr_fg_decode_def:
+  rcc_bcjr_decode p (ps,qs) ts ds =
+  let
+    m = LENGTH ds;
+    n = m DIV 2;
+    ds_s = TAKE n ds;
+    ds_p = DROP n ds;
+    prior = REPLICATE n (1 / &n);
+    fg = rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p);
+    msgs = sp_calculate_messages fg FEMPTY;
+  in
+    
+    
+End
+
 
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
