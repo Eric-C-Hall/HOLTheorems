@@ -230,7 +230,7 @@ End
 (* ds: the received string to decode                                          *)
 (* -------------------------------------------------------------------------- *)
 Definition rcc_bcjr_fg_decode_def:
-  rcc_bcjr_decode p (ps,qs) ts ds =
+  rcc_bcjr_fg_decode p (ps,qs) ts ds =
   let
     m = LENGTH ds;
     n = m DIV 2;
@@ -238,10 +238,9 @@ Definition rcc_bcjr_fg_decode_def:
     ds_p = DROP n ds;
     prior = REPLICATE n (1 / &n);
     fg = rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p);
-    msgs = sp_calculate_messages fg FEMPTY;
+    result = sp_run_message_passing fg;
   in
-    
-    
+    MAP (λi. ARB (result ' (INR i) ' ARB) < ARB : extreal) (COUNT_LIST n)
 End
 
 
@@ -255,8 +254,7 @@ Theorem rcc_factor_graph_compute:
     0 < p ∧ p < 1 ∧
     LENGTH ds = m ∧
     m = 2 * n ⇒
-    sp_calculate_messages (rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p))
-                          FEMPTY
+    rcc_bcjr_fg_decode p (ps,qs) ts ds
     = map_decoder_bitwise
       (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
       n m p (ds_s ++ ds_p)
