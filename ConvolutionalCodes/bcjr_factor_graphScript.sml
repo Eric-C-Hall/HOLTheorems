@@ -134,11 +134,29 @@ Definition rcc_factor_graph_add_func_nodes_enc_def:
   else
     (rcc_factor_graph_add_func_nodes_enc n p (i+1) ds_p)
     (fg_add_function_node
-     {INR (n + 1 + i)}
-     (λval_map. if [EL i ds_p] ≠ val_map ' (INR (n + 1 + i)) then p else 1 - p)
+     {INR (n + i)}
+     (λval_map. if [EL i ds_p] ≠ val_map ' (INR (n + i)) then p else 1 - p)
      fg)
 Termination
   WF_REL_TAC ‘measure (λ(n,p,i,ds_s,fg). n - i)’
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Add the function node corresponding to the initial state. Probability 1    *)
+(* if the initial state takes the appropriate initial value, and probability  *)
+(* 0 otherwise.                                                               *)
+(*                                                                            *)
+(* n: length of input to recursive convolutional code                         *)
+(* ts: initial state of recursive convolutional code                          *)
+(* fg: factor graph                                                           *)
+(* -------------------------------------------------------------------------- *)
+Definition rcc_factor_graph_add_func_nodes_state_initial_def:
+  rcc_factor_graph_add_func_nodes_state_initial n ts fg =
+  fg_add_function_node ({INR (2 * n)})
+                       (λval_map.
+                          if val_map ' (INR (2 * n)) = ts then 1 else 0
+                       )
+                       fg
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -157,14 +175,14 @@ Definition rcc_factor_graph_add_func_nodes_state_def:
   else
     (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts (i + 1))
     (fg_add_function_node
-     ({INR i; INR (n + 1 + i); INR (2*n + 1 + i); INR (2*n + 1 + i + 1)})
+     ({INR i; INR (n + i); INR (2*n + i); INR (2*n + i + 1)})
      (λval_map.
         if encode_recursive_parity_equation_state
-           (ps,qs) (val_map ' (INR (2*n + 1 + i))) (val_map ' (INR i)) =
-           (val_map ' (INR (2*n + 1 + i + 1)))
+           (ps,qs) (val_map ' (INR (2*n + i))) (val_map ' (INR i)) =
+           (val_map ' (INR (2*n + i + 1)))
            ∧ encode_recursive_parity_equation
-             (ps,qs) (val_map ' (INR (2*n + 1 + i))) (val_map ' (INR i)) =
-             val_map ' (INR (n + 1 + i))
+             (ps,qs) (val_map ' (INR (2*n + i))) (val_map ' (INR i)) =
+             val_map ' (INR (n + i))
         then
           1 : extreal
         else
@@ -185,7 +203,7 @@ End
 (*                 #                 #                          #             *)
 (*                 |                 |                          |             *)
 (*                 o b_0             o b_1              b_{n-1} o             *)
-(* P(σ_0)  σ_0     |       σ_1       |       σ_2                |    σ_{n-1}  *)
+(* P(σ_0)  σ_0     |       σ_1       |       σ_2                |    σ_{n}    *)
 (*   # ---- o ---- # ------ o ------ # ------ o ------ ... ---- # ---- o      *)
 (*          P(cp_0,σ_1|       P(cp_1,σ_2|                P(cpn-1,σn|          *)
 (*                 b_0,σ_0)         b_1,σ_1)                   bn-1,σn-1)     *)
@@ -196,22 +214,25 @@ End
 (*            P(dp_0|cp_0)        P(cp_1|b_1)             P(cp_{n-1}|b_{n-1})  *)
 (*                                                                            *)
 (*                                                                            *)
-(* The n variable nodes relating to the inputs b_i have labels 0 through n    *)
+(* The n variable nodes relating to the inputs b_i have labels 0 through n-1  *)
 (* The n variable nodes relating to the encoded inputs cp_i have labels       *)
-(*   n + 1 through 2n                                                         *)
-(* The (n + 1) variable nodes relating to the states σ_i have labels 2n + 1   *)
-(*   through 3n + 1                                                           *)
+(*   n through 2n-1                                                           *)
+(* The (n + 1) variable nodes relating to the states σ_i have labels 2n       *)
+(*   through 3n                                                               *)
 (*                                                                            *)
-(* The n function nodes relating to the probability of c_i given b_i have     *)
-(*   labels 3n + 2 through 4n + 1                                             *)
-(* The n function nodes relating to the probability of cp_i given b_i have *)
-(*   labels 4n + 2 through 5n + 1                                             *)
-(* The n + 1 function nodes relating to the probability of the next state and *)
-(*   output given the current state have labels 5n + 2 through 6n + 2         *)
+(* The n function nodes relating to the probability of d_i given b_i have     *)
+(*   labels 3n + 1 through 4n                                                 *)
+(* The n function nodes relating to the probability of dp_i given cp_i have   *)
+(*   labels 4n + 1 through 5n                                                 *)
+(* The 1 function node which gives us the probability of the initial state    *)
+(*   has the label 5n + 1.                                                    *)
+(* The n function nodes relating to the probability of the next state and     *)
+(*   output given the current state have labels 5n + 2 through 6n + 1         *)
 (* -------------------------------------------------------------------------- *)
 Definition rcc_factor_graph_def:
   rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p) =
   ((rcc_factor_graph_add_func_nodes_state n (ps,qs) ts 0)
+   ∘ (rcc_factor_graph_add_func_nodes_state_initial n ts)
    ∘ (rcc_factor_graph_add_func_nodes_enc n p 0 ds_p)
    ∘ (rcc_factor_graph_add_func_nodes_input_sys n p 0 prior ds_s)
    ∘ (fg_add_n_variable_nodes (n + 1) (LENGTH ts))
