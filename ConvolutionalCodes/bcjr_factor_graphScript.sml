@@ -282,13 +282,35 @@ Theorem rcc_factor_graph_compute:
       n m p ds
 Proof
   rpt strip_tac
+  (* Definition of factor graph decode *)
   >> gvs[rcc_bcjr_fg_decode_def]
+  (* Use form of MAP decoder which is closest to the factor graph definition *)
   >> gvs[map_decoder_bitwise_encode_recursive_parity_equation_with_systematic]
-  >> gvs[MAP_EQ_f]
-  >> qx_gen_tac ‘i’
-  >> disch_tac
-  >> gvs[MEM_COUNT_LIST]
-  >> gvs[rcc_first_assum
+  (* We need to prove each individual decoded bit is identical *)
+  >> gvs[MAP_EQ_f] >> qx_gen_tac ‘i’
+  (* Simplify new assumption  *)
+  >> disch_tac >> gvs[MEM_COUNT_LIST]
+  (* The argmax bools are equal if they are equal to each other up to a
+     multiplicative constant *)
+  >> irule argmax_bool_mul_const
+  (* In this case, the constant is simply 1. *)
+  >> qexists ‘1’ >> gvs[]
+  (* Prove that the function we are argmaxing over is the same for each choice
+     of boolean b. *)
+  >> gvs[FUN_EQ_THM] >> qx_gen_tac ‘b’
+  (* *)
+  >> gvs[rcc_factor_graph_def]
+  (* Use the fact that running the message passing algorithm on a factor
+     graph returns the sum of the product of the terms *)
+  >> gvs[sp_run_message_passing_def,
+         sp_run_message_passing0_def]
+  >>
+  (* Rewrite the terms in the sum of products to match the terms in the other
+     sum of products *)
+  >> 
+  (* Reorder the terms in the sum of products to match the other sum
+            of products *)
+  >> gvs[AC mul_comm mul_assoc]
 QED
 
 (* -------------------------------------------------------------------------- *)

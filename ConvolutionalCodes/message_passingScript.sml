@@ -507,6 +507,16 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* The message passing algorithm will give us the same result as summing over *)
+(* the product of the terms in the factor graph                               *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem sdflkj:
+  fsgdklj
+Proof
+QED
+
 val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
 (* -------------------------------------------------------------------------- *)
