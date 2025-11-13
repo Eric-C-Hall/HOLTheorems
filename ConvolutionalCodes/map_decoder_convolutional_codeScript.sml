@@ -2172,57 +2172,58 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:
   ∀ps qs ts n m p ds.
-    let
-      enc = encode_recursive_parity_equation_with_systematic (ps, qs) ts;
-    in
-      0 < p ∧ p < 1 ∧
-      LENGTH ds = m ∧
-      m = 2 * n ⇒
-      map_decoder_bitwise enc n m p ds =
-      MAP (λi.
-             argmax_bool
-             (λx. ∑ (λbs, σs, cs_p.
-                       (∏ (λj. prob (ecc_bsc_prob_space n m p)
-                                    (event_input_bit_takes_value
-                                     n m j (EL j bs)
-                                    )
-                          ) (count n) *
-                        prob (ecc_bsc_prob_space n m p)
-                             (event_state_takes_value
-                              n m (ps,qs) ts 0 (EL 0 σs)
-                             ) *
-                        ∏ (λj. cond_prob (ecc_bsc_prob_space n m p)
-                                         (event_state_takes_value
-                                          n m (ps,qs) ts (j + 1)
-                                          (EL (j + 1) σs)
-                                         )
-                                         (event_state_takes_value
-                                          n m (ps,qs) ts j (EL j σs) ∩
-                                          event_input_bit_takes_value
-                                          n m j (EL j bs)
-                                         )
-                          ) (count n) *
-                        ∏ (λj. cond_prob (ecc_bsc_prob_space n m p)
-                                         (event_srcc_parity_bit_takes_value
-                                          (ps,qs) n m ts j (EL j cs_p))
-                                         (event_state_takes_value
-                                          n m (ps,qs) ts j (EL j σs) ∩
-                                          event_input_bit_takes_value
-                                          n m j (EL j bs))
-                          ) (count n)
-                       ) *
-                       (∏ (λj.
-                             cond_prob (ecc_bsc_prob_space n m p)
-                                       (event_received_bit_takes_value
-                                        enc n m j (EL j ds))
-                                       (event_sent_bit_takes_value
-                                        enc n m j (EL j (enc bs)))
-                          )
-                          (count m)
-                       )
-                    ) (mdr_summed_out_values_2 n ts i x)
-             )
-          ) (COUNT_LIST n)
+    0 < p ∧ p < 1 ∧
+    LENGTH ds = m ∧
+    m = 2 * n ⇒
+    map_decoder_bitwise
+    (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
+    n m p ds =
+    MAP (λi.
+           argmax_bool
+           (λx. ∑ (λbs, σs, cs_p.
+                     (∏ (λj. prob (ecc_bsc_prob_space n m p)
+                                  (event_input_bit_takes_value
+                                   n m j (EL j bs)
+                                  )
+                        ) (count n) *
+                      prob (ecc_bsc_prob_space n m p)
+                           (event_state_takes_value
+                            n m (ps,qs) ts 0 (EL 0 σs)
+                           ) *
+                      ∏ (λj. cond_prob (ecc_bsc_prob_space n m p)
+                                       (event_state_takes_value
+                                        n m (ps,qs) ts (j + 1)
+                                        (EL (j + 1) σs)
+                                       )
+                                       (event_state_takes_value
+                                        n m (ps,qs) ts j (EL j σs) ∩
+                                        event_input_bit_takes_value
+                                        n m j (EL j bs)
+                                       )
+                        ) (count n) *
+                      ∏ (λj. cond_prob (ecc_bsc_prob_space n m p)
+                                       (event_srcc_parity_bit_takes_value
+                                        (ps,qs) n m ts j (EL j cs_p))
+                                       (event_state_takes_value
+                                        n m (ps,qs) ts j (EL j σs) ∩
+                                        event_input_bit_takes_value
+                                        n m j (EL j bs))
+                        ) (count n)
+                     ) *
+                     (∏ (λj.
+                           cond_prob (ecc_bsc_prob_space n m p)
+                                     (event_received_bit_takes_value
+                                      (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
+                                      n m j (EL j ds))
+                                     (event_sent_bit_takes_value
+                                      (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
+                                      n m j (EL j ((encode_recursive_parity_equation_with_systematic (ps, qs) ts) bs)))
+                        )
+                        (count m)
+                     )
+                  ) (mdr_summed_out_values_2 n ts i x)
+           )
+        ) (COUNT_LIST n)
 Proof
   (* ------------------------------------------------------------------------ *)
   (* Focus on proving that the inside of the argmax on the LHS is equal to    *)

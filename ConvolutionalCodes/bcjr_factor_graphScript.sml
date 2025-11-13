@@ -2,7 +2,9 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel extreal factor_graph map_decoder_convolutional_code message_passing prim_rec probability recursive_parity_equations state_machine wf_state_machine
+Ancestors binary_symmetric_channel extreal factor_graph map_decoder_convolutional_code message_passing list rich_list prim_rec probability recursive_parity_equations state_machine wf_state_machine
+
+Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
 (* -------------------------------------------------------------------------- *)
 (* Main reference:"Modern Coding Theory" by Tom Richardson and Rüdiger        *)
@@ -264,22 +266,29 @@ Definition rcc_bcjr_fg_decode_def:
     MAP (λi. result ' (INR i) ' [F] < result ' (INR i) ' [T]) (COUNT_LIST n)
 End
 
-
 (* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
+(* The BCJR decoding process is equal to the expression for the MAP decoder   *)
+(* given by                                                                   *)
+(* map_decoder_bitwise_encode_recursive_parity_equation_with_systematic       *)
 (* -------------------------------------------------------------------------- *)
 Theorem rcc_factor_graph_compute:
-  ∀n p ps qs ts prior ds_s ds_p.
+  ∀n m p ps qs ts prior ds.
     0 < p ∧ p < 1 ∧
     LENGTH ds = m ∧
     m = 2 * n ⇒
     rcc_bcjr_fg_decode p (ps,qs) ts ds
     = map_decoder_bitwise
       (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
-      n m p (ds_s ++ ds_p)
+      n m p ds
 Proof
+  rpt strip_tac
+  >> gvs[rcc_bcjr_fg_decode_def]
+  >> gvs[map_decoder_bitwise_encode_recursive_parity_equation_with_systematic]
+  >> gvs[MAP_EQ_f]
+  >> qx_gen_tac ‘i’
+  >> disch_tac
+  >> gvs[MEM_COUNT_LIST]
+  >>
 QED
 
 (* -------------------------------------------------------------------------- *)
