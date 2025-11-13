@@ -263,7 +263,7 @@ Definition rcc_bcjr_fg_decode_def:
     fg = rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p);
     result = sp_run_message_passing fg;
   in
-    MAP (λi. result ' (INR i) ' [F] < result ' (INR i) ' [T]) (COUNT_LIST n)
+    MAP (λi. argmax_bool (λb. result ' (INR i) ' [b])) (COUNT_LIST n)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -288,7 +288,7 @@ Proof
   >> qx_gen_tac ‘i’
   >> disch_tac
   >> gvs[MEM_COUNT_LIST]
-  >>
+  >> gvs[rcc_first_assum
 QED
 
 (* -------------------------------------------------------------------------- *)
