@@ -519,7 +519,11 @@ Theorem sp_run_message_passing0_sum_prod:
     FUN_FMAP
     (λcur_var_node.
        FUN_FMAP
-       (λns. ∑ ARB ARB : extreal)
+       (λas.
+          ∑ (λfoo.
+               ∏ (λf. f ' foo)
+                 {f | f, n | f = fg.function_map ' n}
+            ) {foo | ARB})
        (length_n_codes (fg.variable_length_map ' cur_var_node))
     ) (var_nodes fg)
 Proof

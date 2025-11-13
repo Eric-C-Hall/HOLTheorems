@@ -1,6 +1,6 @@
 Theory fundamental
 
-Ancestors arithmetic bitstring pair pred_set probability extreal real rich_list sigma_algebra lebesgue list martingale measure topology
+Ancestors arithmetic bitstring pair pred_set probability extreal finite_map real rich_list sigma_algebra lebesgue list martingale measure topology
 
 Libs extreal_to_realLib donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
 
@@ -78,4 +78,19 @@ Theorem IMAGE_CHANGE_FUN:
 Proof
   rpt strip_tac
   >> ASM_SET_TAC[]
+QED
+
+Theorem FUN_FMAP_EQ_THM:
+  ∀f g S.
+    FINITE S ⇒
+    (FUN_FMAP f S = FUN_FMAP g S ⇔ (∀x. x ∈ S ⇒ f x = g x))
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac
+  >- (qpat_x_assum ‘FUN_FMAP f S' = FUN_FMAP g S'’ (fn th => assume_tac (Q.AP_TERM ‘λf. f ' x’ th)) >> gvs[]
+      >> gvs[FUN_FMAP_DEF]
+     )
+  >> irule (iffLR fmap_EQ_THM)
+  >> rpt strip_tac >> gvs[]
+  >> gvs[FUN_FMAP_DEF]
 QED
