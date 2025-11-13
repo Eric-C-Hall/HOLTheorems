@@ -510,8 +510,34 @@ QED
 val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
 (* -------------------------------------------------------------------------- *)
+(* Provides a statement for sp_run_message_passing0_sum_prod which is         *)
+(* inductive                                                                  *)
+(*                                                                            *)
+(* We want to prove that a message arriving at a variable node is the sum of  *)
+(* products of all function nodes in that branch of the tree.                 *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* In the base case: the message sent away from a single variable node is     *)
+(* the product of                                                             *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem sp_run_message_passing0_sum_prod_helper[local]
+                                               ∀fg.
+                                                 
+Proof
+QED
+
+
+(* -------------------------------------------------------------------------- *)
 (* The message passing algorithm will give us the same result as summing over *)
 (* the product of the terms in the factor graph.                              *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)

@@ -6,6 +6,8 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Is there pre-existing code for trees? Induction on trees? *)
+
 (* How do I use multiset comprehensions? The documentation says that multisets are represented by α -> num instead of α -> bool, where the num defines the multiplicity. In the multiset comprehension {_ || _ || _}, will it automatically take care of multiplicity for me if I use a function to bool in the last part? *)
 
 (* Not sure if I should be lifting factor graphs to an abstract type. See message passing script *)
