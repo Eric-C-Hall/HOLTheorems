@@ -507,17 +507,25 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
+val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
+
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm will give us the same result as summing over *)
 (* the product of the terms in the factor graph                               *)
-(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem sdflkj:
-  fsgdklj
+Theorem sp_run_message_passing0_sum_prod:
+  ∀fg.
+    sp_run_message_passing0 fg =
+    FUN_FMAP
+    (λcur_var_node.
+       FUN_FMAP
+       (λns. ∑ ARB ARB : extreal)
+       (length_n_codes (fg.variable_length_map ' cur_var_node))
+    ) (var_nodes fg)
 Proof
+  qx_gen_tac ‘fg’
+  >> gvs[sp_run_message_passing0_def]
 QED
-
-val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
 (* -------------------------------------------------------------------------- *)
 (* This overload is useful for my purposes, but it may overlap with the more  *)
