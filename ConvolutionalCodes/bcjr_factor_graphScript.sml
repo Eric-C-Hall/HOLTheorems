@@ -261,7 +261,7 @@ Definition rcc_bcjr_fg_decode_def:
     fg = rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p);
     result = sp_run_message_passing fg;
   in
-    MAP (λi. ARB (result ' (INR i) ' ARB) < ARB : extreal) (COUNT_LIST n)
+    MAP (λi. result ' (INR i) ' [F] < result ' (INR i) ' [T]) (COUNT_LIST n)
 End
 
 
