@@ -522,12 +522,17 @@ Theorem sp_run_message_passing0_sum_prod:
     FUN_FMAP
     (λcur_var_node.
        FUN_FMAP
-       (λas.
-          ∑ (λfoo.
-               ∏ (λf. f ' foo)
-                 {f | f, n | f = fg.function_map ' n}
-            ) {foo | ARB})
-       (length_n_codes (fg.variable_length_map ' cur_var_node))
+       (λcur_var_node_val.
+          ∑ (λval_map.
+               ∏ (λ(f,n). f ' (DRESTRICT val_map (adjacent_nodes fg n)))
+                 { (f,n) | f = fg.function_map ' n}
+            ) {val_map | FDOM val_map = var_nodes fg ∧
+                         (∀n. n ∈ var_nodes fg ⇒
+                              LENGTH (val_map ' n) =
+                              fg.variable_length_map ' n) ∧
+                         val_map ' cur_var_node = cur_var_node_val
+                         }
+       ) (length_n_codes (fg.variable_length_map ' cur_var_node))
     ) (var_nodes fg)
 Proof
   (* Expand the definition of running the message passing algorithm *)
