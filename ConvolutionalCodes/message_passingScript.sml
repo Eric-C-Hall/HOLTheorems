@@ -1,6 +1,6 @@
 Theory message_passing
 
-Ancestors arithmetic bool probability fsgraph genericGraph pred_set finite_map list transc prim_rec integer factor_graph partite_ea hyperbolic_functions lifting transfer
+Ancestors arithmetic bool probability fsgraph fundamental genericGraph pred_set finite_map list transc prim_rec integer factor_graph partite_ea hyperbolic_functions lifting transfer
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
@@ -511,7 +511,10 @@ val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm will give us the same result as summing over *)
-(* the product of the terms in the factor graph                               *)
+(* the product of the terms in the factor graph.                              *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem sp_run_message_passing0_sum_prod:
   ∀fg.
@@ -527,8 +530,21 @@ Theorem sp_run_message_passing0_sum_prod:
        (length_n_codes (fg.variable_length_map ' cur_var_node))
     ) (var_nodes fg)
 Proof
+  (* Expand the definition of running the message passing algorithm *)
   qx_gen_tac ‘fg’
   >> gvs[sp_run_message_passing0_def]
+  (* The creation of a finite map is boilerplate, and it is the same on both
+     sides. We only really care that the actual function is equivalent on its
+     domain. Use FUN_FMAP_EQ_THM to break it down so that we have to show that.
+   *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_EQ_THM]
+  >> conj_tac >- gvs[]
+  >> rpt strip_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_EQ_THM]
+  >> conj_tac >- gvs[]
+  >> rpt strip_tac
+  (* *)
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)
