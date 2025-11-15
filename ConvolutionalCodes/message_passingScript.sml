@@ -533,31 +533,28 @@ Theorem sp_calculate_messages0_sum_prod:
     FUN_FMAP
     (λdir_edge.
        let
-         cur_var_node = if FST dir_edge ∈ var_nodes fg
+         cur_var_node = if SND dir_edge ∈ var_nodes fg
                         then
-                          FST dir_edge
+                          SND dir_edge
                         else
-                          SND dir_edge;
-         cur_subtree = TODO_SUBTREE fg (SND dir_edge) (FST dir_edge);
+                          FST dir_edge;
+         cur_subtree = subtree fg.underlying_graph (SND dir_edge) (FST dir_edge);
        in
          FUN_FMAP
          (λcur_var_node_val.
-            ∑ (λvar_assignment.
-                 ∏ (λfunction.
-                      apply_function_to_appropriate_var_assignment)
-                   all_functions_in_cur_tree
-              ) {val_map | FDOM val_map = var_nodes (current_portion_of_tree) ∧
+            ∑ (λval_map.
+                 ∏ (λfunc_node. (fg.function_map ' func_node)
+                                ' (DRESTRICT val_map
+                                             (adjacent_nodes fg cur_var_node)))
+                   (fg.function_nodes ∩ nodes cur_subtree)
+              ) {val_map | FDOM val_map = (var_nodes fg ∩ nodes cur_subtree) ∧
                            (∀n. n ∈ FDOM val_map ⇒
                                 LENGTH (val_map ' n) =
                                 fg.variable_length_map ' n) ∧
                            val_map ' cur_var_node = cur_var_node_val
-                         })
-         (length_n_codes
-          (fg.variable_length_map ' (cur_var_node)
-          )
-         )
-    )
-    (message_domain fg)
+                         }
+         ) (length_n_codes (fg.variable_length_map ' (cur_var_node)))
+    ) (message_domain fg)
 Proof
   rpt strip_tac
   >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
