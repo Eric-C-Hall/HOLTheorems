@@ -1,6 +1,6 @@
 Theory message_passing
 
-Ancestors arithmetic bool probability fsgraph fundamental genericGraph pred_set finite_map list transc prim_rec integer factor_graph partite_ea hyperbolic_functions lifting transfer
+Ancestors arithmetic bool factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec transc transfer tree
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 

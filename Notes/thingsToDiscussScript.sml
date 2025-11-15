@@ -6,6 +6,10 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* matchingScript is reaching the stack limit for gvs. Perhaps it could be
+   made faster very easily by reducing the stack limit for that file or the
+   slow proofs? How would one do that? *)
+
 (* Is there pre-existing code for trees? Induction on trees? *)
 
 (* How do I use multiset comprehensions? The documentation says that multisets are represented by α -> num instead of α -> bool, where the num defines the multiplicity. In the multiset comprehension {_ || _ || _}, will it automatically take care of multiplicity for me if I use a function to bool in the last part? *)
