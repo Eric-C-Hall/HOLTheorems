@@ -510,25 +510,60 @@ QED
 val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
 (* -------------------------------------------------------------------------- *)
-(* Provides a statement for sp_run_message_passing0_sum_prod which is         *)
-(* inductive                                                                  *)
+(* A message arriving at a variable node is the sum of products of all        *)
+(* function nodes in that branch of the tree. Similarly, a message arriving   *)
+(* at a function node is the sum of products of all function nodes in that    *)
+(* branch of the tree.                                                        *)
 (*                                                                            *)
-(* We want to prove that a message arriving at a variable node is the sum of  *)
-(* products of all function nodes in that branch of the tree.                 *)
+(* We can work by induction to prove this. In the base case, we have a leaf   *)
+(* node, and want to prove that our proposition holds. In the inductive step, *)
+(* we have a set of child trees for which the proposition holds, and want to  *)
+(* prove that it holds for the new tree consisting of the parent node and all *)
+(* its child nodes.                                                           *)
 (*                                                                            *)
+(* In particular, our proposition is that the                                 *)
 (*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* In the base case: the message sent away from a single variable node is     *)
-(* the product of                                                             *)
+(* In the base case: if we have a variable node, then the product of all      *)
+(* child functions will be 1                                                  *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem sp_run_message_passing0_sum_prod_helper[local]
-                                               ∀fg.
-                                                 
+Theorem sp_calculate_messages0_sum_prod:
+  ∀fg.
+    sp_calculate_messages0 fg FEMPTY =
+    FUN_FMAP
+    (λdir_edge.
+       let
+         cur_var_node = if FST dir_edge ∈ var_nodes fg
+                        then
+                          FST dir_edge
+                        else
+                          SND dir_edge;
+         cur_subtree = TODO_SUBTREE fg (SND dir_edge) (FST dir_edge);
+       in
+         FUN_FMAP
+         (λcur_var_node_val.
+            ∑ (λvar_assignment.
+                 ∏ (λfunction.
+                      apply_function_to_appropriate_var_assignment)
+                   all_functions_in_cur_tree
+              ) {val_map | FDOM val_map = var_nodes (current_portion_of_tree) ∧
+                           (∀n. n ∈ FDOM val_map ⇒
+                                LENGTH (val_map ' n) =
+                                fg.variable_length_map ' n) ∧
+                           val_map ' cur_var_node = cur_var_node_val
+                         })
+         (length_n_codes
+          (fg.variable_length_map ' (cur_var_node)
+          )
+         )
+    )
+    (message_domain fg)
 Proof
+  rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
+  >> 
+  
+  cheat
 QED
 
 
