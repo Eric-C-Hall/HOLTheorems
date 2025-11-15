@@ -94,3 +94,17 @@ Proof
   >> rpt strip_tac >> gvs[]
   >> gvs[FUN_FMAP_DEF]
 QED
+
+Theorem fmap_EQ_THM_ALT:
+  ∀f g.
+    f = g ⇔ (∀x. x ∈ FDOM f ⇔ x ∈ FDOM g ∧ (x ∈ FDOM f ⇒ f ' x = g ' x))
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (rpt strip_tac >> gvs[GSYM fmap_EQ_THM])
+  >> rpt strip_tac
+  >> gvs[GSYM fmap_EQ_THM]
+  >> gvs[EXTENSION]
+  >> metis_tac[]
+QED
+

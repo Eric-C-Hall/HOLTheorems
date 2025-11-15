@@ -557,10 +557,13 @@ Theorem sp_calculate_messages0_sum_prod:
     ) (message_domain fg)
 Proof
   rpt strip_tac
-  >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
+  >> gvs[GSYM fmap_EQ_THM]
+  >> conj_tac
+  >- (cheat
+     )
+  >> gvs[FUN_EQ_THM]
+  >> qx_gen_tac ‘msg_dir_edge’
   >> 
-  
-  cheat
 QED
 
 
