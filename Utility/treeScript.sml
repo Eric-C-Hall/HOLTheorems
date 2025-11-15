@@ -58,7 +58,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition is_ancestor_def:
   is_ancestor g root anc desc ⇔
-    (∃i. ith_parent g root i desc = anc)
+    (∃i. ith_parent g root desc i = anc)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -74,13 +74,18 @@ End
 (* Only valid if our initial graph is a tree.                                 *)
 (* -------------------------------------------------------------------------- *)
 Definition subtree_def:
-  subtree g root n = fsgAddEdges
-                     ({add_edge | add_edge ∈ edges g ∧
-                                  (∀edge_node. edge_node ∈ add_edge ⇒
-                                               is_ancestor g root edge_node )})
-                     (fsgAddNodes
-                      ({add_node | is_ancestor g root n add_node })
-                      emptyG
-                     )
+  subtree (g : fsgraph) root n = fsgAddEdges
+                                 ({add_edge | add_edge ∈ fsgedges g ∧
+                                              (∀edge_node. edge_node ∈ add_edge ⇒
+                                                           is_ancestor g root n edge_node )})
+                                 (fsgAddNodes
+                                  ({add_node | is_ancestor g root n add_node})
+                                  emptyG
+                                 )
 End
+
+
+
+
+
 
