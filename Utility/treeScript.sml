@@ -13,13 +13,14 @@ Definition is_tree_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* Gets the path between two nodes in a tree.                                 *)
+(* Chooses a path between two nodes in a graph.                               *)
 (*                                                                            *)
-(* Because we have a tree, a path always exists and it is unique, so the      *)
-(* choice function always returns the same value.                             *)
+(* This is more useful in the case of a tree, because in a tree, a path       *)
+(* always exists and it is unique, so the choice function always returns the  *)
+(* same value.                                                                *)
 (* -------------------------------------------------------------------------- *)
-Definition get_path_in_tree_def:
-  get_path_in_tree g org dest = (@vs. path g vs ∧ HD vs = org ∧ LAST vs = dest)
+Definition get_path_def:
+  get_path g org dest = (@vs. path g vs ∧ HD vs = org ∧ LAST vs = dest)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -39,7 +40,7 @@ End
 (*          have a specific output, e.g. the root, in this case)              *)
 (* -------------------------------------------------------------------------- *)
 Definition ith_parent_def:
-  ith_parent g root n i = EL i (get_path_in_tree g n root)
+  ith_parent g root n i = EL i (get_path g n root)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -84,6 +85,43 @@ Definition subtree_def:
                                  )
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Returns the distance between two nodes in a graph                          *)
+(* -------------------------------------------------------------------------- *)
+Definition distance_def:
+  distance (g : fsgraph) v1 v2 = MAX_SET (IMAGE LENGTH {vs | path g vs ∧
+                                                             HD vs = v1 ∧
+                                                             LAST vs = v2})
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns the diameter of a graph                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition diameter_def:
+  diameter (g : fsgraph) = MAX_SET (IMAGE (UNCURRY (distance g))
+                                          {(v1,v2) | v1 ∈ nodes g ∧
+                                                     v2 ∈ nodes g}
+                                   )
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns the eccentricity of a node in a graph.                             *)
+(* -------------------------------------------------------------------------- *)
+Definition eccentricity_def:
+  eccentricity (g : fsgraph) n = MAX_SET (IMAGE (distance g n) (nodes g))
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Might it be a good idea to update the message passing in order to take an  *)
+(* input as a tree, which might make it easier to use induction?              *)
+(*                                                                            *)
+(* Might it be a good idea to have a tree datatype that is easier to induct   *)
+(* on?                                                                        *)
+(*                                                                            *)
+(* Might it be a good idea to have a definition which converts between the    *)
+(* fsgraph type, good for general graphs, and the tree type, good for         *)
+(* induction and tree-specific operations?                                    *)
+(* -------------------------------------------------------------------------- *)
 
 
 
