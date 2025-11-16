@@ -14,8 +14,8 @@ Libs dep_rewrite;
    to calculate the value of each message by recursively referring to the
    values of the previous messages. *)
 
-(* I'm not entirely sure how to define an inductive relation. Especially in
-   terms of the message passing algorithm.
+(* I'm not entirely confident in using inductive definitions. I think they
+   might be useful in the message passing algorithm. *)
 
 (* Induction in the message passing algorithm is kinda interesting. In a
    typical induction over a tree, we would do induction starting at the leaves

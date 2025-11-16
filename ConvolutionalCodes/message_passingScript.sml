@@ -516,6 +516,47 @@ QED
 
 val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
+(* -------------------------------------------------------------------------- *)
+(* Calculate the message according to the message passing algorithm over the  *)
+(* factor graph.                                                              *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* To ensure termination, this is only defined if the factor graph we are     *)
+(* working on is a tree                                                       *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_message_def:
+  sp_message fg src dst =
+  if is_tree fg.underlying_graph
+  then
+    if src ∈ fg.function_nodes
+    then
+      FUN_FMAP
+      (λdst_val.
+         ∑ (λval_map.
+              fg.function_map ' src ' val_map *
+              ∏ (λprev.
+                   sp_message fg prev src '
+                              (val_map ' prev))
+                {prev | prev ∈ adjacent_nodes fg src ∧
+                        prev ≠ dst})
+           {val_map | FDOM val_map = adjacent_nodes fg src ∧
+                      (∀n. n ∈ adjacent_nodes fg src ⇒
+                           LENGTH (val_map ' n) =
+                           fg.variable_length_map ' n) ∧
+                      val_map ' dst = dst_val}
+      ) (length_n_codes (fg.variable_length_map ' dst))
+    else
+      ARB
+  else
+    ARB : bool list |-> extreal
+Termination
+  cheat
+End
+
+sp_calculate_single_message0_def 
+
+
 Theorem fdom_sp_calculate_messages0_subset[local]:
   ∀msgs fg.
     FDOM (sp_calculate_messages0 fg msgs) ⊆ message_domain fg
