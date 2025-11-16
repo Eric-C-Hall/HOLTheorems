@@ -1,8 +1,8 @@
 Theory fundamental
 
-Ancestors arithmetic bitstring pair pred_set probability extreal finite_map real rich_list sigma_algebra lebesgue list martingale measure topology
+Ancestors arithmetic bitstring pair pred_set probability extreal finite_map fsgraph genericGraph real rich_list sigma_algebra lebesgue list martingale measure topology
 
-Libs extreal_to_realLib donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
+Libs donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
 
 (* -------------------------------------------------------------------------- *)
 (* TAKE-ing can only decrease lengths                                         *)
@@ -114,4 +114,14 @@ Theorem FDOM_DRESTRICT_SUBSET[simp]:
 Proof
   rpt strip_tac
   >> gvs[FDOM_DRESTRICT]
+QED
+
+(* Similar to CARD_PSUBSET *)
+Theorem order_psubset:
+  ∀g1 : fsgraph g2 : fsgraph.
+    nodes g1 ⊂ nodes g2 ⇒ order g1 < order g2
+Proof
+  rpt strip_tac
+  >> gvs[gsize_def]
+  >> gvs[CARD_PSUBSET]
 QED

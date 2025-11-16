@@ -520,8 +520,6 @@ val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 (* Calculate the message according to the message passing algorithm over the  *)
 (* factor graph.                                                              *)
 (*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
 (* To ensure termination, this only returns a sensible result if the factor   *)
 (* graph we are working on is a tree. If it is not a tree, we return the map  *)
 (* which always returns 0.                                                    *)
@@ -538,9 +536,9 @@ Definition sp_message_def:
               fg.function_map ' src ' val_map *
               ∏ (λprev.
                    sp_message fg prev src '
-                              (val_map ' prev))
-                {prev | prev ∈ adjacent_nodes fg src ∧
-                        prev ≠ dst})
+                              (val_map ' prev)
+                ) {prev | prev ∈ adjacent_nodes fg src ∧
+                          prev ≠ dst})
            {val_map | FDOM val_map = adjacent_nodes fg src ∧
                       (∀n. n ∈ adjacent_nodes fg src ⇒
                            LENGTH (val_map ' n) =
@@ -558,12 +556,33 @@ Definition sp_message_def:
     FUN_FMAP
     (λdst_val. 0 : extreal)
     (length_n_codes (fg.variable_length_map ' dst))
-Termination
-  cheat
 End
+Termination
+  (* At a leaf node, the subtree prior to our message is empty. At each step
+     forward, the order of the subtree prior to our message increases by at
+     least one (possibly more because the other branch may be deeper). Thus, we
+     can use the 
 
-sp_calculate_single_message0_def 
+As we step backwards through our computation, the subtree that from which
+     we have collected our messages gets smalleris used to
+  *)
+  WF_REL_TAC ‘measure (λ(fg, src, dst).
+                         order (subtree fg.underlying_graph dst src))’
+  >> rpt strip_tac
+  >> (pop_assum kall_tac
+      >> qmatch_abbrev_tac ‘order prev_tree < order new_tree’
+      >> ‘nodes prev_tree ⊂ nodes new_tree’
+      >- (gvs[order_def]
+         )
+     )
+      >> rpt strip_tac
+      >- (
+       )
 
+         (diameter (subtree fg dst src))
+         
+         cheat
+End
 
 Theorem fdom_sp_calculate_messages0_subset[local]:
   ∀msgs fg.
