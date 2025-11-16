@@ -6,6 +6,30 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* I rewrote the message passing algorithm in order to define the messages
+   being passed individually and recursively based on the prior messages,
+   rather than emulating the process that is being performed when calculating
+   the messages. Previously, I would store a map of all messages that have
+   been calculated to their value. But I realised that I actually just needed
+   to calculate the value of each message by recursively referring to the
+   values of the previous messages. *)
+
+(* I'm not entirely sure how to define an inductive relation. Especially in
+   terms of the message passing algorithm.
+
+(* Induction in the message passing algorithm is kinda interesting. In a
+   typical induction over a tree, we would do induction starting at the leaves
+   of the tree, and go up to the top of the tree. In message passing induction,
+   we essentially induct over all possible subtrees in the tree at once. No
+   individual node is considered the root. So not only do we send messages up
+   to any given "root", we also send messages down the tree. *)
+
+(* I have defined sp_calculate_messages0 and proven that it always terminates.
+   Can I induct on the recursive calls of this function? Some property holds on
+   termination, therefore the property holds 1 call before termination,
+   therefore the property holds 2 calls before termination, etc. I think I
+   remember there being something along the lines of inductive definitions? *)
+
 (* matchingScript is reaching the stack limit for gvs. Perhaps it could be
    made faster very easily by reducing the stack limit for that file or the
    slow proofs? How would one do that? *)
