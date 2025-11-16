@@ -522,8 +522,9 @@ val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 (*                                                                            *)
 (*                                                                            *)
 (*                                                                            *)
-(* To ensure termination, this is only defined if the factor graph we are     *)
-(* working on is a tree                                                       *)
+(* To ensure termination, this only returns a sensible result if the factor   *)
+(* graph we are working on is a tree. If it is not a tree, we return the map  *)
+(* which always returns 0.                                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition sp_message_def:
   sp_message fg src dst =
@@ -547,9 +548,16 @@ Definition sp_message_def:
                       val_map ' dst = dst_val}
       ) (length_n_codes (fg.variable_length_map ' dst))
     else
-      ARB
+      FUN_FMAP
+      (λsrc_val.
+         ∏ (λprev. sp_message fg prev src ' src_val)
+           {prev | prev ∈ adjacent_nodes fg src ∧
+                   prev ≠ dst})
+      (length_n_codes (fg.variable_length_map ' src))
   else
-    ARB : bool list |-> extreal
+    FUN_FMAP
+    (λdst_val. 0 : extreal)
+    (length_n_codes (fg.variable_length_map ' dst))
 Termination
   cheat
 End
