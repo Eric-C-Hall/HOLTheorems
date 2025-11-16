@@ -209,7 +209,7 @@ QED
 
 Theorem factor_graphs_FDOM_FMAP[simp] = FDOM_FMAP;
 
-Theorem sp_calculate_messages_step_in_message_domain[simp]:
+Theorem fdom_sp_calculate_messages_step_subset_message_domain[simp]:
   ∀fg msg.
     FDOM (sp_calculate_messages_step0 fg msg) ⊆ message_domain fg
 Proof
@@ -240,7 +240,7 @@ Theorem drestrict_sp_calculate_messages_step0_drestrict[simp]:
     DRESTRICT (sp_calculate_messages_step0 fg msgs) (message_domain fg) =
     sp_calculate_messages_step0 fg msgs
 Proof
-  metis_tac[FDOM_SUBSET_DRESTRICT, sp_calculate_messages_step_in_message_domain,
+  metis_tac[FDOM_SUBSET_DRESTRICT, fdom_sp_calculate_messages_step_subset_message_domain,
             FDOM_DRESTRICT, INTER_SUBSET]
 QED
 
@@ -368,8 +368,18 @@ Theorem fdom_sp_calculate_messages_step_in_message_domain:
 Proof
   rw[]
   >> qspecl_then [‘fg’, ‘msgs’] assume_tac
-                 sp_calculate_messages_step_in_message_domain
+                 fdom_sp_calculate_messages_step_subset_message_domain
   >> ASM_SET_TAC[]
+QED
+
+Theorem drestrict_sp_calculate_messages_step0_message_domain[simp]:
+  ∀fg msgs.
+    DRESTRICT (sp_calculate_messages_step0 fg msgs) (message_domain fg) =
+    sp_calculate_messages_step0 fg msgs
+Proof
+  rpt strip_tac
+  >> irule FDOM_SUBSET_DRESTRICT
+  >> gvs[fdom_sp_calculate_messages_step_subset_message_domain]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -382,12 +392,6 @@ QED
 (*                                                                            *)
 (* Output: all messages on the factor graph as calculated by the sum-product  *)
 (*         algorithm                                                          *)
-(*                                                                            *)
-(* We usually expect that msgs is of the form                                 *)
-(* FUNPOW (sp_calculate_messages_step fg) n FEMPTY, for some n.               *)
-(*                                                                            *)
-(* A strictly weaker assumption that is also expected is that msgs is a       *)
-(* subset of message_domain fg                                                *)
 (*                                                                            *)
 (* Note: I tried removing the FUNION, but this interferes with termination.   *)
 (* Consider a factor graph consisting of a single loop of nodes, where a      *)
@@ -405,13 +409,15 @@ QED
 Definition sp_calculate_messages0_def:
   sp_calculate_messages0 fg msgs =
   let
-    new_msgs = sp_calculate_messages_step0 fg msgs ⊌ msgs
+    restricted_msgs = DRESTRICT msgs (message_domain fg);
+    new_msgs = sp_calculate_messages_step0 fg restricted_msgs ⊌ restricted_msgs;
   in
     if FDOM new_msgs = FDOM msgs
     then
-      msgs
+      new_msgs
     else
       sp_calculate_messages0 fg (new_msgs)
+End
 Termination
   (* We expect that at least one message will be added in each step. The number
      of possible messages is limited above by the (finite) number of pairs of
@@ -509,6 +515,19 @@ QED
 
 val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
+Theorem sp_calculate_messages0_fdom[simp]:
+  ∀msgs fg.
+    FDOM (sp_calculate_messages0 fg msgs) = message_domain fg
+Proof
+  rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
+  >> gvs[]
+  >> rw[]
+  >- cheat
+
+  
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A message arriving at a variable node is the sum of products of all        *)
 (* function nodes in that branch of the tree. Similarly, a message arriving   *)
@@ -556,13 +575,19 @@ Theorem sp_calculate_messages0_sum_prod:
          ) (length_n_codes (fg.variable_length_map ' (cur_var_node)))
     ) (message_domain fg)
 Proof
+  (* Want to prove equivalence for all choices of edge on fg.*)
+  
   rpt strip_tac
+  >> qmatch_abbrev_tac ‘f = g’
   >> gvs[GSYM fmap_EQ_THM]
   >> conj_tac
-  >- (cheat
+  >- (unabbrev_all_tac
+      >> gvs[]
      )
-  >> gvs[FUN_EQ_THM]
+  >> gvs[fmap_EQ_THM_ALT]
   >> qx_gen_tac ‘msg_dir_edge’
+
+  >> unabbrev_all_tac >> gvs[]
   >> 
 QED
 
