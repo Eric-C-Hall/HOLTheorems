@@ -516,17 +516,43 @@ QED
 
 val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
-Theorem sp_calculate_messages0_fdom[simp]:
+Theorem fdom_sp_calculate_messages0_subset[local]:
+  ∀msgs fg.
+    FDOM (sp_calculate_messages0 fg msgs) ⊆ message_domain fg
+Proof
+  rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
+  >> rw[]
+  >- (pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> gvs[UNION_SUBSET]
+     )
+  >> gvs[EXTENSION]
+  >> Cases_on ‘x ∈ FDOM msgs’ >> gvs[]
+QED
+
+
+Theorem fdom_sp_calculate_messages0[simp]:
   ∀msgs fg.
     FDOM (sp_calculate_messages0 fg msgs) = message_domain fg
 Proof
   rpt strip_tac
-  >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
-  >> gvs[]
-  >> rw[]
-  >- cheat
+  >> PURE_REWRITE_TAC[EXTENSION]
+  >> qx_gen_tac ‘dir_edge’
+  >> EQ_TAC
+  >- (PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
+      >> gvs[]
+      >> rw[]
 
-  
+
+
+      
+      >> gvs[]
+      >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
+      >> gvs[]
+      >> rw[]
+      >- cheat
+
+         
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -591,7 +617,6 @@ Proof
   >> unabbrev_all_tac >> gvs[]
   >> 
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm will give us the same result as summing over *)
