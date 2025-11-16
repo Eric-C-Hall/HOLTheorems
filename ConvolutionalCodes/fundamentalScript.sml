@@ -108,3 +108,10 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem FDOM_DRESTRICT_SUBSET[simp]:
+  ∀f S.
+    FDOM (DRESTRICT f S) ⊆ S
+Proof
+  rpt strip_tac
+  >> gvs[FDOM_DRESTRICT]
+QED

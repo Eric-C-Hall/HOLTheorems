@@ -417,13 +417,11 @@ Definition sp_calculate_messages0_def:
       new_msgs
     else
       sp_calculate_messages0 fg (new_msgs)
-End
 Termination
   (* We expect that at least one message will be added in each step. The number
      of possible messages is limited above by the (finite) number of pairs of
      nodes in the (finite) factor graph. Thus, this process will eventually end
-     and we will terminate. We ignore any messages that happen to be in msgs
-     but are not in message_domain fg.
+     and we will terminate.
 .
      Thus, we expect CARD (message_domain fg) - CARD (FDOM msgs) to decrease
      by at least 1 in each step. We use this as the basis for our termination
@@ -431,41 +429,44 @@ Termination
 .    
      In practice, adding 1 to this value simplifies the proof process.
 .
-     Similarly, we have to take care of the special case in which the set of
-     msgs is not 
+     If there are messages outside the valid message_domain, then they will be
+     removed in the first call to this function. This may reduce the number of
+     messages, but it will only happen on the first call. Thus, in this case,
+     we treat it as though we have less than 0 messages, in order to ensure
+     that the number of messages is always increasing
 .     
      We use prim_recTheory.measure to turn our termination measure into a
      well-founded relation.
    *)
   WF_REL_TAC ‘measure (λ(fg, msgs).
-                         (CARD (message_domain fg) + 1) -
-                         CARD (FDOM (DRESTRICT msgs (message_domain fg)))
+                         (CARD (message_domain fg) + 2) -
+                         (if FDOM msgs ⊆ message_domain fg
+                          then
+                            CARD (FDOM msgs) + 1
+                          else 0
+                         )
                       )’
-  >> REVERSE $ rw[]
-  >- (gvs[GSYM SUB_LESS_0]
-      >> gvs[GSYM LE_LT1]
-      >> gvs[CARD_FDOM_DRESTRICT_LEQ]
+  >> REVERSE (rpt strip_tac)
+  >- (rw[]
+      >> ‘CARD (FDOM msgs) ≤ CARD (message_domain fg)’ suffices_by simp[]
+      >> simp[CARD_SUBSET]
      )
-  >> qmatch_goalsub_abbrev_tac ‘const < new_num_messages + (const - old_num_messages)’
-  >> sg ‘old_num_messages ≤ const’
-  >- (unabbrev_all_tac
-      >> gvs[FDOM_DRESTRICT]
-      >> metis_tac[CARD_INTER_LESS_EQ, LE, ADD1, INTER_COMM,
-                   finite_message_domain]
-     )
-  >> gvs[]
-  >> qsuff_tac ‘old_num_messages < new_num_messages’
+  >> qmatch_goalsub_abbrev_tac ‘const < new_val + (const - old_val)’
+  >> qsuff_tac ‘old_val < new_val’
   >- gvs[]
-  >> pop_assum kall_tac
   >> unabbrev_all_tac
+  >> gvs[]
+  >> rw[]
   >> irule CARD_PSUBSET
   >> gvs[]
   >> gvs[PSUBSET_MEMBER]
-  >> gvs[DRESTRICTED_FUNION_ALT]
+  >> gvs[FDOM_SUBSET_DRESTRICT]
   >> gvs[EXTENSION]
-  >> Cases_on ‘x ∈ FDOM msgs’ >> gvs[]
+  >> Cases_on ‘x ∈ FDOM msgs’
+  >- gvs[]
+  >> gvs[]
   >> qexists ‘x’
-  >> gvs[FDOM_DRESTRICT]
+  >> gvs[]
 End
 
 Theorem sp_calculate_messages0_respects:
