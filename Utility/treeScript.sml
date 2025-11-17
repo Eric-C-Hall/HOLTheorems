@@ -1,6 +1,6 @@
 Theory tree
 
-Ancestors extreal pred_set fsgraph fundamental
+Ancestors extreal list pred_set fsgraph fundamental genericGraph
 
 Libs dep_rewrite;
 
@@ -121,6 +121,50 @@ Definition eccentricity_def:
   eccentricity (g : fsgraph) n = MAX_SET (IMAGE (distance g n) (nodes g))
 End
 
+Theorem walk_empty_not[simp]:
+  ∀g.
+    ¬walk g []
+Proof
+  gvs[walk_def]
+QED
+
+Theorem walk_cons:
+  ∀g v vs.
+    walk g (v::vs) ⇔ (walk g vs ∧ adjacent g v (HD vs) ∨
+                      vs = [] ∧ v ∈ nodes g)
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (Cases_on ‘vs’ >> gvs[]
+      >> rw[] >> gvs[walk_def]
+      >> conj_tac
+      >- metis_tac[]
+      >> rw[]
+      >> gvs[adjacent_rules]
+     )
+  >> rw[] >> gvs[walk_def]
+  >> conj_tac
+  >- (REVERSE $ rpt strip_tac
+      >- simp[]
+      >> gvs[]
+      >> metis_tac[adjacent_members]
+     )
+  >> rpt strip_tac
+  >> namedCases_on ‘vs’ ["", "v' vs"] >> gvs[]
+  >> gvs[adjacent_iff]
+QED
+
+Theorem path_cons:
+  ∀g v vs.
+    path g (v::vs) ⇔ (path g vs ∧ adjacent g v (HD vs) ∧ ¬MEM v vs ∨
+                      vs = [] ∧ v ∈ nodes g)
+Proof
+  rpt strip_tac
+  >> gvs[path_def]
+  >> gvs[walk_cons]
+  >> EQ_TAC >> rw[] >> gvs[]
+QED
+
 Theorem tree_get_path_unique:
   ∀g a b vs.
     is_tree g ∧
@@ -129,6 +173,19 @@ Theorem tree_get_path_unique:
     LAST vs = b ⇒
     get_path g a b = vs
 Proof
+  Induct_on ‘vs’
+  >- gvs[path_def, walk_def]
+  >> rpt strip_tac
+  >> last_x_assum $ qspecl_then [‘g’, ‘HD vs’, ‘b’] assume_tac
+  >> gvs[]
+  >> gvs[path_def]
+         
+  >> gvs[]
+        
+        rpt strip_tac
+  >>
+
+  
   rw[]
 QED
 
