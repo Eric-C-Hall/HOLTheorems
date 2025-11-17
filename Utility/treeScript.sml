@@ -2,7 +2,7 @@ Theory tree
 
 Ancestors extreal fsgraph fundamental genericGraph list pred_set rich_list
 
-Libs dep_rewrite;
+Libs dep_rewrite ConseqConv;
 
 (* -------------------------------------------------------------------------- *)
 (* True iff g is a tree.                                                      *)
@@ -123,9 +123,16 @@ End
 
 Theorem walk_empty_not[simp]:
   ∀g.
-    ¬walk g []
+    walk g [] ⇔ F
 Proof
   gvs[walk_def]
+QED
+
+Theorem path_empty_not[simp]:
+  ∀g.
+    path g [] ⇔ F
+Proof
+  gvs[path_def]
 QED
 
 Theorem walk_cons:
@@ -167,7 +174,7 @@ QED
 
 Theorem not_all_distinct_last[simp]:
   ∀v vs.
-    ¬ALL_DISTINCT (LAST (v::vs)::(v::vs))
+    ALL_DISTINCT (LAST (v::vs)::(v::vs)) ⇔ F
 Proof
   rpt strip_tac
   >> gvs[]
@@ -176,12 +183,31 @@ QED
 
 Theorem not_path_last[simp]:
   ∀g v vs.
-    ¬path g ((LAST (v::vs))::(v::vs))
+    path g ((LAST (v::vs))::(v::vs)) ⇔ F
 Proof
   rpt strip_tac
   >> gvs[path_def, Excl "ALL_DISTINCT"]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* A path in a tree between two nodes is unique.                              *)
+(*                                                                            *)
+(* Suppose, by way of contradiction, we had two paths                         *)
+(*                                                                            *)
+(* Since each path starts at the same location but the paths are not          *)
+(* identical, there must be an index i at which EL i vs1 = EL i vs2 but we    *)
+(* don't have EL (i + 1) vs1 = EL (i + 1) vs2.                                *)
+(*                                                                            *)
+(* Choose the next index j after i + 1 at which EL j vs1 = EL j vs2 but we    *)
+(* don't have EL (j - 1) vs1 = EL (j - 1) vs2. This must exist because the    *)
+(* goal is identical for each path.                                           *)
+(*                                                                            *)
+(* Then taking vs1 from i to j followed by taking vs2 from j to i will        *)
+(* provide a cycle in our graph.                                              *)
+(*                                                                            *)
+(* This contradicts the fact that we have a tree, because a tree has no       *)
+(* cycles                                                                     *)
+(* -------------------------------------------------------------------------- *)
 Theorem tree_path_unique:
   ∀g a b vs1 vs2.
     is_tree g ∧
@@ -193,14 +219,82 @@ Theorem tree_path_unique:
     LAST vs2 = b ⇒
     vs1 = vs2
 Proof
-  (* Induct on vs1 and break down vs2 correspondingly *)
-  Induct_on ‘vs1’ >> rpt strip_tac
-  >- gvs[path_def, walk_def]
-  >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
-  >- gvs[path_def, walk_def]
-  (* Specialise to appropriate inductive hypothesis *)
-  >> last_x_assum $ qspecl_then [‘g’, ‘vs2'’] assume_tac
-  >> gvs[]
+  rpt strip_tac
+  (* The special case where our start and goal nodes are identical has to be
+     considered separately, otherwise there is no point at which the paths
+     diverge. *)
+  >> Cases_on ‘a = b’
+  >- (gvs[]
+      >> Cases_on ‘vs1’ >> Cases_on ‘vs2’ >> gvs[]
+      >> Cases_on ‘t’ >> Cases_on ‘t'’ >> gvs[]
+     )
+  (* Prove that there is a point at which the paths diverge *)
+  >> sg ‘∃i. EL i vs1 = EL i vs2 ∧ EL (i + 1) vs1 ≠ EL (i + 1) vs2’
+  >- (rpt $ pop_assum mp_tac
+      (* Induct over each list *)
+      >> SPEC_ALL_TAC
+      >> Induct_on ‘vs1’ >> gvs[]
+      >> rpt strip_tac
+      >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+      (* Apply the inductive hypothesis to the appropriate values *)
+      >> last_x_assum $ qspecl_then [‘g’, ‘vs2'’] assume_tac
+      (* Split up the statement about how the new path v::vs1 is a path into a
+         statement about how the smaller path vs1 is a path, in order to apply
+         the inductive hypothesis *)
+      >> gvs[path_cons]
+      (* Split up the statement about how the last element of the new path
+        v::vs1 is the last element of the path v::vs2' into a statement about
+        the last elements of the smaller paths, so that we may satisfy that
+        condition of the inductive hypothesis. We need to check that vs1 and
+        vs2' are not the empty set in order to do this. *)
+      >> gvs[LAST_DEF]
+      >> namedCases_on ‘vs1’ ["", "v vs1"] >> gvs[]
+      >> namedCases_on ‘vs2'’ ["", "v' vs2"] >> gvs[]
+      (* If the second elements are nonequal, then we can choose this as our
+         choice of i. Otherwise, we have satisfied another condition of the
+         inductive hypothesis. *)
+      >> REVERSE $ Cases_on ‘v' = v''’
+      >- (qexists ‘0’ >> gvs[])
+      >> gvs[]
+      (* Consider the case where *)
+      >> Cases_on ‘v' = LAST (v'::vs1')’
+      >- (namedCases_on ‘vs1'’ ["", "v vs1"] >> gvs[]
+          >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+          >> gvs[path_def]
+         )
+            
+
+      >> gvs[]
+      >> Cases_on ‘t’ >> Cases_on ‘vs1’ >> gvs[]
+      >>
+
+
+      >> Cases_on ‘HD vs1 ≠ HD t’
+      >- (qexists ‘0’ >> gvs[])
+         
+     )
+     
+
+     
+     rpt strip_tac
+  >> gvs[LIST_EQ_REWRITE]
+  (* Since vs1 ≠ vs2, there exists a point at which they differ *)
+  >> sg ‘∃v. MEM v vs1 ∧ ¬MEM v vs2 ∨ MEM v vs2 ∧ ¬MEM v vs1’
+  >- (CCONTR_TAC
+      >> gvs[]
+     )
+
+
+
+
+     (* Induct on vs1 and break down vs2 correspondingly *)
+     Induct_on ‘vs1’ >> rpt strip_tac
+      >- gvs[path_def, walk_def]
+      >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+      >- gvs[path_def, walk_def]
+      (* Specialise to appropriate inductive hypothesis *)
+      >> last_x_assum $ qspecl_then [‘g’, ‘vs2'’] assume_tac
+      >> gvs[]
   (* - If vs1 and vs2' are empty, then we are immediately at our goal.
      - If one of them is empty and the other is nonempty, the precondition for
        our inductive hypothesis fails, so we have to treat this as a special
@@ -221,7 +315,7 @@ Proof
   >> 
 
   
-     
+  
   (* *)
   >> pop_assum irule
   >> Cases_on ‘vs1’ >> gvs[]
