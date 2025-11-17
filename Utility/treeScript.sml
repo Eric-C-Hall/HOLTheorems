@@ -1,6 +1,6 @@
 Theory tree
 
-Ancestors extreal list pred_set fsgraph fundamental genericGraph
+Ancestors extreal fsgraph fundamental genericGraph list pred_set rich_list
 
 Libs dep_rewrite;
 
@@ -130,8 +130,8 @@ QED
 
 Theorem walk_cons:
   ∀g v vs.
-    walk g (v::vs) ⇔ (walk g vs ∧ adjacent g v (HD vs) ∨
-                      vs = [] ∧ v ∈ nodes g)
+    walk g (v::vs) ⇔ (vs = [] ∧ v ∈ nodes g ∨
+                      walk g vs ∧ adjacent g v (HD vs))
 Proof
   rpt strip_tac
   >> EQ_TAC
@@ -156,13 +156,125 @@ QED
 
 Theorem path_cons:
   ∀g v vs.
-    path g (v::vs) ⇔ (path g vs ∧ adjacent g v (HD vs) ∧ ¬MEM v vs ∨
-                      vs = [] ∧ v ∈ nodes g)
+    path g (v::vs) ⇔ (vs = [] ∧ v ∈ nodes g ∨
+                      path g vs ∧ adjacent g v (HD vs) ∧ ¬MEM v vs)
 Proof
   rpt strip_tac
   >> gvs[path_def]
   >> gvs[walk_cons]
   >> EQ_TAC >> rw[] >> gvs[]
+QED
+
+Theorem not_all_distinct_last[simp]:
+  ∀v vs.
+    ¬ALL_DISTINCT (LAST (v::vs)::(v::vs))
+Proof
+  rpt strip_tac
+  >> gvs[]
+  >> metis_tac[MEM_LAST, MEM]
+QED
+
+Theorem not_path_last[simp]:
+  ∀g v vs.
+    ¬path g ((LAST (v::vs))::(v::vs))
+Proof
+  rpt strip_tac
+  >> gvs[path_def, Excl "ALL_DISTINCT"]
+QED
+
+Theorem tree_path_unique:
+  ∀g a b vs1 vs2.
+    is_tree g ∧
+    path g vs1 ∧
+    HD vs1 = a ∧
+    LAST vs1 = b ∧
+    path g vs2 ∧
+    HD vs2 = a ∧
+    LAST vs2 = b ⇒
+    vs1 = vs2
+Proof
+  (* Induct on vs1 and break down vs2 correspondingly *)
+  Induct_on ‘vs1’ >> rpt strip_tac
+  >- gvs[path_def, walk_def]
+  >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+  >- gvs[path_def, walk_def]
+  (* Specialise to appropriate inductive hypothesis *)
+  >> last_x_assum $ qspecl_then [‘g’, ‘vs2'’] assume_tac
+  >> gvs[]
+  (* - If vs1 and vs2' are empty, then we are immediately at our goal.
+     - If one of them is empty and the other is nonempty, the precondition for
+       our inductive hypothesis fails, so we have to treat this as a special
+       case. In this case, we contradict LAST (a::vs2') = LAST (a::vs1), since
+       in a path, all nodes must be distinct.
+     - If both are nonempty, the inducive hypothesis succeeds at proving our
+       statement *)
+  >> Cases_on ‘vs1 = [] ∧ vs2' = []’ >- gvs[]
+  >> Cases_on ‘vs1 = [] ∧ vs2' ≠ [] ∨ vs1 ≠ [] ∧ vs2' = []’
+  >- (gvs[]
+      >- (Cases_on ‘vs2'’ >> gvs[])
+      >> Cases_on ‘vs1’ >> gvs[]
+     )
+  >> gvs[]
+  >> last_x_assum irule
+  >> gvs[path_cons]
+  >> gvs[LAST_DEF]
+  >> 
+
+  
+     
+  (* *)
+  >> pop_assum irule
+  >> Cases_on ‘vs1’ >> gvs[]
+  >- (Cases_on ‘vs2'’ >> gvs[]
+      >> gvs[path_def]
+     )
+
+
+     
+  (* Cases on whether the inductive hypothesis is applicable*)
+  >> qmatch_asmsub_abbrev_tac ‘b ⇒ _’
+  >> Cases_on ‘b’ >> gvs[Excl "AND_CLAUSES", Excl "lift_disj_eq"]
+
+
+                        
+  (* *)
+  >> gvs[Once path_cons]
+  >- (
+  )
+     
+  (* *)
+  >> Cases_on ‘vs1’ >> gvs[]
+               >- (Cases_on ‘vs2'’ >> gvs[]
+                   >> pop_assum kall_tac
+                   >> gvs[path_def]
+                  )
+               (* *)
+               >> Cases_on ‘path g vs1’ >> gvs[]
+               >> gvs[path_cons]
+               >> Cases_on ‘vs1’ >> gvs[]
+
+                                       
+               (* In the case where the inductive hypothesis is applicable, the theorem is
+     trivial. We now need prove that *)
+               >> pop_assum mp_tac >> gvs[]
+               >> rw[]
+                    
+
+
+                    
+               >> Cases_on ‘path g vs1 ∧ ’
+               >> gvs[LAST_DEF]
+
+
+                     
+          >> Cases_on ‘vs2'’ >> gvs[]
+          >> Cases_on ‘vs1’ >> gvs[]
+          >> gvs[]
+                
+          >> last_x_assum $ qspecl_then [‘g’, ‘HD vs1’, ‘b’, ‘’] assume_tac
+                          
+                          rpt strip_tac
+          >> 
 QED
 
 Theorem tree_get_path_unique:
@@ -178,7 +290,9 @@ Proof
   >> rpt strip_tac
   >> last_x_assum $ qspecl_then [‘g’, ‘HD vs’, ‘b’] assume_tac
   >> gvs[]
-  >> gvs[path_def]
+  >> gvs[path_cons]
+  >- (gvs[get_path_def]
+     )
          
   >> gvs[]
         
