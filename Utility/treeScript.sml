@@ -190,69 +190,6 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* If two paths are not identical but they start at the same point, then      *)
-(* there is an index at which the paths diverge                               *)
-(* -------------------------------------------------------------------------- *)
-Theorem paths_diverge:
-  ∀vs1 vs2.
-    2 ≤ LENGTH vs1 ∧
-    2 ≤ LENGTH vs2 ∧
-    vs1 ≠ vs2 ∧
-    HD vs1 = HD vs2 ⇒
-    ∃i. EL i vs1 = EL i vs2 ∧ EL (i + 1) vs1 ≠ EL (i + 1) vs2
-Proof
-  (* Induct on the first path, and break down the second path correspondingly *)
-  Induct_on ‘vs1’ >> gvs[]
-  >> rpt strip_tac
-  >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
-  (* Apply the inductive hypothesis to the appropriate values *)
-  >> last_x_assum $ qspecl_then [‘vs2'’] assume_tac
-  (* Split up vs1 and vs2 further, as is possible by the assumption on the
-     lengths of these sequences. *)
-  >> namedCases_on ‘vs1’ ["", "v vs1"] >> gvs[]
-  >> namedCases_on ‘vs2'’ ["", "v vs2"] >> gvs[]
-  (* *)
-  >> REVERSE $ Cases_on ‘2 ≤ SUC (LENGTH vs2)’
-  >- (gvs[]
-      >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
-      >> namedCases_on ‘vs1'’ ["", "v vs1"] >> gvs[]
-      >- (qexists ‘0’ >> gvs[])
-      >> CCONTR_TAC >> gvs[]
-     )
-
-  (* *)
-  >> REVERSE $ Cases_on ‘2 ≤ SUC (LENGTH vs1')’
-  >- (gvs[]
-      >> namedCases_on ‘vs1'’ ["", "v vs1"] >> gvs[]
-      >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
-      >- (qexists ‘0’ >> gvs[])
-      >> CCONTR_TAC >> gvs[]
-     )
-                                              
-  >> qexists ‘0’ >> gvs[]
-                       
-  (* If the second elements are nonequal, then we can choose this as our
-         choice of i. Otherwise, we have satisfied another condition of the
-         inductive hypothesis. *)
-  >> REVERSE $ Cases_on ‘v' = v''’
-  >- (qexists ‘0’ >> gvs[])
-  >> gvs[]
-  (* Prove the last condition of the inductive hypothesis *)
-    >> Cases_on ‘v' = LAST (v'::vs1')’
-    >- (namedCases_on ‘vs1'’ ["", "v vs1"] >> gvs[]
-        >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
-       )
-    >> gvs[]
-     (* Simplify EL (i + 1) (_::_) *)
-     >> gvs[GSYM ADD1]
-     (* If the inductive hypothesis holds by choosing i, then the next step
-         holds by choosing i + 1 *)
-     >> qexists ‘i + 1’
-     (* Simplify EL (i + 1) (_::_) *)
-     >> gvs[GSYM ADD1]
-QED
-
-(* -------------------------------------------------------------------------- *)
 (* A path in a tree between two nodes is unique.                              *)
 (*                                                                            *)
 (* Suppose, by way of contradiction, we had two paths                         *)
