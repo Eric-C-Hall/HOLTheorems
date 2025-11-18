@@ -125,3 +125,101 @@ Proof
   >> gvs[gsize_def]
   >> gvs[CARD_PSUBSET]
 QED
+
+Theorem ALL_DISTINCT_PREFIX:
+  ∀ls1 ls2.
+    ls1 ≼ ls2 ∧
+    ALL_DISTINCT ls2 ⇒
+    ALL_DISTINCT ls1
+Proof
+  rpt strip_tac
+  >> metis_tac[ALL_DISTINCT_TAKE, IS_PREFIX_EQ_TAKE']
+QED
+
+Theorem prefix_mem:
+  ∀vs1 vs2 v.
+    vs1 ≼ vs2 ∧
+    MEM v vs1 ⇒
+    MEM v vs2
+Proof
+  Induct_on ‘vs1’ >> gvs[]
+  >> rpt gen_tac
+  >> disch_tac
+  >> Cases_on ‘vs2’ >> gvs[]
+QED
+
+Theorem adjacent_prefix:
+  ∀vs1 vs2 v1 v2.
+    vs1 ≼ vs2 ∧
+    adjacent vs1 v1 v2 ⇒
+    adjacent vs2 v1 v2
+Proof
+  Induct_on ‘vs2’ >> gvs[] >> rpt strip_tac
+  >> namedCases_on ‘vs1’ ["", "v vs1"] >> gvs[]
+  >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+  >> gvs[adjacent_iff]
+  >> Cases_on ‘h = v1 ∧ v = v2’ >> gvs[]
+  >> disj2_tac
+  >> last_x_assum irule
+  >> qexists ‘vs1'’
+  >> gvs[]
+  >> namedCases_on ‘vs1'’ ["", "v vs1"] >> gvs[]
+  >> gvs[adjacent_iff]
+QED
+
+Theorem walk_subwalk_prefix:
+  ∀g vs1 vs2.
+    vs1 ≠ [] ∧
+    vs1 ≼ vs2 ∧
+    walk g vs2 ⇒
+    walk g vs1
+Proof
+  rpt strip_tac
+  >> gvs[walk_def]
+  >> Cases_on ‘vs1’ >> gvs[]
+  >> Cases_on ‘vs2’ >> gvs[]
+  >> conj_tac
+  >- (rpt strip_tac
+      >- metis_tac[]
+      >> metis_tac[prefix_mem]
+     )
+  >> rpt strip_tac
+  >> first_x_assum irule
+  >> irule adjacent_prefix
+  >> qexists ‘h::t’
+  >> gvs[]
+QED
+
+Theorem path_subpath_prefix:
+  ∀g vs1 vs2.
+    vs1 ≠ [] ∧
+    vs1 ≼ vs2 ∧
+    path g vs2 ⇒
+    path g vs1
+Proof
+  rpt strip_tac
+  >> gvs[path_def]
+  >> conj_tac
+  >- metis_tac[walk_subwalk_prefix]
+  >> metis_tac[ALL_DISTINCT_PREFIX]
+QED
+
+Theorem TAKE_IS_PREFIX[simp]:
+  ∀n ls.
+    TAKE n ls ≼ ls
+Proof
+  rpt strip_tac
+  >> metis_tac[IS_PREFIX_EQ_TAKE']
+QED
+
+Theorem path_take[simp]:
+  ∀g vs i.
+    i ≠ 0 ∧
+    path g vs ⇒
+    path g (TAKE i vs)
+Proof
+  rpt strip_tac
+  >> irule path_subpath_prefix
+  >> Cases_on ‘i’ >> Cases_on ‘vs’ >> gvs[]
+  >> qexists ‘h::t’ >> gvs[]
+QED

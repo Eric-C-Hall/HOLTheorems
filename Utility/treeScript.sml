@@ -1,6 +1,6 @@
 Theory tree
 
-Ancestors extreal fsgraph fundamental genericGraph list pred_set rich_list
+Ancestors arithmetic extreal fsgraph fundamental genericGraph list pred_set rich_list
 
 Libs dep_rewrite ConseqConv;
 
@@ -189,6 +189,70 @@ Proof
   >> gvs[path_def, Excl "ALL_DISTINCT"]
 QED
 
+
+(* -------------------------------------------------------------------------- *)
+(* If two paths are not identical but they start at the same point, then      *)
+(* there is an index at which the paths diverge                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem paths_diverge:
+  ∀vs1 vs2.
+    2 ≤ LENGTH vs1 ∧
+    2 ≤ LENGTH vs2 ∧
+    vs1 ≠ vs2 ∧
+    HD vs1 = HD vs2 ⇒
+    ∃i. EL i vs1 = EL i vs2 ∧ EL (i + 1) vs1 ≠ EL (i + 1) vs2
+Proof
+  (* Induct on the first path, and break down the second path correspondingly *)
+  Induct_on ‘vs1’ >> gvs[]
+  >> rpt strip_tac
+  >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+  (* Apply the inductive hypothesis to the appropriate values *)
+  >> last_x_assum $ qspecl_then [‘vs2'’] assume_tac
+  (* Split up vs1 and vs2 further, as is possible by the assumption on the
+     lengths of these sequences. *)
+  >> namedCases_on ‘vs1’ ["", "v vs1"] >> gvs[]
+  >> namedCases_on ‘vs2'’ ["", "v vs2"] >> gvs[]
+  (* *)
+  >> REVERSE $ Cases_on ‘2 ≤ SUC (LENGTH vs2)’
+  >- (gvs[]
+      >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+      >> namedCases_on ‘vs1'’ ["", "v vs1"] >> gvs[]
+      >- (qexists ‘0’ >> gvs[])
+      >> CCONTR_TAC >> gvs[]
+     )
+
+  (* *)
+  >> REVERSE $ Cases_on ‘2 ≤ SUC (LENGTH vs1')’
+  >- (gvs[]
+      >> namedCases_on ‘vs1'’ ["", "v vs1"] >> gvs[]
+      >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+      >- (qexists ‘0’ >> gvs[])
+      >> CCONTR_TAC >> gvs[]
+     )
+                                              
+  >> qexists ‘0’ >> gvs[]
+                       
+  (* If the second elements are nonequal, then we can choose this as our
+         choice of i. Otherwise, we have satisfied another condition of the
+         inductive hypothesis. *)
+  >> REVERSE $ Cases_on ‘v' = v''’
+  >- (qexists ‘0’ >> gvs[])
+  >> gvs[]
+  (* Prove the last condition of the inductive hypothesis *)
+    >> Cases_on ‘v' = LAST (v'::vs1')’
+    >- (namedCases_on ‘vs1'’ ["", "v vs1"] >> gvs[]
+        >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+       )
+    >> gvs[]
+     (* Simplify EL (i + 1) (_::_) *)
+     >> gvs[GSYM ADD1]
+     (* If the inductive hypothesis holds by choosing i, then the next step
+         holds by choosing i + 1 *)
+     >> qexists ‘i + 1’
+     (* Simplify EL (i + 1) (_::_) *)
+     >> gvs[GSYM ADD1]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A path in a tree between two nodes is unique.                              *)
 (*                                                                            *)
@@ -198,9 +262,9 @@ QED
 (* identical, there must be an index i at which EL i vs1 = EL i vs2 but we    *)
 (* don't have EL (i + 1) vs1 = EL (i + 1) vs2.                                *)
 (*                                                                            *)
-(* Choose the next index j after i + 1 at which EL j vs1 = EL j vs2 but we    *)
-(* don't have EL (j - 1) vs1 = EL (j - 1) vs2. This must exist because the    *)
-(* goal is identical for each path.                                           *)
+(* Choose the next indices j and k after i + 1 at which EL j vs1 = EL k vs2   *)
+(* but we don't have EL (j - 1) vs1 = EL (k - 1) vs2. This must exist because *)
+(* the goal is identical for each path.                                       *)
 (*                                                                            *)
 (* Then taking vs1 from i to j followed by taking vs2 from j to i will        *)
 (* provide a cycle in our graph.                                              *)
@@ -219,10 +283,14 @@ Theorem tree_path_unique:
     LAST vs2 = b ⇒
     vs1 = vs2
 Proof
+
   rpt strip_tac
-  (* The special case where our start and goal nodes are identical has to be
-     considered separately, otherwise there is no point at which the paths
-     diverge. *)
+  (* We work by way of contradiction, assuming that there are two nonequal paths
+     that have the same start and end points *)
+  >> CCONTR_TAC
+  (* It is convenient to separately treat the special case where our start and
+     goal nodes are identical. This makes it easier to prove the base case of
+     our induction. *)
   >> Cases_on ‘a = b’
   >- (gvs[]
       >> Cases_on ‘vs1’ >> Cases_on ‘vs2’ >> gvs[]
@@ -256,119 +324,68 @@ Proof
       >> REVERSE $ Cases_on ‘v' = v''’
       >- (qexists ‘0’ >> gvs[])
       >> gvs[]
-      (* Consider the case where *)
+      (* Prove the last condition of the inductive hypothesis *)
       >> Cases_on ‘v' = LAST (v'::vs1')’
       >- (namedCases_on ‘vs1'’ ["", "v vs1"] >> gvs[]
           >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
-          >> gvs[path_def]
          )
-            
-
       >> gvs[]
-      >> Cases_on ‘t’ >> Cases_on ‘vs1’ >> gvs[]
-      >>
-
-
-      >> Cases_on ‘HD vs1 ≠ HD t’
-      >- (qexists ‘0’ >> gvs[])
-         
+      (* Simplify EL (i + 1) (_::_) *)
+      >> gvs[GSYM ADD1]
+      (* If the inductive hypothesis holds by choosing i, then the next step
+         holds by choosing i + 1 *)
+      >> qexists ‘i + 1’
+      (* Simplify EL (i + 1) (_::_) *)
+      >> gvs[GSYM ADD1]
      )
-     
-
-     
-     rpt strip_tac
-  >> gvs[LIST_EQ_REWRITE]
-  (* Since vs1 ≠ vs2, there exists a point at which they differ *)
-  >> sg ‘∃v. MEM v vs1 ∧ ¬MEM v vs2 ∨ MEM v vs2 ∧ ¬MEM v vs1’
-  >- (CCONTR_TAC
-      >> gvs[]
-     )
-
-
-
-
-     (* Induct on vs1 and break down vs2 correspondingly *)
-     Induct_on ‘vs1’ >> rpt strip_tac
-      >- gvs[path_def, walk_def]
-      >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
-      >- gvs[path_def, walk_def]
-      (* Specialise to appropriate inductive hypothesis *)
-      >> last_x_assum $ qspecl_then [‘g’, ‘vs2'’] assume_tac
-      >> gvs[]
-  (* - If vs1 and vs2' are empty, then we are immediately at our goal.
-     - If one of them is empty and the other is nonempty, the precondition for
-       our inductive hypothesis fails, so we have to treat this as a special
-       case. In this case, we contradict LAST (a::vs2') = LAST (a::vs1), since
-       in a path, all nodes must be distinct.
-     - If both are nonempty, the inducive hypothesis succeeds at proving our
-       statement *)
-  >> Cases_on ‘vs1 = [] ∧ vs2' = []’ >- gvs[]
-  >> Cases_on ‘vs1 = [] ∧ vs2' ≠ [] ∨ vs1 ≠ [] ∧ vs2' = []’
-  >- (gvs[]
-      >- (Cases_on ‘vs2'’ >> gvs[])
-      >> Cases_on ‘vs1’ >> gvs[]
-     )
-  >> gvs[]
-  >> last_x_assum irule
-  >> gvs[path_cons]
-  >> gvs[LAST_DEF]
-  >> 
-
-  
-  
-  (* *)
-  >> pop_assum irule
-  >> Cases_on ‘vs1’ >> gvs[]
-  >- (Cases_on ‘vs2'’ >> gvs[]
-      >> gvs[path_def]
-     )
-
-
-     
-  (* Cases on whether the inductive hypothesis is applicable*)
-  >> qmatch_asmsub_abbrev_tac ‘b ⇒ _’
-  >> Cases_on ‘b’ >> gvs[Excl "AND_CLAUSES", Excl "lift_disj_eq"]
-
-
-                        
-  (* *)
-  >> gvs[Once path_cons]
-  >- (
-  )
-     
-  (* *)
-  >> Cases_on ‘vs1’ >> gvs[]
-               >- (Cases_on ‘vs2'’ >> gvs[]
-                   >> pop_assum kall_tac
-                   >> gvs[path_def]
-                  )
-               (* *)
-               >> Cases_on ‘path g vs1’ >> gvs[]
-               >> gvs[path_cons]
-               >> Cases_on ‘vs1’ >> gvs[]
-
-                                       
-               (* In the case where the inductive hypothesis is applicable, the theorem is
-     trivial. We now need prove that *)
-               >> pop_assum mp_tac >> gvs[]
-               >> rw[]
-                    
-
-
-                    
-               >> Cases_on ‘path g vs1 ∧ ’
-               >> gvs[LAST_DEF]
-
-
-                     
-          >> Cases_on ‘vs2'’ >> gvs[]
-          >> Cases_on ‘vs1’ >> gvs[]
+  (* Prove that there is a point after the paths diverge at which the paths
+     converge. At every point in the meantime, the paths have been entirely
+     distinct.
+.
+     We prove this by strong induction on the length of vs2.
+.
+     Our inductive hypothesis is that for any vs2 of a lesser size, if the last
+     elements are the same and the first elements are the same and there is a
+     split at i, then there exists a convergence point after i.
+.
+     Now we are given vs2. If there is any pair of identical elements before the
+     very end of vs2, then we can use the inductive hypothesis to solve.
+     Otherwise, there's a convergence point at the very end, and all the
+     elements up to that point are distinct *)
+  >> sg ‘∃j k. i + 1 ≤ j ∧
+               i + 1 ≤ k ∧
+               (∀l m. i + 1 ≤ l ∧ i + 1 ≤ m ⇒ EL l vs1 ≠ EL m vs2) ∧
+               EL j vs1 = EL k vs2’
+  >- (‘∃l. LENGTH vs2 = l’ by simp[]
+      >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
+      >> completeInduct_on ‘l’
+      >> rpt strip_tac
+      (* If there are identical elements before the end of vs2, we use the
+         inductive hypothesis to solve *)
+      >> Cases_on ‘∃x y. i + 1 ≤ x ∧
+                         i + 1 ≤ y ∧
+                         y ≤ LENGTH vs2 - 2 ∧
+                         EL x vs1 = EL y vs2’
+      >- (gvs[]
+          (* Specify the appropriate variables to use the inductive hypothesis *)
+          >> last_x_assum $ qspecl_then [‘y + 1’] assume_tac
           >> gvs[]
-                
-          >> last_x_assum $ qspecl_then [‘g’, ‘HD vs1’, ‘b’, ‘’] assume_tac
-                          
-                          rpt strip_tac
-          >> 
+          >> last_x_assum (qspecl_then
+                           [‘g’, ‘i’, ‘TAKE (x + 1)$ vs1’, ‘TAKE (y + 1) vs2’]
+                           assume_tac)
+          >> gvs[]
+          >> gvs[]
+          >> sg ‘LENGTH (TAKE (y + 1) vs2) = y’
+          >- gvs[]
+          >> gvs[]
+          >> gvs[]
+         )
+         
+      >> Induct_on ‘vs2’ using SNOC_INDUCT
+     )
+  >>
+
+
 QED
 
 Theorem tree_get_path_unique:
@@ -387,7 +404,7 @@ Proof
   >> gvs[path_cons]
   >- (gvs[get_path_def]
      )
-         
+     
   >> gvs[]
         
         rpt strip_tac
