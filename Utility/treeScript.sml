@@ -337,6 +337,13 @@ Proof
              )
           >> gvs[]
          )
+      >> gvs[]
+      (* We now know that anywhere on vs1 after the divergence point is not
+         equal to anywhere on vs2 after the divergence point and before the end
+         (not including the end).
+.
+       anywhere between the divergence point and the end,
+         vs1 and vs2 are not the same, so our convergence point is at the end *)
       >> cheat
      )
   (* We can now create our cycle and prove that our graph cannot be a tree, a
