@@ -189,7 +189,6 @@ Proof
   >> gvs[path_def, Excl "ALL_DISTINCT"]
 QED
 
-
 (* -------------------------------------------------------------------------- *)
 (* If two paths are not identical but they start at the same point, then      *)
 (* there is an index at which the paths diverge                               *)
@@ -356,6 +355,7 @@ Proof
                i + 1 ≤ k ∧
                (∀l m. i + 1 ≤ l ∧ i + 1 ≤ m ⇒ EL l vs1 ≠ EL m vs2) ∧
                EL j vs1 = EL k vs2’
+        
   >- (‘∃l. LENGTH vs2 = l’ by simp[]
       >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
       >> completeInduct_on ‘l’
@@ -364,6 +364,7 @@ Proof
          inductive hypothesis to solve *)
       >> Cases_on ‘∃x y. i + 1 ≤ x ∧
                          i + 1 ≤ y ∧
+                         x ≤ LENGTH vs1 - 1 ∧
                          y ≤ LENGTH vs2 - 2 ∧
                          EL x vs1 = EL y vs2’
       >- (gvs[]
@@ -371,21 +372,42 @@ Proof
           >> last_x_assum $ qspecl_then [‘y + 1’] assume_tac
           >> gvs[]
           >> last_x_assum (qspecl_then
-                           [‘g’, ‘i’, ‘TAKE (x + 1)$ vs1’, ‘TAKE (y + 1) vs2’]
+                           [‘g’, ‘i’, ‘TAKE (x + 1) vs1’, ‘TAKE (y + 1) vs2’]
                            assume_tac)
           >> gvs[]
+          >> gvs[HD_TAKE]
+          >> gvs[LAST_TAKE]
+          >> gvs[EL_TAKE]
+          (* We need to know that the substrings the inductive hypothesis was
+         applied to aren't equal. This follows from the fact that i was a
+         divergence point, and so they differ at i + 1 *)
+          >> sg ‘TAKE (x + 1) vs1 ≠ TAKE (y + 1) vs2’
+          >- (gvs[LIST_EQ_REWRITE]
+              >> rw[]
+              >> qexists ‘i + 1’
+              >> gvs[]
+              >> gvs[EL_TAKE]
+             )
           >> gvs[]
-          >> sg ‘LENGTH (TAKE (y + 1) vs2) = y’
-          >- gvs[]
-          >> gvs[]
+          (* Because all the elements of vs1 are distinct, and the convergence
+         point y is the same in vs1 and vs2, we know that the head of vs1 is
+         not equal to the convergence point *)
+          >> sg ‘HD vs1 ≠ EL y vs2’
+          >- (qpat_x_assum ‘EL x vs1 = EL y vs2’ (fn th => gvs[GSYM th])
+              >> gvs[path_def]
+              >> PURE_ONCE_REWRITE_TAC[GSYM EL]
+              >> gvs[ALL_DISTINCT_EL_IMP]
+             )
           >> gvs[]
          )
-         
-      >> Induct_on ‘vs2’ using SNOC_INDUCT
+      >> cheat
      )
-  >>
-
-
+  (* We can now create our cycle and prove that our graph cannot be a tree, a
+     contradiction. *)
+  >> ‘cycle g (DROP i (TAKE (x + 1 - i) vs1) ++
+               (REVERSE (DROP (i + 1) (TAKE (y - i) vs2))))’
+    suffices_by gvs[is_tree_def]
+  >> gvs[cycle_def]
 QED
 
 Theorem tree_get_path_unique:
