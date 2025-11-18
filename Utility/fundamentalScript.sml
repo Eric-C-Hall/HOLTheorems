@@ -221,5 +221,21 @@ Proof
   rpt strip_tac
   >> irule path_subpath_prefix
   >> Cases_on ‘i’ >> Cases_on ‘vs’ >> gvs[]
+  >- gvs[path_def, walk_def]
   >> qexists ‘h::t’ >> gvs[]
+QED
+
+Theorem LAST_TAKE:
+  ∀i ls.
+    i ≠ 0 ∧
+    i ≤ LENGTH ls ⇒
+    LAST (TAKE i ls) = EL (i - 1) ls
+Proof
+  Induct_on ‘ls’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘i’ >> gvs[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> Cases_on ‘ls’ >> gvs[]
+  >> last_x_assum $ qspecl_then [‘n' + 1’] assume_tac
+  >> gvs[]
 QED
