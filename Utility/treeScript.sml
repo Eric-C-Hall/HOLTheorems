@@ -233,7 +233,10 @@ Proof
       >> Cases_on ‘t’ >> Cases_on ‘t'’ >> gvs[]
      )
   (* Prove that there is a point at which the paths diverge *)
-  >> sg ‘∃i. EL i vs1 = EL i vs2 ∧ EL (i + 1) vs1 ≠ EL (i + 1) vs2’
+  >> sg ‘∃i. EL i vs1 = EL i vs2 ∧
+             EL (i + 1) vs1 ≠ EL (i + 1) vs2 ∧
+             i + 1 ≤ LENGTH vs1 - 1 ∧
+             i + 1 ≤ LENGTH vs2 - 1’
   >- (rpt $ pop_assum mp_tac
       (* Induct over each list *)
       >> SPEC_ALL_TAC
@@ -290,9 +293,15 @@ Proof
      elements up to that point are distinct *)
   >> sg ‘∃j k. i + 1 ≤ j ∧
                i + 1 ≤ k ∧
-               (∀l m. i + 1 ≤ l ∧ i + 1 ≤ m ⇒ EL l vs1 ≠ EL m vs2) ∧
-               EL j vs1 = EL k vs2’
-        
+               j ≤ LENGTH vs1 - 1 ∧
+               k ≤ LENGTH vs2 - 1 ∧
+               (∀l m.
+                  i + 1 ≤ l ∧
+                  i + 1 ≤ m ∧
+                  l ≤ j - 1 ∧
+                  m ≤ k - 1 ⇒
+                  EL l vs1 ≠ EL m vs2) ∧
+               EL j vs1 = EL k vs2’        
   >- (‘∃l. LENGTH vs2 = l’ by simp[]
       >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
       >> completeInduct_on ‘l’
@@ -316,8 +325,8 @@ Proof
           >> gvs[LAST_TAKE]
           >> gvs[EL_TAKE]
           (* We need to know that the substrings the inductive hypothesis was
-         applied to aren't equal. This follows from the fact that i was a
-         divergence point, and so they differ at i + 1 *)
+             applied to aren't equal. This follows from the fact that i was a
+             divergence point, and so they differ at i + 1 *)
           >> sg ‘TAKE (x + 1) vs1 ≠ TAKE (y + 1) vs2’
           >- (gvs[LIST_EQ_REWRITE]
               >> rw[]
@@ -327,8 +336,8 @@ Proof
              )
           >> gvs[]
           (* Because all the elements of vs1 are distinct, and the convergence
-         point y is the same in vs1 and vs2, we know that the head of vs1 is
-         not equal to the convergence point *)
+             point y is the same in vs1 and vs2, we know that the head of vs1 is
+             not equal to the convergence point *)
           >> sg ‘HD vs1 ≠ EL y vs2’
           >- (qpat_x_assum ‘EL x vs1 = EL y vs2’ (fn th => gvs[GSYM th])
               >> gvs[path_def]
@@ -336,22 +345,139 @@ Proof
               >> gvs[ALL_DISTINCT_EL_IMP]
              )
           >> gvs[]
+          (* Use the j and k returned by the inductive hypothesis to prove the
+             inductive step *)
+          >> qexistsl [‘j’, ‘k’]
+          >> gvs[EL_TAKE]
          )
+      >> last_x_assum kall_tac (* We no longer need the inductive hyp, and it's
+                                  laggy for the simplifier to constantly try to
+                                  use it. *)
       >> gvs[]
       (* We now know that anywhere on vs1 after the divergence point is not
          equal to anywhere on vs2 after the divergence point and before the end
          (not including the end).
 .
-       anywhere between the divergence point and the end,
-         vs1 and vs2 are not the same, so our convergence point is at the end *)
-      >> cheat
+        Therefore, the convergence point is at the very end of vs2. However, it
+        is not necessarily at the very end of vs1.
+.
+        Choose the earliest point after the divergence point where vs1 is equal
+        to the very end of vs2.
+       *)
+      >> sg ‘∃j.
+               i + 1 ≤ j ∧
+               j ≤ LENGTH vs1 - 1 ∧
+               (∀l. i + 1 ≤ l ∧ l ≤ j - 1 ⇒ EL l vs1 ≠ LAST vs2) ∧
+               EL j vs1 = LAST vs2’
+      >- (all_tac
+          (* Remove all assumptions but the following assumptions, because if
+             we have unnecessary assumptions, we need to prove them in our
+             induction *)
+          >> qpat_x_assum ‘LAST vs2 = LAST vs1’ mp_tac
+          >> qpat_x_assum ‘i + 1 ≤ LENGTH vs1 - 1’ mp_tac
+          >> rpt (pop_assum kall_tac) >> rpt strip_tac
+          (* vs2 isn't mentioned elsewhere, so we can remove an unnecessary
+             assumption. *)
+          >> qpat_x_assum ‘LAST vs2 = LAST vs1’ (fn th => PURE_REWRITE_TAC[th])
+          (* Specialise all variables so we have a stronger inductive
+             hypothesis *)
+          (*>> rpt $ pop_assum mp_tac >> SPEC_ALL_TAC*)
+          (* Induct on vs1. In the base case, if the (i + 1)th element is the
+             last element, then we can simply choose this element as our
+             convergence point j. Otherwise, we know that the (i + 1)th element
+             is not equal, so our problem reduces in size by 1, and now we only
+             need to check that the elements from (i + 2) onwards are not
+             equal. Thus, we can solve using the inductive hypothesis (with the
+             same choice of i, because this will effectively slide our index
+             along by one, and we no longer care about the first index). It's
+             also important to note that in the special case where
+             i + 1 = LENGTH vs1, we trivially must have that the (i + 1)th
+             element is the last element because there's only one element there,
+             so the precondition to the inductive hypothesis is satisfied.
+           *)
+          >> Induct_on ‘vs1’ >> gvs[]
+          >> rpt strip_tac
+          (* Base case *)
+          >> Cases_on ‘EL (i + 1) (h::vs1) = LAST (h::vs1)’
+          >- (qexists ‘i + 1’ >> gvs[LAST_EL])
+          (* Precondition for inductive hypothesis *)
+          >> Cases_on ‘i + 1 = LENGTH vs1’
+          >- gvs[LAST_EL]
+          (* Inductive step *)
+          >> gvs[]
+          >> qexists ‘j + 1’
+          >> gvs[GSYM ADD1] >> gvs[ADD1]
+          >> REVERSE conj_tac
+          >- (Cases_on ‘vs1’ >> gvs[])
+          >> rw[]
+          >> last_x_assum $ qspecl_then [‘l - 1’] assume_tac
+          >> gvs[]
+          >> Cases_on ‘SUC i ≤ l - 1’
+          >- (gvs[]
+              >> Cases_on ‘l’ >> gvs[]
+              >> Cases_on ‘vs1’ >> gvs[])
+          >> gvs[]
+          >> Cases_on ‘l = i + 1’ >> gvs[]
+          >> gvs[GSYM ADD1]
+         )
+      (* So our convergence point is between the point j we found on vs1, and
+         the very end of vs2. Prove that it satisfies the necessary properties.
+       *)
+      >> qexistsl [‘j’, ‘LENGTH vs2 - 1’]
+      >> gvs[]
+      >> REVERSE conj_tac
+      >- (qpat_x_assum ‘LAST vs2 = LAST vs1’ (fn th => PURE_REWRITE_TAC[GSYM th])
+          >> Cases_on ‘vs2’ >> simp[LAST_EL]
+          >> Cases_on ‘vs1’ >> gvs[]
+         )
+      (* Prove that any pair of points up to j in vs1 and up to the end of vs2
+         are nonequal. When the point in vs2 that is not the very end, this
+         follows from the earlier part of the proof where we used the inductive
+         hypothesis to solve the case where the convergence point was before the
+         end. In the case where the point in vs2 is the very end, this follows
+         from the conditions on the choice of j which was made. *)
+      >> rpt strip_tac
+      >> REVERSE (Cases_on ‘m = (LENGTH vs2 - 1)’)
+      >- (first_x_assum $ qspecl_then [‘l’, ‘m’] assume_tac
+          >> gvs[]
+         )
+      >> first_x_assum $ qspecl_then [‘l’, ‘m’] kall_tac (* We no longer need
+        the conditions on j, and keeping implications may lag the simplifier *)
+      >> gvs[]
      )
   (* We can now create our cycle and prove that our graph cannot be a tree, a
      contradiction. *)
-  >> ‘cycle g (DROP i (TAKE (x + 1 - i) vs1) ++
-               (REVERSE (DROP (i + 1) (TAKE (y - i) vs2))))’
-    suffices_by gvs[is_tree_def]
-  >> gvs[cycle_def]
+  >> ‘cycle g (DROP i (TAKE (j + 1 - i) vs1) ++
+               (REVERSE (DROP i (TAKE (k - i) vs2))))’
+    suffices_by metis_tac[is_tree_def]
+  >> PURE_REWRITE_TAC[cycle_def]
+  >> rpt conj_tac
+  >- (
+
+  cheat
+  )
+  >- (cheat
+     )
+  >- (cheat
+     )
+  >> gvs[HD_APPEND]
+  >> Cases_on ‘DROP i (TAKE (j + 1 - i) vs1)’
+  >- (‘F’ suffices_by simp[] (* This case should be a contradiction, we
+                                shouldn't have this equal to [] *)
+      >> gvs[]
+      >> decide_tac
+     )
+  >- (Cases_on ‘DROP i (TAKE (k - i) vs2)’ >> gvs[]
+     )
+     
+  >> DEP_PURE_ONCE_REWRITE_TAC[HD_DROP]
+  >> Cases_on ‘DROP i (TAKE (j + 1 - i) vs1)’ >> gvs[]
+  >- (Cases_on 
+
+      gvs[HD_REVERSE]
+     )
+
+     gvs[HD_APPEND]
 QED
 
 Theorem tree_get_path_unique:
