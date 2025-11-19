@@ -239,3 +239,124 @@ Proof
   >> last_x_assum $ qspecl_then [‘n' + 1’] assume_tac
   >> gvs[]
 QED
+
+
+Theorem walk_empty_not[simp]:
+  ∀g.
+    walk g [] ⇔ F
+Proof
+  gvs[walk_def]
+QED
+
+Theorem path_empty_not[simp]:
+  ∀g.
+    path g [] ⇔ F
+Proof
+  gvs[path_def]
+QED
+
+Theorem walk_cons:
+  ∀g v vs.
+    walk g (v::vs) ⇔ (vs = [] ∧ v ∈ nodes g ∨
+                      walk g vs ∧ adjacent g v (HD vs))
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (Cases_on ‘vs’ >> gvs[]
+      >> rw[] >> gvs[walk_def]
+      >> conj_tac
+      >- metis_tac[]
+      >> rw[]
+      >> gvs[adjacent_rules]
+     )
+  >> rw[] >> gvs[walk_def]
+  >> conj_tac
+  >- (REVERSE $ rpt strip_tac
+      >- simp[]
+      >> gvs[]
+      >> metis_tac[adjacent_members]
+     )
+  >> rpt strip_tac
+  >> namedCases_on ‘vs’ ["", "v' vs"] >> gvs[]
+  >> gvs[adjacent_iff]
+QED
+
+Theorem path_cons:
+  ∀g v vs.
+    path g (v::vs) ⇔ (vs = [] ∧ v ∈ nodes g ∨
+                      path g vs ∧ adjacent g v (HD vs) ∧ ¬MEM v vs)
+Proof
+  rpt strip_tac
+  >> gvs[path_def]
+  >> gvs[walk_cons]
+  >> EQ_TAC >> rw[] >> gvs[]
+QED
+
+Theorem not_all_distinct_last[simp]:
+  ∀v vs.
+    ALL_DISTINCT (LAST (v::vs)::(v::vs)) ⇔ F
+Proof
+  rpt strip_tac
+  >> gvs[]
+  >> metis_tac[MEM_LAST, MEM]
+QED
+
+Theorem not_path_last[simp]:
+  ∀g v vs.
+    path g ((LAST (v::vs))::(v::vs)) ⇔ F
+Proof
+  rpt strip_tac
+  >> gvs[path_def, Excl "ALL_DISTINCT"]
+QED
+
+Theorem walk_append:
+  ∀g ls1 ls2.
+    ls1 ≠ [] ∧ ls2 ≠ [] ⇒
+    (walk g (ls1 ++ ls2) ⇔
+       (walk g ls1 ∧ walk g ls2 ∧ adjacent g (LAST ls1) (HD ls2))
+    )
+Proof
+  Induct_on ‘ls1’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[walk_cons]
+  >> namedCases_on ‘ls1’ ["", "l ls1"] >> gvs[]
+  >- metis_tac[adjacent_members]
+  >> metis_tac[]
+QED
+
+Theorem walk_drop:
+  ∀g n ls.
+    n ≤ LENGTH ls - 1 ∧
+    walk g ls ⇒
+    walk g (DROP n ls)
+Proof
+  Induct_on ‘n’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘ls’ >> gvs[]
+  >> last_x_assum irule
+  >> gvs[ADD1]
+  >> gvs[walk_cons]
+QED
+
+Theorem walk_take:
+  ∀g n ls.
+    1 ≤ n ∧
+    walk g ls ⇒
+    walk g (TAKE n ls)
+Proof
+  Induct_on ‘n’ >> gvs[]
+  >> Cases_on ‘ls’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[walk_cons]
+  >> Cases_on ‘(n = 0 ∨ t = []) ∧ h ∈ nodes g’ >> gvs[]
+  >- gvs[HD_TAKE]
+  >> REVERSE conj_tac
+  >- (Cases_on ‘n’ >> Cases_on ‘t’ >> gvs[HD_TAKE]
+      >> metis_tac[adjacent_members]
+     )
+  >> last_x_assum irule
+  >> gvs[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> metis_tac[adjacent_members]
+QED
+
