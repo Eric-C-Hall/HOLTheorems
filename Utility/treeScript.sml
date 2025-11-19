@@ -189,6 +189,57 @@ Proof
   >> gvs[path_def, Excl "ALL_DISTINCT"]
 QED
 
+Theorem walk_append:
+  ∀g ls1 ls2.
+    ls1 ≠ [] ∧ ls2 ≠ [] ⇒
+    (walk g (ls1 ++ ls2) ⇔
+       (walk g ls1 ∧ walk g ls2 ∧ adjacent g (LAST ls1) (HD ls2))
+    )
+Proof
+  Induct_on ‘ls1’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[walk_cons]
+  >> namedCases_on ‘ls1’ ["", "l ls1"] >> gvs[]
+  >- metis_tac[adjacent_members]
+  >> metis_tac[]
+QED
+
+Theorem walk_drop:
+  ∀g n ls.
+    n ≤ LENGTH ls - 1 ∧
+    walk g ls ⇒
+    walk g (DROP n ls)
+Proof
+  Induct_on ‘n’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘ls’ >> gvs[]
+  >> last_x_assum irule
+  >> gvs[ADD1]
+  >> gvs[walk_cons]
+QED
+
+Theorem walk_take:
+  ∀g n ls.
+    1 ≤ n ∧
+    walk g ls ⇒
+    walk g (TAKE n ls)
+Proof
+  Induct_on ‘n’ >> gvs[]
+  >> Cases_on ‘ls’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[walk_cons]
+  >> Cases_on ‘(n = 0 ∨ t = []) ∧ h ∈ nodes g’ >> gvs[]
+  >- gvs[HD_TAKE]
+  >> REVERSE conj_tac
+  >- (Cases_on ‘n’ >> Cases_on ‘t’ >> gvs[HD_TAKE]
+      >> metis_tac[adjacent_members]
+     )
+  >> last_x_assum irule
+  >> gvs[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> metis_tac[adjacent_members]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A path in a tree between two nodes is unique.                              *)
 (*                                                                            *)
@@ -447,15 +498,24 @@ Proof
      )
   (* We can now create our cycle and prove that our graph cannot be a tree, a
      contradiction. *)
-  >> ‘cycle g (DROP i (TAKE (j + 1 - i) vs1) ++
-               (REVERSE (DROP i (TAKE (k - i) vs2))))’
-    suffices_by metis_tac[is_tree_def]
+  >> ‘cycle g (DROP i (TAKE (j + 1) vs1) ++
+               REVERSE (DROP i (TAKE k vs2)))’
+    suffices_by metis_tac[is_tree_def] 
+  (* Prove that this is a cycle by the definition of a cycle *)
   >> PURE_REWRITE_TAC[cycle_def]
+  (* It is frequently helpful to know that each of the components of the cycle
+     is nonempty *)
+  (*>> ‘DROP i (TAKE (j + 1) vs1) ≠ [] ∧
+                          DROP i (TAKE k vs2) ≠ []’ by gvs[]*)
   >> rpt conj_tac
-  >- (
-
-  cheat
-  )
+  >- (gvs[walk_append]
+      >> rpt conj_tac
+      >- (
+       )
+      >- (
+       )
+      >>
+     )
   >- (cheat
      )
   >- (cheat
