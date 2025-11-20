@@ -38,6 +38,8 @@ End
 (* then we can use get_path to find the path.                                 *)
 (*                                                                            *)
 (* This always holds in the case of a tree, or any other connected graph.     *)
+(*                                                                            *)
+(* This is equivalent to the transitive closure of adjacency on g             *)
 (* -------------------------------------------------------------------------- *)
 Definition exists_path_def:
   exists_path g org dest = (∃vs. path g vs ∧ HD vs = org ∧ LAST vs = dest)
@@ -227,13 +229,6 @@ Proof
   >> gvs[last_drop]
 QED
 
-
-Theorem walk_append:
-
-Proof
-QED
-
-
 Theorem exists_path_trans:
   ∀g x y z.
     exists_path g x y ∧
@@ -242,10 +237,25 @@ Theorem exists_path_trans:
 Proof
   rpt strip_tac
   >> gvs[exists_path_def]
-  >> qexists ‘vs ++ TL vs'’
-  >> rpt conj_tac
-  >- (
-  )
+  (* Find a walk from x to z *)
+  >> sg ‘walk g (vs ++ TL vs')’
+  >- (namedCases_on ‘vs'’ ["", "v vs'"] >> gvs[]
+      >> Cases_on ‘vs = []’ >> gvs[]
+      >> Cases_on ‘vs'' = []’ >> gvs[]
+      >- gvs[path_def]
+      >> gvs[walk_append]
+      >> gvs[path_def]
+      >> gvs[walk_cons]
+     )
+  (* Restrict the walk to a path *)
+  >> drule restrict_walk_to_path
+  >> rpt strip_tac
+  >> qexists ‘vs''’
+  >> gvs[]
+  >> conj_tac
+  >- (Cases_on ‘vs’ >> gvs[])
+  >> Cases_on ‘vs'’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
 QED
 
 Theorem adjacent_tc_exists_path:
