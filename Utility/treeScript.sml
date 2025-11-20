@@ -391,8 +391,12 @@ Proof
   >> rpt conj_tac
   >- (gvs[walk_append]
       >> rpt conj_tac
-      >- (
-       )
+      >- (irule walk_drop
+          >> gvs[]
+          >> irule walk_take
+          >> gvs[]
+          >> gvs[path_def]
+         )
       >- (
        )
       >>

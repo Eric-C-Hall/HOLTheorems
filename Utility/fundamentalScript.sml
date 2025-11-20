@@ -360,3 +360,13 @@ Proof
   >> metis_tac[adjacent_members]
 QED
 
+Theorem walk_reverse[simp]:
+  ∀g ls.
+    walk (g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph) (REVERSE ls) ⇔ walk g ls
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ls’ >> gvs[]
+  >> gvs[walk_cons]
+  >> namedCases_on ‘ls’ ["", "l ls"] >> gvs[walk_append]
+  >> metis_tac[adjacent_members, adjacent_SYM]
+QED
