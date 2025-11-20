@@ -370,3 +370,26 @@ Proof
   >> namedCases_on ‘ls’ ["", "l ls"] >> gvs[walk_append]
   >> metis_tac[adjacent_members, adjacent_SYM]
 QED
+
+Theorem TL_APPEND:
+  ∀l1 l2.
+    TL (l1 ++ l2) =
+    if l1 = []
+    then
+      TL l2
+    else
+      TL l1 ++ l2
+Proof
+  rpt strip_tac
+  >> rw[]
+  >> Cases_on ‘l1’ >> gvs[]
+QED
+
+Theorem ALL_DISTINCT_TL:
+  ∀l1.
+    ALL_DISTINCT l1 ⇒
+    ALL_DISTINCT (TL l1)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘l1’ >> gvs[]
+QED

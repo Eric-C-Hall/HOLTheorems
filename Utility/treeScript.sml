@@ -6,6 +6,16 @@ Libs dep_rewrite ConseqConv;
 
 (* -------------------------------------------------------------------------- *)
 (* True iff g is a tree.                                                      *)
+(*                                                                            *)
+(* Note that this is only valid for undirected graphs: for directed graphs,   *)
+(* there may be graphs without cycles that would not commonly be described    *)
+(* as trees, for example:                                                     *)
+(*                                                                            *)
+(*   -> O -> O ->                                                             *)
+(*  /            \                                                            *)
+(* O              O                                                           *)
+(*  \            /                                                            *)
+(*   -> O -> O ->                                                             *)
 (* -------------------------------------------------------------------------- *)
 Definition is_tree_def:
   is_tree g ⇔ (connected g ∧
@@ -139,9 +149,12 @@ End
 (*                                                                            *)
 (* This contradicts the fact that we have a tree, because a tree has no       *)
 (* cycles                                                                     *)
+(*                                                                            *)
+(* Note that this is only true in undirected graphs. One can have cycle-free  *)
+(* directed graphs without unique paths.                                      *)
 (* -------------------------------------------------------------------------- *)
 Theorem tree_path_unique:
-  ∀g a b vs1 vs2.
+  ∀(g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph) a b vs1 vs2.
     is_tree g ∧
     path g vs1 ∧
     HD vs1 = a ∧
@@ -151,7 +164,6 @@ Theorem tree_path_unique:
     LAST vs2 = b ⇒
     vs1 = vs2
 Proof
-
   rpt strip_tac
   (* We work by way of contradiction, assuming that there are two nonequal paths
      that have the same start and end points *)
@@ -391,38 +403,78 @@ Proof
   >> rpt conj_tac
   >- (gvs[walk_append]
       >> rpt conj_tac
-      >- (irule walk_drop
-          >> gvs[]
-          >> irule walk_take
-          >> gvs[]
+      >- (irule walk_drop >> gvs[]
+          >> irule walk_take >> gvs[]
           >> gvs[path_def]
          )
-      >- (
-       )
-      >>
+      >- (irule walk_drop >> gvs[]
+          >> irule walk_take >> gvs[]
+          >> gvs[path_def]
+         )
+      >> gvs[HD_REVERSE]
+      >> gvs[last_drop]
+      >> gvs[LAST_TAKE]
+      >> gvs[path_def, walk_def]
+      >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+      >> first_x_assum irule
+      >> gvs[adjacent_EL]
+      >> qexists ‘k - 1’ >> gvs[]
      )
-  >- (cheat
-     )
-  >- (cheat
-     )
-  >> gvs[HD_APPEND]
-  >> Cases_on ‘DROP i (TAKE (j + 1 - i) vs1)’
-  >- (‘F’ suffices_by simp[] (* This case should be a contradiction, we
-                                shouldn't have this equal to [] *)
+  >- (gvs[TL_APPEND]
+      >> gvs[ALL_DISTINCT_APPEND]
+      (* First string is all distinct *)
+      >> conj_tac
+      >- (irule ALL_DISTINCT_TL
+          >> irule ALL_DISTINCT_DROP
+          >> irule ALL_DISTINCT_TAKE
+          >> gvs[path_def]
+         )
+      (* Second string is all distinct *)
+      >> conj_tac
+      >- (irule ALL_DISTINCT_DROP
+          >> irule ALL_DISTINCT_TAKE
+          >> gvs[path_def]
+         )
+      (* Strings are all distinct with respect to each other *)
+      >> rpt strip_tac
+      >> gvs[MEM_EL]
+      >> gvs[GSYM (cj 2 EL), ADD1]
+      >> gvs[EL_DROP]
+      >> gvs[EL_TAKE]
+      >> gvs[LENGTH_TL]
+      >> gvs[EL_DROP]
+      >> gvs[EL_TAKE]
+      >> gvs[LESS_EQ, ADD1]
+      (* The equivalent elements in the last assumption range between i + 1 and
+         j in vs1, and between i and k - 1 in vs2. We need to treat j in vs1
+         and i in vs2 as special cases, because those are the points of
+         convergence and divergence. However, for any other choices of indices,
+         this contradicts the fact that we earlier proved that the two paths
+         are distinct from each other on the part where they split from each
+         other.
+       *)
+      >> REVERSE (Cases_on ‘i + (n + 1) = j ∨ i + n' = i’)
+      >- gvs[]
       >> gvs[]
-      >> decide_tac
+      (* We are at the point of convergence, and need to prove that this is
+         distinct from any other point in vs2. This follows from the fact that
+         vs2 is a path *)
+      >- (gvs[path_def]
+          >> gvs[EL_ALL_DISTINCT_EL_EQ]
+         )
+      (* We are at the point of divergence, and need to prove that this is
+        distinct from any other point on vs1. This follows from the fact that
+        vs1 is a path *)
+      >> qpat_x_assum ‘EL i vs1 = EL i vs2’ (fn th => gvs[GSYM th])
+      >> gvs[path_def]
+      >> gvs[EL_ALL_DISTINCT_EL_EQ]
      )
-  >- (Cases_on ‘DROP i (TAKE (k - i) vs2)’ >> gvs[]
-     )
-     
-  >> DEP_PURE_ONCE_REWRITE_TAC[HD_DROP]
-  >> Cases_on ‘DROP i (TAKE (j + 1 - i) vs1)’ >> gvs[]
-  >- (Cases_on 
-
-      gvs[HD_REVERSE]
-     )
-
-     gvs[HD_APPEND]
+  >- gvs[]
+  >> gvs[HD_APPEND_NOT_NIL]
+  >> gvs[LAST_APPEND_NOT_NIL]
+  >> gvs[LAST_REVERSE]
+  >> gvs[HD_DROP]
+  >> gvs[EL_TAKE]
 QED
 
 Theorem tree_get_path_unique:
