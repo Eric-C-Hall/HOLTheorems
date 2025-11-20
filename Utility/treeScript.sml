@@ -281,7 +281,7 @@ Proof
   >> Cases_on ‘v1 = a’ >> gvs[adjacent_iff]
 QED
 
-Theorem adjacent_tc_exists_path:
+Theorem exists_path_adjacent_tc:
   ∀g a b.
     exists_path g a b ⇔
       (adjacent g)⁺ a b ∨ (a = b ∧ a ∈ nodes g)
@@ -332,43 +332,16 @@ QED
 (* two points, then the graph is connected                                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem connected_exists_path:
-  ∀g : fsgraph a b.
-    a ∈ nodes g ∧
-    b ∈ nodes g ∧
-    connected g ⇒ exists_path g a b
+  ∀g.
+    connected g ⇔ (∀a b.
+                     a ∈ nodes g ∧
+                     b ∈ nodes g ⇒
+                     exists_path g a b)
 Proof
-  rpt strip_tac
+  rpt strip_tac     
   >> gvs[connected_def]
-  >> pop_assum $ qspecl_then [‘a’, ‘b’] assume_tac >> gvs[]
-  >> Cases_on ‘a = b’ >> gvs[]
-  >> 
-  
-  (* We want to induct on the  *)
-  sg ‘’
-
-
-     
-     (* Induct by adding a node *)
-     Induct_on ‘g’ using fsg_induction >> gvs[]
-  >> rpt gen_tac >> disch_tac
-  (* The case where the beginning and end nodes are both the new node *)
-  >> Cases_on ‘a = n ∧ b = n’
-  >- gvs[]
-  (* The case where the beginning and end nodes were both in the graph already
-     before the new node was added *)
-  >> Cases_on ‘a ∈ nodes g ∧ b ∈ nodes g’
-  >- (gvs[]
-      >> last_x_assum $ qspecl_then [‘a’, ‘b’] assume_tac
-      >> gvs[]
-     )
-  >> gnvs[]
-         
-  >> rpt strip_tac >> gvs[]
-                         
-                         rpt strip_tac
-  >> gvs[exists_path_def]
-  >> CCONTR_TAC
-  >> gvs[]
+  >> gvs[exists_path_adjacent_tc]
+  >> metis_tac[]
 QED
 
 Theorem tree_exists_path:
