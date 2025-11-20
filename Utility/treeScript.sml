@@ -34,6 +34,16 @@ Definition get_path_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Tells us if a path exists between two nodes in a graph. If a path exists,  *)
+(* then we can use get_path to find the path.                                 *)
+(*                                                                            *)
+(* This always holds in the case of a tree, or any other connected graph.     *)
+(* -------------------------------------------------------------------------- *)
+Definition exists_path_def:
+  exists_path g org dest = (∃vs. path g vs ∧ HD vs = org ∧ LAST vs = dest)
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Finds the ith parent of a node in a tree                                   *)
 (*                                                                            *)
 (* g: the graph (must be a tree)                                              *)
@@ -130,6 +140,83 @@ End
 Definition eccentricity_def:
   eccentricity (g : fsgraph) n = MAX_SET (IMAGE (distance g n) (nodes g))
 End
+
+Theorem exists_path_same[simp]:
+  ∀g a.
+    exists_path g a a ⇔ a ∈ nodes g
+Proof
+  rpt strip_tac
+  >> gvs[exists_path_def]
+  >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >- (Cases_on ‘vs’ >> gvs[path_def, walk_def])
+  >> qexists ‘[a]’
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If a graph is connected, then there exists a path between any two nodes.   *)
+(*                                                                            *)
+(* Possible improvement: prove this theorem for generic graphs rather than    *)
+(*                       just fsgraphs. I don't do this currently because     *)
+(*                       I use an indcution rule that is only written for     *)
+(*                       fsgraphs, but I don't see any reason it can't also   *)
+(*                       be written for generic graphs.                       *)
+(*                                                                            *)
+(* Possible improvement: make this an iff: if there exists a path between any *)
+(* two points, then the graph is connected                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem connected_exists_path:
+  ∀g : fsgraph a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    connected g ⇒ exists_path g a b
+Proof
+  (* Induct by adding a node *)
+  Induct_on ‘g’ using fsg_induction >> gvs[]
+  >> rpt gen_tac >> disch_tac
+  (* The case where the beginning and end nodes are both the new node *)
+  >> Cases_on ‘a = n ∧ b = n’
+  >- gvs[]
+  (* The case where the beginning and end nodes were both in the graph already
+     before the new node was added *)
+  >> Cases_on ‘a ∈ nodes g ∧ b ∈ nodes g’
+  >- (gvs[]
+      >> last_x_assum $ qspecl_then [‘a’, ‘b’] assume_tac
+      >> gvs[]
+     )
+  >> gnvs[]
+         
+  >> rpt strip_tac >> gvs[]
+                         
+                         rpt strip_tac
+  >> gvs[exists_path_def]
+  >> CCONTR_TAC
+  >> gvs[]
+QED
+
+Theorem tree_exists_path:
+  ∀g a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    is_tree g ⇒ exists_path g a b
+Proof
+  metis_tac[is_tree_def, connected_exists_path]
+QED
+
+Theorem hd_get_path[simp]:
+  ∀g a b.
+    HD (get_path g a b) = a
+Proof
+  rpt strip_tac
+  >> gvs[get_path_def]
+QED
+
+
+Theorem last_get_path[simp]:
+  ∀g a b.
+    LAST (get_path g a b) = b
+Proof
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* A path in a tree between two nodes is unique.                              *)
@@ -485,7 +572,11 @@ Theorem tree_get_path_unique:
     LAST vs = b ⇒
     get_path g a b = vs
 Proof
-  Induct_on ‘vs’
+  rpt strip_tac
+  >> irule tree_path_unique
+  >> gvs[]
+
+        Induct_on ‘vs’
   >- gvs[path_def, walk_def]
   >> rpt strip_tac
   >> last_x_assum $ qspecl_then [‘g’, ‘HD vs’, ‘b’] assume_tac
