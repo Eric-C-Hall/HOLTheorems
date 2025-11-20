@@ -1,6 +1,6 @@
 Theory tree
 
-Ancestors arithmetic extreal fsgraph fundamental genericGraph list pred_set rich_list
+Ancestors arithmetic extreal fsgraph fundamental genericGraph list pred_set relation rich_list
 
 Libs dep_rewrite ConseqConv;
 
@@ -153,6 +153,120 @@ Proof
   >> gvs[]
 QED
 
+Theorem restrict_walk_to_path:
+  ∀g vs.
+    walk g vs ⇒ ∃vs'. HD vs' = HD vs ∧ LAST vs' = LAST vs ∧ path g vs'
+Proof
+  rpt strip_tac
+  (* Pick the shortest walk from the start of vs to the end of vs.
+     This must exist because ordering walks by length is a well-founded
+     relation, and a walk from the start of vs to the end of vs exists.
+     If this walk had a repeated vertex in it, then we could find a shorter
+     walk by skipping from the first index of the vertex to the second instance
+     of the vertex.
+   *)
+  (* Prove well-formedness of the relation which compares two walks and returns
+     true if one is shorter than the other *)
+  >> sg ‘WF (inv_image $< (λvs : (α + num) list. LENGTH vs))’
+  >- simp[WF_inv_image]
+  (* By the definition of well-formedness, any set has a minimal element under
+     our relation *)
+  >> gvs[WF_DEF]
+  >> pop_assum $ qspecl_then [‘{vs' | HD vs' = HD vs ∧
+                                      LAST vs' = LAST vs ∧
+                                      walk g vs'}’] assume_tac
+  >> gvs[]
+  (* Show that there exists an element in this set, and so there exists a
+     minimal element*)
+  >> qmatch_asmsub_abbrev_tac ‘b ⇒ _’
+  >> sg ‘b’ >> gvs[Abbr ‘b’]
+  >- (qexists ‘vs’ >> gvs[])
+  (* The minimal element is the path *)
+  >> qexists ‘min'’
+  >> gvs[]
+  >> gvs[path_def]
+  (* By way of contradiction, if two elements are not distinct, then we have a
+     loop and thus this isn't the shortest walk *)
+  >> CCONTR_TAC
+  >> gvs[EL_ALL_DISTINCT_EL_EQ]        
+  (* Without loss of generality, n1 is earlier than n2 *)
+  >> Cases_on ‘n1 = n2’ >> gvs[]
+  >> wlog_tac ‘n1 < n2’ [‘n1’, ‘n2’]
+  >- (last_x_assum $ qspecl_then [‘n2’, ‘n1’] assume_tac >> gvs[])
+  (* Prove that there is a shorter walk *)
+  >> sg ‘walk g (TAKE n1 min' ++ DROP n2 min')’
+  >- (Cases_on ‘TAKE n1 min' = []’ >> gvs[]
+      >- gvs[walk_drop]
+      >> Cases_on ‘DROP n2 min' = []’ >> gvs[]
+      >> gvs[walk_append]
+      >> gvs[walk_take, walk_drop]
+      >> gvs[LAST_TAKE, HD_DROP]
+      >> ‘adjacent min' (EL (n1 - 1) min') (EL n2 min')’ suffices_by gvs[walk_def]
+      >> gvs[adjacent_EL]
+      >> qexists ‘n1 - 1’
+      >> gvs[]
+     )
+  (* This contradicts the fact we know that the shortest walk is the shortest
+     one *)
+  >> pop_assum mp_tac >> gvs[]
+  >> last_x_assum irule
+  (* The length is shorter *)
+  >> conj_tac
+  >- gvs[]
+  (* The head is the same *)
+  >> conj_tac
+  >- (Cases_on ‘TAKE n1 min' = []’ >> gvs[]
+      >- gvs[HD_DROP]
+      >> gvs[HD_APPEND_NOT_NIL]
+      >> gvs[HD_TAKE]
+     )
+  (* The last is the same *)
+  >> Cases_on ‘TAKE n1 min' = []’ >> gvs[]
+  >- gvs[last_drop]
+  >> gvs[LAST_APPEND_NOT_NIL]
+  >> gvs[last_drop]
+QED
+
+
+Theorem walk_append:
+
+Proof
+QED
+
+
+Theorem exists_path_trans:
+  ∀g x y z.
+    exists_path g x y ∧
+    exists_path g y z ⇒
+    exists_path g x z
+Proof
+  rpt strip_tac
+  >> gvs[exists_path_def]
+  >> qexists ‘vs ++ TL vs'’
+  >> rpt conj_tac
+  >- (
+  )
+QED
+
+Theorem adjacent_tc_exists_path:
+  ∀g a b.
+    (adjacent g)⁺ a b ⇔
+      exists_path g a b
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (PURE_ONCE_REWRITE_TAC[TC_DEF]
+      >> rpt strip_tac
+      >> pop_assum $ qspecl_then [‘λa b. exists_path g a b’] assume_tac
+      >> gvs[]
+      >> pop_assum irule
+      >> conj_tac
+      >- (rpt strip_tac
+          >> 
+         )
+     )
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* If a graph is connected, then there exists a path between any two nodes.   *)
 (*                                                                            *)
@@ -171,8 +285,19 @@ Theorem connected_exists_path:
     b ∈ nodes g ∧
     connected g ⇒ exists_path g a b
 Proof
-  (* Induct by adding a node *)
-  Induct_on ‘g’ using fsg_induction >> gvs[]
+  rpt strip_tac
+  >> gvs[connected_def]
+  >> pop_assum $ qspecl_then [‘a’, ‘b’] assume_tac >> gvs[]
+  >> Cases_on ‘a = b’ >> gvs[]
+  >> 
+  
+  (* We want to induct on the  *)
+  sg ‘’
+
+
+     
+     (* Induct by adding a node *)
+     Induct_on ‘g’ using fsg_induction >> gvs[]
   >> rpt gen_tac >> disch_tac
   (* The case where the beginning and end nodes are both the new node *)
   >> Cases_on ‘a = n ∧ b = n’
