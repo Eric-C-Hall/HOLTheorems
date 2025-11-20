@@ -283,13 +283,14 @@ QED
 
 Theorem adjacent_tc_exists_path:
   ∀g a b.
-    (adjacent g)⁺ a b ⇔
-      exists_path g a b
+    exists_path g a b ⇔
+      (adjacent g)⁺ a b ∨ (a = b ∧ a ∈ nodes g)
 Proof
   rpt strip_tac
-  >> EQ_TAC
+  >> REVERSE EQ_TAC
   >- (PURE_ONCE_REWRITE_TAC[TC_DEF]
-      >> rpt strip_tac
+      >> REVERSE $ rpt strip_tac
+      >- gvs[]
       >> pop_assum $ qspecl_then [‘λa b. exists_path g a b’] assume_tac
       >> gvs[]
       >> pop_assum irule
@@ -298,18 +299,24 @@ Proof
       >> rpt strip_tac
       >> Cases_on ‘x = y’ >> gvs[]
       >- metis_tac[adjacent_members]
-      >> gvs[exists_path_def]
-      >> qexists ‘[x;y]’
-      >> gvs[]
-      >> gvs[path_def, walk_def]
-      >> conj_tac
-      >- (rpt strip_tac
-          >- metis_tac[adjacent_members]
-          >> metis_tac[adjacent_members]
-         )
-      >> rpt strip_tac
-      >> metis_tac[]
+      >> metis_tac[adjacent_exists_path]
      )
+  >> rpt strip_tac
+  >> gvs[exists_path_def]
+  >> Induct_on ‘vs’ >> gvs[]
+  >> rpt strip_tac
+  >> REVERSE $ gvs[path_cons]
+  >- (Cases_on ‘vs’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+      >> metis_tac[TC_CASES1]
+     )
+  >> Cases_on ‘h = LAST (h::vs) ∧ h ∈ nodes g’ >> gvs[]
+  >> disj1_tac
+  >> PURE_ONCE_REWRITE_TAC[TC_CASES1]
+  >> Cases_on ‘adjacent g h (LAST (h::vs))’ >> gvs[]
+  >> qexists ‘HD vs’
+  >> gvs[]
+  >> Cases_on ‘vs’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
