@@ -352,7 +352,7 @@ Theorem tree_exists_path:
 Proof
   metis_tac[is_tree_def, connected_exists_path]
 QED
-
+}
 Theorem connected_hd_get_path:
   ∀g a b.
     a ∈ nodes g ∧
@@ -366,7 +366,7 @@ Proof
   >> gvs[connected_exists_path, exists_path_def]
 QED
 
-Theorem tree_hd_get_path:
+Theorem is_tree_hd_get_path:
   ∀g a b.
     a ∈ nodes g ∧
     b ∈ nodes g ∧
@@ -389,7 +389,7 @@ Proof
   >> gvs[connected_exists_path, exists_path_def]
 QED
 
-Theorem tree_last_get_path:
+Theorem is_tree_last_get_path:
   ∀g a b.
     a ∈ nodes g ∧
     b ∈ nodes g ∧
@@ -397,6 +397,29 @@ Theorem tree_last_get_path:
     LAST (get_path g a b) = b
 Proof
   metis_tac[is_tree_def, connected_last_get_path]
+QED
+
+Theorem connected_path_get_path:
+  ∀g a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    connected g ⇒
+    path g (get_path g a b)
+Proof
+  rpt strip_tac
+  >> gvs[get_path_def]
+  >> SELECT_ELIM_TAC
+  >> gvs[connected_exists_path, exists_path_def]
+QED
+
+Theorem is_tree_path_get_path:
+  ∀g a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    is_tree g ⇒
+    path g (get_path g a b)
+Proof
+  metis_tac[connected_path_get_path, is_tree_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -745,8 +768,29 @@ Proof
   >> gvs[EL_TAKE]
 QED
 
+Theorem walk_in_nodes:
+  ∀g v vs.
+    MEM v vs ∧
+    walk g vs ⇒
+    v ∈ nodes g
+Proof
+  rpt strip_tac
+  >> gvs[walk_def]
+QED
+
+Theorem path_in_nodes:
+  ∀g v vs.
+    MEM v vs ∧
+    path g vs ⇒
+    v ∈ nodes g
+Proof
+  rpt strip_tac
+  >> gvs[path_def]
+  >> metis_tac[walk_in_nodes]
+QED
+
 Theorem tree_get_path_unique:
-  ∀g a b vs.
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b vs.
     is_tree g ∧
     path g vs ∧
     HD vs = a ∧
@@ -756,23 +800,24 @@ Proof
   rpt strip_tac
   >> irule tree_path_unique
   >> gvs[]
-
-        Induct_on ‘vs’
-  >- gvs[path_def, walk_def]
-  >> rpt strip_tac
-  >> last_x_assum $ qspecl_then [‘g’, ‘HD vs’, ‘b’] assume_tac
-  >> gvs[]
-  >> gvs[path_cons]
-  >- (gvs[get_path_def]
+  (* This is used several times *)
+  >> sg ‘HD vs ∈ nodes g’
+  >- (irule path_in_nodes
+      >> qexists ‘vs’ >> gvs[]
+      >> Cases_on ‘vs’ >> gvs[]
      )
-     
-  >> gvs[]
-        
-        rpt strip_tac
-  >>
-
-  
-  rw[]
+  (* This is also used several times *)
+  >> sg ‘LAST vs ∈ nodes g’
+  >- (irule path_in_nodes
+      >> qexists ‘vs’ >> gvs[]
+      >> Cases_on ‘vs’ >> gvs[MEM_LAST]
+     )
+  >> conj_tac
+  >- simp[is_tree_hd_get_path]
+  >> conj_tac
+  >- simp[is_tree_last_get_path]
+  >> qexists ‘g’
+  >> simp[is_tree_path_get_path]
 QED
 
 (* Subsumed by nodes_subtree_subset: nodes (subtree g c b) ⊂
