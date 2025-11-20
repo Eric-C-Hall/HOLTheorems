@@ -353,19 +353,50 @@ Proof
   metis_tac[is_tree_def, connected_exists_path]
 QED
 
-Theorem hd_get_path[simp]:
+Theorem connected_hd_get_path:
   ∀g a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    connected g ⇒
     HD (get_path g a b) = a
 Proof
   rpt strip_tac
   >> gvs[get_path_def]
+  >> SELECT_ELIM_TAC
+  >> gvs[connected_exists_path, exists_path_def]
 QED
 
-
-Theorem last_get_path[simp]:
+Theorem tree_hd_get_path:
   ∀g a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    is_tree g ⇒
+    HD (get_path g a b) = a
+Proof
+  metis_tac[is_tree_def, connected_hd_get_path]
+QED
+
+Theorem connected_last_get_path:
+  ∀g a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    connected g ⇒
     LAST (get_path g a b) = b
 Proof
+  rpt strip_tac
+  >> gvs[get_path_def]
+  >> SELECT_ELIM_TAC
+  >> gvs[connected_exists_path, exists_path_def]
+QED
+
+Theorem tree_last_get_path:
+  ∀g a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    is_tree g ⇒
+    LAST (get_path g a b) = b
+Proof
+  metis_tac[is_tree_def, connected_last_get_path]
 QED
 
 (* -------------------------------------------------------------------------- *)
