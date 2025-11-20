@@ -258,6 +258,29 @@ Proof
   >> Cases_on ‘t’ >> gvs[]
 QED
 
+Theorem adjacent_exists_path:
+  ∀g a b.
+    adjacent g a b ⇒
+    exists_path g a b
+Proof
+  rpt strip_tac
+  >> gvs[exists_path_def]
+  >> Cases_on ‘a = b’
+  >- (qexists ‘[a]’
+      >> gvs[]
+      >> metis_tac[adjacent_members]
+     )
+  >> qexists ‘[a; b]’
+  >> gvs[]
+  >> gvs[path_def]
+  >> gvs[walk_def]
+  >> conj_tac
+  >- metis_tac[adjacent_members]
+  >> rpt strip_tac
+  >> Cases_on ‘v1 = a ∧ v2 = b’ >> gvs[]
+  >> Cases_on ‘v1 = a’ >> gvs[adjacent_iff]
+QED
+
 Theorem adjacent_tc_exists_path:
   ∀g a b.
     (adjacent g)⁺ a b ⇔
@@ -271,9 +294,21 @@ Proof
       >> gvs[]
       >> pop_assum irule
       >> conj_tac
+      >- metis_tac[exists_path_trans]
+      >> rpt strip_tac
+      >> Cases_on ‘x = y’ >> gvs[]
+      >- metis_tac[adjacent_members]
+      >> gvs[exists_path_def]
+      >> qexists ‘[x;y]’
+      >> gvs[]
+      >> gvs[path_def, walk_def]
+      >> conj_tac
       >- (rpt strip_tac
-          >> 
+          >- metis_tac[adjacent_members]
+          >> metis_tac[adjacent_members]
          )
+      >> rpt strip_tac
+      >> metis_tac[]
      )
 QED
 
