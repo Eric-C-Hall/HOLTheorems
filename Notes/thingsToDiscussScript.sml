@@ -6,6 +6,33 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* In sp_message, I add an if statement which isn't necessary, but it won't
+   recognise termination without the information given by the if statement.
+   Is it possible to avoid doing that? *)
+
+(* I'm not entirely confident in using inductive definitions. I think they
+   might be useful in the message passing algorithm. *)
+
+(* I have defined sp_calculate_messages0 and proven that it always terminates.
+   Can I induct on the recursive calls of this function? Some property holds on
+   termination, therefore the property holds 1 call before termination,
+   therefore the property holds 2 calls before termination, etc. I think I
+   remember there being something along the lines of inductive definitions? *)
+
+(* matchingScript is reaching the stack limit for gvs. Perhaps it could be
+   made faster very easily by reducing the stack limit for that file or the
+   slow proofs? How would one do that? *)
+
+(* How do I use multiset comprehensions? The documentation says that multisets
+   are represented by α -> num instead of α -> bool, where the num defines the
+   multiplicity. In the multiset comprehension {_ || _ || _}, will it
+   automatically take care of multiplicity for me if I use a function to bool
+   in the last part? *)
+
+(* Not sure if I should be lifting factor graphs to an abstract type. See message passing script *)
+
+(* --- ALREADY DISCUSSED --- *)
+
 (* I was actively working for about 61 hours and 12 minutes over the past 2
    weeks *)
 
