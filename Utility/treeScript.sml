@@ -352,7 +352,7 @@ Theorem tree_exists_path:
 Proof
   metis_tac[is_tree_def, connected_exists_path]
 QED
-}
+
 Theorem connected_hd_get_path:
   ∀g a b.
     a ∈ nodes g ∧
@@ -820,44 +820,23 @@ Proof
   >> simp[is_tree_path_get_path]
 QED
 
-(* Subsumed by nodes_subtree_subset: nodes (subtree g c b) ⊂
-                                                   nodes (subtree g b a) *)
-Theorem in_nodes_subtree[local]:
-  ∀x g a b c.
+Theorem order_subtree_lt:
+  ∀g a b c.
     is_tree g ∧
-    x ∈ nodes (subtree g c b) ⇒
-    x ∈ nodes (subtree g b a)
+    a ≠ b ∧
+    b ≠ c ∧
+    c ∈ subtree a b ⇒
+    order (subtree b c) < order (subtree a b)
 Proof
-  rpt strip_tac
-  >> gvs[subtree_def]
-  >> gvs[subgraph_def]
-  >> 
-
-  >> DEP_PURE_ONCE_REWRITE_TAC[nodes_fsgAddNodes]
-  >> conj_tac
-  >- (irule SUBSET_FINITE
-      >> qexists ‘nodes g’
-      >> rw[SUBSET_DEF]
-      >> gvs[is_ancestor_def]
-     )
 QED
 
-Theorem nodes_subtree_subset[simp]:
+Theorem order_subtree_lt_adjacent:
   ∀g a b c.
-    nodes (subtree g c b) ⊂ nodes (subtree g b a)
-Proof
-  rpt strip_tac
-  >> gvs[PSUBSET_MEMBER]
-  >> conj_tac
-  >- (gvs[SUBSET_DEF]
-      >> rpt strip_tac
-      >> gvs[subtree_def]
-     )
-QED
-
-Theorem order_subtree_lt[simp]:
-  ∀g a b c.
-    order (subtree g c b) < order (subtree g b a) 
+    is_tree g ∧
+    adjacent g a b ∧
+    adjacent g b c ∧
+    c ≠ a ⇒
+    order (subtree g b c) < order (subtree g a b) 
 Proof
   rw[]
   >> irule order_psubset

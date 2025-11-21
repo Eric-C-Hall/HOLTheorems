@@ -6,16 +6,56 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* I was actively working for about 61 hours and 12 minutes over the past 2
+   weeks *)
+
+(* Modified the message passing algorithm to work with the modified factor graph
+   which allows variable nodes to have length other than 1.
+   
+   Added code to calculate the final result of message passing: previously it
+   would just calculate the messages
+   
+   Fixed bug in the indexing of nodes in the factor graph
+
+   In process: Relating factor graph to sum-product representation of MAP
+   decoder
+
+   Writing theorem relating the final result of the message passing algorithm
+   to a sum of products
+
+   Writing theorem relating the individual messages in the message passing
+   algorithm to sums of products in the relevant subtree
+
+   Needed to write code relating to trees in order to express this
+   
+   Fixed message passing algorithm to ensure that any messages outside the
+   relevant domain are ignored
+
+   Rewrote message passing algorithm in order to be less computational and
+   more mathematical, in order to simplify the proof process.
+
+   Added more definitions regarding trees. To show termination, I need to be
+   able to show that the trees are shrinking, and thus I need to be able to
+   express the diameter of the trees.
+
+   My subtrees are expressed in terms of paths in the tree. To work with paths,
+   I needed to show that a path is unique, and that a path exists between any
+   two points.
+   1. To prove this, I needed to prove that the transitive closure of adjacency
+      is equivalent to the existance of a path between the given two points
+   2. For which I needed to prove that the existance of a path is transitive
+   3. For which I had to prove that if there is a walk between two points, then
+      there is a path between them.
+
+   Many helpful subtheorems proved throughout this process
+*)
+
+(* In sp_message, I add an if statement which isn't necessary, but it won't
+   recognise termination without the information given by the if statement.
+   Is it possible to avoid doing that? *)
+
 (* Is there pre-existing code for trees? Induction on trees? Doesn't have to
    be connected to fsgraph, but it would be more convenient if it was *)
-
-(* I rewrote the message passing algorithm in order to define the messages
-   being passed individually and recursively based on the prior messages,
-   rather than emulating the process that is being performed when calculating
-   the messages. Previously, I would store a map of all messages that have
-   been calculated to their value. But I realised that I actually just needed
-   to calculate the value of each message by recursively referring to the
-   values of the previous messages. *)
 
 (* I'm not entirely confident in using inductive definitions. I think they
    might be useful in the message passing algorithm. *)
@@ -37,7 +77,11 @@ Libs dep_rewrite;
    made faster very easily by reducing the stack limit for that file or the
    slow proofs? How would one do that? *)
 
-(* How do I use multiset comprehensions? The documentation says that multisets are represented by α -> num instead of α -> bool, where the num defines the multiplicity. In the multiset comprehension {_ || _ || _}, will it automatically take care of multiplicity for me if I use a function to bool in the last part? *)
+(* How do I use multiset comprehensions? The documentation says that multisets
+   are represented by α -> num instead of α -> bool, where the num defines the
+   multiplicity. In the multiset comprehension {_ || _ || _}, will it
+   automatically take care of multiplicity for me if I use a function to bool
+   in the last part? *)
 
 (* Not sure if I should be lifting factor graphs to an abstract type. See message passing script *)
 

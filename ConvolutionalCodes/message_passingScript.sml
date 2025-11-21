@@ -535,8 +535,13 @@ Definition sp_message_def:
          ∑ (λval_map.
               fg.function_map ' src ' val_map *
               ∏ (λprev.
-                   sp_message fg prev src '
-                              (val_map ' prev)
+                   if prev ∈ adjacent_nodes fg src ∧ (* TODO is this really neccessary *)
+                      prev ≠ dst
+                   then
+                     sp_message fg prev src '
+                                (val_map ' prev)
+                   else
+                     1
                 ) {prev | prev ∈ adjacent_nodes fg src ∧
                           prev ≠ dst})
            {val_map | FDOM val_map = adjacent_nodes fg src ∧
@@ -548,7 +553,13 @@ Definition sp_message_def:
     else
       FUN_FMAP
       (λsrc_val.
-         ∏ (λprev. sp_message fg prev src ' src_val)
+         ∏ (λprev.
+              if prev ∈ adjacent_nodes fg src ∧ (* TODO is this really necessary *)
+                 prev ≠ dst
+              then
+                sp_message fg prev src ' src_val
+              else
+                1)
            {prev | prev ∈ adjacent_nodes fg src ∧
                    prev ≠ dst})
       (length_n_codes (fg.variable_length_map ' src))
