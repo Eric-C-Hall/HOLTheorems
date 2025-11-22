@@ -344,7 +344,7 @@ Proof
   >> metis_tac[]
 QED
 
-Theorem tree_exists_path:
+Theorem is_tree_exists_path[simp]:
   ∀g a b.
     a ∈ nodes g ∧
     b ∈ nodes g ∧
@@ -376,6 +376,18 @@ Proof
   metis_tac[is_tree_def, connected_hd_get_path]
 QED
 
+Theorem exists_path_hd_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    HD (get_path g a b) = a
+Proof
+  rpt strip_tac
+  >> gvs[get_path_def]
+  >> SELECT_ELIM_TAC
+  >> gvs[exists_path_def]
+  >> metis_tac[]
+QED
+
 Theorem connected_last_get_path:
   ∀g a b.
     a ∈ nodes g ∧
@@ -399,6 +411,18 @@ Proof
   metis_tac[is_tree_def, connected_last_get_path]
 QED
 
+Theorem exists_path_last_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    LAST (get_path g a b) = b
+Proof
+  rpt strip_tac
+  >> gvs[get_path_def]
+  >> SELECT_ELIM_TAC
+  >> gvs[exists_path_def]
+  >> metis_tac[]
+QED
+
 Theorem connected_path_get_path:
   ∀g a b.
     a ∈ nodes g ∧
@@ -420,6 +444,18 @@ Theorem is_tree_path_get_path:
     path g (get_path g a b)
 Proof
   metis_tac[connected_path_get_path, is_tree_def]
+QED
+
+Theorem exists_path_path_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    path g (get_path g a b)
+Proof
+  rpt strip_tac
+  >> gvs[get_path_def]
+  >> SELECT_ELIM_TAC
+  >> gvs[exists_path_def]
+  >> metis_tac[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -789,7 +825,7 @@ Proof
   >> metis_tac[walk_in_nodes]
 QED
 
-Theorem tree_get_path_unique:
+Theorem is_tree_get_path_unique:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b vs.
     is_tree g ∧
     path g vs ∧
@@ -827,7 +863,22 @@ Theorem is_tree_get_path_same:
     get_path g a a = [a]
 Proof
   rpt strip_tac
-  >> gvs[tree_get_path_unique]
+  >> gvs[is_tree_get_path_unique]
+QED
+
+Theorem exists_path_get_path_same[simp]:
+  ∀g a.
+    exists_path g a a ⇒
+    get_path g a a = [a]
+Proof
+  rpt strip_tac
+  >> gvs[get_path_def]
+  >> SELECT_ELIM_TAC
+  >> conj_tac
+  >- (qexists ‘[a]’ >> gvs[])
+  >> rpt strip_tac
+  >> Cases_on ‘x’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
 QED
 
 Theorem exists_path_in_nodes:
@@ -850,13 +901,119 @@ Proof
   >> gvs[walk_def]
 QED
 
-Theorem MEM_get_path_first_last[simp]:
+Theorem get_path_empty[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    (get_path g a b = [] ⇔ F)
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> simp[]
+  >> gvs[get_path_def, exists_path_def]
+  >> SELECT_ELIM_TAC
+  >> gvs[]
+  >> metis_tac[]
+QED
+
+Theorem exists_path_0_less_len_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    0 < LENGTH (get_path g a b)
+Proof
+  rpt strip_tac
+  >> simp[LENGTH_NON_NIL]
+QED
+
+Theorem MEM_get_path_first[simp]:
   ∀g a b.
     exists_path g a b ⇒ 
     MEM a (get_path g a b)
 Proof
   rpt strip_tac
-  >> 
+  >> gvs[MEM_EL]
+  >> qexists ‘0’
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The existing relationship between LAST and EL uses PRE, but I think it's   *)
+(* more common to use minus one instead of pre                                *)
+(* -------------------------------------------------------------------------- *) 
+Theorem LAST_EL_LEN_MINUS_ONE:
+  ∀l.
+    l ≠ [] ⇒
+    LAST l = EL (LENGTH l - 1) l
+Proof
+  rpt strip_tac
+  >> gvs[GSYM EL_PRE_LENGTH]
+  >> gvs[PRE_SUB1]
+QED
+
+Theorem EL_LEN_MINUS_ONE_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    EL (LENGTH (get_path g a b) - 1) (get_path g a b) = b
+Proof
+  rpt strip_tac
+  >> gvs[GSYM LAST_EL_LEN_MINUS_ONE]
+QED
+
+Theorem MEM_get_path_last[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    MEM b (get_path g a b)
+Proof
+  rpt strip_tac
+  >> gvs[MEM_EL]
+  >> qexists ‘LENGTH (get_path g a b) - 1’
+  >> simp[]
+QED
+
+Theorem get_path_sing[simp]:
+  ∀g a b h.
+    exists_path g a b ⇒
+    (get_path g a b = [h] ⇔ a = h ∧ b = h)
+Proof
+  rpt strip_tac
+  >> gvs[get_path_def]
+  >> SELECT_ELIM_TAC
+  >> gvs[exists_path_def]
+  >> conj_tac >- metis_tac[]
+  >> rpt strip_tac
+  >> Cases_on ‘vs’ >> gvs[]
+  >> Cases_on ‘x’ >> gvs[]
+  >> Cases_on ‘t’ using SNOC_CASES >> gvs[]
+  >- (Cases_on ‘t'’ >> gvs[])
+  >> Cases_on ‘t'’ >> gvs[]
+  >- gvs[LAST_DEF]
+  >> rpt strip_tac
+  >> gvs[]
+QED
+
+Theorem get_path_append:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    c ∈ nodes g ∧
+    MEM b (get_path g a c) ⇒
+    get_path g a c = get_path g a b ++ TL (get_path g b c)
+Proof
+  rpt strip_tac
+  >> sg ‘b ∈ nodes g’
+  >- (irule path_in_nodes
+      >> qexists ‘get_path g a c’
+      >> simp[]
+     )
+  >> irule is_tree_get_path_unique
+  >> simp[]
+  >> conj_tac
+  >- gvs[HD_APPEND_NOT_NIL]
+  >> conj_tac
+  >- (Cases_on ‘TL (get_path g b c) = []’ >> gvs[]
+      >- (Cases_on ‘get_path g b c’ >> gvs[]
+         )
+
+         gvs[LAST_APPEND_NOT_NIL]
+     )
 QED
 
 Theorem subtree_subset:
@@ -878,6 +1035,9 @@ Proof
       >> qexists ‘b’
       >> gvs[is_tree_get_path_same]
      )
+  >> gvs[SUBSET_DEF]
+  >> rpt strip_tac
+  >> sg ‘get_path g a x = get_path g a b ++ TL (get_path g b x)’
 QED
 
 Theorem order_subtree_lt:
