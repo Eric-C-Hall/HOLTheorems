@@ -4,6 +4,9 @@ Ancestors arithmetic bitstring pair pred_set probability extreal finite_map fsgr
 
 Libs donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
 
+(* When looking for theorems to move into the HOL standard library, check
+   treeScript for some relatively fundamental theorems *)
+
 (* -------------------------------------------------------------------------- *)
 (* TAKE-ing can only decrease lengths                                         *)
 (* -------------------------------------------------------------------------- *)

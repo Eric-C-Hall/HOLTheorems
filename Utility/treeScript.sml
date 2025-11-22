@@ -459,6 +459,34 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* An alternative charaterization of a cycle in terms of a path.              *)
+(*                                                                            *)
+(* Advantage: bundling up walk and ALL_DISTINCT together as a path allows us  *)
+(*            to use theorems about paths, which naturally consider           *)
+(*            distinctness, rather than separately having to apply theorems   *)
+(*            about walks as well as theorems about ALL_DISTINCT.             *)
+(*                                                                            *)
+(* Disadvantage: we have to consider adjacency of the first two elements      *)
+(*               separately                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem cycle_alt:
+  ∀g vs.
+    cycle g vs ⇔
+      path g (TL vs) ∧
+      3 ≤ LENGTH vs ∧
+      HD vs = LAST vs ∧
+      adjacent g (HD vs) (HD (TL vs))
+Proof
+  rpt strip_tac
+  >> gvs[cycle_def]
+  >> gvs[path_def]
+  >> Cases_on ‘vs’ >> gvs[]
+  >> gvs[walk_cons]
+  >> Cases_on ‘t’ >> gvs[]
+  >> metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A path in a tree between two nodes is unique.                              *)
 (*                                                                            *)
 (* Suppose, by way of contradiction, we had two paths                         *)
@@ -720,7 +748,7 @@ Proof
      contradiction. *)
   >> ‘cycle g (DROP i (TAKE (j + 1) vs1) ++
                REVERSE (DROP i (TAKE k vs2)))’
-    suffices_by metis_tac[is_tree_def] 
+    suffices_by metis_tac[is_tree_def]
   (* Prove that this is a cycle by the definition of a cycle *)
   >> PURE_REWRITE_TAC[cycle_def]
   (* It is frequently helpful to know that each of the components of the cycle
@@ -989,6 +1017,33 @@ Proof
   >> gvs[]
 QED
 
+Theorem LAST_TL:
+  ∀l.
+    1 < LENGTH l ⇒
+    LAST (TL l) =  LAST l
+Proof
+  rw[]
+  >> Cases_on ‘l’ >> simp[]
+  >> Cases_on ‘t’ >> gvs[TL_DEF]
+QED
+        
+Theorem path_append:
+  ∀g vs1 vs2.
+    vs1 ≠ [] ∧
+    vs2 ≠ [] ⇒
+    (path g (vs1 ++ vs2) ⇔ path g vs1 ∧
+                           path g vs2 ∧
+                           adjacent g (LAST vs1) (HD vs2) ∧
+                           (∀v. MEM v vs1 ⇒ ¬MEM v vs2)
+    )
+Proof
+  rpt strip_tac
+  >> gvs[path_def]
+  >> gvs[walk_append]
+  >> gvs[ALL_DISTINCT_APPEND]
+  >> metis_tac[]
+QED
+
 Theorem get_path_append:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
     is_tree g ∧
@@ -1009,11 +1064,15 @@ Proof
   >- gvs[HD_APPEND_NOT_NIL]
   >> conj_tac
   >- (Cases_on ‘TL (get_path g b c) = []’ >> gvs[]
-      >- (Cases_on ‘get_path g b c’ >> gvs[]
-         )
-
-         gvs[LAST_APPEND_NOT_NIL]
+      >- (Cases_on ‘get_path g b c’ >> gvs[])
+      >> gvs[LAST_APPEND_NOT_NIL]
+      >> Cases_on ‘b = c’ >> gvs[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[LAST_TL]
+      >> gvs[]
+      >> Cases_on ‘get_path g b c’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
      )
+  >> 
 QED
 
 Theorem subtree_subset:
