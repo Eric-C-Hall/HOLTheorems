@@ -28,6 +28,12 @@ Libs dep_rewrite ConseqConv;
 (* O              O                                                           *)
 (*  \            /                                                            *)
 (*   -> O -> O ->                                                             *)
+(*                                                                            *)
+(* Possible improvement: change this definition to work for directed graphs   *)
+(*                       by treating directed edges as undirected edges and   *)
+(*                       checking if it is a tree as normal. Then update      *)
+(*                       theorems dependent on trees to no longer require the *)
+(*                       input graph g to be an undirected graph.             *)
 (* -------------------------------------------------------------------------- *)
 Definition is_tree_def:
   is_tree g ⇔ (connected g ∧
@@ -520,7 +526,7 @@ QED
 (* Note that this is only true in undirected graphs. One can have cycle-free  *)
 (* directed graphs without unique paths.                                      *)
 (* -------------------------------------------------------------------------- *)
-Theorem tree_path_unique:
+Theorem is_tree_path_unique:
   ∀(g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph) a b vs1 vs2.
     is_tree g ∧
     path g vs1 ∧
@@ -874,7 +880,7 @@ Theorem is_tree_get_path_unique:
     get_path g a b = vs
 Proof
   rpt strip_tac
-  >> irule tree_path_unique
+  >> irule is_tree_path_unique
   >> gvs[]
   (* This is used several times *)
   >> sg ‘HD vs ∈ nodes g’
@@ -1077,6 +1083,42 @@ Proof
   >> ‘HD (get_path g a b) = h’ by (pop_assum (fn th => PURE_REWRITE_TAC[th])
                                    >> simp[])
   >> gvs[]
+QED
+
+Theorem is_tree_get_path_equals_cons:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b h t.
+    is_tree g ∧
+    exists_path g a b ∧
+    t ≠ [] ⇒
+    (get_path g a b = h::t ⇔
+       (a = h ∧ ∃a2. get_path g a2 b = t ∧ adjacent g a a2 ∧
+                     ¬MEM a (get_path g a2 b)))
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> disch_tac
+  >- (‘a = h’ by metis_tac[get_path_equals_cons]
+      >> gvs[]
+      >> namedCases_on ‘t’ ["", "a2 t"] >> gvs[]
+      >> qexists ‘a2’
+      >> ‘path g (get_path g a b)’ by gvs[]
+      >> gvs[path_def, walk_def, Excl "exists_path_path_get_path"]
+      >> sg ‘get_path g a2 b = a2::t'’
+      >- (irule is_tree_get_path_unique
+          >> gvs[]
+          >> ‘LAST (get_path g a b) = b’ by gvs[]
+          >> gvs[Excl "exists_path_last_get_path"]
+          >> ‘path g (get_path g a (LAST (a2::t')))’ by gvs[]
+          >> gvs[Excl "exists_path_path_get_path"]
+          >> gvs[path_cons])
+      >> gvs[]
+     )
+  >> gvs[]
+  >> irule is_tree_get_path_unique
+  >> gvs[]
+  >> ‘exists_path g a2 b’ by metis_tac[adjacent_exists_path,
+                                       exists_path_trans, adjacent_SYM]
+  >> gvs[LAST_DEF]
+  >> gvs[path_cons]
 QED
 
 (* -------------------------------------------------------------------------- *)
