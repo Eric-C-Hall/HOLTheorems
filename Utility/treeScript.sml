@@ -820,14 +820,77 @@ Proof
   >> simp[is_tree_path_get_path]
 QED
 
+Theorem is_tree_get_path_same:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a.
+    is_tree g ∧
+    a ∈ nodes g ⇒
+    get_path g a a = [a]
+Proof
+  rpt strip_tac
+  >> gvs[tree_get_path_unique]
+QED
+
+Theorem exists_path_in_nodes:
+  ∀g a b.
+    exists_path g a b ⇒
+    a ∈ nodes g ∧
+    b ∈ nodes g
+Proof
+  rpt strip_tac
+  >- (gvs[exists_path_def]
+      >> Cases_on ‘vs’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+      >> gvs[path_def]
+      >> gvs[walk_def]
+     )
+  >> gvs[exists_path_def]
+  >> Cases_on ‘vs’ using SNOC_CASES >> gvs[]
+  >> Cases_on ‘l’ using SNOC_CASES >> gvs[]
+  >> gvs[path_def]
+  >> gvs[walk_def]
+QED
+
+Theorem MEM_get_path_first_last[simp]:
+  ∀g a b.
+    exists_path g a b ⇒ 
+    MEM a (get_path g a b)
+Proof
+  rpt strip_tac
+  >> 
+QED
+
+Theorem subtree_subset:
+  ∀g a b c.
+    is_tree g ∧
+    a ≠ b ∧
+    b ≠ c ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    c ∈ nodes (subtree g a b) ⇒
+    nodes (subtree g b c) ⊂ nodes (subtree g a b)
+Proof
+  rpt strip_tac
+  >> gvs[subtree_def]
+  >> gvs[subgraph_def]
+  >> gvs[PSUBSET_DEF]
+  >> REVERSE conj_tac
+  >- (gvs[EXTENSION] >> rpt strip_tac
+      >> qexists ‘b’
+      >> gvs[is_tree_get_path_same]
+     )
+QED
+
 Theorem order_subtree_lt:
   ∀g a b c.
     is_tree g ∧
     a ≠ b ∧
     b ≠ c ∧
-    c ∈ subtree a b ⇒
-    order (subtree b c) < order (subtree a b)
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    c ∈ nodes (subtree g a b) ⇒
+    order (subtree g b c) < order (subtree g a b)
 Proof
+  rpt strip_tac
 QED
 
 Theorem order_subtree_lt_adjacent:
