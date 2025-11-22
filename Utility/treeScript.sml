@@ -1070,26 +1070,13 @@ QED
 Theorem get_path_equals_cons:
   ∀g a b h t.
     exists_path g a b ∧
-    t ≠ [] ⇒
-    (get_path g a b = h::t ⇔ a = h ∧ ∃a2. get_path g a2 b = t ∧ adjacent g a a2)
+    get_path g a b = h::t ⇒
+    a = h
 Proof
   rpt strip_tac
-  >> EQ_TAC
-  >- (disch_tac
-      >> ‘HD (get_path g a b) = h’ by (pop_assum (fn th => PURE_REWRITE_TAC[th])
-                                       >> simp[])
-      >> gvs[]
-      >> Induct_on ‘t’ >> gvs[]
-      >> rpt strip_tac
-      >> qexists ‘h’
-      >> ‘path g (get_path g a b)’ by gvs[]
-      >> gvs[path_def, walk_def, Excl "exists_path_path_get_path"]
-      >> 
-     )
-  >- (
-  )
-  >> Cases_on ‘t’ >> gvs[]
-
+  >> ‘HD (get_path g a b) = h’ by (pop_assum (fn th => PURE_REWRITE_TAC[th])
+                                   >> simp[])
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
