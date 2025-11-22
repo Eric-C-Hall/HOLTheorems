@@ -1,8 +1,20 @@
 Theory tree
 
-Ancestors arithmetic extreal fsgraph fundamental genericGraph list pred_set relation rich_list
+Ancestors arithmetic extreal fsgraph fundamental genericGraph list marker pred_set relation rich_list
 
 Libs dep_rewrite ConseqConv;
+
+(* -------------------------------------------------------------------------- *)
+(* Most important theorems:                                                   *)
+(* - Paths in a connected graph exist between any two points                  *)
+(* - Paths in a tree are unique                                               *)
+(*                                                                            *)
+(*                                                                            *)
+(* Somewhat important theorems                                                *)
+(* - A walk may be restricted to a path                                       *)
+(* -                                                                          *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
 (* True iff g is a tree.                                                      *)
@@ -1044,6 +1056,109 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem path_tl:
+  ∀g ls.
+    TL ls ≠ [] ∧
+    path g ls ⇒
+    path g (TL ls)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘ls’ >> gvs[]
+  >> gvs[path_cons]
+QED
+
+Theorem get_path_equals_cons:
+  ∀g a b h t.
+    exists_path g a b ∧
+    t ≠ [] ⇒
+    (get_path g a b = h::t ⇔ a = h ∧ ∃a2. get_path g a2 b = t ∧ adjacent g a a2)
+Proof
+  rpt strip_tac
+  >> EQ_TAC
+  >- (disch_tac
+      >> ‘HD (get_path g a b) = h’ by (pop_assum (fn th => PURE_REWRITE_TAC[th])
+                                       >> simp[])
+      >> gvs[]
+      >> Induct_on ‘t’ >> gvs[]
+      >> rpt strip_tac
+      >> qexists ‘h’
+      >> ‘path g (get_path g a b)’ by gvs[]
+      >> gvs[path_def, walk_def, Excl "exists_path_path_get_path"]
+      >> 
+     )
+  >- (
+  )
+  >> Cases_on ‘t’ >> gvs[]
+
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Maybe this is too trivial to have as a theorem, but it wasn't obvious to   *)
+(* me that it was trivial when I searched for it                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem path_cons_cons_adjacent:
+  ∀g h h' t.
+    path g (h::h'::t) ⇒
+    adjacent g h h'
+Proof
+  rpt strip_tac
+  >> gvs[path_def, walk_def]
+QED
+
+Theorem get_path_exists_cons:
+  ∀g a b.
+    exists_path g a b ∧
+    a ≠ b ⇒
+    (∃a2. get_path g a b = a::(get_path g a2 b))
+Proof
+  rpt strip_tac
+  >> Cases_on ‘get_path g a b’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
+  >> qexists ‘h'’
+  >> gvs[get_path_equals_cons]
+  >> conj_tac
+  >> 
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we split a path on a tree into two, the only place where the paths      *)
+(* overlap is the intersection point.                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem path_split:
+  ∀g a b c x.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    c ∈ nodes g ∧
+    MEM x (get_path g a b) ∧
+    MEM x (get_path g b c) ⇒
+    x = b
+Proof
+  (* Introduce a variable which represents the length of the first path so that
+     we can induct on the length of the first path. *)
+  rpt strip_tac
+  >> qabbrev_tac ‘l = LENGTH (get_path g a b)’
+  >> gs[Abbrev_def]
+  >> rpt (pop_assum mp_tac)
+  >> SPEC_ALL_TAC
+  (* Induct on the length *)
+  >> Induct_on ‘l’ >> gvs[]
+  >> rpt strip_tac
+  (* Split our *)
+  >> ‘get_path g a b = a::get_path ’
+
+  
+     (* Induct on the first path. We can't induct on it directly, so we introduce
+     a variable which represents the length of the first path and induct on
+     that *)
+
+     
+     rpt strip_tac
+  (* Suppose, by way of contradiction, that x was in both paths, but wasn't
+     at the intersection point. *)
+  >> 
+QED
+
 Theorem get_path_append:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
     is_tree g ∧
@@ -1058,21 +1173,48 @@ Proof
       >> qexists ‘get_path g a c’
       >> simp[]
      )
+  (* We already know the first appended list is not empty, prove that the
+     second appended list is not empty *)
+  >> Cases_on ‘TL (get_path g b c) = []’ >> gvs[]
+  >- (Cases_on ‘get_path g b c’ >> gvs[])
+  (* Prove that b and c are nonequal *)
+  >> Cases_on ‘b = c’ >> gvs[]
   >> irule is_tree_get_path_unique
   >> simp[]
   >> conj_tac
   >- gvs[HD_APPEND_NOT_NIL]
   >> conj_tac
-  >- (Cases_on ‘TL (get_path g b c) = []’ >> gvs[]
-      >- (Cases_on ‘get_path g b c’ >> gvs[])
-      >> gvs[LAST_APPEND_NOT_NIL]
-      >> Cases_on ‘b = c’ >> gvs[]
+  >- (gvs[LAST_APPEND_NOT_NIL]
       >> DEP_PURE_ONCE_REWRITE_TAC[LAST_TL]
       >> gvs[]
       >> Cases_on ‘get_path g b c’ >> gvs[]
       >> Cases_on ‘t’ >> gvs[]
      )
+  >> gvs[path_append]
+  >> gvs[path_tl]
+  >> conj_tac
+  >- (Cases_on ‘get_path g b c’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+      >> ‘b = h’ by metis_tac[get_path_cons, is_tree_exists_path]
+      >> gvs[]
+      >> ‘path g (b::h'::t')’ by (pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
+                                  >> gvs[])
+      >> gvs[path_def, walk_def]
+     )
+  >> rpt strip_tac
+  (* We want to prove that if we have a member of the first half of the split
+     path, it can't also be a member of the second half of the split path.
+.
+     Our member of the first half of the split path is in the path. Our member
+     of the second half of the split path is also in the path
+.
+     All points in the path from 
+
+
+   *)
   >> 
+  >> gvs[ALL_DISTINCT_def]
+)
 QED
 
 Theorem subtree_subset:
