@@ -1180,21 +1180,14 @@ Theorem get_path_exists_cons:
     is_tree g ∧
     exists_path g a b ∧
     a ≠ b ⇒
-    (∃a2. get_path g a b = a::(get_path g a2 b))
+    (∃a2. get_path g a b = a::(get_path g a2 b) ∧
+          adjacent g a a2 ∧
+          ¬MEM a (get_path g a2 b))
 Proof
   rpt strip_tac
   >> Cases_on ‘get_path g a b’ >> gvs[]
-  >> Cases_on ‘t’ >> gvs[]
-  >> qexists ‘h'’
-  >> gvs[is_tree_get_path_equals_cons]
-  >> ‘exists_path g a2 b’ by metis_tac[adjacent_exists_path, exists_path_trans,
-                                       exists_path_sym]
-  >> Cases_on ‘t'’ >> gvs[is_tree_get_path_equals_cons]
-  >> pop_assum mp_tac
-  >> DEP_PURE_ONCE_REWRITE_TAC[is_tree_get_path_equals_cons]
-  >> gvs[is_tree_get_path_equals_cons]
-  >> conj_tac
-  >> 
+  >> Cases_on ‘t = []’ >> gvs[]
+  >> metis_tac[is_tree_get_path_equals_cons]
 QED
 
 (* -------------------------------------------------------------------------- *)
