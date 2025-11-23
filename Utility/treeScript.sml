@@ -1365,6 +1365,26 @@ Proof
   >> simp[]
 QED
 
+Theorem MEM_findi_leq:
+  ∀x l.
+    MEM x l ⇒ findi x l ≤ LENGTH l - 1
+Proof
+  rpt strip_tac
+  >> gvs[LE_LT1]
+  >> Cases_on ‘LENGTH l’ >> gvs[]
+  >> metis_tac[MEM_findi, ADD1]
+QED
+
+Theorem TL_DROP_SUB:
+  ∀n ls.
+    n ≤ LENGTH ls - 1 ⇒
+    TL (DROP n ls) = DROP (n + 1) ls
+Proof
+  Induct_on ‘ls’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘n’ >> gvs[ADD1]
+QED
+
 Theorem get_path_append:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
     is_tree g ∧
@@ -1387,9 +1407,9 @@ Proof
   >> Cases_on ‘b = c’ >> gvs[]
   (* Prove that each component of g a c is equivalent to the corresponding
      component on the right hand side*)
-  >> qsuff_tac ‘TAKE (findi b (get_path g a c)) (get_path g a c) =
+  >> qsuff_tac ‘TAKE (findi b (get_path g a c) + 1) (get_path g a c) =
                 get_path g a b ∧
-                DROP (findi b (get_path g a c)) (get_path g a c) =
+                DROP (findi b (get_path g a c) + 1) (get_path g a c) =
                 TL (get_path g b c)’
   >- (rpt strip_tac
       >> qpat_x_assum ‘TAKE _ _ = get_path g a b’
@@ -1403,46 +1423,13 @@ Proof
   >- (qspecl_then [‘g’, ‘a’, ‘c’, ‘a’, ‘b’] assume_tac get_path_drop_take
       >> gvs[]
      )
-
-
-
-
-  >> irule is_tree_get_path_unique
-  >> simp[]
-  >> conj_tac
-  >- gvs[HD_APPEND_NOT_NIL]
-  >> conj_tac
-  >- (gvs[LAST_APPEND_NOT_NIL]
-      >> DEP_PURE_ONCE_REWRITE_TAC[LAST_TL]
-      >> gvs[]
-      >> Cases_on ‘get_path g b c’ >> gvs[]
-      >> Cases_on ‘t’ >> gvs[]
-     )
-  >> gvs[path_append]
-  >> gvs[path_tl]
-  >> conj_tac
-  >- (Cases_on ‘get_path g b c’ >> gvs[]
-      >> Cases_on ‘t’ >> gvs[]
-      >> ‘b = h’ by metis_tac[get_path_equals_cons, is_tree_exists_path]
-      >> gvs[]
-      >> ‘path g (b::h'::t')’ by (pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
-                                  >> gvs[])
-      >> gvs[path_def, walk_def]
-     )
-  >> rpt strip_tac
-  (* We want to prove that if we have a member of the first half of the split
-     path, it can't also be a member of the second half of the split path.
-.
-     Our member of the first half of the split path is in the path. Our member
-     of the second half of the split path is also in the path
-.
-     All points in the path from 
-
-
-   *)
-  >> 
-  >> gvs[ALL_DISTINCT_def]
-      )
+  (* Prove the second component is equal *)
+  >> qspecl_then [‘g’, ‘a’, ‘c’, ‘b’, ‘c’] assume_tac get_path_drop_take
+  >> gvs[]
+  >> gvs[MEM_findi_leq]
+  >> Cases_on ‘LENGTH (get_path g a c)’ >> gvs[ADD1]
+  >> pop_assum (fn th => gvs[GSYM th])
+  >> gvs[TL_DROP_SUB, MEM_findi_leq]
 QED
 
 Theorem subtree_subset:
