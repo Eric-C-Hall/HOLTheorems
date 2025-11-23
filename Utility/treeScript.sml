@@ -1243,11 +1243,16 @@ Proof
   >> irule is_tree_path_unique
   >> rpt strip_tac
   >- (qexists ‘a’
-      >> ‘exists_path g a (EL (n - 1) (get_path g a b))’
+      >> sg ‘exists_path g a (EL (n - 1) (get_path g a b))’
       >- (irule is_tree_exists_path
-          >> gvs[]
-         )
+          >> gvs[])
+      >> gvs[HD_TAKE]
      )
+  >- (qexists ‘EL (n - 1) (get_path g a b)’
+      >> gvs[LAST_TAKE]
+     )
+  >> qexists ‘g’
+  >> gvs[]
 QED
 
 
