@@ -14,9 +14,8 @@ Libs dep_rewrite ConseqConv;
 (*                                                                            *)
 (* Somewhat important theorems                                                *)
 (* - A walk may be restricted to a path (restrict_walk_to_path)               *)
-(* - If we have a path on a tree, we may take a subpath between any two       *)
-(*   points on that path, and this will be equal to the path between those    *)
-(*   points. (get_path_drop_take)                                             *)
+(* - If c and d are on the path from a to b, then the path from c to d is a   *)
+(*   subpath of the path from a to b. (get_path_drop_take)                    *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -1269,7 +1268,7 @@ Theorem get_path_drop_take:
     b ∈ nodes g ∧
     MEM c (get_path g a b) ∧
     MEM d (get_path g a b) ∧
-    findi c (get_path g a b) < findi d (get_path g a b) ⇒
+    findi c (get_path g a b) ≤ findi d (get_path g a b) ⇒
     get_path g c d = DROP (findi c (get_path g a b))
                           (TAKE (findi d (get_path g a b) + 1)
                                 (get_path g a b))
@@ -1306,6 +1305,66 @@ Proof
   >> gvs[]
 QED
 
+Theorem findi_hd:
+  ∀l ls.
+    findi l ls = 0 ⇔ l = HD ls ∨ ls = []
+Proof
+  rpt strip_tac
+  >> Cases_on ‘ls’ >> rw[findi_def]
+QED
+
+Theorem findi_get_path_hd[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    findi a (get_path g a b) = 0
+Proof
+  rpt strip_tac
+  >> gvs[findi_hd]
+QED
+
+Theorem findi_last:
+  ∀l ls.
+    findi l ls = LENGTH ls - 1 ⇔ (LAST ls = l ∧ ¬MEM l (FRONT ls)) ∨ ls = []
+Proof
+  rpt strip_tac
+  >> Induct_on ‘ls’ >> gvs[findi_def]
+  >> rpt strip_tac
+  >> rw[]
+  >- (Cases_on ‘ls’ >> gvs[])
+  >> Cases_on ‘ls’ >> gvs[ADD1]
+QED
+
+Theorem MEM_FRONT_NOT_LAST_GEN:
+  ∀l ls.
+    ls ≠ [] ∧
+    ALL_DISTINCT ls ∧
+    l = LAST ls ⇒
+    ¬MEM l (FRONT ls)
+Proof
+  metis_tac[MEM_FRONT_NOT_LAST]
+QED
+
+Theorem get_path_all_distinct[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    ALL_DISTINCT (get_path g a b)
+Proof
+  rpt strip_tac
+  >> ‘path g (get_path g a b)’ by gvs[]
+  >> gvs[path_def, Excl "exists_path_path_get_path"]
+QED
+
+Theorem findi_get_path_last[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    findi b (get_path g a b) = LENGTH (get_path g a b) - 1
+Proof
+  rpt strip_tac
+  >> gvs[findi_last]
+  >> irule MEM_FRONT_NOT_LAST_GEN
+  >> simp[]
+QED
+
 Theorem get_path_append:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
     is_tree g ∧
@@ -1328,9 +1387,9 @@ Proof
   >> Cases_on ‘b = c’ >> gvs[]
   (* Prove that each component of g a c is equivalent to the corresponding
      component on the right hand side*)
-  >> qsuff_tac ‘TAKE (LENGTH (get_path g a b)) (get_path g a c) =
+  >> qsuff_tac ‘TAKE (findi b (get_path g a c)) (get_path g a c) =
                 get_path g a b ∧
-                DROP (LENGTH (get_path g a b)) (get_path g a c) =
+                DROP (findi b (get_path g a c)) (get_path g a c) =
                 TL (get_path g b c)’
   >- (rpt strip_tac
       >> qpat_x_assum ‘TAKE _ _ = get_path g a b’
@@ -1339,9 +1398,11 @@ Proof
                       (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
       >> gvs[]
      )
-  >> DEP_PURE_ONCE_REWRITE_TAC[take_get_path]
-  >> gvs[]
-  >> 
+  (* Prove the first component is equal *)
+  >> conj_tac
+  >- (qspecl_then [‘g’, ‘a’, ‘c’, ‘a’, ‘b’] assume_tac get_path_drop_take
+      >> gvs[]
+     )
 
 
 
@@ -1381,7 +1442,7 @@ Proof
    *)
   >> 
   >> gvs[ALL_DISTINCT_def]
-)
+      )
 QED
 
 Theorem subtree_subset:
