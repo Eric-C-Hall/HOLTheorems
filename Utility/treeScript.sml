@@ -1195,12 +1195,59 @@ Proof
   >> metis_tac[is_tree_get_path_equals_cons]
 QED
 
+Theorem leq_len_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    1 ≤ LENGTH (get_path g a b)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘get_path g a b’ >> gvs[]
+QED
+
+Theorem mem_get_path_in_nodes:
+  ∀g a b n.
+    exists_path g a b ∧
+    MEM n (get_path g a b) ⇒
+    n ∈ nodes g
+Proof
+  rpt strip_tac
+  >> metis_tac[path_in_nodes, exists_path_path_get_path]
+QED
+        
+Theorem el_get_path_in_nodes[simp]:
+  ∀g a b i.
+    exists_path g a b ∧
+    i ≤ LENGTH (get_path g a b) - 1 ⇒
+    EL i (get_path g a b) ∈ nodes g
+Proof
+  rpt strip_tac
+  >> sg ‘MEM (EL i (get_path g a b)) (get_path g a b)’
+  >- (irule EL_MEM
+      >> gvs[LESS_EQ, ADD1]
+      >> Cases_on ‘i’ >> gvs[]
+     )
+  >> metis_tac[mem_get_path_in_nodes]
+QED
+
 Theorem take_get_path:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b n.
+    is_tree g ∧
     a ∈ nodes g ∧
-    b ∈ nodes g ⇒
-    TAKE n (get_path g a b) = get_path 
+    b ∈ nodes g ∧
+    0 < n ∧
+    n ≤ LENGTH (get_path g a b) ⇒
+    TAKE n (get_path g a b) = get_path g a (EL (n - 1) (get_path g a b))
 Proof
+  rpt strip_tac
+  >> irule EQ_SYM
+  >> irule is_tree_path_unique
+  >> rpt strip_tac
+  >- (qexists ‘a’
+      >> ‘exists_path g a (EL (n - 1) (get_path g a b))’
+      >- (irule is_tree_exists_path
+          >> gvs[]
+         )
+     )
 QED
 
 
