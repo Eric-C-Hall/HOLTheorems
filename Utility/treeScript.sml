@@ -1095,7 +1095,7 @@ Theorem is_tree_get_path_equals_cons:
     exists_path g a b ∧
     t ≠ [] ⇒
     (get_path g a b = h::t ⇔
-       (a = h ∧ ∃a2. get_path g a2 b = t ∧ adjacent g a a2 ∧
+       (a = h ∧ ∃a2. get_path g a2 b = t ∧ adjacent g a a2 ∧ a2 ∈ nodes g ∧
                      ¬MEM a (get_path g a2 b)))
 Proof
   rpt strip_tac
@@ -1186,6 +1186,7 @@ Theorem get_path_exists_cons:
     a ≠ b ⇒
     (∃a2. get_path g a b = a::(get_path g a2 b) ∧
           adjacent g a a2 ∧
+          a2 ∈ nodes g ∧
           ¬MEM a (get_path g a2 b))
 Proof
   rpt strip_tac
