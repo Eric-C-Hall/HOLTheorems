@@ -1,19 +1,22 @@
 Theory tree
 
-Ancestors arithmetic extreal fsgraph fundamental genericGraph list marker pred_set relation rich_list
+Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set relation rich_list
 
 Libs dep_rewrite ConseqConv;
 
 (* -------------------------------------------------------------------------- *)
 (* Most important theorems:                                                   *)
 (* - Paths in a connected graph exist between any two points                  *)
-(* - Paths in a tree are unique                                               *)
-(*                                                                            *)
+(*   (connected_exists_path)                                                  *)
+(* - Paths in a tree are unique (is_tree_path_unique)                         *)
+(* - The path from a to c on a tree is equal to the path from a to b followed *)
+(*   by the path from b to c (get_path_append)                                *)
 (*                                                                            *)
 (* Somewhat important theorems                                                *)
-(* - A walk may be restricted to a path                                       *)
-(* -                                                                          *)
-(*                                                                            *)
+(* - A walk may be restricted to a path (restrict_walk_to_path)               *)
+(* - If we have a path on a tree, we may take a subpath between any two       *)
+(*   points on that path, and this will be equal to the path between those    *)
+(*   points. (get_path_drop_take)                                             *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -1255,6 +1258,53 @@ Proof
   >> gvs[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* The path from c to d is a subpath of the path from a to b, if c and d are  *)
+(* on this path.                                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_path_drop_take:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    MEM c (get_path g a b) ∧
+    MEM d (get_path g a b) ∧
+    findi c (get_path g a b) < findi d (get_path g a b) ⇒
+    get_path g c d = DROP (findi c (get_path g a b))
+                          (TAKE (findi d (get_path g a b) + 1)
+                                (get_path g a b))
+Proof
+  rpt strip_tac
+  >> ‘c ∈ nodes g ∧ d ∈ nodes g’ by metis_tac[is_tree_exists_path,
+                                              mem_get_path_in_nodes]
+  >> irule is_tree_path_unique
+  (* Required condition to apply HD_DROP or LAST_DROP *)
+  >> sg ‘findi c (get_path g a b) <
+         LENGTH (TAKE (findi d (get_path g a b) + 1) (get_path g a b))’
+  >- (gvs[LENGTH_TAKE_EQ]
+      >> rw[]
+      >> gvs[MEM_findi]
+     )
+  (* Prove that the heads are the same, the tails are the same, and that they
+     are both paths *)
+  >> rpt strip_tac
+  >- (qexists ‘c’
+      >> simp[HD_DROP, EL_TAKE, EL_findi]
+     )
+  >- (qexists ‘d’
+      >> simp[last_drop, LAST_TAKE]
+      >> DEP_PURE_ONCE_REWRITE_TAC[LAST_TAKE]
+      >> conj_tac
+      >- (gvs[]
+          >> metis_tac[MEM_findi, LESS_EQ, ADD1]
+         )
+      >> simp[EL_findi]
+     )
+  >> qexists ‘g’
+  >> simp[]
+  >> irule path_drop
+  >> gvs[]
+QED
 
 Theorem get_path_append:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
@@ -1276,6 +1326,26 @@ Proof
   >- (Cases_on ‘get_path g b c’ >> gvs[])
   (* Prove that b and c are nonequal *)
   >> Cases_on ‘b = c’ >> gvs[]
+  (* Prove that each component of g a c is equivalent to the corresponding
+     component on the right hand side*)
+  >> qsuff_tac ‘TAKE (LENGTH (get_path g a b)) (get_path g a c) =
+                get_path g a b ∧
+                DROP (LENGTH (get_path g a b)) (get_path g a c) =
+                TL (get_path g b c)’
+  >- (rpt strip_tac
+      >> qpat_x_assum ‘TAKE _ _ = get_path g a b’
+                      (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> qpat_x_assum ‘DROP _ _ = TL (get_path g b c)’
+                      (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> gvs[]
+     )
+  >> DEP_PURE_ONCE_REWRITE_TAC[take_get_path]
+  >> gvs[]
+  >> 
+
+
+
+
   >> irule is_tree_get_path_unique
   >> simp[]
   >> conj_tac

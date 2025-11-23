@@ -295,6 +295,19 @@ Proof
   >> EQ_TAC >> rw[] >> gvs[]
 QED
 
+Theorem path_drop:
+  ∀g vs i.
+    path g vs ∧
+    i ≤ LENGTH vs - 1 ⇒
+    path g (DROP i vs)
+Proof
+  Induct_on ‘vs’ >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘i’ >> gvs[]
+  >> last_x_assum irule
+  >> gvs[ADD1, path_cons]
+QED
+
 Theorem not_all_distinct_last[simp]:
   ∀v vs.
     ALL_DISTINCT (LAST (v::vs)::(v::vs)) ⇔ F
