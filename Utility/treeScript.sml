@@ -1134,8 +1134,50 @@ Proof
   >> gvs[path_def, walk_def]
 QED
 
+Theorem path_reverse:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph vs.
+    path g vs ⇔ path g (REVERSE vs)
+Proof
+  rpt strip_tac
+  (* Since REVERSE (REVERSE vs) = vs, without loss of generality we may prove
+   only one direction *)
+  >> wlog_tac ‘path g vs’ [‘vs’]
+  >- metis_tac[REVERSE_REVERSE]
+  >> gvs[]
+  (* *)
+  >> Induct_on ‘vs’ >> gvs[]
+  >> rpt strip_tac
+  >> gvs[path_cons]
+  >> Cases_on ‘vs = []’ >> gvs[]
+  >> gvs[path_append]
+  >> conj_tac
+  >- metis_tac[adjacent_members]
+  >> gvs[LAST_REVERSE]
+  >> metis_tac[adjacent_SYM]
+QED
+
+Theorem exists_path_sym:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
+    exists_path g a b ⇔ exists_path g b a
+Proof
+  rpt strip_tac
+  (* The two directions are effectively proving the same thing, up to renaming
+     of a and b. Without loss of generality, we can prove only one direction. *)
+  >> wlog_tac ‘exists_path g a b’ [‘a’, ‘b’]
+  >- metis_tac[]
+  >> gvs[]
+  (* If we have a path in one direction, its reverse is a path in the other
+     direction *)
+  >> gvs[exists_path_def]
+  >> qexists ‘REVERSE vs’
+  >> Cases_on ‘vs = []’ >> gvs[]
+  >> gvs[HD_REVERSE, LAST_REVERSE]
+  >> metis_tac[path_reverse]
+QED
+
 Theorem get_path_exists_cons:
-  ∀g a b.
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
+    is_tree g ∧
     exists_path g a b ∧
     a ≠ b ⇒
     (∃a2. get_path g a b = a::(get_path g a2 b))
@@ -1144,7 +1186,13 @@ Proof
   >> Cases_on ‘get_path g a b’ >> gvs[]
   >> Cases_on ‘t’ >> gvs[]
   >> qexists ‘h'’
-  >> gvs[get_path_equals_cons]
+  >> gvs[is_tree_get_path_equals_cons]
+  >> ‘exists_path g a2 b’ by metis_tac[adjacent_exists_path, exists_path_trans,
+                                       exists_path_sym]
+  >> Cases_on ‘t'’ >> gvs[is_tree_get_path_equals_cons]
+  >> pop_assum mp_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[is_tree_get_path_equals_cons]
+  >> gvs[is_tree_get_path_equals_cons]
   >> conj_tac
   >> 
 QED
@@ -1176,7 +1224,7 @@ Proof
   (* Split our *)
   >> ‘get_path g a b = a::get_path ’
 
-  
+     
      (* Induct on the first path. We can't induct on it directly, so we introduce
      a variable which represents the length of the first path and induct on
      that *)
