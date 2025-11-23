@@ -1194,69 +1194,6 @@ Proof
   >> metis_tac[is_tree_get_path_equals_cons]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* If we split a path on a tree into two, the only place where the paths      *)
-(* overlap is the intersection point.                                         *)
-(* -------------------------------------------------------------------------- *)
-Theorem is_tree_path_split:
-  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c x.
-    is_tree g ∧
-    a ∈ nodes g ∧
-    b ∈ nodes g ∧
-    c ∈ nodes g ∧
-    MEM x (get_path g a b) ∧
-    MEM x (get_path g b c) ⇒
-    x = b
-Proof
-  (* Introduce a variable which represents the length of the first path so that
-     we can induct on the length of the first path. *)
-  rpt strip_tac
-  >> qabbrev_tac ‘l = LENGTH (get_path g a b)’ 
-  >> gs[Abbrev_def]
-  >> rpt (pop_assum mp_tac)
-  >> SPEC_ALL_TAC
-  (* Induct on the length *)
-  >> Induct_on ‘l’ >> gvs[]
-  >> rpt strip_tac
-  (* Consider the base case where a = b *)
-  >> Cases_on ‘a = b’ >> gvs[]
-  (* Split our path into the first element followed by the rest of the path *)
-  >> qspecl_then [‘g’, ‘a’, ‘b’] assume_tac get_path_exists_cons
-  >> gnvs[]
-  >> pop_assum mp_tac >> strip_tac
-  (* Use the inductive hypothesis *)
-  >> last_x_assum $ qspecl_then [‘a2’, ‘b’, ‘c’, ‘g’, ‘x’] assume_tac
-  >> gnvs[]
-  (* Consider the case where x is the very first element of the path from
-     a to b, and the case where x is in the rest of the path from a2 to b. *)
-  >> gvs[]
-  >- (qpat_x_assum ‘¬MEM a _’ mp_tac >> simp[]
-      >> 
-
-      gvs[adjacent_members]
-      >> 
-      hh
-     )
-         
-  >> Cases_on ‘a2 ∈ nodes g’ >> gnvs[]
-  >- (gvs[]
-     )
-         
-  >> ‘get_path g a b = a::get_path ’
-
-     
-     (* Induct on the first path. We can't induct on it directly, so we introduce
-     a variable which represents the length of the first path and induct on
-     that *)
-
-     
-     rpt strip_tac
-  (* Suppose, by way of contradiction, that x was in both paths, but wasn't
-     at the intersection point. *)
-  >> 
-QED
-
-
 Theorem take_get_path:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b n.
     a ∈ nodes g ∧
