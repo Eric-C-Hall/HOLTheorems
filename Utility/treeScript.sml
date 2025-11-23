@@ -34,6 +34,10 @@ Libs dep_rewrite ConseqConv;
 (*                       checking if it is a tree as normal. Then update      *)
 (*                       theorems dependent on trees to no longer require the *)
 (*                       input graph g to be an undirected graph.             *)
+(*                       However, it would a messier definition after making  *)
+(*                       this change, and I'm not sure if there is an         *)
+(*                       existing definition to transform a directed graph    *)
+(*                       into an undirected graph                             *)
 (* -------------------------------------------------------------------------- *)
 Definition is_tree_def:
   is_tree g ⇔ (connected g ∧
@@ -1194,8 +1198,8 @@ QED
 (* If we split a path on a tree into two, the only place where the paths      *)
 (* overlap is the intersection point.                                         *)
 (* -------------------------------------------------------------------------- *)
-Theorem path_split:
-  ∀g a b c x.
+Theorem is_tree_path_split:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c x.
     is_tree g ∧
     a ∈ nodes g ∧
     b ∈ nodes g ∧
@@ -1207,14 +1211,37 @@ Proof
   (* Introduce a variable which represents the length of the first path so that
      we can induct on the length of the first path. *)
   rpt strip_tac
-  >> qabbrev_tac ‘l = LENGTH (get_path g a b)’
+  >> qabbrev_tac ‘l = LENGTH (get_path g a b)’ 
   >> gs[Abbrev_def]
   >> rpt (pop_assum mp_tac)
   >> SPEC_ALL_TAC
   (* Induct on the length *)
   >> Induct_on ‘l’ >> gvs[]
   >> rpt strip_tac
-  (* Split our *)
+  (* Consider the base case where a = b *)
+  >> Cases_on ‘a = b’ >> gvs[]
+  (* Split our path into the first element followed by the rest of the path *)
+  >> qspecl_then [‘g’, ‘a’, ‘b’] assume_tac get_path_exists_cons
+  >> gnvs[]
+  >> pop_assum mp_tac >> strip_tac
+  (* Use the inductive hypothesis *)
+  >> last_x_assum $ qspecl_then [‘a2’, ‘b’, ‘c’, ‘g’, ‘x’] assume_tac
+  >> gnvs[]
+  (* Consider the case where x is the very first element of the path from
+     a to b, and the case where x is in the rest of the path from a2 to b. *)
+  >> gvs[]
+  >- (qpat_x_assum ‘¬MEM a _’ mp_tac >> simp[]
+      >> 
+
+      gvs[adjacent_members]
+      >> 
+      hh
+     )
+         
+  >> Cases_on ‘a2 ∈ nodes g’ >> gnvs[]
+  >- (gvs[]
+     )
+         
   >> ‘get_path g a b = a::get_path ’
 
      
@@ -1228,6 +1255,16 @@ Proof
      at the intersection point. *)
   >> 
 QED
+
+
+Theorem take_get_path:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b n.
+    a ∈ nodes g ∧
+    b ∈ nodes g ⇒
+    TAKE n (get_path g a b) = get_path 
+Proof
+QED
+
 
 Theorem get_path_append:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
@@ -1265,7 +1302,7 @@ Proof
   >> conj_tac
   >- (Cases_on ‘get_path g b c’ >> gvs[]
       >> Cases_on ‘t’ >> gvs[]
-      >> ‘b = h’ by metis_tac[get_path_cons, is_tree_exists_path]
+      >> ‘b = h’ by metis_tac[get_path_equals_cons, is_tree_exists_path]
       >> gvs[]
       >> ‘path g (b::h'::t')’ by (pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
                                   >> gvs[])
