@@ -36,10 +36,11 @@ Libs dep_rewrite ConseqConv;
 (*   (get_path_drop_take)                                                     *)
 (* - We have a - c = (a - b) ++ (b - c), so long as b is on a - c (tr).       *)
 (*   (get_path_append)                                                        *)
-(* - We may join together two overlapping paths: if                           *)
+(* - We may join together two overlapping paths: if we have a - c and b - d,  *)
+(*   and c is in b - d and b is in a - c, then                                *)
 
 (* - We may join together two overlapping paths: if we have a - c and b - d   *)
-(*                                                                            *)
+(* - A tree has no cycles (from definition)                                   *)
 (*                                                                            *)
 
 (* -------------------------------------------------------------------------- *)
@@ -1464,14 +1465,67 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Allows us to join together partially overlapping paths                     *)
-(*                                                                            *)
-(*                                                                            *)
+(* Allows us to join together partially overlapping paths.                    *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: Update comments at start for this                                    *)
+(* Theorem:                                                                   *)
+(* If we have a-c and b-d, and b is in a-c and c is in b-d, then b and c are  *)
+(* in a-d.                                                                    *)
+(* -------------------------------------------------------------------------- *)
+(* Once we know b and c are in a-d, we can use get_path_append to create      *)
+(* a-d by frankensteining together a-c and b-d.                               *)
+(* -------------------------------------------------------------------------- *)
+(* Proof:                                                                     *)
+(*                                                                            *)
+(* We work by strong induction on the length of a-d.                          *)
+(*                                                                            *)
+(*       a ----------------- b ----------------- c ----------------- d        *)
+(*                                                                            *)
+(* If b is in a-d, then c is too, because the presence of b in a-d allows us  *)
+(* to break it down into a-b and b-d, and we know that c is in b-d.           *)
+(*                                                                            *)
+(* Likewise, if c is in a-d, then b is too.                                   *)
+(*                                                                            *)
+(* So either b and c are both in a-d, or neither is in a-d.                   *)
+(*                                                                            *)
+(* We want to prove that both are in a-d, so we assume that neither is in     *)
+(* a-d and seek to derive a contradiction.                                    *)
+(*                                                                            *)
+(* Because b is not in a-d, there must be some point e before b which is      *)
+(* contained in a-c and also contained in a-d, because a-c and a-d start at   *)
+(* the same point and must diverge at some point, and this point will be      *)
+(* before b because b is not in a-d.                                          *)
+(*                                                                            *)
+(* Likewise, there is a point f after c which is contained in b-d and also    *)
+(* contained in a-d.                                                          *)
+(*                                                                            *)
+(*     a -------- e -------- b ----------------- c -------- f -------- d      *)
+(*                                                                            *)
+(* Thus, using get_path_append:                                               *)
+(* - We can split a-d into a-e and e-d                                        *)
+(* - We can split a-c into a-e and e-c                                        *)
+(* - We can split a-d into a-f and f-d                                        *)
+(* - We can split b-d into b-f and f-d                                        *)
+(*                                                                            *)
+(* Now we can apply our inductive hypothesis to e-c and b-f. This follows     *)
+(* from the fact that e-f is strictly shorter than a-d. We also need the fact *)
+(* that b is in e-c, which follows from b is in e-c and b is not in a-e, and  *)
+(* the fact that c is in b-f, which follows in a likewise manner.             *)
+(*                                                                            *)
+(* Thus, b is in e-c and hence is in a-c, deriving our desired contradiction. *)
+(*                                                                            *)
+(* QED                                                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem join_overlapping_paths_mem:
-
+  ∀g a b c d.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    c ∈ nodes g ∧
+    d ∈ nodes g ∧
+    MEM b (get_path g a c) ∧
+    MEM c (get_path g b d) ∧
+    b ≠ c ⇒
+    MEM b (get_path g a d)
 Proof
 QED
 
