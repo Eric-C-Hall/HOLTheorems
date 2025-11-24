@@ -5,17 +5,43 @@ Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list 
 Libs dep_rewrite ConseqConv;
 
 (* -------------------------------------------------------------------------- *)
+(* Definitions:                                                               *)
+(*                                                                            *)
+(* - Is a graph a tree (is_tree_def)                                          *)
+(* - Get the path between two points (get_path_def)                           *)
+(* - Does a path exist between two points (exists_path_def)                   *)
+(* - Find the ith parent of a node in a tree (ith_parent_def)                 *)
+(* - Is a node an ancestor of another node (is_ancestor_def)                  *)
+(* - Find a given subgraph of a graph (subgraph_def)                          *)
+(* - Find a given subtree of a tree (subtree_def)                             *)
+(* - Return the distance between two nodes in the graph (distance_def)        *)
+(* - Return the diameter of a graph (diameter_def)                            *)
+(* - Return the eccentricity of a node in the graph (eccentricity_def)        *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* Notation:                                                                  *)
+(*                                                                            *)
+(* - "a - b" denotes the path from a to b                                     *)
+(* - "a ++ b" denotes appending two paths                                     *)
+(* - We use (tr) to denote that the given theorem holds only for trees        *)
+(*                                                                            *)
 (* Most important theorems:                                                   *)
+(*                                                                            *)
 (* - Paths in a connected graph exist between any two points                  *)
 (*   (connected_exists_path)                                                  *)
-(* - Paths in a tree are unique (is_tree_path_unique)                         *)
-(* - The path from a to c on a tree is equal to the path from a to b followed *)
-(*   by the path from b to c (get_path_append)                                *)
-(*                                                                            *)
-(* Somewhat important theorems                                                *)
+(* - Paths in a tree are unique (tr) (is_tree_path_unique)                    *)
 (* - A walk may be restricted to a path (restrict_walk_to_path)               *)
-(* - If c and d are on the path from a to b, then the path from c to d is a   *)
-(*   subpath of the path from a to b. (get_path_drop_take)                    *)
+(* - If c and d are on a - b, then c - d is a subpath of a - b (tr)           *)
+(*   (get_path_drop_take)                                                     *)
+(* - We have a - c = (a - b) ++ (b - c), so long as b is on a - c (tr).       *)
+(*   (get_path_append)                                                        *)
+(* - We may join together two overlapping paths: if                           *)
+
+(* - We may join together two overlapping paths: if we have a - c and b - d   *)
+(*                                                                            *)
+(*                                                                            *)
+
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -1385,6 +1411,11 @@ Proof
   >> Cases_on ‘n’ >> gvs[ADD1]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
 Theorem get_path_append:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
     is_tree g ∧
@@ -1432,6 +1463,26 @@ Proof
   >> gvs[TL_DROP_SUB, MEM_findi_leq]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Allows us to join together partially overlapping paths                     *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+(* TODO: Update comments at start for this                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem join_overlapping_paths_mem:
+
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Update comments at start for this                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem join_overlapping_paths:
+
+Proof
+QED
+
 Theorem subtree_subset:
   ∀g a b c.
     is_tree g ∧
@@ -1453,7 +1504,12 @@ Proof
      )
   >> gvs[SUBSET_DEF]
   >> rpt strip_tac
+  >> 
+
+
   >> sg ‘get_path g a x = get_path g a b ++ TL (get_path g b x)’
+  >> irule get_path_append
+  >> simp[]
 QED
 
 Theorem order_subtree_lt:
