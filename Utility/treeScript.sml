@@ -40,7 +40,7 @@ Libs dep_rewrite ConseqConv;
 (*   and c is in b - d and b is in a - c, then (join_overlapping_paths_mem)   *)
 (* - If we have two nonequal paths that start with the same value, there is   *)
 (*   a point at which they diverge (exists_point_of_divergence)               *)
-(* - If we have two paths that start at different values but end at the same  *)
+(* - If we have two paths that start at different values but end in the same  *)
 (*   (exists_point_of_convergence)                                            *)
 (*                                                                            *)
 (*                                                                            *)
@@ -1472,10 +1472,13 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* If we have two nonequal sequences which start at the same value and        *)
-(* eventually reach different values, there exists a point of divergence.     *)
-(* This is the last point at which the sequences are the same: at the next    *)
-(* step, the sequences are different.                                         *)
+(* If we two sequences which start at the same value and eventually reach     *)
+(* different values, there exists a point of divergence. This is the last     *)
+(* point at which the sequences are the same: at the next step, the sequences *)
+(* are different.                                                             *)
+(*                                                                            *)
+(* Possible improvement: generalise to allow this to work even if the initial *)
+(*   point at which the sequences are the same is not at the start            *)
 (* -------------------------------------------------------------------------- *)
 Theorem exists_point_of_divergence:
   ∀vs1 vs2 i.
@@ -1515,8 +1518,31 @@ Proof
   >> Cases_on ‘k’ >> gvs[]      
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* If we have two sequences which are different values at some point and      *)
+(* eventually reach the same values (not necessarily at the same index as     *)
+(* each other).                                                               *)
+(* -------------------------------------------------------------------------- *)
 Theorem exists_point_of_convergence:
-
+  ∀vs1 vs2 i j k.
+    i < LENGTH vs1 ∧
+    i < LENGTH vs2 ∧
+    j < LENGTH vs1 ∧
+    k < LENGTH vs2 ∧
+    i ≤ j ∧
+    i ≤ k ∧
+    EL i vs1 ≠ EL i vs2 ∧
+    EL j vs1 = EL j vs2 ⇒
+    ∃k.
+      (∀l. i ≤ l ∧ l < k ⇒ EL l vs1 ≠ EL l vs2) ∧
+      EL k vs1 =
+      
+      HD vs1 = HD vs2 ∧
+      EL i vs1 ≠ EL i vs2 ⇒
+      ∃j.
+        (∀k. k ≤ j ⇒ EL k vs1 = EL k vs2) ∧
+        EL (j + 1) vs1 ≠ EL (j + 1) vs2 ∧
+        j < i
 Proof
 QED
 
