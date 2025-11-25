@@ -37,8 +37,13 @@ Libs dep_rewrite ConseqConv;
 (* - We have a - c = (a - b) ++ (b - c), so long as b is on a - c (tr).       *)
 (*   (get_path_append)                                                        *)
 (* - We may join together two overlapping paths: if we have a - c and b - d,  *)
-(*   and c is in b - d and b is in a - c, then                                *)
-
+(*   and c is in b - d and b is in a - c, then (join_overlapping_paths_mem)   *)
+(* - If we have two nonequal paths that start with the same value, there is   *)
+(*   a point at which they diverge (exists_point_of_divergence)               *)
+(* - If we have two paths that start at different values but end at the same  *)
+(*   (exists_point_of_convergence)                                            *)
+(*                                                                            *)
+(*                                                                            *)
 (* - We may join together two overlapping paths: if we have a - c and b - d   *)
 (* - A tree has no cycles (from definition)                                   *)
 (*                                                                            *)
@@ -558,6 +563,10 @@ QED
 (*                                                                            *)
 (* Note that this is only true in undirected graphs. One can have cycle-free  *)
 (* directed graphs without unique paths.                                      *)
+(*                                                                            *)
+(* Possible improvement: use the more generalised theorems                    *)
+(* exists_point_of_divergence and exists_point_of_convergence to simplify     *)
+(* this proof and make it run faster.                                         *)
 (* -------------------------------------------------------------------------- *)
 Theorem is_tree_path_unique:
   ∀(g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph) a b vs1 vs2.
@@ -1413,9 +1422,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
+(* A path a-c can be split into a-b and b-c, as long as b is on a-c.          *)
 (* -------------------------------------------------------------------------- *)
 Theorem get_path_append:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
@@ -1463,6 +1470,56 @@ Proof
   >> pop_assum (fn th => gvs[GSYM th])
   >> gvs[TL_DROP_SUB, MEM_findi_leq]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we have two nonequal sequences which start at the same value and        *)
+(* eventually reach different values, there exists a point of divergence.     *)
+(* This is the last point at which the sequences are the same: at the next    *)
+(* step, the sequences are different.                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem exists_point_of_divergence:
+  ∀vs1 vs2 i.
+    i < LENGTH vs1 ∧
+    i < LENGTH vs2 ∧
+    HD vs1 = HD vs2 ∧
+    EL i vs1 ≠ EL i vs2 ⇒
+    ∃j.
+      (∀k. k ≤ j ⇒ EL k vs1 = EL k vs2) ∧
+      EL (j + 1) vs1 ≠ EL (j + 1) vs2 ∧
+      j < i
+Proof
+  (* Induct on the first sequence *)
+  Induct_on ‘vs1’ >> gvs[]
+  >> rpt strip_tac
+  (* Split up the second sequence in the corresponding manner *)
+  >> namedCases_on ‘vs2’ ["", "v vs2"] >> gvs[]
+  (* Apply the inductive hypothesis to the appropriate values *)
+  >> last_x_assum $ qspecl_then [‘vs2'’, ‘i - 1’] assume_tac
+  (* Prove the preconditions to use the inductive hypothesis *)
+  >> gvs[ADD1]
+  >> namedCases_on ‘vs1’ ["", "v vs1"] >> gvs[]
+  >> namedCases_on ‘vs2'’ ["", "v vs2"] >> gvs[]
+  (* Consider the base case where i was equal to 0 *)
+  >> Cases_on ‘i’ >> gvs[LESS_MONO_EQ, GSYM ADD1]
+  >> gvs[ADD1]
+  (* In the base case where the second element is nonequal, our point of
+     divergence must be at the very start *)       
+  >> REVERSE (Cases_on ‘v' = v''’) >> gvs[]
+  >- (qexists ‘0’ >> gvs[])
+  (* We have proven all preconditions for the inductive hypothesis. Thus, we
+     have a j which works for the smaller list. Thus, SUC j will work for the
+     larger list *)
+  >> qexists ‘SUC j’
+  >> gvs[]
+  >> rpt strip_tac
+  >> Cases_on ‘k’ >> gvs[]      
+QED
+
+Theorem exists_point_of_convergence:
+
+Proof
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Allows us to join together partially overlapping paths.                    *)
@@ -1527,6 +1584,17 @@ Theorem join_overlapping_paths_mem:
     b ≠ c ⇒
     MEM b (get_path g a d)
 Proof
+  (* Prepare for strong induction on the length of the path by creating a
+     variable which tells us the length of the path *)
+  rpt strip_tac
+  >> qabbrev_tac ‘l = LENGTH (get_path g a d)’
+  >> gs[Abbrev_def]
+  >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
+  (* Perform strong induction on the length of the path *)
+  >> completeInduct_on ‘l’
+  >> rpt strip_tac
+         (* *)
+  >> ‘∃’
 QED
 
 (* -------------------------------------------------------------------------- *)
