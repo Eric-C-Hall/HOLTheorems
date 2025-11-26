@@ -1,8 +1,9 @@
+
 Theory tree
 
 Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set product_order relation rich_list
 
-Libs dep_rewrite ConseqConv;
+Libs dep_rewrite ConseqConv donotexpandLib;
 
 (* -------------------------------------------------------------------------- *)
 (* Definitions:                                                               *)
@@ -47,7 +48,9 @@ Libs dep_rewrite ConseqConv;
 (* - We may join together two overlapping paths: if we have a - c and b - d   *)
 (* - A tree has no cycles (from definition)                                   *)
 (*                                                                            *)
-
+(*                                                                            *)
+(*  adjacent_mem_get_path                                                     *)
+(*  subtrees_distinct                                                         *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -1616,6 +1619,91 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem adjacent_two[simp]:
+  ∀a b v1 v2.
+    adjacent [a;b] v1 v2 ⇔ v1 = a ∧ v2 = b
+Proof
+  rpt strip_tac
+  >> gvs[adjacent_iff]
+  >> metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If two nodes are adjacent, then the path between them is simply the first  *)
+(* node followed by the second                                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_get_path:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
+    is_tree g ∧
+    adjacent g a b ∧
+    a ≠ b ⇒
+    get_path g a b = [a; b]
+Proof
+  rpt strip_tac
+  >> irule is_tree_get_path_unique
+  >> gvs[path_def, walk_def]
+  >> metis_tac[adjacent_members]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we have a path from a to b, and x is on this path and x is adjacent to  *)
+(* a, then x must be the second node on the path.                             *)
+(*                                                                            *)
+(* This follows from uniqueness of paths: otherwise, we could choose either   *)
+(* go directly to x or we could choose to take the long way via the path.     *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_mem_get_path:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b x.
+    is_tree g ∧
+    b ∈ nodes g ∧
+    MEM x (get_path g a b) ∧
+    adjacent g a x ⇒
+    x = a ∨ x = EL 1 (get_path g a b)
+Proof
+  rpt strip_tac
+  >> ‘a ∈ nodes g’ by metis_tac[adjacent_members]
+  >> Cases_on ‘x = a’ >> gvs[]
+  >> gvs[MEM_EL]
+  >> CCONTR_TAC
+  (* Path due to adjacency *)
+  >> sg ‘get_path g a (EL n (get_path g a b)) = [a; EL n (get_path g a b)]’
+  >- gvs[adjacent_get_path]
+  (* Path due to subpath *)
+  >> sg ‘get_path g a (EL n (get_path g a b)) = TAKE (n + 1) (get_path g a b)’
+  >- (irule is_tree_get_path_unique
+      >> gvs[HD_TAKE, LAST_TAKE])
+  >> gvs[]
+  (* These paths have different lengths so must be different. Contradiction *)
+  >> ‘LENGTH (TAKE (n + 1) (get_path g a b)) =
+      LENGTH [a; EL n (get_path g a b)]’ by metis_tac[]
+  >> gvs[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> Cases_on ‘n'’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The subtree of nodes reachable by taking a certain edge from a certain     *)
+(* node is disjoint from the subtree of nodes reachable by taking a different *)
+(* edge from that node                                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem subtrees_distinct:
+  ∀g root n m.
+    adjacent g root n ∧
+    adjacent g root m ∧
+    n ≠ m ⇒
+    nodes (subtree g root n) ∩ nodes (subtree g root m) = ∅
+Proof
+  rpt strip_tac
+  >> gvs[subtree_def, subgraph_def]
+  >> gvs[EXTENSION]
+  >> rpt strip_tac
+  >> CCONTR_TAC >> gvs[]
+  >> sg ‘EL 2 (get_path g root' x) = n’
+  >- (
+  )
+  >> gvs[]
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Allows us to join together partially overlapping paths.                    *)
@@ -1669,7 +1757,7 @@ QED
 (* QED                                                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem join_overlapping_paths_mem:
-  ∀g a b c d.
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
     is_tree g ∧
     a ∈ nodes g ∧
     b ∈ nodes g ∧
@@ -1688,9 +1776,44 @@ Proof
   >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
   (* Perform strong induction on the length of the path *)
   >> completeInduct_on ‘l’
+  (* Do not expand inductive hypothesis, in order to avoid causing the
+     simplifier to waste time attempting and failing to use the inductive
+     hypothesis *)
+  >> donotexpand_tac
+  (* We work by contradiction *)
   >> rpt strip_tac
-  (* *)
-  >> ‘∃’
+  >> CCONTR_TAC
+  (* Prove that c cannot be in a-d *)
+  >> sg ‘¬MEM c (get_path g a d)’
+  >- (CCONTR_TAC
+      >> gvs[]
+      (* Since c is in a-d, we can split a-d at c *)
+      >> qspecl_then [‘g’, ‘a’, ‘c’, ‘d’] assume_tac get_path_append
+      (* At this point, it's smart enough to automatically prove this subgoal *)
+      >> gvs[]
+     )
+  (* We want to prove that the point e described in the proof sketch exists.
+     We can do this using exists_point_of_divergence, if we can find some point
+     at which To prove that
+
+     
+   In order to prove that the point e described in the proof sk
+
+prove that there's a point prior to b at which divergence
+     occurs, we need to prove that there's a point at which a-d differs from
+     a-c. Because b is not in a-d but it is in a-c, that is a candidate point
+     for this*)
+     
+  (* Because b is not in a-d but it is in a-c, we know that a-d and a-c differ
+     at b (but are the same at a), so we can use exists_point_of_divergence to
+     prove that there's a point prior to b at which divergence occurs *)
+  >> qspecl_then [‘get_path g a c’,
+                  ‘get_path g a d’,
+                  ‘findi b (get_path g a c)’] assume_tac
+                 exists_point_of_divergence
+  >> gvs[]
+  >> sg ‘findi b (get_path g a c) < ’
+  >> findi b (get_path g a c)
 QED
 
 (* -------------------------------------------------------------------------- *)
