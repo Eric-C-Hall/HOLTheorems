@@ -1,6 +1,6 @@
 Theory tree
 
-Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set relation rich_list
+Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set product_order relation rich_list
 
 Libs dep_rewrite ConseqConv;
 
@@ -1524,6 +1524,16 @@ QED
 (* each other), then there is some pair of indices at which the sequences are *)
 (* the same, such that the sequences are not the same at any prior pair of    *)
 (* indices.                                                                   *)
+(*                                                                            *)
+(* Possible improvement: this currently only shows that if both indices are   *)
+(* strictly smaller, then the data at the prior indices is not the same. This *)
+(* could be strengthened to find a point relative to which even if only one   *)
+(* of the indices is strictly smaller and the other is smaller in a           *)
+(* non-strict manner, the sequences are not the same. However, this is not    *)
+(* necessary for my purposes, because we typically already know that both of  *)
+(* the sequences are paths, and they meet at their endpoints, which implies   *)
+(* that the last element cannot be equal to any of the prior ones.            *)
+(* See also product_orderScript.                                              *)
 (* -------------------------------------------------------------------------- *)
 Theorem exists_point_of_convergence:
   ∀vs1 vs2 i j k.
@@ -1536,7 +1546,7 @@ Theorem exists_point_of_convergence:
     EL i vs1 ≠ EL i vs2 ∧
     EL j vs1 = EL k vs2 ⇒
     ∃l m.
-      (∀x y. i ≤ x ∧ x < l ∧ i ≤ y ∧ y < m ⇒ EL l vs1 ≠ EL l vs2) ∧
+      (∀x y. i ≤ x ∧ x < l ∧ i ≤ y ∧ y < m ⇒ EL x vs1 ≠ EL y vs2) ∧
       EL l vs1 = EL m vs2 ∧
       l ≤ j ∧
       m ≤ k
@@ -1545,54 +1555,65 @@ Proof
      we have reduced the problem to a smaller instance and can thus apply the
      inductive hypothesis to solve. The same choice of l and m will work.
 .
-     By "an earlier choice of j and k", I mean that either j or k or both is
-     smaller, and the other is at least as small.
+     By "an earlier choice of j and k", I mean that both j and k are strictly
+     smaller.
 .
      If there does not exist an earlier choice of j and k such that
      EL j vs1 = EL k vs2, then the appropriate choice of l and m will be j and
      k. It is easy to check that in this case, all requirements of l and m are
      met.
    *)
-  (* First step: prove that the relation which says that (x,y) is smaller if and
-     only if one of x or y is smaller and the other is at least as small is a
-     well-founded relation, so that I can perform the desired induction. *)
-  sg ‘WF (λ(x1 : num, y1 : num) (x2, y2).
-            (x1 < x2 ∨ y1 < y2) ∧ x1 ≤ x2 ∧ y1 ≤ y2)’
-  >- (
-  )
-  >>
-  WF_INDUCTION_THM
-  >>     
-  
-  Cases_on ‘∃j_earlier k_earlier.
-              j_earlier < LENGTH vs1 ∧
-              k_earlier 
-              EL j_earlier = EL k_earlier’
-           
-
-           (* Induct on j: consider what happens as the point at which the first
-     sequence equals the second sequence becomes deeper and deeper. *)
-           Induct_on ‘j’ >> gvs[]
-  (* In the case where the first position after i in the first sequence is not
-     equal to the kth position in the second sequence*)
-
-  >>
-  (* Induct on the first sequence: consider what happens as the first sequence
-     increases in length *)
-  Induct_on ‘vs1’ >> gvs[]
+  (* We want to induct on j and k, where our inductive hypothesis says that our
+     property holds if both j and k are smaller. First, introduce the induction
+     theorem we are going to use, which is based on the well-formedness of this
+     relation on j and k. *)
+  qspec_then ‘product_order ($< : num -> num -> bool) ($< : num -> num -> bool)’
+             assume_tac WF_INDUCTION_THM >> gvs[]
+  (* Now, combine j and k into one variable, jk, so we can induct on that. *)
   >> rpt strip_tac
-  (* In the case where *)
-  >> last_x_assum $ qspecl_then [‘vs2’, ‘i - 1’, ‘j - 1’, ‘k’] assume_tac
+  >> qabbrev_tac ‘jk = (j,k)’
+  >> gs[Abbrev_def]
+  (* Generalise all our variables so that we have a stronger inductive
+     hypothesis*)
+  >> last_x_assum assume_tac
+  >> rpt (last_x_assum mp_tac) >> disch_tac >> SPEC_ALL_TAC
+  (* Ensure that jk is at the front, because that's what we are inducting over,
+     so that HO_MATCH_MP_TAC recognises it *)
+  >> NTAC 3 gen_tac
+  >> SPEC_TAC (“j : num”, “j : num”) >> SPEC_TAC (“i : num”, “i : num”)
+  >> SPEC_ALL_TAC
+  (* Apply our induction theorem *)
+  >> pop_assum (fn th => HO_MATCH_MP_TAC th)
+  (* Simplify *)
+  >> rpt strip_tac >> gvs[]
+  (* Use inductive hypothesis to prove this theorem in the case where there is
+     a choice of strictly earlier j and k such that EL j vs1 = EL k vs2 *)
+  >> Cases_on ‘∃j_earlier k_earlier.
+                 i ≤ j_earlier ∧
+                 i ≤ k_earlier ∧
+                 j_earlier < j ∧
+                 k_earlier < k ∧
+                 EL j_earlier vs1 = EL k_earlier vs2’
+  >- (gvs[]
+      (* Apply the inductive hypothesis *)
+      >> last_x_assum $ qspec_then ‘(j_earlier, k_earlier)’ assume_tac
+      >> gvs[product_order_def]
+      >> first_x_assum $ qspecl_then [‘i’, ‘vs1’, ‘vs2’] assume_tac
+      >> gvs[]
+      (* The choice of l and m given in the inductive hypothesis also works in
+         the inductive step *)
+      >> qexistsl [‘l’, ‘m’]
+      >> gvs[] >> metis_tac[]
+     )
+  (* We no longer need the inductive hypothesis *)
+  >> last_x_assum kall_tac
+  (* We now know that no prior choice of j and k can have EL j vs1 = EL k vs2,
+     so we can choose l = j and m = k*)
+  >> qexistsl [‘j’, ‘k’]
   >> gvs[]
-  >> namedCases_on ‘vs1’ ["", "v vs1"] >> gvs[]
-  >> namedCases_on ‘j’ ["", "j"] >> gvs[]
-
-  >> namedCases_on ‘i’ ["", "i"] >> gvs[]
-                                       Cases_on
-
-                                       
-  >> Induct_on ‘vs2’ >> gvs[]
   >> rpt strip_tac
+  >> first_x_assum $ qspecl_then [‘x’, ‘y’] assume_tac
+  >> metis_tac[]
 QED
 
 

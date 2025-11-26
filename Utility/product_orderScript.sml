@@ -1,6 +1,6 @@
 Theory product_order
 
-Ancestors arithmetic relation
+Ancestors arithmetic relation prim_rec
 
 Libs useful_tacticsLib dep_rewrite;
 
@@ -74,6 +74,12 @@ Proof
   >> gvs[product_order_def]
   >> rpt strip_tac
   >> gvs[product_order_def]
+QED
+
+Theorem WF_product_order_num[simp]:
+  WF (product_order ($< : num -> num -> bool) ($< : num -> num -> bool))
+Proof
+  metis_tac[WF_product_order, WF_LESS]
 QED
 
 (* -------------------------------------------------------------------------- *)
