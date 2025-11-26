@@ -1,4 +1,3 @@
-
 Theory tree
 
 Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set product_order relation rich_list
@@ -148,15 +147,8 @@ End
 (* selection of nodes                                                         *)
 (* -------------------------------------------------------------------------- *)
 Definition subgraph_def:
-  subgraph (g : fsgraph) nodes =
-  fsgAddEdges
-  ({add_edge | add_edge ∈ fsgedges g ∧
-               (∀edge_node. edge_node ∈ add_edge ⇒
-                            edge_node ∈ nodes )})
-  (fsgAddNodes
-   nodes
-   emptyG
-  )
+  subgraph g ns =
+  removeNodes ((nodes g) DIFF ns)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -172,7 +164,7 @@ End
 (* Only valid if our initial graph is a tree.                                 *)
 (* -------------------------------------------------------------------------- *)
 Definition subtree_def:
-  subtree (g : fsgraph) root n =
+  subtree g root n =
   subgraph g (nodes g ∩ {v | MEM n (get_path g root v)})
 End
 
@@ -180,19 +172,19 @@ End
 (* Returns the distance between two nodes in a graph                          *)
 (* -------------------------------------------------------------------------- *)
 Definition distance_def:
-  distance (g : fsgraph) v1 v2 = MAX_SET (IMAGE LENGTH {vs | path g vs ∧
-                                                             HD vs = v1 ∧
-                                                             LAST vs = v2})
+  distance g v1 v2 = MAX_SET (IMAGE LENGTH {vs | path g vs ∧
+                                                 HD vs = v1 ∧
+                                                 LAST vs = v2})
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Returns the diameter of a graph                                            *)
 (* -------------------------------------------------------------------------- *)
 Definition diameter_def:
-  diameter (g : fsgraph) = MAX_SET (IMAGE (UNCURRY (distance g))
-                                          {(v1,v2) | v1 ∈ nodes g ∧
-                                                     v2 ∈ nodes g}
-                                   )
+  diameter g = MAX_SET (IMAGE (UNCURRY (distance g))
+                              {(v1,v2) | v1 ∈ nodes g ∧
+                                         v2 ∈ nodes g}
+                           )
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -971,7 +963,7 @@ Proof
   >> Cases_on ‘x’ >> gvs[]
   >> Cases_on ‘t’ >> gvs[]
 QED
-
+}
 Theorem exists_path_in_nodes:
   ∀g a b.
     exists_path g a b ⇒
@@ -1687,20 +1679,20 @@ QED
 (* edge from that node                                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem subtrees_distinct:
-  ∀g root n m.
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph root n m.
     adjacent g root n ∧
     adjacent g root m ∧
     n ≠ m ⇒
-    nodes (subtree g root n) ∩ nodes (subtree g root m) = ∅
+    (nodes (subtree g root n) ∩ nodes (subtree g root m) = ∅)
 Proof
   rpt strip_tac
   >> gvs[subtree_def, subgraph_def]
   >> gvs[EXTENSION]
   >> rpt strip_tac
   >> CCONTR_TAC >> gvs[]
-  >> sg ‘EL 2 (get_path g root' x) = n’
-  >- (
-  )
+  >> sg ‘EL 1 (get_path g root' x) = n’
+  >- (metis_tac[adjacent_mem_get_path]
+     )
   >> gvs[]
 QED
 
