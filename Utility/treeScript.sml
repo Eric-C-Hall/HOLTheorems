@@ -37,7 +37,8 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (* - We have a - c = (a - b) ++ (b - c), so long as b is on a - c (tr).       *)
 (*   (get_path_append)                                                        *)
 (* - We may join together two overlapping paths: if we have a - c and b - d,  *)
-(*   and c is in b - d and b is in a - c, then (join_overlapping_paths_mem)   *)
+(*   and c is in b - d and b is in a - c, then (tr)                           *)
+(*     (join_overlapping_paths_mem)                                           *)
 (* - If we have two nonequal paths that start with the same value, there is   *)
 (*   a point at which they diverge (exists_point_of_divergence)               *)
 (* - If we have two paths that start at different values but end in the same  *)
@@ -50,6 +51,9 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (*                                                                            *)
 (*  adjacent_mem_get_path                                                     *)
 (*  subtrees_distinct                                                         *)
+(*  path_continuation                                                         *)
+(*  path_continuation_mem                                                     *)
+(*  get_path_reverse                                                          *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -206,6 +210,11 @@ Proof
   >> gvs[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: Prove that the resulting path only travels across a given edge in    *)
+(*       a given direction if the original walk also did so at some point.    *)
+(*       (Should probably use list$adjacent)                                  *)
+(* -------------------------------------------------------------------------- *)
 Theorem restrict_walk_to_path:
   ∀g vs.
     walk g vs ⇒ ∃vs'. HD vs' = HD vs ∧ LAST vs' = LAST vs ∧ path g vs'
@@ -1181,9 +1190,9 @@ Proof
   >> gvs[path_def, walk_def]
 QED
 
-Theorem path_reverse:
+Theorem path_reverse[simp]:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph vs.
-    path g vs ⇔ path g (REVERSE vs)
+    path g (REVERSE vs) ⇔ path g vs
 Proof
   rpt strip_tac
   (* Since REVERSE (REVERSE vs) = vs, without loss of generality we may prove
@@ -1201,6 +1210,20 @@ Proof
   >- metis_tac[adjacent_members]
   >> gvs[LAST_REVERSE]
   >> metis_tac[adjacent_SYM]
+QED
+
+Theorem get_path_reverse[simp]:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ⇒
+    REVERSE (get_path g b a) = get_path g a b
+Proof
+  rpt strip_tac
+  >> irule is_tree_path_unique
+  >> gvs[HD_REVERSE, LAST_REVERSE]
+  >> qexists ‘g’
+  >> gvs[]
 QED
 
 Theorem exists_path_sym:
@@ -1709,6 +1732,69 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem adjacent_el_get_path[simp]:
+  ∀g a b.
+    a ≠ b ∧
+    exists_path g a b ⇒
+    adjacent g a (EL 1 (get_path g a b))
+Proof
+  rpt strip_tac
+  >> gvs[exists_path_def, get_path_def]
+  >> SELECT_ELIM_TAC
+  >> conj_tac >- metis_tac[]
+  >> rpt strip_tac
+  >> Cases_on ‘x’ >> Cases_on ‘vs’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
+  >> Cases_on ‘t'’ >> gvs[]
+  >> gvs[path_def, walk_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* In a tree, if a path arrives at a point, and leaves in a different         *)
+(* direction to the direction in which it came, then the concatenation of     *)
+(* these paths is path.                                                       *)
+(*                                                                            *)
+(* To prove this, we need to show that the nodes on one side of the path are  *)
+(* distinct with respect to the ndoes on the other side of the path. But this *)
+(* follows from subtrees_distinct.                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem path_continuation:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    c ∈ nodes g ∧
+    EL 1 (get_path g b c) ≠ EL 1 (get_path g b a) ⇒
+    get_path g a c = get_path g a b ++ TL (get_path g b c)
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘g’, ‘b’, ‘EL 1 (get_path g b c)’, ‘EL 1 (get_path g b a)’]
+                 assume_tac subtrees_distinct
+  >> gvs[]
+  >> Cases_on ‘b = c’ >> gvs[]
+  >> Cases_on ‘a = c’ >> gvs[]
+  >> Cases_on ‘a = b’ >> gvs[]
+  >- (qmatch_goalsub_abbrev_tac ‘avoidrewrite1 = _::avoidrewrite2’
+      >> ‘a = HD (get_path g a c)’ by gvs[]
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> unabbrev_all_tac
+      >> gvs[Excl "exists_path_hd_get_path"]
+     )
+  >> Cases_on ‘b = EL 1 (get_path g b c)’ >> gvs[]
+  >- (gvs[]
+     )
+QED
+
+Theorem path_continutation_mem:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    c ∈ nodes g ∧
+    EL 1 (get_path g b c) ≠ EL 1 (get_path g b a) ⇒
+    MEM b (get_path g a c)
+Proof
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Allows us to join together partially overlapping paths.                    *)
@@ -1721,6 +1807,18 @@ QED
 (* a-d by frankensteining together a-c and b-d.                               *)
 (* -------------------------------------------------------------------------- *)
 (* Proof:                                                                     *)
+(*                                                                            *)
+(* Suppose, by way of contradiction, that b was not in a-d.                   *)
+(*                                                                            *)
+(* Then at some point between a-b, we must have a divergence point.           *)
+(*                                                                            *)
+(* Since a-d and b-d end at the same point, at some point they must have a    *)
+(* convergence point.                                                         *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
 (*                                                                            *)
 (* We work by strong induction on the length of a-d.                          *)
 (*                                                                            *)
@@ -1822,13 +1920,8 @@ prove that there's a point prior to b at which divergence
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: Update comments at start for this                                    *)
+(* TODO: subtrees_distinct is probably  helpful for this?                     *)
 (* -------------------------------------------------------------------------- *)
-Theorem join_overlapping_paths:
-
-Proof
-QED
-
 Theorem subtree_subset:
   ∀g a b c.
     is_tree g ∧
