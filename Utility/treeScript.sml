@@ -148,7 +148,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition subgraph_def:
   subgraph g ns =
-  removeNodes ((nodes g) DIFF ns)
+  removeNodes ((nodes g) DIFF ns) g
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -963,7 +963,7 @@ Proof
   >> Cases_on ‘x’ >> gvs[]
   >> Cases_on ‘t’ >> gvs[]
 QED
-}
+
 Theorem exists_path_in_nodes:
   ∀g a b.
     exists_path g a b ⇒
@@ -1004,6 +1004,16 @@ Theorem exists_path_0_less_len_get_path[simp]:
 Proof
   rpt strip_tac
   >> simp[LENGTH_NON_NIL]
+QED
+
+Theorem exists_path_1_leq_len_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    1 ≤ LENGTH (get_path g a b)
+Proof
+  rpt strip_tac
+  >> PURE_REWRITE_TAC[ONE, GSYM LESS_EQ]
+  >> gvs[]
 QED
 
 Theorem MEM_get_path_first[simp]:
@@ -1246,7 +1256,7 @@ Proof
   rpt strip_tac
   >> metis_tac[path_in_nodes, exists_path_path_get_path]
 QED
-        
+
 Theorem el_get_path_in_nodes[simp]:
   ∀g a b i.
     exists_path g a b ∧
@@ -1680,20 +1690,23 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem subtrees_distinct:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph root n m.
+    is_tree g ∧
     adjacent g root n ∧
     adjacent g root m ∧
-    n ≠ m ⇒
+    n ≠ m ∧
+    root ≠ n ∧
+    root ≠ m ⇒
     (nodes (subtree g root n) ∩ nodes (subtree g root m) = ∅)
 Proof
   rpt strip_tac
+  >> ‘root' ∈ nodes g ∧ n ∈ nodes g ∧ m ∈ nodes g’ by metis_tac[adjacent_members]
   >> gvs[subtree_def, subgraph_def]
   >> gvs[EXTENSION]
   >> rpt strip_tac
   >> CCONTR_TAC >> gvs[]
-  >> sg ‘EL 1 (get_path g root' x) = n’
-  >- (metis_tac[adjacent_mem_get_path]
-     )
-  >> gvs[]
+  >> ‘EL 1 (get_path g root' x) = n’ by metis_tac[adjacent_mem_get_path]
+  >> ‘EL 1 (get_path g root' x) = m’ by metis_tac[adjacent_mem_get_path]
+  >> metis_tac[]
 QED
 
 
