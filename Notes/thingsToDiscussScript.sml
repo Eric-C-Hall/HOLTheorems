@@ -6,6 +6,13 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Product order? Strict product order? Are these concepts defined in HOL4? *)
+
+(* Suppose I want to prove P n m by induction, n and m are nums.
+   I want my inductive hypothesis to be: P n m if either n OR m is smaller, and
+   the other is at least as small. How would I go about doing this?
+ *)
+
 (* In sp_message, I add an if statement which isn't necessary, but it won't
    recognise termination without the information given by the if statement.
    Is it possible to avoid doing that? *)

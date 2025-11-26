@@ -1521,7 +1521,9 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* If we have two sequences which are different values at some point and      *)
 (* eventually reach the same values (not necessarily at the same index as     *)
-(* each other).                                                               *)
+(* each other), then there is some pair of indices at which the sequences are *)
+(* the same, such that the sequences are not the same at any prior pair of    *)
+(* indices.                                                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem exists_point_of_convergence:
   ∀vs1 vs2 i j k.
@@ -1532,18 +1534,65 @@ Theorem exists_point_of_convergence:
     i ≤ j ∧
     i ≤ k ∧
     EL i vs1 ≠ EL i vs2 ∧
-    EL j vs1 = EL j vs2 ⇒
-    ∃k.
-      (∀l. i ≤ l ∧ l < k ⇒ EL l vs1 ≠ EL l vs2) ∧
-      EL k vs1 =
-      
-      HD vs1 = HD vs2 ∧
-      EL i vs1 ≠ EL i vs2 ⇒
-      ∃j.
-        (∀k. k ≤ j ⇒ EL k vs1 = EL k vs2) ∧
-        EL (j + 1) vs1 ≠ EL (j + 1) vs2 ∧
-        j < i
+    EL j vs1 = EL k vs2 ⇒
+    ∃l m.
+      (∀x y. i ≤ x ∧ x < l ∧ i ≤ y ∧ y < m ⇒ EL l vs1 ≠ EL l vs2) ∧
+      EL l vs1 = EL m vs2 ∧
+      l ≤ j ∧
+      m ≤ k
 Proof
+  (* If there exists an earlier choice of j and k such that EL j vs1 = EL k vs2,
+     we have reduced the problem to a smaller instance and can thus apply the
+     inductive hypothesis to solve. The same choice of l and m will work.
+.
+     By "an earlier choice of j and k", I mean that either j or k or both is
+     smaller, and the other is at least as small.
+.
+     If there does not exist an earlier choice of j and k such that
+     EL j vs1 = EL k vs2, then the appropriate choice of l and m will be j and
+     k. It is easy to check that in this case, all requirements of l and m are
+     met.
+   *)
+  (* First step: prove that the relation which says that (x,y) is smaller if and
+     only if one of x or y is smaller and the other is at least as small is a
+     well-founded relation, so that I can perform the desired induction. *)
+  sg ‘WF (λ(x1 : num, y1 : num) (x2, y2).
+            (x1 < x2 ∨ y1 < y2) ∧ x1 ≤ x2 ∧ y1 ≤ y2)’
+  >- (
+  )
+  >>
+  WF_INDUCTION_THM
+  >>     
+  
+  Cases_on ‘∃j_earlier k_earlier.
+              j_earlier < LENGTH vs1 ∧
+              k_earlier 
+              EL j_earlier = EL k_earlier’
+           
+
+           (* Induct on j: consider what happens as the point at which the first
+     sequence equals the second sequence becomes deeper and deeper. *)
+           Induct_on ‘j’ >> gvs[]
+  (* In the case where the first position after i in the first sequence is not
+     equal to the kth position in the second sequence*)
+
+  >>
+  (* Induct on the first sequence: consider what happens as the first sequence
+     increases in length *)
+  Induct_on ‘vs1’ >> gvs[]
+  >> rpt strip_tac
+  (* In the case where *)
+  >> last_x_assum $ qspecl_then [‘vs2’, ‘i - 1’, ‘j - 1’, ‘k’] assume_tac
+  >> gvs[]
+  >> namedCases_on ‘vs1’ ["", "v vs1"] >> gvs[]
+  >> namedCases_on ‘j’ ["", "j"] >> gvs[]
+
+  >> namedCases_on ‘i’ ["", "i"] >> gvs[]
+                                       Cases_on
+
+                                       
+  >> Induct_on ‘vs2’ >> gvs[]
+  >> rpt strip_tac
 QED
 
 
@@ -1619,7 +1668,7 @@ Proof
   (* Perform strong induction on the length of the path *)
   >> completeInduct_on ‘l’
   >> rpt strip_tac
-         (* *)
+  (* *)
   >> ‘∃’
 QED
 
