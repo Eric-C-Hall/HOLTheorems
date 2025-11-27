@@ -55,6 +55,7 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (*  path_continuation_mem                                                     *)
 (*  get_path_reverse                                                          *)
 (*  first_step_on_path_same                                                   *)
+(*  el_one_not_equal_path                                                     *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -2048,6 +2049,8 @@ Theorem join_overlapping_paths_mem:
     MEM b (get_path g a d)
 Proof
   rpt strip_tac
+  (* Special case of a = b *)
+  >> Cases_on ‘a = b’ >> gvs[]
   (* We can prove this by showing that the edge into b is distinct from the
      edge out of b, using path_continuation_mem *)
   >> irule path_continuation_mem
@@ -2058,61 +2061,9 @@ Proof
   >> gvs[]
   (* Since a-c is a path with b on it, the first element back from b is
      different to the first element forward from b. *)
-  >> metis_tac[el_one_not_equal_path]
-  
-  (* We want to show that the first element on the path to  *) 
-  >> qspecl_then [‘g’, ‘a’, ‘b’, ‘d’] assume_tac path_continuation_mem
-  (* *)
+  >> irule NEQ_SYM
+  >> irule el_one_not_equal_path
   >> gvs[]
-  >> ‘get_path g a d =’
-
-     
-     (* Prepare for strong induction on the length of the path by creating a
-     variable which tells us the length of the path *)
-     rpt strip_tac
-  >> qabbrev_tac ‘l = LENGTH (get_path g a d)’
-  >> gs[Abbrev_def]
-  >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
-  (* Perform strong induction on the length of the path *)
-  >> completeInduct_on ‘l’
-  (* Do not expand inductive hypothesis, in order to avoid causing the
-     simplifier to waste time attempting and failing to use the inductive
-     hypothesis *)
-  >> donotexpand_tac
-  (* We work by contradiction *)
-  >> rpt strip_tac
-  >> CCONTR_TAC
-  (* Prove that c cannot be in a-d *)
-  >> sg ‘¬MEM c (get_path g a d)’
-  >- (CCONTR_TAC
-      >> gvs[]
-      (* Since c is in a-d, we can split a-d at c *)
-      >> qspecl_then [‘g’, ‘a’, ‘c’, ‘d’] assume_tac get_path_append
-      (* At this point, it's smart enough to automatically prove this subgoal *)
-      >> gvs[]
-     )
-  (* We want to prove that the point e described in the proof sketch exists.
-     We can do this using exists_point_of_divergence, if we can find some point
-     at which To prove that
-
-     
-   In order to prove that the point e described in the proof sk
-
-prove that there's a point prior to b at which divergence
-     occurs, we need to prove that there's a point at which a-d differs from
-     a-c. Because b is not in a-d but it is in a-c, that is a candidate point
-     for this*)
-     
-  (* Because b is not in a-d but it is in a-c, we know that a-d and a-c differ
-     at b (but are the same at a), so we can use exists_point_of_divergence to
-     prove that there's a point prior to b at which divergence occurs *)
-  >> qspecl_then [‘get_path g a c’,
-                  ‘get_path g a d’,
-                  ‘findi b (get_path g a c)’] assume_tac
-                 exists_point_of_divergence
-  >> gvs[]
-  >> sg ‘findi b (get_path g a c) < ’
-  >> findi b (get_path g a c)
 QED
 
 (* -------------------------------------------------------------------------- *)

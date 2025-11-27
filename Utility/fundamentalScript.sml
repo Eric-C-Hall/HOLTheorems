@@ -409,3 +409,27 @@ Proof
   rpt strip_tac
   >> Cases_on ‘l1’ >> gvs[]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* NEQ is symmetric.                                                          *)
+(*                                                                            *)
+(* Implies instead of iff by analogy with EQ_SYM                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem NEQ_SYM:
+  ∀a b.
+    a ≠ b ⇒ b ≠ a
+Proof
+  metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* NEQ is symmetric                                                           *)
+(*                                                                            *)
+(* Named by analogy with EQ_SYM_EQ and EQ_SYM                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem NEQ_SYM_EQ:
+  ∀a b.
+    a = b ⇔ b = a
+Proof
+  metis_tac[]
+QED
