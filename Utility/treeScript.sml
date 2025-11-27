@@ -44,12 +44,20 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (* - If we have two paths that start at different values but end in the same  *)
 (*   (exists_point_of_convergence)                                            *)
 (*                                                                            *)
+(* - If x is on a-b and x is adjacent to a, then it is the first step on a-b. *)
+(*   (adjacent_mem_get_path)                                                  *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
 (*                                                                            *)
 (* - We may join together two overlapping paths: if we have a - c and b - d   *)
 (* - A tree has no cycles (from definition)                                   *)
 (*                                                                            *)
 (*                                                                            *)
-(*  adjacent_mem_get_path                                                     *)
+(*                                                                            *)
+(*  first_step_distinct_path_distinct                                         *)
+(*                                                                            *)
 (*  subtrees_distinct                                                         *)
 (*  path_continuation                                                         *)
 (*  path_continuation_mem                                                     *)
@@ -1766,6 +1774,16 @@ Proof
   >> gvs[]
 QED
 
+Theorem nodes_subgraph[simp]:
+  ∀g ns.
+    ns ⊆ nodes g ⇒
+    nodes (subgraph g ns) = ns
+Proof
+  rpt strip_tac
+  >> gvs[subgraph_def]
+  >> gvs[DIFF_DIFF_SUBSET]
+QED
+
 Theorem HD_TL:
         ∀ls.
           ls ≠ [] ⇒
@@ -2064,6 +2082,82 @@ Proof
   >> irule NEQ_SYM
   >> irule el_one_not_equal_path
   >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we have a - b - c, the first step on a - b is a member of a - c         *)
+(* -------------------------------------------------------------------------- *)
+Theorem mem_first_step_subpath:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    c ∈ nodes g ∧
+    MEM b (get_path g a c) ∧
+    a ≠ b ⇒
+    MEM (EL 1 (get_path g a b)) (get_path g a c)
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘g’, ‘a’, ‘b’, ‘c’] assume_tac first_step_on_path_same
+  >> gvs[]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  >> gvs[MEM_EL]
+  >> qexists ‘1’ >> gvs[]
+  >> CCONTR_TAC >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we have a - b - c, the first step on a - c is a member of a - b         *)
+(* -------------------------------------------------------------------------- *)
+Theorem mem_first_step_suppath:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    c ∈ nodes g ∧
+    MEM b (get_path g a c) ∧
+    a ≠ b ⇒
+    MEM (EL 1 (get_path g a c)) (get_path g a b)
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘g’, ‘a’, ‘b’, ‘c’] assume_tac first_step_on_path_same
+  >> gvs[]
+  >> gvs[MEM_EL]
+  >> qexists ‘1’ >> gvs[] 
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If the first steps on two paths from the same origin are distinct, then    *)
+(* the paths are distinct everywhere except for the origin                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem first_step_distinct_path_distinct:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph org p1 p2.
+    is_tree g ∧
+    org ∈ nodes g ∧
+    p1 ∈ nodes g ∧
+    p2 ∈ nodes g ∧
+    org ≠ p1 ∧
+    org ≠ p2 ∧
+    EL 1 (get_path g org p1) ≠ EL 1 (get_path g org p2) ⇒
+    (∀n. n ≠ org ∧ MEM n (get_path g org p1) ⇒ ¬MEM n (get_path g org p2))
+Proof
+  rpt strip_tac
+  (* This theorem is essentially another way of wording subtrees_distinct. *)
+  >> qspecl_then [‘g’ ,
+                  ‘org’,
+                  ‘EL 1 (get_path g org p1)’,
+                  ‘EL 1 (get_path g org p2)’] assume_tac subtrees_distinct
+  >> gvs[]
+  >> pop_assum mp_tac >> gvs[EXTENSION]
+  (* The n which is in both subtrees is the n which is in both paths *)
+  >> qexists ‘n’
+  >> gvs[subtree_def]
+  (* n ∈ nodes g *)
+  >> ‘n ∈ nodes g’ by metis_tac[mem_get_path_in_nodes, is_tree_exists_path]
+  >> gvs[]
+  (* The first element on each of these larger paths is an element of the
+     smaller path *)
+  >> conj_tac
+  >> (irule mem_first_step_suppath
+      >> gvs[])
 QED
 
 (* -------------------------------------------------------------------------- *)
