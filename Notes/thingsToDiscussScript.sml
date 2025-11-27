@@ -6,28 +6,34 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
-(* I've created a relatively comfortable environment to prove things about
-   paths on trees in a graph context. *)
-
-(* Product order? Strict product order? Are these concepts defined in HOL4? *)
+(* In sp_message, I add an if statement which isn't necessary, but it won't
+   recognise termination without the information given by the if statement.
+   Is it possible to avoid doing that? *)
 
 (* Suppose I want to prove P n m by induction, n and m are nums.
    I want my inductive hypothesis to be: P n m if either n OR m is smaller, and
    the other is at least as small. How would I go about doing this?
  *)
 
-(* In sp_message, I add an if statement which isn't necessary, but it won't
-   recognise termination without the information given by the if statement.
-   Is it possible to avoid doing that? *)
-
 (* I'm not entirely confident in using inductive definitions. I think they
-   might be useful in the message passing algorithm. *)
+   might be useful in the message passing algorithm.
+
+   Suppose I have a function which calls itself, and I have proven termination,
+   but there is no obvious way in which I can induct on any of its arguments
+   (this contrasts to e.g. factorial, on which it is very easy to induct on
+    its argument). Can I induct on the calls to the function somehow?
+ *)
 
 (* I have defined sp_calculate_messages0 and proven that it always terminates.
    Can I induct on the recursive calls of this function? Some property holds on
    termination, therefore the property holds 1 call before termination,
    therefore the property holds 2 calls before termination, etc. I think I
    remember there being something along the lines of inductive definitions? *)
+
+(* Product order? Strict product order? Are these concepts defined in HOL4? *)
+
+(* I've created a relatively comfortable environment to prove things about
+   paths on trees in a graph context. *)
 
 (* matchingScript is reaching the stack limit for gvs. Perhaps it could be
    made faster very easily by reducing the stack limit for that file or the

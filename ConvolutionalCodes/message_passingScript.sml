@@ -581,6 +581,11 @@ As we step backwards through our computation, the subtree that from which
                          order (subtree fg.underlying_graph dst src))’
   >> rpt strip_tac
   >> (pop_assum kall_tac
+      (* Call to important lemma here *)
+      >> irule order_subtree_lt_adjacent
+      (* *)
+      >> Cases_on ‘dst = src’ >> gvs[]
+      >> gvs[]
       >> qmatch_abbrev_tac ‘order prev_tree < order new_tree’
       >> ‘nodes prev_tree ⊂ nodes new_tree’
       >- (gvs[order_def]
