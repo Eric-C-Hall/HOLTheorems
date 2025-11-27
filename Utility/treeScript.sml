@@ -2160,11 +2160,8 @@ Proof
       >> gvs[])
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: subtrees_distinct is probably  helpful for this?                     *)
-(* -------------------------------------------------------------------------- *)
 Theorem subtree_subset:
-  ∀g a b c.
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
     is_tree g ∧
     a ≠ b ∧
     b ≠ c ∧
@@ -2175,7 +2172,6 @@ Theorem subtree_subset:
 Proof
   rpt strip_tac
   >> gvs[subtree_def]
-  >> gvs[subgraph_def]
   >> gvs[PSUBSET_DEF]
   >> REVERSE conj_tac
   >- (gvs[EXTENSION] >> rpt strip_tac
@@ -2184,12 +2180,9 @@ Proof
      )
   >> gvs[SUBSET_DEF]
   >> rpt strip_tac
-  >> 
-
-
-  >> sg ‘get_path g a x = get_path g a b ++ TL (get_path g b x)’
-  >> irule get_path_append
-  >> simp[]
+  (* a-b-c and b-c-x are overlapping paths, so we can use the relevant thm *)
+  >> qspecl_then [‘g’, ‘a’, ‘b’, ‘c’, ‘x’] assume_tac join_overlapping_paths_mem
+  >> gvs[]
 QED
 
 Theorem order_subtree_lt:
