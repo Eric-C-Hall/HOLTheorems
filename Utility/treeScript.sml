@@ -2186,7 +2186,7 @@ Proof
 QED
 
 Theorem order_subtree_lt:
-  ∀g a b c.
+  ∀g : ('a, 'b, 'c, finiteG, 'e, 'f) udgraph a b c.
     is_tree g ∧
     a ≠ b ∧
     b ≠ c ∧
@@ -2196,6 +2196,9 @@ Theorem order_subtree_lt:
     order (subtree g b c) < order (subtree g a b)
 Proof
   rpt strip_tac
+  >> gvs[gsize_def]
+  >> irule CARD_PSUBSET
+  >> gvs[subtree_subset]
 QED
 
 Theorem order_subtree_lt_adjacent:

@@ -433,3 +433,16 @@ Theorem NEQ_SYM_EQ:
 Proof
   metis_tac[]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* A standardised version of CARD_PSUBSET                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem CARD_PSUBSET_NORM:
+  ∀s t.
+    FINITE s ∧
+    t ⊂ s ⇒
+    CARD t < CARD s
+Proof
+  rpt strip_tac
+  >> gvs[CARD_PSUBSET]
+QED
