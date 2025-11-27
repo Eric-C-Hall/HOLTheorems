@@ -1813,6 +1813,7 @@ Theorem first_step_on_path_same:
     EL 1 (get_path g a b) = EL 1 (get_path g a c)
 Proof
   rpt strip_tac
+  >> ‘b ∈ nodes g’ by metis_tac[mem_get_path_in_nodes, is_tree_exists_path]
   >> qspecl_then [‘g’, ‘a’, ‘b’, ‘c’] mp_tac get_path_append
   >> simp[]
   >> strip_tac
@@ -1822,14 +1823,6 @@ Proof
   >> qpat_x_assum ‘MEM b (get_path g a c)’ kall_tac
   (* *)
   >> gvs[EL_APPEND]
-  >> rw[]
-  >> ‘F’ suffices_by gvs[]
-  >> pop_assum mp_tac >> gvs[]
-                            
-
-  >> gs[]
-  >> gvs[EL_APPEND]
-  >> rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
