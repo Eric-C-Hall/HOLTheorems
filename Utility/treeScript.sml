@@ -88,6 +88,12 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (*                       this change, and I'm not sure if there is an         *)
 (*                       existing definition to transform a directed graph    *)
 (*                       into an undirected graph                             *)
+(*                                                                            *)
+(* Possible improvement: a self-loop currently isn't considered a cycle       *)
+(*                       because it has length 1. We don't want going to      *)
+(*                       another node and then coming back to count as a      *)
+(*                       "cycle", but perhaps a tree should exclude           *)
+(*                       self-loops                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition is_tree_def:
   is_tree g ⇔ (connected g ∧
@@ -2201,21 +2207,53 @@ Proof
   >> gvs[subtree_subset]
 QED
 
-Theorem order_subtree_lt_adjacent:
+Theorem is_tree_no_triangle:
   ∀g a b c.
+    is_tree g ∧
+    a ≠ b ∧
+    b ≠ c ∧
+    a ≠ c ∧
+    adjacent g a b ∧
+    adjacent g b c ⇒
+    ¬adjacent g c a
+Proof
+  rpt strip_tac
+  >> sg ‘cycle g [a; b; c; a]’
+  >- (gvs[cycle_def, walk_def]
+      >> conj_tac >- metis_tac[adjacent_members]
+      >> rpt strip_tac
+      >> gvs[adjacent_iff])
+  >> gvs[is_tree_def]
+QED
+
+Theorem order_subtree_lt_adjacent:
+  ∀g : ('a, 'b, 'c, finiteG, 'e, 'f) udgraph a b c.
     is_tree g ∧
     adjacent g a b ∧
     adjacent g b c ∧
-    c ≠ a ⇒
+    a ≠ b ∧
+    b ≠ c ∧
+    a ≠ c ⇒
     order (subtree g b c) < order (subtree g a b) 
 Proof
-  rw[]
-  >> irule order_psubset
-  >> 
-
   rpt strip_tac
-  >> gvs[gsize_def]
-  >> irule CARD_PSUBSET
+  >> ‘a ∈ nodes g ∧ b ∈ nodes g ∧ c ∈ nodes g’ by metis_tac[adjacent_members]
+  (* This is a special case of order_subtree_lt *)
+  >> irule order_subtree_lt
+  >> gvs[]
+  >> gvs[subtree_def]
+  (* The path from a - c must be [a; b; c] because this is a path with the right
+     start and end points and paths are unique in trees. *)
+  >> sg ‘get_path g a c = [a;b;c]’
+  >- (qspecl_then [‘g’, ‘a’, ‘c’, ‘[a;b;c]’] assume_tac is_tree_get_path_unique
+      >> gvs[]
+      >> pop_assum irule
+      >> gvs[path_def, walk_def]
+      >> rpt strip_tac >> gvs[]
+      >> gvs[adjacent_iff]
+     )
+  (* Proof is trivial from here *)
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
