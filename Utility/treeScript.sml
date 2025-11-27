@@ -1810,7 +1810,7 @@ Theorem first_step_on_path_same:
     c ∈ nodes g ∧
     a ≠ b ∧
     MEM b (get_path g a c) ⇒
-    EL 1 (get_path g a b) = EL 1 (get_path g a c)
+    EL 1 (get_path g a c) = EL 1 (get_path g a b)
 Proof
   rpt strip_tac
   >> ‘b ∈ nodes g’ by metis_tac[mem_get_path_in_nodes, is_tree_exists_path]
@@ -1823,6 +1823,42 @@ Proof
   >> qpat_x_assum ‘MEM b (get_path g a c)’ kall_tac
   (* *)
   >> gvs[EL_APPEND]
+QED
+
+Theorem first_MEM_TL_path:
+  ∀g vs.
+    path g vs ⇒
+    (MEM (HD vs) (TL vs) ⇔ F)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘vs’ >> gvs[]
+  >> gvs[path_def]
+QED
+
+Theorem first_MEM_TL_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    (MEM a (TL (get_path g a b)) ⇔ F)
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘g’, ‘get_path g a b’] assume_tac first_MEM_TL_path
+  >> gvs[]
+QED
+
+Theorem MEM_TL_get_path:
+  ∀g a b x.
+    exists_path g a b ⇒
+    (MEM x (TL (get_path g a b)) ⇔ MEM x (get_path g a b) ∧ x ≠ a)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘x = a’ >> gvs[]
+  >> Cases_on ‘get_path g a b’ >> gvs[]
+  >> gvs[is_tree_get_path_equals_cons]
+  >> Cases_on ‘x = h’ >> gvs[]
+  >> ‘F’ suffices_by gvs[]
+  >> qpat_x_assum ‘h ≠ a’ mp_tac >> simp[]
+  >> ‘HD (get_path g a b) = HD (h::t)’ by metis_tac[]
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1892,13 +1928,16 @@ Proof
      but simultaneously can't be because then it would be in two distinct
      subtrees. *)
   >> qexists ‘v’
-  >> rpt strip_tac
-  >- metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
-  >- (
-  )
-  >- metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
+  >> ‘v ∈ nodes g’ by metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
+  >> gvs[]
+  (* v can't be b because it is in TL (get_path g b c) *)
+  >> qspecl_then [‘g’, ‘b’, ‘v’, ‘c’] assume_tac first_step_on_path_same
+  >> gvs[]
+  >> Cases_on ‘b = v’
+  >> gvs[]
+  
 
-              
+  
 
 QED
 
