@@ -54,6 +54,7 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (*  path_continuation                                                         *)
 (*  path_continuation_mem                                                     *)
 (*  get_path_reverse                                                          *)
+(*  first_step_on_path_same                                                   *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -1261,15 +1262,6 @@ Proof
   >> metis_tac[is_tree_get_path_equals_cons]
 QED
 
-Theorem leq_len_get_path[simp]:
-  ∀g a b.
-    exists_path g a b ⇒
-    1 ≤ LENGTH (get_path g a b)
-Proof
-  rpt strip_tac
-  >> Cases_on ‘get_path g a b’ >> gvs[]
-QED
-
 Theorem mem_get_path_in_nodes:
   ∀g a b n.
     exists_path g a b ∧
@@ -1749,6 +1741,97 @@ Proof
   >> gvs[path_def, walk_def]
 QED
 
+Theorem hd_not_el_one_get_path[simp]:
+  ∀g a b.
+    a ≠ b ∧
+    exists_path g a b ⇒
+    (a = EL 1 (get_path g a b) ⇔ F)
+Proof
+  rpt strip_tac
+  (* Because a ≠ b, we know 1 is a valid index in get_path g a b, so our
+     theorem makes sense *)
+  >> sg ‘1 < LENGTH (get_path g a b)’
+  >- (Cases_on ‘get_path g a b’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[])
+  (* All the elements are distinct and the zeroth element is a, which
+     contradicts the fact that the first element is a. *)
+  >> ‘ALL_DISTINCT (get_path g a b) ∧ EL 0 (get_path g a b) = a’ by gvs[]
+  (* Use theorem relating ALL_DISTINCT to the EL x being distinct *)
+  >> qpat_x_assum ‘ALL_DISTINCT _’ mp_tac
+  >> PURE_REWRITE_TAC[EL_ALL_DISTINCT_EL_EQ]
+  >> rpt strip_tac
+  (* We specifically have EL 0 and EL 1 non-distinct *)
+  >> pop_assum $ qspecl_then [‘0’, ‘1’] assume_tac
+  >> gvs[]
+QED
+
+Theorem HD_TL:
+  ∀ls.
+    ls ≠ [] ⇒
+    HD (TL ls) = EL 1 ls
+Proof
+  rpt strip_tac
+  >> Cases_on ‘ls’ >> gvs[]
+QED
+
+Theorem distinct_1_less_len_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    (1 < LENGTH (get_path g a b) ⇔ a ≠ b)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘a = b’ >> gvs[]
+  >> Cases_on ‘get_path g a b’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
+QED
+
+Theorem distinct_2_leq_len_get_path[simp]:
+  ∀g a b.
+    exists_path g a b ⇒
+    (2 ≤ LENGTH (get_path g a b) ⇔ a ≠ b)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘a = b’ >> gvs[]
+  >> Cases_on ‘get_path g a b’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we have a path a-c, and we have a point b not equal to a on a-c, then   *)
+(* the first step on a-b is the first step on a-c.                            *)
+(*                                                                            *)
+(* This follows from get_path_append, which allows us to split a-c up into    *)
+(* a-b followed by b-c.                                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem first_step_on_path_same:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    c ∈ nodes g ∧
+    a ≠ b ∧
+    MEM b (get_path g a c) ⇒
+    EL 1 (get_path g a b) = EL 1 (get_path g a c)
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘g’, ‘a’, ‘b’, ‘c’] mp_tac get_path_append
+  >> simp[]
+  >> strip_tac
+  (* This assumption is annoying because the simplifier likes to split
+     MEM b (_ ++ _) into two cases, but it's not helpful here. I don't need this
+     assumption here so I just get rid of it *)
+  >> qpat_x_assum ‘MEM b (get_path g a c)’ kall_tac
+  (* *)
+  >> gvs[EL_APPEND]
+  >> rw[]
+  >> ‘F’ suffices_by gvs[]
+  >> pop_assum mp_tac >> gvs[]
+                            
+
+  >> gs[]
+  >> gvs[EL_APPEND]
+  >> rw[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* In a tree, if a path arrives at a point, and leaves in a different         *)
 (* direction to the direction in which it came, then the concatenation of     *)
@@ -1768,11 +1851,10 @@ Theorem path_continuation:
     get_path g a c = get_path g a b ++ TL (get_path g b c)
 Proof
   rpt strip_tac
-  >> qspecl_then [‘g’, ‘b’, ‘EL 1 (get_path g b c)’, ‘EL 1 (get_path g b a)’]
-                 assume_tac subtrees_distinct
-  >> gvs[]
+  (* It's helpful to know and easy to prove that b ≠ c ∧ a ≠ c*)
   >> Cases_on ‘b = c’ >> gvs[]
   >> Cases_on ‘a = c’ >> gvs[]
+  (* It's also helpful to know a ≠ b*)                      
   >> Cases_on ‘a = b’ >> gvs[]
   >- (qmatch_goalsub_abbrev_tac ‘avoidrewrite1 = _::avoidrewrite2’
       >> ‘a = HD (get_path g a c)’ by gvs[]
@@ -1780,10 +1862,54 @@ Proof
       >> unabbrev_all_tac
       >> gvs[Excl "exists_path_hd_get_path"]
      )
-  >> Cases_on ‘b = EL 1 (get_path g b c)’ >> gvs[]
-  >- (gvs[]
-     )
+  (* This may be proven through uniqueness of paths in trees if we prove that
+     the right hand side is a path with the correct endpoints. *)
+  >> irule is_tree_path_unique
+  (* Basic simplifications, and preconditions for basic simpliciations *)
+  >> gvs[HD_APPEND_NOT_NIL]
+  >> Cases_on ‘TL (get_path g b c) = []’ >> gvs[]
+  >- (Cases_on ‘get_path g b c’ >> gvs[])
+  >> gvs[LAST_APPEND_NOT_NIL]
+  >> sg ‘1 < LENGTH (get_path g b c)’
+  >- (Cases_on ‘get_path g b c’ >> gvs[] >> Cases_on ‘t’ >> gvs[])
+  >> gvs[LAST_TL]
+  >> qexists ‘g’
+  >> gvs[]
+  (* To prove that our appended path is a path, it suffices to show that each
+     subpath is a path and the subpaths are distinct with respect to each
+     other.*)
+  >> gvs[path_append]
+  (* Basic simplifications *)
+  >> conj_tac >- (irule path_tl >> gvs[])
+  >> conj_tac >- (gvs[HD_TL, adjacent_el_get_path])
+  >> rpt strip_tac
+  (* Now we need to show that the two subpaths are distinct with respect to
+     each other. We do this by using subtrees_distinct to show that the
+     corresponding subtrees when travelling in different directions from the
+     point of contact are distinct. *)
+  >> qspecl_then [‘g’, ‘b’, ‘EL 1 (get_path g b c)’, ‘EL 1 (get_path g b a)’]
+                 assume_tac subtrees_distinct
+  >> gvs[]
+  (* Break down our definition of subtrees to get an expression in terms of
+     paths *)
+  >> gvs[subtree_def, subgraph_def]
+  >> gvs[DIFF_DIFF_SUBSET]
+  >> pop_assum mp_tac >> gvs[EXTENSION]
+  (* v is precisely the counterexample which is in the paths in both directions,
+     but simultaneously can't be because then it would be in two distinct
+     subtrees. *)
+  >> qexists ‘v’
+  >> rpt strip_tac
+  >- metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
+  >- (
+  )
+  >- metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
+
+              
+
 QED
+
+
 
 Theorem path_continutation_mem:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
