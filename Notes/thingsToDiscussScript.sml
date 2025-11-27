@@ -6,6 +6,9 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* I've created a relatively comfortable environment to prove things about
+   paths on trees in a graph context. *)
+
 (* Product order? Strict product order? Are these concepts defined in HOL4? *)
 
 (* Suppose I want to prove P n m by induction, n and m are nums.

@@ -1,6 +1,6 @@
 Theory tree
 
-Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set product_order relation rich_list
+Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set prim_rec product_order relation rich_list
 
 Libs dep_rewrite ConseqConv donotexpandLib;
 
@@ -1766,9 +1766,9 @@ Proof
 QED
 
 Theorem HD_TL:
-  ∀ls.
-    ls ≠ [] ⇒
-    HD (TL ls) = EL 1 ls
+        ∀ls.
+          ls ≠ [] ⇒
+          HD (TL ls) = EL 1 ls
 Proof
   rpt strip_tac
   >> Cases_on ‘ls’ >> gvs[]
@@ -1951,7 +1951,7 @@ QED
 (* If a-b arrives at b along one edge and b-c leaves b along a different      *)
 (* edge, then b is on a-c.                                                    *)
 (* -------------------------------------------------------------------------- *)
-Theorem path_continutation_mem:
+Theorem path_continuation_mem:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
     is_tree g ∧
     a ∈ nodes g ∧
@@ -1966,6 +1966,58 @@ Proof
   >> gvs[]
 QED
 
+Theorem el_one_not_equal_path:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    c ∈ nodes g ∧
+    a ≠ b ∧
+    b ≠ c ∧
+    MEM b (get_path g a c) ⇒
+    EL 1 (get_path g b a) ≠ EL 1 (get_path g b c)
+Proof
+  rpt gen_tac >> strip_tac
+  (* By way of contradiction, we assume that the elements on each side are
+     identical to each other *)
+  >> strip_tac
+  (* Split the path at b so that we may see that each of these given components
+     are a part of one path, and hence the elements within them will be
+     distinct from each other *)
+  >> drule_all_then assume_tac get_path_append
+  (* The elements in the two paths are distinct *)
+  >> sg ‘ALL_DISTINCT (get_path g a b ++ TL (get_path g b c))’
+  >- (pop_assum (fn th => PURE_REWRITE_TAC[GSYM th]) >> gvs[])
+  >> gvs[ALL_DISTINCT_APPEND]
+  (* Use distinctness on the element we expect to be distinct but are assuming
+     is not distinct. *)
+  >> qmatch_asmsub_abbrev_tac ‘e = EL 1 _’
+  >> last_x_assum $ qspecl_then [‘e’] assume_tac
+  >> gvs[Abbr ‘e’]
+  (* Simplify MEM _ (TL (get_path _ _ _)) *)
+  >> gvs[MEM_TL_get_path]
+  (* We are aiming to prove that the element is both on the path a-b and b-c.
+     Make it more clear that this is what we are trying to do. *)
+  >> pop_assum mp_tac
+  >> gvs[]
+  (* The second requirement is obvious*)
+  >> gvs[EL_MEM]
+  (* Use the representation of our element as the first element on b-a, because
+     this is convenient to prove it is on a-b. *)
+  >> qpat_x_assum ‘EL 1 _ = _’ (fn th => gvs[GSYM th])
+  (* Reverse b-a to get a-b *)
+  >> ‘get_path g b a = REVERSE (get_path g a b)’ by gvs[]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  (* Combine EL and REVERSE *)
+  >> gvs[EL_REVERSE]
+  (* Clearly an element of a-b is a member of a-b *)
+  >> irule EL_MEM
+  (* To apply the definition of PRE, we need to know if it is being applied to
+     0 or a nonzero value *)
+  >> qmatch_abbrev_tac ‘PRE l < _’
+  >> Cases_on ‘l’ >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Allows us to join together partially overlapping paths.                    *)
 (* -------------------------------------------------------------------------- *)
@@ -1978,56 +2030,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Proof:                                                                     *)
 (*                                                                            *)
-(* Suppose, by way of contradiction, that b was not in a-d.                   *)
+(* The points just before b and just after b are not equal to each other      *)
+(* because they are each a part of the path a-c.                              *)
 (*                                                                            *)
-(* Then at some point between a-b, we must have a divergence point.           *)
-(*                                                                            *)
-(* Since a-d and b-d end at the same point, at some point they must have a    *)
-(* convergence point.                                                         *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* We work by strong induction on the length of a-d.                          *)
-(*                                                                            *)
-(*       a ----------------- b ----------------- c ----------------- d        *)
-(*                                                                            *)
-(* If b is in a-d, then c is too, because the presence of b in a-d allows us  *)
-(* to break it down into a-b and b-d, and we know that c is in b-d.           *)
-(*                                                                            *)
-(* Likewise, if c is in a-d, then b is too.                                   *)
-(*                                                                            *)
-(* So either b and c are both in a-d, or neither is in a-d.                   *)
-(*                                                                            *)
-(* We want to prove that both are in a-d, so we assume that neither is in     *)
-(* a-d and seek to derive a contradiction.                                    *)
-(*                                                                            *)
-(* Because b is not in a-d, there must be some point e before b which is      *)
-(* contained in a-c and also contained in a-d, because a-c and a-d start at   *)
-(* the same point and must diverge at some point, and this point will be      *)
-(* before b because b is not in a-d.                                          *)
-(*                                                                            *)
-(* Likewise, there is a point f after c which is contained in b-d and also    *)
-(* contained in a-d.                                                          *)
-(*                                                                            *)
-(*     a -------- e -------- b ----------------- c -------- f -------- d      *)
-(*                                                                            *)
-(* Thus, using get_path_append:                                               *)
-(* - We can split a-d into a-e and e-d                                        *)
-(* - We can split a-c into a-e and e-c                                        *)
-(* - We can split a-d into a-f and f-d                                        *)
-(* - We can split b-d into b-f and f-d                                        *)
-(*                                                                            *)
-(* Now we can apply our inductive hypothesis to e-c and b-f. This follows     *)
-(* from the fact that e-f is strictly shorter than a-d. We also need the fact *)
-(* that b is in e-c, which follows from b is in e-c and b is not in a-e, and  *)
-(* the fact that c is in b-f, which follows in a likewise manner.             *)
-(*                                                                            *)
-(* Thus, b is in e-c and hence is in a-c, deriving our desired contradiction. *)
-(*                                                                            *)
-(* QED                                                                        *)
+(* Thus, we can use path_continuation_mem to show that b is in a-d.           *)
 (* -------------------------------------------------------------------------- *)
 Theorem join_overlapping_paths_mem:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
@@ -2041,9 +2047,29 @@ Theorem join_overlapping_paths_mem:
     b ≠ c ⇒
     MEM b (get_path g a d)
 Proof
-  (* Prepare for strong induction on the length of the path by creating a
-     variable which tells us the length of the path *)
   rpt strip_tac
+  (* We can prove this by showing that the edge into b is distinct from the
+     edge out of b, using path_continuation_mem *)
+  >> irule path_continuation_mem
+  >> gvs[]
+  (* Since c is on b-d, the first step on b-d is the same as the first step
+     on  b-c by first_step_on_path_same *)
+  >> qspecl_then [‘g’, ‘b’, ‘c’, ‘d’] assume_tac first_step_on_path_same
+  >> gvs[]
+  (* Since a-c is a path with b on it, the first element back from b is
+     different to the first element forward from b. *)
+  >> metis_tac[el_one_not_equal_path]
+  
+  (* We want to show that the first element on the path to  *) 
+  >> qspecl_then [‘g’, ‘a’, ‘b’, ‘d’] assume_tac path_continuation_mem
+  (* *)
+  >> gvs[]
+  >> ‘get_path g a d =’
+
+     
+     (* Prepare for strong induction on the length of the path by creating a
+     variable which tells us the length of the path *)
+     rpt strip_tac
   >> qabbrev_tac ‘l = LENGTH (get_path g a d)’
   >> gs[Abbrev_def]
   >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
