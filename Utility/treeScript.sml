@@ -1930,18 +1930,22 @@ Proof
   >> qexists ‘v’
   >> ‘v ∈ nodes g’ by metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
   >> gvs[]
-  (* v can't be b because it is in TL (get_path g b c) *)
+  (* Use first_step_on_path_same to show that the first step on b-c is the
+     first step on b-v, since v is in b-c *)
   >> qspecl_then [‘g’, ‘b’, ‘v’, ‘c’] assume_tac first_step_on_path_same
   >> gvs[]
-  >> Cases_on ‘b = v’
+  >> Cases_on ‘b = v’ >> gvs[]
+  >> ‘MEM v (get_path g b c)’ by metis_tac[MEM_TL]
   >> gvs[]
-  
-
-  
-
+  (* Use first_step_on_path_same to show that the first step on b-a is the
+     first step on b-v, since v is in a-b and hence is in b-a *)
+  >> qspecl_then [‘g’, ‘b’, ‘v’, ‘a’] assume_tac first_step_on_path_same
+  >> gvs[]
+  (* It has done more simplificaiton than I expected: now I have the assumptions
+     MEM v a-b and ¬MEM v b-a, which are contradictory. *)
+  >> ‘get_path g b a = REVERSE (get_path g a b)’ by gvs[]
+  >> metis_tac[MEM_REVERSE]
 QED
-
-
 
 Theorem path_continutation_mem:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
