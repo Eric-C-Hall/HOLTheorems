@@ -1947,6 +1947,10 @@ Proof
   >> metis_tac[MEM_REVERSE]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* If a-b arrives at b along one edge and b-c leaves b along a different      *)
+(* edge, then b is on a-c.                                                    *)
+(* -------------------------------------------------------------------------- *)
 Theorem path_continutation_mem:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
     is_tree g ∧
@@ -1956,6 +1960,10 @@ Theorem path_continutation_mem:
     EL 1 (get_path g b c) ≠ EL 1 (get_path g b a) ⇒
     MEM b (get_path g a c)
 Proof
+  rpt strip_tac
+  (* This is basically the same as path_continuation, so we use that theorem *)
+  >> drule_all_then assume_tac path_continuation
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
