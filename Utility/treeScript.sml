@@ -64,6 +64,9 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (*  get_path_reverse                                                          *)
 (*  first_step_on_path_same                                                   *)
 (*  el_one_not_equal_path                                                     *)
+(*                                                                            *)
+(* subtree_subset                                                             *)
+(* order_subtree_lt_adjacent                                                  *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)

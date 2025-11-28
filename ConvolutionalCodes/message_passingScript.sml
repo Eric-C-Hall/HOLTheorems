@@ -584,7 +584,7 @@ Termination
      messages corresponds to a strictly smaller subtree. Thus, we can show that
      the size of the subtree gets smaller at each recursive call, and hence
      our function terminates.
-  *)
+   *)
   WF_REL_TAC ‘measure (λ(fg, src, dst).
                          order (subtree fg.underlying_graph dst src))’
   >> rpt strip_tac
@@ -593,6 +593,9 @@ Termination
       >> Cases_on ‘src = prev’ >> gvs[]
       >> gvs[adjacent_SYM])
 End
+
+(* The following theorems were being written when I was using
+   sp_calculate_messages, rather than sp_message
 
 Theorem fdom_sp_calculate_messages0_subset[local]:
   ∀msgs fg.
@@ -607,7 +610,6 @@ Proof
   >> gvs[EXTENSION]
   >> Cases_on ‘x ∈ FDOM msgs’ >> gvs[]
 QED
-
 
 Theorem fdom_sp_calculate_messages0[simp]:
   ∀msgs fg.
@@ -740,6 +742,85 @@ Proof
   >> rpt strip_tac
   (* *)
   >> 
+QED
+ *)
+
+(* -------------------------------------------------------------------------- *)
+(* A message sent on the factor graph is the sum of products of all function  *)
+(* nodes in that branch of the tree, with respect to all choices of variable  *)
+(* nodes in that branch of the tree, where the variable node which is an      *)
+(* endpoint of the message takes a specific value and must be included as a   *)
+(* variable in that branch of the tree if it is not already because it is the *)
+(* root from which the branch extends.                                        *)
+(*                                                                            *)
+(*       X: function node.   O: variable node                                 *)
+(*                                                                            *)
+(*         ...   X - - ...                                                    *)
+(*        /     /                                                             *)
+(*       X - - O - - X - - ...                                                *)
+(*        \     \                                                             *)
+(*         ...   X - - ...                                                    *)
+(*                                                                            *)
+(* The message arriving at the leftmost function node from the variable node  *)
+(* in the middle will be equal to the sum of products of all function nodes   *)
+(* in that middle subtree with respect to all choices of variable node        *)
+(* values in that subtree, where the source variable node takes a specific    *)
+(* value.                                                                     *)
+(*                                                                            *)
+(*         ...   O - - ...                                                    *)
+(*        /     /                                                             *)
+(*       O - - X - - O - - ...                                                *)
+(*        \     \                                                             *)
+(*         ...   O - - ...                                                    *)
+(*                                                                            *)
+(* The message arriving at the leftmost variable node from the function node  *)
+(* in the middle will be equal to the sum of products of all function nodes   *)
+(* in that middle subtree with respect to all choices of variable node values *)
+(* in that subtree, plus the choice of the destination variable node which    *)
+(* takes a specific value.                                                    *)
+(*                                                                            *)
+(* We can work by induction to prove this. In the base case, we have a leaf   *)
+(* node, and want to prove that our proposition holds. In the inductive step, *)
+(* we have a set of child trees for which the proposition holds, and want to  *)
+(* prove that it holds for the new tree consisting of the parent node and all *)
+(* its child nodes.                                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem sp_message_sum_prod:
+  ∀fg src dst.
+    sp_message src dst =
+    let
+      variable_node = if src ∈ var_nodes fg then src else dst;
+      function_node = if src ∈ fg.function_nodes then src else dst;
+      cur_subtree = subtree fg.underlying_graph dst src;
+      sum_prod_var_nodes = (var_nodes fg ∩ (nodes cur_subtree ∪ {variable_node}));
+      sum_prod_fun_nodes = (fg.function_nodes ∩ nodes cur_subtree);
+      sum_prod_subtree = if dst ∈ function_nodes then subtree else ;
+    in
+      FUN_FMAP
+      (λcur_var_node_val.
+         ∑ (λval_map.
+              ∏ (λfunc_node. (fg.function_map ' func_node)
+                             ' (DRESTRICT val_map
+                                          (adjacent_nodes fg cur_var_node)))
+                sum_prod_fun_nodes
+           ) {val_map | FDOM val_map = (var_nodes fg ∩ nodes cur_subtree) ∧
+                        (∀n. n ∈ FDOM val_map ⇒
+                             LENGTH (val_map ' n) =
+                             fg.variable_length_map ' n) ∧
+                        val_map ' cur_var_node = cur_var_node_val
+                         }
+      ) (length_n_codes (fg.variable_length_map ' variable_node))
+
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The message passing algorithm gives us the same result as summing over the *)
+(* product of the terms in the factor graph                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem dagklj:
+  TODO_FINAL_RESULT
+Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
