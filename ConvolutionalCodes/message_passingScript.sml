@@ -523,81 +523,75 @@ val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 (* To ensure termination, this only returns a sensible result if the factor   *)
 (* graph we are working on is a tree. If it is not a tree, we return the map  *)
 (* which always returns 0.                                                    *)
+(*                                                                            *)
+(* TODO: is it possible to remove the if-statements that are only added       *)
+(*       because the termination proof doesn't recognise that certain         *)
+(*       variables satisfy certain properties? Specifically, it doesn't       *)
+(*       recognise that, for example,  Σ f S means that every input given to  *)
+(*       f is in S.                                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition sp_message_def:
   sp_message fg src dst =
-  if is_tree fg.underlying_graph
+  if ¬(adjacent fg.underlying_graph src dst ∧ src ≠ dst)
   then
-    if src ∈ fg.function_nodes
+    FUN_FMAP (λdst_val. 0) (length_n_codes 0)
+  else
+    if is_tree fg.underlying_graph
     then
-      FUN_FMAP
-      (λdst_val.
-         ∑ (λval_map.
-              fg.function_map ' src ' val_map *
-              ∏ (λprev.
-                   if prev ∈ adjacent_nodes fg src ∧ (* TODO is this really neccessary *)
-                      prev ≠ dst
-                   then
-                     sp_message fg prev src '
-                                (val_map ' prev)
-                   else
-                     1
-                ) {prev | prev ∈ adjacent_nodes fg src ∧
-                          prev ≠ dst})
-           {val_map | FDOM val_map = adjacent_nodes fg src ∧
-                      (∀n. n ∈ adjacent_nodes fg src ⇒
-                           LENGTH (val_map ' n) =
-                           fg.variable_length_map ' n) ∧
-                      val_map ' dst = dst_val}
-      ) (length_n_codes (fg.variable_length_map ' dst))
+      if src ∈ fg.function_nodes
+      then
+        FUN_FMAP
+        (λdst_val.
+           ∑ (λval_map.
+                fg.function_map ' src ' val_map *
+                ∏ (λprev.
+                     if prev ∈ adjacent_nodes fg src ∧
+                        prev ≠ dst
+                     then
+                       sp_message fg prev src '
+                                  (val_map ' prev)
+                     else
+                       1
+                  ) {prev | prev ∈ adjacent_nodes fg src ∧
+                            prev ≠ dst})
+             {val_map | FDOM val_map = adjacent_nodes fg src ∧
+                        (∀n. n ∈ adjacent_nodes fg src ⇒
+                             LENGTH (val_map ' n) =
+                             fg.variable_length_map ' n) ∧
+                        val_map ' dst = dst_val}
+        ) (length_n_codes (fg.variable_length_map ' dst))
+      else
+        FUN_FMAP
+        (λsrc_val.
+           ∏ (λprev.
+                if prev ∈ adjacent_nodes fg src ∧
+                   prev ≠ dst
+                then
+                  sp_message fg prev src ' src_val
+                else
+                  1)
+             {prev | prev ∈ adjacent_nodes fg src ∧
+                     prev ≠ dst})
+        (length_n_codes (fg.variable_length_map ' src))
     else
       FUN_FMAP
-      (λsrc_val.
-         ∏ (λprev.
-              if prev ∈ adjacent_nodes fg src ∧ (* TODO is this really necessary *)
-                 prev ≠ dst
-              then
-                sp_message fg prev src ' src_val
-              else
-                1)
-           {prev | prev ∈ adjacent_nodes fg src ∧
-                   prev ≠ dst})
-      (length_n_codes (fg.variable_length_map ' src))
-  else
-    FUN_FMAP
-    (λdst_val. 0 : extreal)
-    (length_n_codes (fg.variable_length_map ' dst))
-End
+      (λdst_val. 0 : extreal)
+      (length_n_codes (fg.variable_length_map ' dst))
 Termination
-  (* At a leaf node, the subtree prior to our message is empty. At each step
-     forward, the order of the subtree prior to our message increases by at
-     least one (possibly more because the other branch may be deeper). Thus, we
-     can use the 
-
-As we step backwards through our computation, the subtree that from which
-     we have collected our messages gets smalleris used to
+  (* At a leaf node, there is no previous node, so we don't do any recursive
+     calls. The message at a given step corresponds to a certain subtree:
+     it makes recursive calls based on the prior messages. Each of these prior
+     messages corresponds to a strictly smaller subtree. Thus, we can show that
+     the size of the subtree gets smaller at each recursive call, and hence
+     our function terminates.
   *)
   WF_REL_TAC ‘measure (λ(fg, src, dst).
                          order (subtree fg.underlying_graph dst src))’
   >> rpt strip_tac
-  >> (pop_assum kall_tac
-      (* Call to important lemma here *)
-      >> irule order_subtree_lt_adjacent
-      (* *)
-      >> Cases_on ‘dst = src’ >> gvs[]
+  >> (irule order_subtree_lt_adjacent
       >> gvs[]
-      >> qmatch_abbrev_tac ‘order prev_tree < order new_tree’
-      >> ‘nodes prev_tree ⊂ nodes new_tree’
-      >- (gvs[order_def]
-         )
-     )
-      >> rpt strip_tac
-      >- (
-       )
-
-         (diameter (subtree fg dst src))
-         
-         cheat
+      >> Cases_on ‘src = prev’ >> gvs[]
+      >> gvs[adjacent_SYM])
 End
 
 Theorem fdom_sp_calculate_messages0_subset[local]:
