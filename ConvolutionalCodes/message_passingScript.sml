@@ -1,6 +1,6 @@
 Theory message_passing
 
-Ancestors arithmetic bool factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec transc transfer tree
+Ancestors arithmetic bool extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec transc transfer tree
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
@@ -516,6 +516,61 @@ QED
 
 val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
 
+Theorem EXTREAL_SUM_IMAGE_CONG[cong]:
+  ∀f g s1 s2.
+    s1 = s2 ∧
+    (∀x. x ∈ s2 ⇒ f x = g x) ⇒
+    ∑ f s1 = ∑ g s2 : extreal
+Proof
+  rpt strip_tac
+  >> Cases_on ‘FINITE s1’
+  >- metis_tac[EXTREAL_SUM_IMAGE_EQ']
+  >> gvs[EXTREAL_SUM_IMAGE_DEF, Once ITSET_def]
+  >> gvs[Once ITSET_def]
+QED
+
+Theorem ITSET_CONG[cong]:
+  ∀f g s1 s2 a1 a2.
+    s1 = s2 ∧
+    a1 = a2 ∧
+    (∀x a. x ∈ s2 ⇒ f x a = g x a) ⇒
+    ITSET f s1 a1 = ITSET g s2 a2
+Proof
+  cheat
+(*
+  rpt strip_tac
+  >> Cases_on ‘FINITE s1’
+  >- (gvs[]
+      >> rpt (pop_assum mp_tac)
+      >> MAP_EVERY qid_spec_tac [‘s1’, ‘a1’]
+      >> Induct_on ‘CARD s1’
+      >- (rw[]
+          >> gvs[])
+      >> ONCE_REWRITE_TAC[ITSET_def]
+                         cheat
+      
+      >> PURE_ONCE_REWRITE_TAC[ITSET_def]
+      >> simp[]
+     )*)
+QED
+
+Theorem EXTREAL_PROD_IMAGE_CONG[cong]:
+  ∀f g s1 s2.
+    s1 = s2 ∧
+    (∀x. x ∈ s2 ⇒ f x = g x) ⇒
+    ∏ f s1 = ∏ g s2 : extreal
+Proof
+  rpt strip_tac
+  >> Cases_on ‘FINITE s1’
+  >- metis_tac[EXTREAL_PROD_IMAGE_EQ]
+  >> gvs[ext_product_def]
+  >> gvs[iterateTheory.iterate]
+  >> gvs[iterateTheory.support, SF CONJ_ss]
+  >> rw[]
+  >> irule ITSET_CONG
+  >> simp[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Calculate the message according to the message passing algorithm over the  *)
 (* factor graph.                                                              *)
@@ -545,13 +600,8 @@ Definition sp_message_def:
            ∑ (λval_map.
                 fg.function_map ' src ' val_map *
                 ∏ (λprev.
-                     if prev ∈ adjacent_nodes fg src ∧
-                        prev ≠ dst
-                     then
                        sp_message fg prev src '
                                   (val_map ' prev)
-                     else
-                       1
                   ) {prev | prev ∈ adjacent_nodes fg src ∧
                             prev ≠ dst})
              {val_map | FDOM val_map = adjacent_nodes fg src ∧
@@ -564,12 +614,8 @@ Definition sp_message_def:
         FUN_FMAP
         (λsrc_val.
            ∏ (λprev.
-                if prev ∈ adjacent_nodes fg src ∧
-                   prev ≠ dst
-                then
-                  sp_message fg prev src ' src_val
-                else
-                  1)
+                sp_message fg prev src ' src_val
+             )
              {prev | prev ∈ adjacent_nodes fg src ∧
                      prev ≠ dst})
         (length_n_codes (fg.variable_length_map ' src))
