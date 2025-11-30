@@ -830,7 +830,7 @@ QED
 (* in the middle will be equal to the sum of products of all function nodes   *)
 (* in that middle subtree with respect to all choices of variable node values *)
 (* in that subtree, plus the choice of the destination variable node which    *)
-s(* takes a specific value.                                                    *)
+(* takes a specific value.                                                    *)
 (*                                                                            *)
 (* We can work by induction to prove this. In the base case, we have a leaf   *)
 (* node, and want to prove that our proposition holds. In the inductive step, *)
