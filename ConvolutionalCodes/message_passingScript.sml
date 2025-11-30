@@ -676,8 +676,6 @@ Proof
       >> gvs[]
       >> rw[]
 
-
- 
       
       >> gvs[]
       >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
