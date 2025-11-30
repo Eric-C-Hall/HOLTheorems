@@ -1,3 +1,4 @@
+
 Theory message_passing
 
 Ancestors arithmetic bool extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec transc transfer tree
@@ -679,7 +680,7 @@ Proof
       >> rw[]
 
 
-
+ 
       
       >> gvs[]
       >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
@@ -865,15 +866,19 @@ Theorem sp_message_sum_prod:
                          }
       ) (length_n_codes (fg.variable_length_map ' msg_var_node))
 Proof
+  HO_MATCH_MP_TAC sp_message_ind
+  >> rpt strip_tac
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm gives us the same result as summing over the *)
 (* product of the terms in the factor graph                                   *)
 (* -------------------------------------------------------------------------- *)
-Theorem dagklj:
-  TODO_FINAL_RESULT
+Theorem sp_message_final_result:
+  TODO_FINAL_RESULT = TODO_FINAL_RESULT
 Proof
+  cheat
 QED
 
 (* -------------------------------------------------------------------------- *)
