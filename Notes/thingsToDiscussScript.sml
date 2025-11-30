@@ -6,6 +6,7 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Discuss my Zulip post *)
 
 (* Suppose I want to prove P n m by induction, n and m are nums.
    I want my inductive hypothesis to be: P n m if either n OR m is smaller, and

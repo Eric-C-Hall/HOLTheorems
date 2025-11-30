@@ -1,4 +1,3 @@
-
 Theory message_passing
 
 Ancestors arithmetic bool extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec transc transfer tree
@@ -597,42 +596,40 @@ QED
 (* -------------------------------------------------------------------------- *)
 Definition sp_message_def:
   sp_message fg src dst =
-  if ¬(adjacent fg.underlying_graph src dst ∧ src ≠ dst)
+  if is_tree fg.underlying_graph ∧
+     adjacent fg.underlying_graph src dst ∧
+     src ≠ dst
   then
-    FUN_FMAP (λdst_val. 0) (length_n_codes 0)
-  else
-    if is_tree fg.underlying_graph
+    if src ∈ fg.function_nodes
     then
-      if src ∈ fg.function_nodes
-      then
-        FUN_FMAP
-        (λdst_val.
-           ∑ (λval_map.
-                fg.function_map ' src ' val_map *
-                ∏ (λprev.
-                     sp_message fg prev src '
-                                (val_map ' prev)
-                  ) {prev | prev ∈ adjacent_nodes fg src ∧
-                            prev ≠ dst})
-             {val_map | FDOM val_map = adjacent_nodes fg src ∧
-                        (∀n. n ∈ adjacent_nodes fg src ⇒
-                             LENGTH (val_map ' n) =
-                             fg.variable_length_map ' n) ∧
-                        val_map ' dst = dst_val}
-        ) (length_n_codes (fg.variable_length_map ' dst))
-      else
-        FUN_FMAP
-        (λsrc_val.
-           ∏ (λprev.
-                sp_message fg prev src ' src_val
-             )
-             {prev | prev ∈ adjacent_nodes fg src ∧
-                     prev ≠ dst})
-        (length_n_codes (fg.variable_length_map ' src))
+      FUN_FMAP
+      (λdst_val.
+         ∑ (λval_map.
+              fg.function_map ' src ' val_map *
+              ∏ (λprev.
+                   sp_message fg prev src '
+                              (val_map ' prev)
+                ) {prev | prev ∈ adjacent_nodes fg src ∧
+                          prev ≠ dst})
+           {val_map | FDOM val_map = adjacent_nodes fg src ∧
+                      (∀n. n ∈ FDOM val_map ⇒
+                           LENGTH (val_map ' n) =
+                           fg.variable_length_map ' n) ∧
+                      val_map ' dst = dst_val}
+      ) (length_n_codes (fg.variable_length_map ' dst))
     else
       FUN_FMAP
-      (λdst_val. 0 : extreal)
-      (length_n_codes (fg.variable_length_map ' dst))
+      (λsrc_val.
+         ∏ (λprev.
+              sp_message fg prev src ' src_val
+           )
+           {prev | prev ∈ adjacent_nodes fg src ∧
+                   prev ≠ dst})
+      (length_n_codes (fg.variable_length_map ' src))
+  else
+    FUN_FMAP
+    (λdst_val. 0 : extreal)
+    (length_n_codes 0)
 Termination
   (* At a leaf node, there is no previous node, so we don't do any recursive
      calls. The message at a given step corresponds to a certain subtree:
@@ -833,7 +830,7 @@ QED
 (* in the middle will be equal to the sum of products of all function nodes   *)
 (* in that middle subtree with respect to all choices of variable node values *)
 (* in that subtree, plus the choice of the destination variable node which    *)
-(* takes a specific value.                                                    *)
+s(* takes a specific value.                                                    *)
 (*                                                                            *)
 (* We can work by induction to prove this. In the base case, we have a leaf   *)
 (* node, and want to prove that our proposition holds. In the inductive step, *)
@@ -844,31 +841,82 @@ QED
 Theorem sp_message_sum_prod:
   ∀fg src dst.
     sp_message fg src dst =
-    let
-      msg_var_node = if src ∈ var_nodes fg then src else dst;
-      msg_func_node = if src ∈ fg.function_nodes then src else dst;
-      cur_subtree = subtree fg.underlying_graph dst src;
-      sum_prod_var_nodes = (var_nodes fg ∩ (nodes cur_subtree ∪ {msg_var_node}));
-      sum_prod_fun_nodes = (fg.function_nodes ∩ nodes cur_subtree);
-    in
-      FUN_FMAP
-      (λmsg_var_node_val.
-         ∑ (λval_map.
-              ∏ (λfunc_node. (fg.function_map ' func_node)
-                             ' (DRESTRICT val_map
-                                          (adjacent_nodes fg func_node)))
-                sum_prod_fun_nodes
-           ) {val_map | FDOM val_map = sum_prod_var_nodes ∧
-                        (∀n. n ∈ FDOM val_map ⇒
-                             LENGTH (val_map ' n) =
-                             fg.variable_length_map ' n) ∧
-                        val_map ' msg_var_node = msg_var_node_val
+    if is_tree fg.underlying_graph ∧
+       adjacent fg.underlying_graph src dst ∧
+       src ≠ dst
+    then
+      let
+        msg_var_node = if src ∈ var_nodes fg then src else dst;
+        msg_func_node = if src ∈ fg.function_nodes then src else dst;
+        cur_subtree = subtree fg.underlying_graph dst src;
+        sum_prod_var_nodes = (var_nodes fg ∩ (nodes cur_subtree ∪ {msg_var_node}));
+        sum_prod_fun_nodes = (fg.function_nodes ∩ nodes cur_subtree);
+      in
+        FUN_FMAP
+        (λmsg_var_node_val.
+           ∑ (λval_map.
+                ∏ (λfunc_node. (fg.function_map ' func_node)
+                               ' (DRESTRICT val_map
+                                            (adjacent_nodes fg func_node)))
+                  sum_prod_fun_nodes
+             ) {val_map | FDOM val_map = sum_prod_var_nodes ∧
+                          (∀n. n ∈ FDOM val_map ⇒
+                               LENGTH (val_map ' n) =
+                               fg.variable_length_map ' n) ∧
+                          val_map ' msg_var_node = msg_var_node_val
                          }
-      ) (length_n_codes (fg.variable_length_map ' msg_var_node))
+        ) (length_n_codes (fg.variable_length_map ' msg_var_node))
+    else
+      FUN_FMAP (λdst_val. 0) (length_n_codes 0)
 Proof
   HO_MATCH_MP_TAC sp_message_ind
   >> rpt strip_tac
   >> gvs[]
+  (* Our assumptions are the inductive hypotheses that tell us what the value
+     is when the destination is the current source. The first one relates
+     to the definition of sp_message in the case where it is being sent from
+     a function node, while the second one relates to the case where it is
+     being sent from a variable node. *)
+  (* Expand out one step of the definition of sp_message so that I can use the
+     inductive hypothesis on the prior messages being sent into the current
+     message *)
+  >> PURE_ONCE_REWRITE_TAC[sp_message_def]
+  (* Consider the case where the message we are calculating is invalid or the
+     factor graph we are working on is not a tree. *)
+  >> REVERSE $ Cases_on ‘is_tree fg.underlying_graph ∧
+                         adjacent fg.underlying_graph src dst ∧
+                         src ≠ dst’
+  >- simp[]
+  >> gvs[]
+  (* Consider the case where the source is a function node *)
+  >> Cases_on ‘src ∈ fg.function_nodes’
+  >- (gvs[]
+      >> gvs[FUN_FMAP_EQ_THM]
+      >> rpt gen_tac >> rpt disch_tac
+      (* The left hand side is the sum of products of the incoming messages,
+         with respect to only those variable nodes that are immediately
+         relevant to the current function node.
+           The right hand side is the sum of products over all function nodes
+         in the relevant subtree.
+           We first aim to use the inductive hypothesis to simplify the incoming
+           messages. *)
+      >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+      >> qabbrev_tac ‘EXAMPLE_VAL_MAP = ARB : unit + num |-> bool list’
+      >> last_x_assum (qspec_then ‘EXAMPLE_VAL_MAP’ assume_tac)
+      >> sg ‘(FDOM EXAMPLE_VAL_MAP = adjacent_nodes fg src ∧
+              ∀n. n ∈ FDOM EXAMPLE_VAL_MAP ⇒ LENGTH (EXAMPLE_VAL_MAP ' n) =
+                                             fg.variable_length_map ' n)’
+      >- cheat
+      >> gvs[]
+      >> pop_assum kall_tac
+      >> qpat_x_assum ‘FDOM EXAMPLE_VAL_MAP = _’ kall_tac
+      >> qpat_x_assum ‘Abbrev (EXAMPLE_VAL_MAP = _)’ kall_tac
+      >> gvs[]
+      (* *)
+      >> 
+     )
+(* Now consider the case where the source is a variable node rather than a
+     function node *)
 QED
 
 (* -------------------------------------------------------------------------- *)

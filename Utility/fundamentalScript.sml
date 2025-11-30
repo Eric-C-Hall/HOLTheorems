@@ -83,6 +83,9 @@ Proof
   >> ASM_SET_TAC[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: Perhaps this should be a congruence rule?                            *)
+(* -------------------------------------------------------------------------- *)
 Theorem FUN_FMAP_EQ_THM:
   ∀f g S.
     FINITE S ⇒
