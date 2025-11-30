@@ -536,8 +536,6 @@ Theorem ITSET_CONG[cong]:
     (∀x a. x ∈ s2 ⇒ f x a = g x a) ⇒
     ITSET f s1 a1 = ITSET g s2 a2
 Proof
-  cheat
-(*
   rpt strip_tac
   >> Cases_on ‘FINITE s1’
   >- (gvs[]
@@ -547,11 +545,22 @@ Proof
       >- (rw[]
           >> gvs[])
       >> ONCE_REWRITE_TAC[ITSET_def]
-                         cheat
-      
-      >> PURE_ONCE_REWRITE_TAC[ITSET_def]
-      >> simp[]
-     )*)
+      >> rw[]
+      >> Cases_on ‘s1’ >> gvs[]
+      >> last_x_assum $ qspec_then ‘REST (x INSERT t)’ assume_tac
+      >> gvs[CARD_REST]
+      >> last_x_assum $ qspec_then ‘f (CHOICE (x INSERT t)) a1’ assume_tac
+      >> gvs[]
+      >> last_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> conj_tac
+      >- (‘x INSERT t ≠ ∅’ by simp[]
+          >> metis_tac[IN_INSERT, CHOICE_DEF])
+      >> first_x_assum irule
+      >> rpt strip_tac
+      >> last_assum irule
+      >> metis_tac[IN_INSERT, REST_DEF, IN_DELETE])
+  >> PURE_ONCE_REWRITE_TAC[ITSET_def]
+  >> rw[]
 QED
 
 Theorem EXTREAL_PROD_IMAGE_CONG[cong]:
@@ -600,8 +609,8 @@ Definition sp_message_def:
            ∑ (λval_map.
                 fg.function_map ' src ' val_map *
                 ∏ (λprev.
-                       sp_message fg prev src '
-                                  (val_map ' prev)
+                     sp_message fg prev src '
+                                (val_map ' prev)
                   ) {prev | prev ∈ adjacent_nodes fg src ∧
                             prev ≠ dst})
              {val_map | FDOM val_map = adjacent_nodes fg src ∧
@@ -779,7 +788,7 @@ Proof
   (* The creation of a finite map is boilerplate, and it is the same on both
      sides. We only really care that the actual function is equivalent on its
      domain. Use FUN_FMAP_EQ_THM to break it down so that we have to show that.
-   *)
+ *)
   >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_EQ_THM]
   >> conj_tac >- gvs[]
   >> rpt strip_tac
@@ -840,7 +849,6 @@ Theorem sp_message_sum_prod:
       cur_subtree = subtree fg.underlying_graph dst src;
       sum_prod_var_nodes = (var_nodes fg ∩ (nodes cur_subtree ∪ {variable_node}));
       sum_prod_fun_nodes = (fg.function_nodes ∩ nodes cur_subtree);
-      sum_prod_subtree = if dst ∈ function_nodes then subtree else ;
     in
       FUN_FMAP
       (λcur_var_node_val.
@@ -849,14 +857,13 @@ Theorem sp_message_sum_prod:
                              ' (DRESTRICT val_map
                                           (adjacent_nodes fg cur_var_node)))
                 sum_prod_fun_nodes
-           ) {val_map | FDOM val_map = (var_nodes fg ∩ nodes cur_subtree) ∧
+           ) {val_map | FDOM val_map = sum_prod_var_nodes ∧
                         (∀n. n ∈ FDOM val_map ⇒
                              LENGTH (val_map ' n) =
                              fg.variable_length_map ' n) ∧
                         val_map ' cur_var_node = cur_var_node_val
                          }
       ) (length_n_codes (fg.variable_length_map ' variable_node))
-
 Proof
 QED
 
