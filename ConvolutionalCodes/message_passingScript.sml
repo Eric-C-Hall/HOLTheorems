@@ -842,28 +842,28 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem sp_message_sum_prod:
   ∀fg src dst.
-    sp_message src dst =
+    sp_message fg src dst =
     let
-      variable_node = if src ∈ var_nodes fg then src else dst;
-      function_node = if src ∈ fg.function_nodes then src else dst;
+      msg_var_node = if src ∈ var_nodes fg then src else dst;
+      msg_func_node = if src ∈ fg.function_nodes then src else dst;
       cur_subtree = subtree fg.underlying_graph dst src;
-      sum_prod_var_nodes = (var_nodes fg ∩ (nodes cur_subtree ∪ {variable_node}));
+      sum_prod_var_nodes = (var_nodes fg ∩ (nodes cur_subtree ∪ {msg_var_node}));
       sum_prod_fun_nodes = (fg.function_nodes ∩ nodes cur_subtree);
     in
       FUN_FMAP
-      (λcur_var_node_val.
+      (λmsg_var_node_val.
          ∑ (λval_map.
               ∏ (λfunc_node. (fg.function_map ' func_node)
                              ' (DRESTRICT val_map
-                                          (adjacent_nodes fg cur_var_node)))
+                                          (adjacent_nodes fg func_node)))
                 sum_prod_fun_nodes
            ) {val_map | FDOM val_map = sum_prod_var_nodes ∧
                         (∀n. n ∈ FDOM val_map ⇒
                              LENGTH (val_map ' n) =
                              fg.variable_length_map ' n) ∧
-                        val_map ' cur_var_node = cur_var_node_val
+                        val_map ' msg_var_node = msg_var_node_val
                          }
-      ) (length_n_codes (fg.variable_length_map ' variable_node))
+      ) (length_n_codes (fg.variable_length_map ' msg_var_node))
 Proof
 QED
 
