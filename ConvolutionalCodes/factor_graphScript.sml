@@ -59,6 +59,10 @@ Datatype:
   |>
 End
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: These overloads are perhaps legacy: now we should perhaps use the    *)
+(*       equivalent overloads for the abstract type version of factor graphs  *)
+(* -------------------------------------------------------------------------- *)
 Overload adjacent_nodes = “λfg cur_node.
                              {adj_node |
                              adj_node ∈ nodes fg.underlying_graph ∧
@@ -1283,6 +1287,14 @@ Proof
 QED
 
 val _ = liftdef get_variable_length_map0_respects "get_variable_length_map";
+
+Overload adjacent_nodes = “λfg cur_node.
+                             {adj_node |
+                             adj_node ∈ nodes (get_underlying_graph fg) ∧
+                             adjacent (get_underlying_graph fg) adj_node cur_node }”;
+
+Overload var_nodes = “λfg. {n | n ∈ nodes (get_underlying_graph fg) ∧
+                                n ∉ (get_function_nodes fg)}”;
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
