@@ -1227,32 +1227,13 @@ val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
 Theorem FDOM_FMAP_MAP2[simp] = GEN_ALL (cj 1 FMAP_MAP2_THM);
 
 (* -------------------------------------------------------------------------- *)
-(* The representation hides variable_length_map, but this is useful when      *)
-(* adding function nodes because we need to be able to determine the domain   *)
-(* of the function being added which depends on the variable lengths, so we   *)
-(* should expoise the variable length.                                        *)
-(* -------------------------------------------------------------------------- *)
-Definition get_variable_length_map0_def:
-  get_variable_length_map0 fg = fg.variable_length_map
-End
-
-Theorem get_variable_length_map0_respects:
-  (fgequiv ===> (=)) get_variable_length_map0 get_variable_length_map0
-Proof
-  gvs[FUN_REL_def]
-  >> gvs[fgequiv_def]
-QED
-
-val _ = liftdef get_variable_length_map0_respects "get_variable_length_map";
-
-(*(* -------------------------------------------------------------------------- *)
 (* If the factor graphs are equivalent then their underlying graphs are the   *)
 (* same                                                                       *)
 (*                                                                            *)
 (* Is there a way to write underlying_graph_respects without lambda functions? *)
 (* Kinda like how you can write $f rather than a f b for an infix operator?   *)
 (* -------------------------------------------------------------------------- *)
-Theorem underlying_graph_respects:
+Theorem get_underlying_graph0_respects:
   ∀fg.
     (fgequiv ===> (=)) (λfg. fg.underlying_graph) (λfg. fg.underlying_graph)
 Proof
@@ -1260,7 +1241,48 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val _ = liftdef underlying_graph_respects "underlying_graph_abs"*)
+val _ = liftdef get_underlying_graph0_respects "get_underlying_graph"
+
+(* -------------------------------------------------------------------------- *)
+(* Allow the function nodes to be obtained in the abstract version of the     *)
+(* factor graph.                                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_function_nodes0_respects:
+  (fgequiv ===> (=))
+  (λfg. fg.function_nodes) (λfg. fg.function_nodes )
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef get_function_nodes0_respects "get_function_nodes";
+
+(* -------------------------------------------------------------------------- *)
+(* Allow the function map to be obtained in the abstract version of the       *)
+(* factor graph                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_function_map0_respects:
+  (fgequiv ===> (=)) (λfg. fg.function_map) (λfg. fg.function_map)
+Proof
+  gvs[FUN_REL_def, fgequiv_def]
+QED
+
+val _ = liftdef get_function_map0_respects "get_function_map";
+
+(* -------------------------------------------------------------------------- *)
+(* The representation hides variable_length_map, but this is useful when      *)
+(* adding function nodes because we need to be able to determine the domain   *)
+(* of the function being added which depends on the variable lengths, so we   *)
+(* should expoise the variable length.                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_variable_length_map0_respects:
+  (fgequiv ===> (=)) (λfg. fg.variable_length_map) (λfg. fg.variable_length_map)
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef get_variable_length_map0_respects "get_variable_length_map";
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)

@@ -596,11 +596,11 @@ QED
 (* -------------------------------------------------------------------------- *)
 Definition sp_message_def:
   sp_message fg src dst =
-  if is_tree fg.underlying_graph ∧
-     adjacent fg.underlying_graph src dst ∧
+  if is_tree (get_underlying_graph fg) ∧
+     adjacent (get_underlying_graph fg) src dst ∧
      src ≠ dst
   then
-    if src ∈ fg.function_nodes
+    if src ∈ get_function_nodes fg
     then
       FUN_FMAP
       (λdst_val.
