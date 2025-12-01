@@ -440,6 +440,8 @@ End
 (* -------------------------------------------------------------------------- *)
 (* A relation which relates a well-formed representative of a factor graph to *)
 (* its corresponding abstract value.                                          *)
+(*                                                                            *)
+(* I assume its name, AR, stands for "abstract" and "representative"          *)
 (* -------------------------------------------------------------------------- *)
 Definition fg_AR_def:
   fg_AR r a ⇔ wffactor_graph r ∧ r = factor_graph_REP a

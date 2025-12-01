@@ -796,6 +796,30 @@ Proof
 QED
  *)
 
+(* It's kinda interesting how this can be proven simply by applying
+   gvs[factor_graph_ABSREP]. The second conjunct rewrites wffactor_graph as
+   REP (ABS ...), and then the first conjunct simplifies the inner ABS (REP) *)
+Theorem wffactor_graph_factor_graph_REP:
+  ∀fg.
+    wffactor_graph (factor_graph_REP fg)
+Proof
+  gvs[factor_graph_ABSREP]
+QED
+
+Theorem adjacent_in_function_nodes_not_in_function_nodes:
+  ∀fg a b.
+    adjacent (get_underlying_graph fg) a b ⇒
+    (a ∈ get_function_nodes fg ⇔ b ∉ get_function_nodes fg)
+Proof
+  rpt strip_tac
+  >> qspec_then ‘fg’ assume_tac wffactor_graph_factor_graph_REP
+  >> drule_then assume_tac (cj 1 (iffLR wffactor_graph_def))
+  >> gvs[gen_bipartite_ea_def, fsgedges_def, get_function_nodes_def,
+         get_underlying_graph_def]
+  >> metis_tac[]
+QED
+
+
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
@@ -867,6 +891,7 @@ Theorem sp_message_sum_prod:
     else
       FUN_FMAP (λdst_val. 0) (length_n_codes 0)
 Proof
+
   HO_MATCH_MP_TAC sp_message_ind
   >> rpt strip_tac
   >> gvs[]
@@ -888,6 +913,7 @@ Proof
   >> gvs[]
   (* Consider the case where the source is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
+              
   >- (gvs[]
       >> gvs[FUN_FMAP_EQ_THM]
       >> rpt gen_tac >> rpt disch_tac
@@ -927,6 +953,7 @@ Proof
       (* dst is a variable node *)
       >> sg ‘dst ∈ var_nodes fg’
       >- (gvs[]
+          >> conj_tac >- metis_tac[adjacent_members]
          )
       (* Any previous *)
       (* Simplify FUN_FMAP f P ' x.
