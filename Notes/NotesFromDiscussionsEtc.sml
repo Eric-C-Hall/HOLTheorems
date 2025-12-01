@@ -127,6 +127,10 @@ Proof
   >> ‘_ = 41’
 QED
 
+(* Cong EXTREAL_SUM_IMAGE_CONG: use a congruence rule *)
+
+(* ETA_ss: eta reduce i.e. convert \x. f x to f *)
+
 val _ = export_theory();
 
 

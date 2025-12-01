@@ -1,0 +1,19 @@
+To Michael
+
+Edit: probably disregard this message, I think what Irvin said answers this
+
+Would you be able to elaborate on what you mean when you imply that congruence rules can help in this situation if they can automatically prove the side conditions?
+
+I have the EXTREAL_SUM_IMAGE congruence rule mentioned above in my context. Then I have the proof state: 
+
+```
+    0.  ∀x. x ∈ S ⇒ my_func x = new_func x
+   ------------------------------------
+        ∑ my_func S = ∑ new_func S
+```
+
+It should be trivial to automatically prove the side condition x ∈ S if we know that x ∈ S.
+
+The simplifier cannot automatically prove this, even though I have added the congruence rule using [cong].
+
+However, simp[EXTREAL_SUM_IMAGE_CONG] can automatically prove this.

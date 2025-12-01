@@ -910,11 +910,29 @@ Proof
       >> qpat_x_assum ‘FDOM EXAMPLE_VAL_MAP = _’ kall_tac
       >> qpat_x_assum ‘Abbrev (EXAMPLE_VAL_MAP = _)’ kall_tac
       >> gvs[]
+      (* Use EXTREAL_SUM_IMAGE_CONG and EXTREAL_PROD_IMAGE_CONG to use the
+         inductive hypothesis to rewrite our incoming messages *)
+      >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG]
+      (* We've used an inductive hypothesis and we no longer need either of
+         them *)
+      >> NTAC 2 (pop_assum kall_tac)
       (* *)
       >> 
      )
 (* Now consider the case where the source is a variable node rather than a
      function node *)
+QED
+
+Theorem EXTREAL_SUM_IMAGE_EQ3:
+  ∀f g S.
+    (∀x. x ∈ S ⇒ f x = g x) ⇒
+    ∑ f S = ∑ g S : extreal
+Proof
+  rpt strip_tac
+  >> Cases_on ‘FINITE S’ >- metis_tac[EXTREAL_SUM_IMAGE_EQ']
+  >> gvs[EXTREAL_SUM_IMAGE_DEF]
+  >> PURE_ONCE_REWRITE_TAC[ITSET_def]
+  >> rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
