@@ -881,13 +881,13 @@ Proof
   >> PURE_ONCE_REWRITE_TAC[sp_message_def]
   (* Consider the case where the message we are calculating is invalid or the
      factor graph we are working on is not a tree. *)
-  >> REVERSE $ Cases_on ‘is_tree fg.underlying_graph ∧
-                         adjacent fg.underlying_graph src dst ∧
+  >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
+                         adjacent (get_underlying_graph fg) src dst ∧
                          src ≠ dst’
   >- simp[]
   >> gvs[]
   (* Consider the case where the source is a function node *)
-  >> Cases_on ‘src ∈ fg.function_nodes’
+  >> Cases_on ‘src ∈ get_function_nodes fg’
   >- (gvs[]
       >> gvs[FUN_FMAP_EQ_THM]
       >> rpt gen_tac >> rpt disch_tac
@@ -903,7 +903,7 @@ Proof
       >> last_x_assum (qspec_then ‘EXAMPLE_VAL_MAP’ assume_tac)
       >> sg ‘(FDOM EXAMPLE_VAL_MAP = adjacent_nodes fg src ∧
               ∀n. n ∈ FDOM EXAMPLE_VAL_MAP ⇒ LENGTH (EXAMPLE_VAL_MAP ' n) =
-                                             fg.variable_length_map ' n)’
+                                             get_variable_length_map fg ' n)’
       >- cheat
       >> gvs[]
       >> pop_assum kall_tac
@@ -917,7 +917,7 @@ Proof
          them *)
       >> NTAC 2 (pop_assum kall_tac)
       (* Simplify out the test that prev ≠ src when prev is adjacent to src *)
-      >> sg ‘∀x. adjacent fg.underlying_graph x src ⇒ (x ≠ src ⇔ T)’
+      >> sg ‘∀x. adjacent (get_underlying_graph fg) x src ⇒ (x ≠ src ⇔ T)’
       >- (rpt strip_tac
           >> EQ_TAC >> gvs[]
           >> metis_tac[adjacent_irrefl]
