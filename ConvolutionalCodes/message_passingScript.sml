@@ -839,31 +839,31 @@ QED
 Theorem sp_message_sum_prod:
   ∀fg src dst.
     sp_message fg src dst =
-    if is_tree fg.underlying_graph ∧
-       adjacent fg.underlying_graph src dst ∧
+    if is_tree (get_underlying_graph fg) ∧
+       adjacent (get_underlying_graph fg) src dst ∧
        src ≠ dst
     then
       let
         msg_var_node = if src ∈ var_nodes fg then src else dst;
-        msg_func_node = if src ∈ fg.function_nodes then src else dst;
-        cur_subtree = subtree fg.underlying_graph dst src;
+        msg_func_node = if src ∈ get_function_nodes fg then src else dst;
+        cur_subtree = subtree (get_underlying_graph fg) dst src;
         sum_prod_var_nodes = (var_nodes fg ∩ (nodes cur_subtree ∪ {msg_var_node}));
-        sum_prod_fun_nodes = (fg.function_nodes ∩ nodes cur_subtree);
+        sum_prod_fun_nodes = (get_function_nodes fg ∩ nodes cur_subtree);
       in
         FUN_FMAP
         (λmsg_var_node_val.
            ∑ (λval_map.
-                ∏ (λfunc_node. (fg.function_map ' func_node)
+                ∏ (λfunc_node. (get_function_map fg ' func_node)
                                ' (DRESTRICT val_map
                                             (adjacent_nodes fg func_node)))
                   sum_prod_fun_nodes
              ) {val_map | FDOM val_map = sum_prod_var_nodes ∧
                           (∀n. n ∈ FDOM val_map ⇒
                                LENGTH (val_map ' n) =
-                               fg.variable_length_map ' n) ∧
+                               get_variable_length_map fg ' n) ∧
                           val_map ' msg_var_node = msg_var_node_val
                          }
-        ) (length_n_codes (fg.variable_length_map ' msg_var_node))
+        ) (length_n_codes (get_variable_length_map fg ' msg_var_node))
     else
       FUN_FMAP (λdst_val. 0) (length_n_codes 0)
 Proof
