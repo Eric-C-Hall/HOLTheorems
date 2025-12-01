@@ -6,6 +6,10 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Congruence rules seem really useful. Perhaps we can discuss them. *)
+     
+(* Lifting does seem convenient *)
+
 (* Discuss my Zulip post *)
 
 (* Suppose I want to prove P n m by induction, n and m are nums.

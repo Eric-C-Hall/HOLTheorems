@@ -796,6 +796,47 @@ Proof
 QED
  *)
 
+(* -------------------------------------------------------------------------- *)
+(* Tells us if a set of nodes contains all variable nodes associated with     *)
+(* function nodes in the set of nodes                                         *)
+(* -------------------------------------------------------------------------- *)
+Definition contains_all_assoc_var_nodes_def:
+  contains_all_assoc_var_nodes fg ns ⇔
+    {n | ∃func_node. func_node ∈ ns ∧
+                     func_node ∈ get_function_nodes fg ∧
+                      adjacent (get_underlying_graph fg) n func_node} ⊆ ns
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Given a subset of the nodes in a factor graph, take the product of all     *)
+(* these nodes while summing out the associated variable nodes, with the      *)
+(* exception of a particular variable node. We return a finite map from the   *)
+(* value of the excluded variable node to the sum of products when choosing   *)
+(* that variable node to be that value.                                       *)
+(*                                                                            *)
+(* We expect that the set of nodes provided contains all variable nodes that  *)
+(* are associated with function nodes in the set. We may use                  *)
+(* contains_all_assoc_var_nodes to check whether this is the case when using  *)
+(* sum_prod                                                                   *)
+(* -------------------------------------------------------------------------- *)
+Definition sum_prod_def:
+  sum_prod fg ns excl_var_node =
+  FUN_FMAP
+  (λexcl_var_node_val.
+     ∑ (λval_map.
+          ∏ (λfunc_node. (get_function_map fg ' func_node)
+                         ' (DRESTRICT val_map
+                                      (adjacent_nodes fg func_node)))
+            ns ∩ get_function_nodes fg
+       ) {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
+                    (∀n. n ∈ FDOM val_map ⇒
+                         LENGTH (val_map ' n) =
+                         get_variable_length_map fg ' n) ∧
+                    val_map ' excl_var_node = excl_var_node_val
+                         }
+  ) (length_n_codes (get_variable_length_map fg ' excl_var_node))
+End
+
 (* It's kinda interesting how this can be proven simply by applying
    gvs[factor_graph_ABSREP]. The second conjunct rewrites wffactor_graph as
    REP (ABS ...), and then the first conjunct simplifies the inner ABS (REP) *)
@@ -818,7 +859,6 @@ Proof
          get_underlying_graph_def]
   >> metis_tac[]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
@@ -950,24 +990,24 @@ Proof
          )
       >> pop_assum (fn th => simp[th, Cong EXTREAL_SUM_IMAGE_CONG,
                                   Cong EXTREAL_PROD_IMAGE_CONG])
-      (* dst is a variable node *)
-      >> sg ‘dst ∈ var_nodes fg’
-      >- (gvs[]
+      (* Any node that is adjacent to src is a variable node *)
+      >> sg ‘∀prev. adjacent (get_underlying_graph fg) prev src ⇒
+                    prev ∈ var_nodes fg’
+      >- (rpt strip_tac
+          >> gvs[]
           >> conj_tac >- metis_tac[adjacent_members]
+          >> metis_tac[adjacent_in_function_nodes_not_in_function_nodes]
          )
-      (* Any previous *)
       (* Simplify FUN_FMAP f P ' x.
          Proving that P is finite is trivial in this scenario.
          It's less trivial to show that x ∈ P.
-         We need to show that val_map ' prev has 
+         After adding the proof above that any node adjacent to src was a
+         variable node, that seemed to be enough to get this to work.
        *)
       >> gvs[cj 2 FUN_FMAP_DEF, Cong EXTREAL_SUM_IMAGE_CONG,
              Cong EXTREAL_PROD_IMAGE_CONG,
              length_n_codes_finite]
-      (* Want val_map ' prev in length_n_codes *)
-      (* Now I have a sum of products over a sum of products, where the
-         innermost sum of prodcuts represents the *)
-      >> 
+      
      )
 (* Now consider the case where the source is a variable node rather than a
      function node *)
