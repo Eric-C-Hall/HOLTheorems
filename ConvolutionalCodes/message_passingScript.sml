@@ -605,7 +605,7 @@ Definition sp_message_def:
       FUN_FMAP
       (λdst_val.
          ∑ (λval_map.
-              fg.function_map ' src ' val_map *
+              (get_function_map fg) ' src ' val_map *
               ∏ (λprev.
                    sp_message fg prev src '
                               (val_map ' prev)
@@ -614,9 +614,9 @@ Definition sp_message_def:
            {val_map | FDOM val_map = adjacent_nodes fg src ∧
                       (∀n. n ∈ FDOM val_map ⇒
                            LENGTH (val_map ' n) =
-                           fg.variable_length_map ' n) ∧
+                           (get_variable_length_map fg) ' n) ∧
                       val_map ' dst = dst_val}
-      ) (length_n_codes (fg.variable_length_map ' dst))
+      ) (length_n_codes ((get_variable_length_map fg) ' dst))
     else
       FUN_FMAP
       (λsrc_val.
@@ -625,7 +625,7 @@ Definition sp_message_def:
            )
            {prev | prev ∈ adjacent_nodes fg src ∧
                    prev ≠ dst})
-      (length_n_codes (fg.variable_length_map ' src))
+      (length_n_codes ((get_variable_length_map fg) ' src))
   else
     FUN_FMAP
     (λdst_val. 0 : extreal)
@@ -639,7 +639,7 @@ Termination
      our function terminates.
    *)
   WF_REL_TAC ‘measure (λ(fg, src, dst).
-                         order (subtree fg.underlying_graph dst src))’
+                         order (subtree (get_underlying_graph fg) dst src))’
   >> rpt strip_tac
   >> (irule order_subtree_lt_adjacent
       >> gvs[]
