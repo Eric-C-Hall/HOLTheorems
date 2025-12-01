@@ -1,6 +1,6 @@
 Theory message_passing
 
-Ancestors arithmetic bool extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec transc transfer tree
+Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec transc transfer tree
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
@@ -916,7 +916,30 @@ Proof
       (* We've used an inductive hypothesis and we no longer need either of
          them *)
       >> NTAC 2 (pop_assum kall_tac)
-      (* *)
+      (* Simplify out the test that prev ≠ src when prev is adjacent to src *)
+      >> sg ‘∀x. adjacent fg.underlying_graph x src ⇒ (x ≠ src ⇔ T)’
+      >- (rpt strip_tac
+          >> EQ_TAC >> gvs[]
+          >> metis_tac[adjacent_irrefl]
+         )
+      >> pop_assum (fn th => simp[th, Cong EXTREAL_SUM_IMAGE_CONG,
+                                  Cong EXTREAL_PROD_IMAGE_CONG])
+      (* dst is a variable node *)
+      >> sg ‘dst ∈ var_nodes fg’
+      >- (gvs[]
+         )
+      (* Any previous *)
+      (* Simplify FUN_FMAP f P ' x.
+         Proving that P is finite is trivial in this scenario.
+         It's less trivial to show that x ∈ P.
+         We need to show that val_map ' prev has 
+       *)
+      >> gvs[cj 2 FUN_FMAP_DEF, Cong EXTREAL_SUM_IMAGE_CONG,
+             Cong EXTREAL_PROD_IMAGE_CONG,
+             length_n_codes_finite]
+      (* Want val_map ' prev in length_n_codes *)
+      (* Now I have a sum of products over a sum of products, where the
+         innermost sum of prodcuts represents the *)
       >> 
      )
 (* Now consider the case where the source is a variable node rather than a
