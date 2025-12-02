@@ -4,7 +4,7 @@ Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
-val _ = augment_srw_ss [rewrites[FDOM_FMAP]];
+val _ = augment_srw_ss [rewrites[FDOM_FMAP, FUN_FMAP_DEF]];
 
 val _ = hide "S";
 
@@ -874,7 +874,7 @@ Proof
   gvs[get_underlying_graph_def]
 QED
 
-Theorem FINITE_adjacent_nodes:
+Theorem FINITE_adjacent_nodes[simp]:
   ∀fg src.
     FINITE (adjacent_nodes fg src)
 Proof
@@ -893,8 +893,8 @@ Theorem exists_val_map:
 Proof
   rpt strip_tac
   >> qexists ‘FUN_FMAP (λn. REPLICATE (get_variable_length_map fg ' n) ARB) (adjacent_nodes fg src)’
-  >> rpt strip_tac
-  >> gvs[]
+  >> rpt strip_tac >> gvs[]
+  >> gvs[FUN_FMAP_DEF]
 QED
 
 (* -------------------------------------------------------------------------- *)
