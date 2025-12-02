@@ -819,15 +819,15 @@ End
 (* contains_all_assoc_var_nodes to check whether this is the case when using  *)
 (* sum_prod                                                                   *)
 (* -------------------------------------------------------------------------- *)
-Definition sum_prod_def:
-  sum_prod fg ns excl_var_node =
+Definition sum_prod_map_def:
+  sum_prod_map fg ns excl_var_node =
   FUN_FMAP
   (λexcl_var_node_val.
      ∑ (λval_map.
           ∏ (λfunc_node. (get_function_map fg ' func_node)
                          ' (DRESTRICT val_map
                                       (adjacent_nodes fg func_node)))
-            (ns ∩ get_function_nodes fg)
+            (ns ∩ get_function_nodes fg) : extreal
        ) {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
                     (∀n. n ∈ FDOM val_map ⇒
                          LENGTH (val_map ' n) =
@@ -858,6 +858,43 @@ Proof
   >> gvs[gen_bipartite_ea_def, fsgedges_def, get_function_nodes_def,
          get_underlying_graph_def]
   >> metis_tac[]
+QED
+
+Theorem adjacent_nodes_subset_nodes_rep[simp]:
+  ∀fg n.
+    adjacent_nodes fg n ⊆ nodes fg.underlying_graph
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem adjacent_nodes_subset_nodes_abs[simp]:
+  ∀fg n.
+    adjacent_nodes fg n ⊆ nodes (get_underlying_graph fg)
+Proof
+  gvs[get_underlying_graph_def]
+QED
+
+Theorem FINITE_adjacent_nodes:
+  ∀fg src.
+    FINITE (adjacent_nodes fg src)
+Proof
+  rpt strip_tac
+  >> irule SUBSET_FINITE
+  >> qexists ‘nodes (get_underlying_graph fg)’
+  >> gvs[get_underlying_graph_def]
+QED
+
+Theorem exists_val_map:
+  ∀fg src.
+    ∃val_map.
+      FDOM val_map = adjacent_nodes fg src ∧
+      ∀n. n ∈ FDOM val_map ⇒
+          LENGTH (val_map ' n) = get_variable_length_map fg ' n
+Proof
+  rpt strip_tac
+  >> qexists ‘FUN_FMAP (λn. REPLICATE (get_variable_length_map fg ' n) ARB) (adjacent_nodes fg src)’
+  >> rpt strip_tac
+  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -909,32 +946,30 @@ Theorem sp_message_sum_prod:
     then
       let
         msg_var_node = if src ∈ var_nodes fg then src else dst;
-        msg_func_node = if src ∈ get_function_nodes fg then src else dst;
         cur_subtree = subtree (get_underlying_graph fg) dst src;
-        sum_prod_var_nodes = (var_nodes fg ∩ (nodes cur_subtree ∪ {msg_var_node}));
-        sum_prod_fun_nodes = (get_function_nodes fg ∩ nodes cur_subtree);
+        sum_prod_ns = nodes cur_subtree ∪ {msg_var_node};
       in
-        FUN_FMAP
-        (λmsg_var_node_val.
-           ∑ (λval_map.
-                ∏ (λfunc_node. (get_function_map fg ' func_node)
-                               ' (DRESTRICT val_map
-                                            (adjacent_nodes fg func_node)))
-                  sum_prod_fun_nodes
-             ) {val_map | FDOM val_map = sum_prod_var_nodes ∧
-                          (∀n. n ∈ FDOM val_map ⇒
-                               LENGTH (val_map ' n) =
-                               get_variable_length_map fg ' n) ∧
-                          val_map ' msg_var_node = msg_var_node_val
-                         }
-        ) (length_n_codes (get_variable_length_map fg ' msg_var_node))
+        sum_prod_map fg sum_prod_ns msg_var_node
     else
       FUN_FMAP (λdst_val. 0) (length_n_codes 0)
 Proof
-
-  HO_MATCH_MP_TAC sp_message_ind
+  (* Simplify special case of invalid input to sp_message *)
+  rpt strip_tac
+  >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
+                         adjacent (get_underlying_graph fg) src dst ∧
+                         src ≠ dst’
+  >- simp[Once sp_message_def]
+  >> simp[]
+  >> ‘src ∈ nodes (get_underlying_graph fg) ∧
+      dst ∈ nodes (get_underlying_graph fg)’ by metis_tac[adjacent_members]
+  >> simp[]
+  (* Prepare for induction over the inductive structure of messages. Note that
+     fg, src, and dst need to be in the correct order for HO_MATCH_MP_TAC to
+     recognise our theorem as an instance of sp_message_ind *)
+  >> rpt $ pop_assum mp_tac
+  >> MAP_EVERY qid_spec_tac [‘dst’, ‘src’, ‘fg’] 
+  >> HO_MATCH_MP_TAC sp_message_ind
   >> rpt strip_tac
-  >> gvs[]
   (* Our assumptions are the inductive hypotheses that tell us what the value
      is when the destination is the current source. The first one relates
      to the definition of sp_message in the case where it is being sent from
@@ -944,17 +979,41 @@ Proof
      inductive hypothesis on the prior messages being sent into the current
      message *)
   >> PURE_ONCE_REWRITE_TAC[sp_message_def]
-  (* Consider the case where the message we are calculating is invalid or the
-     factor graph we are working on is not a tree. *)
-  >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
-                         adjacent (get_underlying_graph fg) src dst ∧
-                         src ≠ dst’
-  >- simp[]
+  (* It's often useful to know that nodes adjacent to src have the opposite
+     function_nodes/var_nodes status *)
+  >> qspecl_then [‘fg’, ‘src’] assume_tac
+                 adjacent_in_function_nodes_not_in_function_nodes
+  (* Case split on whether or not our source node is a function node *)
+  >> Cases_on ‘src ∈ get_function_nodes fg’
+  >- (gvs[]
+      (* For some reason, our inductive hypothesis requires *)
+      >>
+      (* Use EXTREAL_SUM_IMAGE_CONG and EXTREAL_PROD_IMAGE_CONG to use the
+         inductive hypothesis to rewrite our incoming messages *)
+      >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG]
+            
+     )
+
+
+
+
+  >> PURE_ONCE_REWRITE_TAC[sp_message_def]
   >> gvs[]
   (* Consider the case where the source is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-              
+
+
+  (* Any node that is adjacent to src is a variable node *)
+  >> sg ‘∀prev. adjacent (get_underlying_graph fg) prev src ⇒
+                prev ∈ var_nodes fg’
+  >- (rpt strip_tac
+      >> gvs[]
+      >> conj_tac >- metis_tac[adjacent_members]
+      >> metis_tac[adjacent_in_function_nodes_not_in_function_nodes]
+     )
+     
   >- (gvs[]
+      >> gvs[sum_prod_def]
       >> gvs[FUN_FMAP_EQ_THM]
       >> rpt gen_tac >> rpt disch_tac
       (* The left hand side is the sum of products of the incoming messages,
@@ -1007,7 +1066,7 @@ Proof
       >> gvs[cj 2 FUN_FMAP_DEF, Cong EXTREAL_SUM_IMAGE_CONG,
              Cong EXTREAL_PROD_IMAGE_CONG,
              length_n_codes_finite]
-      
+            
      )
 (* Now consider the case where the source is a variable node rather than a
      function node *)
