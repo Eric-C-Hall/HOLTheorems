@@ -885,14 +885,16 @@ Proof
 QED
 
 Theorem exists_val_map:
-  ∀fg src.
-    ∃val_map.
-      FDOM val_map = adjacent_nodes fg src ∧
-      ∀n. n ∈ FDOM val_map ⇒
-          LENGTH (val_map ' n) = get_variable_length_map fg ' n
+  ∀fg n.
+    ∃val_map : unit + num |-> bool list.
+      FDOM val_map = adjacent_nodes fg n ∧
+      ∀m. m ∈ FDOM val_map ⇒
+          LENGTH (val_map ' m) = get_variable_length_map fg ' m
 Proof
   rpt strip_tac
-  >> qexists ‘FUN_FMAP (λn. REPLICATE (get_variable_length_map fg ' n) ARB) (adjacent_nodes fg src)’
+  >> qexists ‘FUN_FMAP
+              (λm. REPLICATE (get_variable_length_map fg ' m) ARB)
+              (adjacent_nodes fg n)’
   >> rpt strip_tac >> gvs[]
   >> gvs[FUN_FMAP_DEF]
 QED
@@ -986,12 +988,30 @@ Proof
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
   >- (gvs[]
-      (* For some reason, our inductive hypothesis requires *)
-      >>
+      (* For some reason, our inductive hypothesis requires that we  know that
+         there exists a possible mapping from variables to values, so we
+         construct a mapping and satisfy this precondition *)
+      >> qspecl_then [‘fg’, ‘src’] assume_tac exists_val_map >> gvs[]
+      >> last_x_assum $ qspecl_then [‘val_map : unit + num |-> bool list’]
+                      assume_tac >> gvs[]
+      >> qpat_x_assum ‘FDOM val_map = _’ kall_tac
+      >> qpat_x_assum ‘∀m. _ ⇒ LENGTH (val_map ' _) = _’ kall_tac
+      (* In order to apply our inductive hypothesis, we need to know that any
+         node adjacent to src is not src *)
+      >> sg ‘∀x. adjacent (get_underlying_graph fg) x src ⇒ (x ≠ src ⇔ T)’
+      >- (rpt strip_tac
+          >> EQ_TAC >> gvs[]
+          >> metis_tac[adjacent_irrefl]
+         )
       (* Use EXTREAL_SUM_IMAGE_CONG and EXTREAL_PROD_IMAGE_CONG to use the
          inductive hypothesis to rewrite our incoming messages *)
       >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG]
-            
+      (* We have used our inductive hypothesis and no longer need it *)
+      >> qpat_x_assum ‘∀src'. _ ⇒ sp_message _ _ _ = _’ kall_tac
+      (* *)
+      >> 
+      >> sum_prod_map_def
+      
      )
 
 
