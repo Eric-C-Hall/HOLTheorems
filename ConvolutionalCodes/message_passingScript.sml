@@ -827,13 +827,13 @@ Definition sum_prod_def:
           ∏ (λfunc_node. (get_function_map fg ' func_node)
                          ' (DRESTRICT val_map
                                       (adjacent_nodes fg func_node)))
-            ns ∩ get_function_nodes fg
+            (ns ∩ get_function_nodes fg)
        ) {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
                     (∀n. n ∈ FDOM val_map ⇒
                          LENGTH (val_map ' n) =
                          get_variable_length_map fg ' n) ∧
                     val_map ' excl_var_node = excl_var_node_val
-                         }
+                    }
   ) (length_n_codes (get_variable_length_map fg ' excl_var_node))
 End
 
