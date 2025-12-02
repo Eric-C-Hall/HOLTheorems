@@ -4,6 +4,8 @@ Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
+val _ = augment_srw_ss [rewrites[FDOM_FMAP]];
+
 val _ = hide "S";
 
 (* -------------------------------------------------------------------------- *)
@@ -206,8 +208,6 @@ Proof
   >> irule SUBSET_TRANS
   >> metis_tac[FDOM_RRESTRICT_SUBSET]
 QED
-
-Theorem factor_graphs_FDOM_FMAP[simp] = FDOM_FMAP;
 
 Theorem fdom_sp_calculate_messages_step_subset_message_domain[simp]:
   ∀fg msg.
