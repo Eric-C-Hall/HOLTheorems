@@ -605,7 +605,8 @@ Definition sp_message_def:
       FUN_FMAP
       (λdst_val.
          ∑ (λval_map.
-              (get_function_map fg) ' src ' val_map *
+              (get_function_map fg) ' src ' (DRESTRICT val_map (adjacent_nodes
+                                                                fg src)) *
               ∏ (λprev.
                    sp_message fg prev src '
                               (val_map ' prev)
