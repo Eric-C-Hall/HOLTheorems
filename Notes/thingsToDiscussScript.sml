@@ -6,6 +6,8 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Why isn't qid_spec_tac in the HOL reference? I rebuilt HOL and the reference to see if it was in the newest version, but it wasn't there. *)
+
 (* Congruence rules seem really useful. Perhaps we can discuss them. *)
      
 (* Lifting does seem convenient *)

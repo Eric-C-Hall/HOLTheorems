@@ -909,6 +909,28 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* A congruence rule which tells the simplifier to only simplify the LHS of   *)
+(* an equality.                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem LHS_CONG:
+  ∀LHS1 LHS2 RHS.
+    LHS1 = LHS2 ⇒ (LHS1 = RHS ⇔ LHS2 = RHS)
+Proof
+  metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A congruence rule which tells the simplifier to only simplify the RHS of   *)
+(* an equality.                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem RHS_CONG:
+  ∀LHS RHS1 RHS2.
+    RHS1 = RHS2 ⇒ (LHS = RHS1 ⇔ LHS = RHS2)
+Proof
+  metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
 (* nodes in that branch of the tree, where the variable node which is an      *)
@@ -964,6 +986,7 @@ Theorem sp_message_sum_prod:
     else
       FUN_FMAP (λdst_val. 0) (length_n_codes 0)
 Proof
+
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -996,6 +1019,7 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
+
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -1017,10 +1041,24 @@ Proof
       >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG]
       (* We have used our inductive hypothesis and no longer need it *)
       >> qpat_x_assum ‘∀src'. _ ⇒ sp_message _ _ _ = _’ kall_tac
+      (* Expand out the definition of sum_prob_map. In the RHS, this allows us
+         to simplify a FUN_FMAP that is on the LHS and the RHS. In the LHS,
+         expanding out sum_prod_map allows us to simplify out an instance of
+         FUN_FMAP followed by FAPPLY *)
+      >> gvs[sum_prod_map_def]
+      >> gvs[FUN_FMAP_EQ_THM]
+      >> rpt strip_tac
+      (* Simplify if-statement. The condition always applies in this scenario.
+         Since we have adjacent _ src instead of adjacent src _, we need to use
+         adjacent_SYM *)
+      >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG,
+             adjacent_SYM]
       (* *)
-      >> 
+      (* Now siplify sum_*)
+            
+      >> gvs[sum_prod_map_def]
       >> sum_prod_map_def
-      
+         
      )
 
 
