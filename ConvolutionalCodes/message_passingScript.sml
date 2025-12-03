@@ -811,30 +811,38 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Given a subset of the nodes in a factor graph, take the product of all     *)
 (* these nodes while summing out the associated variable nodes, with the      *)
-(* exception of a particular variable node. We return a finite map from the   *)
-(* value of the excluded variable node to the sum of products when choosing   *)
-(* that variable node to be that value.                                       *)
+(* exception of a particular variable node, which takes a specifc value.      *)
 (*                                                                            *)
 (* We expect that the set of nodes provided contains all variable nodes that  *)
 (* are associated with function nodes in the set. We may use                  *)
 (* contains_all_assoc_var_nodes to check whether this is the case when using  *)
 (* sum_prod                                                                   *)
 (* -------------------------------------------------------------------------- *)
+Definition sum_prod_def:
+  sum_prod fg ns excl_var_node excl_var_node_val =
+  ∑ (λval_map.
+       ∏ (λfunc_node. (get_function_map fg ' func_node)
+                      ' (DRESTRICT val_map
+                                   (adjacent_nodes fg func_node)))
+         (ns ∩ get_function_nodes fg) : extreal
+    ) {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
+                 (∀n. n ∈ FDOM val_map ⇒
+                      LENGTH (val_map ' n) =
+                      get_variable_length_map fg ' n) ∧
+                 val_map ' excl_var_node = excl_var_node_val
+                    }
+End
+
+(* -------------------------------------------------------------------------- *)
+(* A finite map corresponding to sum_prod which takes a specific value for    *)
+(* the excluded node and returns the sum_prod when the excluded node takes    *)
+(* that value.                                                                *)
+(* -------------------------------------------------------------------------- *)
 Definition sum_prod_map_def:
   sum_prod_map fg ns excl_var_node =
   FUN_FMAP
   (λexcl_var_node_val.
-     ∑ (λval_map.
-          ∏ (λfunc_node. (get_function_map fg ' func_node)
-                         ' (DRESTRICT val_map
-                                      (adjacent_nodes fg func_node)))
-            (ns ∩ get_function_nodes fg) : extreal
-       ) {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
-                    (∀n. n ∈ FDOM val_map ⇒
-                         LENGTH (val_map ' n) =
-                         get_variable_length_map fg ' n) ∧
-                    val_map ' excl_var_node = excl_var_node_val
-                    }
+     sum_prod fg ns excl_var_node excl_var_node_val
   ) (length_n_codes (get_variable_length_map fg ' excl_var_node))
 End
 
