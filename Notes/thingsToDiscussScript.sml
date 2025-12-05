@@ -6,6 +6,31 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+Theorem test1:
+  ∀s f c.
+    ∑ (λx. Normal c * f x) s = Normal c * ∑ f s
+Proof
+  cheat
+QED
+
+(* DEP_PURE_ONCE_REWRITE_TAC doesn't work in test2 but does in test3.
+   This is expected behaviour and correct behaviour, but it's also
+   interesting behaviour because it's unclear to me exactly how that's working
+   *)
+Theorem test2:
+  ∑ (λx. Normal (K 2 x) * x) ARB = ARB
+Proof
+  DEP_PURE_ONCE_REWRITE_TAC[test1]
+QED
+
+Theorem test3:
+  ∑ (λx. Normal (K 2 4) * x) ARB = ARB
+Proof
+  DEP_PURE_ONCE_REWRITE_TAC[test1]
+QED
+
+(* Second annual report due *)
+
 (* Why isn't qid_spec_tac in the HOL reference? I rebuilt HOL and the reference to see if it was in the newest version, but it wasn't there. *)
 
 (* Congruence rules seem really useful. Perhaps we can discuss them. *)

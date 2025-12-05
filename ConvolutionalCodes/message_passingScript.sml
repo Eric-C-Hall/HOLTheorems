@@ -26,6 +26,10 @@ val _ = hide "S";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
+(* TODO: Consider moving generalised distributive law into its own file?      *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* The domain on which messages are sent. That is, all possible node pairs    *)
 (* where one node pair is sending a message and one node is receiving the     *)
 (* message.                                                                   *)
@@ -809,6 +813,20 @@ Definition contains_all_assoc_var_nodes_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* The set of all assignments to a particular set of variable nodes in a      *)
+(* factor graph, such that a particular node takes a particular value         *)
+(* -------------------------------------------------------------------------- *)
+Definition val_map_assignments_def:
+  val_map_assignments fg ns excl_var_node excl_var_node_val =
+  {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
+             (∀n. n ∈ FDOM val_map ⇒
+                  LENGTH (val_map ' n) =
+                  get_variable_length_map fg ' n) ∧
+             val_map ' excl_var_node = excl_var_node_val
+                    }
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Given a subset of the nodes in a factor graph, take the product of all     *)
 (* these nodes while summing out the associated variable nodes, with the      *)
 (* exception of a particular variable node, which takes a specifc value.      *)
@@ -825,12 +843,7 @@ Definition sum_prod_def:
                       ' (DRESTRICT val_map
                                    (adjacent_nodes fg func_node)))
          (ns ∩ get_function_nodes fg) : extreal
-    ) {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
-                 (∀n. n ∈ FDOM val_map ⇒
-                      LENGTH (val_map ' n) =
-                      get_variable_length_map fg ' n) ∧
-                 val_map ' excl_var_node = excl_var_node_val
-                    }
+    ) (val_map_assignments fg ns excl_var_node excl_var_node_val)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -930,6 +943,44 @@ Proof
   metis_tac[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* The generalised distributive law.                                          *)
+(*                                                                            *)
+(* Σ over sets Σ                                                              *)
+(*                                                                            *)
+(*                                                                            *)
+(* Richardson and Urbanke write this as something along the lines of          *)
+(* Σ_~z Π_k=1^K g_k(z, ...) = Π_k=1^K Σ_~z g_k(z, ...), where the variables   *)
+(* in each g_k are distinct, except for z.                                    *)
+(*                                                                            *)
+(* But HOL4 has no concept of a named variable, such as "x", "y", or "z", so  *)
+(* it's not straightforward to sum out a function over a particular variable. *)
+(* Rather, the arguments to a function are provided in a particular order.    *)
+(*                                                                            *)
+(* Thus, I use an alternative, more general representation of the generalised *)
+(* distributive law.                                                          *)
+(*                                                                            *)
+(* Again, the basic idea is Σ Π f = Π Σ f, where the things being summed over *)
+(* for one choice of f have no effect for any other choice of f.              *)
+(*                                                                            *)
+(* We split the sum up so that when it                                        *)
+(*                                                                            *)
+(*                                                                            *)
+(* If we are taking a sum over a set of sets, over a sum over the current     *)
+(* choice of set, over a product, then this is equivalent                     *)
+(*                                                                            *)
+
+(* -------------------------------------------------------------------------- *)
+Theorem generalised_distributive_law:
+  ∀f S' T.
+    ∑ (λS. ∑ (λx. ∏ (λy. f x y) T) S) S' = ∏ (λy. ∑ (λx. f x y) (S' y)) T : extreal
+Proof
+  rpt strip_tac
+  >> 
+QED
+
+∑ (λx. ∏ (λy. f x y) T) S = ∏ (λy. ∑ (λx. f x y) S) T : extreal
+                                                        
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
@@ -1053,10 +1104,11 @@ Proof
          adjacent_SYM *)
       >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG,
              adjacent_SYM]
-      (* *)
       (* Now siplify sum_*)
-            
-      >> gvs[sum_prod_map_def]
+      
+
+      
+      >> gvs[sum_prod_def]
       >> sum_prod_map_def
          
      )
