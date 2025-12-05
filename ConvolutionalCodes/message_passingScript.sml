@@ -585,6 +585,20 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* The set of all assignments to a particular set of variable nodes in a      *)
+(* factor graph, such that a particular node takes a particular value         *)
+(* -------------------------------------------------------------------------- *)
+Definition val_map_assignments_def:
+  val_map_assignments fg ns excl_var_node excl_var_node_val =
+  {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
+             (∀n. n ∈ FDOM val_map ⇒
+                  LENGTH (val_map ' n) =
+                  get_variable_length_map fg ' n) ∧
+             val_map ' excl_var_node = excl_var_node_val
+                    }
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Calculate the message according to the message passing algorithm over the  *)
 (* factor graph.                                                              *)
 (*                                                                            *)
@@ -616,11 +630,7 @@ Definition sp_message_def:
                               (val_map ' prev)
                 ) {prev | prev ∈ adjacent_nodes fg src ∧
                           prev ≠ dst})
-           {val_map | FDOM val_map = adjacent_nodes fg src ∧
-                      (∀n. n ∈ FDOM val_map ⇒
-                           LENGTH (val_map ' n) =
-                           (get_variable_length_map fg) ' n) ∧
-                      val_map ' dst = dst_val}
+           (val_map_assignments fg (adjacent_nodes fg src) dst dst_val)
       ) (length_n_codes ((get_variable_length_map fg) ' dst))
     else
       FUN_FMAP
@@ -813,20 +823,6 @@ Definition contains_all_assoc_var_nodes_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* The set of all assignments to a particular set of variable nodes in a      *)
-(* factor graph, such that a particular node takes a particular value         *)
-(* -------------------------------------------------------------------------- *)
-Definition val_map_assignments_def:
-  val_map_assignments fg ns excl_var_node excl_var_node_val =
-  {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
-             (∀n. n ∈ FDOM val_map ⇒
-                  LENGTH (val_map ' n) =
-                  get_variable_length_map fg ' n) ∧
-             val_map ' excl_var_node = excl_var_node_val
-                    }
-End
-
-(* -------------------------------------------------------------------------- *)
 (* Given a subset of the nodes in a factor graph, take the product of all     *)
 (* these nodes while summing out the associated variable nodes, with the      *)
 (* exception of a particular variable node, which takes a specifc value.      *)
@@ -971,7 +967,7 @@ QED
 (*                                                                            *)
 
 (* -------------------------------------------------------------------------- *)
-Theorem generalised_distributive_law:
+(*Theorem generalised_distributive_law:
   ∀f S' T.
     ∑ (λS. ∑ (λx. ∏ (λy. f x y) T) S) S' = ∏ (λy. ∑ (λx. f x y) (S' y)) T : extreal
 Proof
@@ -980,7 +976,8 @@ Proof
 QED
 
 ∑ (λx. ∏ (λy. f x y) T) S = ∏ (λy. ∑ (λx. f x y) S) T : extreal
-                                                        
+ *)
+                                                          
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
