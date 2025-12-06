@@ -71,7 +71,7 @@ Overload adjacent_nodes = “λfg cur_node.
 Overload var_nodes = “λfg. {n | n ∈ nodes fg.underlying_graph ∧
                                 n ∉ fg.function_nodes}”;
 
-Theorem var_nodes_finite[simp]:
+Theorem var_nodes_rep_finite[simp]:
   ∀fg.
     FINITE (var_nodes fg)
 Proof
@@ -1228,7 +1228,7 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val _ = liftdef fg_add_function_node0_respects "fg_add_function_node"
+val fafnthms = liftdef fg_add_function_node0_respects "fg_add_function_node"
 
 Theorem FDOM_FMAP_MAP2[simp] = GEN_ALL (cj 1 FMAP_MAP2_THM);
 
@@ -1247,7 +1247,7 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val _ = liftdef get_underlying_graph0_respects "get_underlying_graph"
+val gugthms = liftdef get_underlying_graph0_respects "get_underlying_graph"
 
 (* -------------------------------------------------------------------------- *)
 (* Allow the function nodes to be obtained in the abstract version of the     *)
@@ -1261,7 +1261,7 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val _ = liftdef get_function_nodes0_respects "get_function_nodes";
+val gfnthms = liftdef get_function_nodes0_respects "get_function_nodes";
 
 (* -------------------------------------------------------------------------- *)
 (* Allow the function map to be obtained in the abstract version of the       *)
@@ -1273,7 +1273,7 @@ Proof
   gvs[FUN_REL_def, fgequiv_def]
 QED
 
-val _ = liftdef get_function_map0_respects "get_function_map";
+val gfmthms = liftdef get_function_map0_respects "get_function_map";
 
 (* -------------------------------------------------------------------------- *)
 (* The representation hides variable_length_map, but this is useful when      *)
@@ -1288,7 +1288,7 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val _ = liftdef get_variable_length_map0_respects "get_variable_length_map";
+val gvlmthms = liftdef get_variable_length_map0_respects "get_variable_length_map";
 
 Overload adjacent_nodes = “λfg cur_node.
                              {adj_node |
@@ -1297,6 +1297,13 @@ Overload adjacent_nodes = “λfg cur_node.
 
 Overload var_nodes = “λfg. {n | n ∈ nodes (get_underlying_graph fg) ∧
                                 n ∉ (get_function_nodes fg)}”;
+
+Theorem var_nodes_finite[simp]:
+  ∀fg : α factor_graph.
+    FINITE (var_nodes fg)
+Proof
+  gvs[fst gugthms, snd gugthms, fst gfnthms, snd gfmthms]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)

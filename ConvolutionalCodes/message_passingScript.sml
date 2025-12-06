@@ -101,6 +101,8 @@ QED
 (*       message_domain to message option                                     *)
 (*                                                                            *)
 (* Returns a message option                                                   *)
+(*                                                                            *)
+(* Possible improvement: outdated, use val_map_assignments                    *)
 (* -------------------------------------------------------------------------- *)
 Definition sp_calculate_single_message0_def:
   sp_calculate_single_message0 fg org dst msgs =
@@ -492,6 +494,11 @@ val _ = liftdef sp_calculate_messages0_respects "sp_calculate_messages";
 (*                                                                            *)
 (* The output at a given node has type (bool list |-> α), just like a         *)
 (* message.                                                                   *)
+(*                                                                            *)
+(* Possible improvement: outdayed. replace length_n_codes with the            *)
+(* val_map_assignments for a single node. Summing over the values of one node *)
+(* should be treated as a special case of summing over the values for an      *)
+(* arbitrary number of nodes                                                  *)
 (* -------------------------------------------------------------------------- *)
 Definition sp_run_message_passing0_def:
   sp_run_message_passing0 fg =
@@ -586,15 +593,27 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* The set of all assignments to a particular set of variable nodes in a      *)
-(* factor graph, such that a particular node takes a particular value         *)
+(* factor graph, where certain nodes are fixed to particular values.          *)
+(*                                                                            *)
+(* Assigning all possible values to only a single node should still be        *)
+(* treated as a special case of this, in order to allow for consistency so    *)
+(* that we can use the same theorems in this special case. Similarly, we      *)
+(* should use this even if we have no need to fix certain nodes to certain    *)
+(* values.                                                                    *)
+(*                                                                            *)
+(* fg: the factor graph                                                       *)
+(* ns: the set of nodes                                                       *)
+(* vals: a finite map from nodes to values. val_map is the same as vals on    *)
+(*       these nodes. We expect that these values have the appropriate        *)
+(*       lengths                                                              *)
 (* -------------------------------------------------------------------------- *)
 Definition val_map_assignments_def:
-  val_map_assignments fg ns excl_var_node excl_var_node_val =
+  val_map_assignments fg ns excl_val_map =
   {val_map | FDOM val_map = ns ∩ var_nodes fg ∧
              (∀n. n ∈ FDOM val_map ⇒
-                  LENGTH (val_map ' n) =
+                  LENGTH (val_map ' n : bool list) =
                   get_variable_length_map fg ' n) ∧
-             val_map ' excl_var_node = excl_var_node_val
+             (∀n. n ∈ FDOM val_map ∩ FDOM excl_val_map ⇒ val_map ' n = excl_val_map ' n)
                     }
 End
 
@@ -621,30 +640,29 @@ Definition sp_message_def:
     if src ∈ get_function_nodes fg
     then
       FUN_FMAP
-      (λdst_val.
+      (λdst_val_map.
          ∑ (λval_map.
               (get_function_map fg) ' src ' (DRESTRICT val_map (adjacent_nodes
                                                                 fg src)) *
               ∏ (λprev.
-                   sp_message fg prev src '
-                              (val_map ' prev)
+                   sp_message fg prev src ' (DRESTRICT val_map {dst})
                 ) {prev | prev ∈ adjacent_nodes fg src ∧
                           prev ≠ dst})
-           (val_map_assignments fg (adjacent_nodes fg src) dst dst_val)
-      ) (length_n_codes ((get_variable_length_map fg) ' dst))
+           (val_map_assignments fg (adjacent_nodes fg src) dst_val_map)
+      ) (val_map_assignments fg {dst} FEMPTY)
     else
       FUN_FMAP
-      (λsrc_val.
+      (λsrc_val_map.
          ∏ (λprev.
-              sp_message fg prev src ' src_val
+              sp_message fg prev src ' (src_val_map)
            )
            {prev | prev ∈ adjacent_nodes fg src ∧
-                   prev ≠ dst})
-      (length_n_codes ((get_variable_length_map fg) ' src))
+                prev ≠ dst})
+      (val_map_assignments fg {src} FEMPTY)
   else
     FUN_FMAP
     (λdst_val. 0 : extreal)
-    (length_n_codes 0)
+    (val_map_assignments fg ∅ FEMPTY)
 Termination
   (* At a leaf node, there is no previous node, so we don't do any recursive
      calls. The message at a given step corresponds to a certain subtree:
@@ -825,7 +843,7 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Given a subset of the nodes in a factor graph, take the product of all     *)
 (* these nodes while summing out the associated variable nodes, with the      *)
-(* exception of a particular variable node, which takes a specifc value.      *)
+(* exception of some particular nodes which take particular values.           *)
 (*                                                                            *)
 (* We expect that the set of nodes provided contains all variable nodes that  *)
 (* are associated with function nodes in the set. We may use                  *)
@@ -833,13 +851,13 @@ End
 (* sum_prod                                                                   *)
 (* -------------------------------------------------------------------------- *)
 Definition sum_prod_def:
-  sum_prod fg ns excl_var_node excl_var_node_val =
+  sum_prod fg ns excl_val_map =
   ∑ (λval_map.
        ∏ (λfunc_node. (get_function_map fg ' func_node)
                       ' (DRESTRICT val_map
                                    (adjacent_nodes fg func_node)))
          (ns ∩ get_function_nodes fg) : extreal
-    ) (val_map_assignments fg ns excl_var_node excl_var_node_val)
+    ) (val_map_assignments fg ns excl_val_map)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -848,11 +866,11 @@ End
 (* that value.                                                                *)
 (* -------------------------------------------------------------------------- *)
 Definition sum_prod_map_def:
-  sum_prod_map fg ns excl_var_node =
+  sum_prod_map fg ns excl_nodes =
   FUN_FMAP
-  (λexcl_var_node_val.
-     sum_prod fg ns excl_var_node excl_var_node_val
-  ) (length_n_codes (get_variable_length_map fg ' excl_var_node))
+  (λexcl_val_map.
+     sum_prod fg ns excl_val_map
+  ) (val_map_assignments fg excl_nodes FEMPTY)
 End
 
 (* It's kinda interesting how this can be proven simply by applying
@@ -914,7 +932,28 @@ Proof
               (λm. REPLICATE (get_variable_length_map fg ' m) ARB)
               (adjacent_nodes fg n)’
   >> rpt strip_tac >> gvs[]
-  >> gvs[FUN_FMAP_DEF]
+QED
+
+Theorem exists_val_map_assignments:
+  ∀fg ns excl_var_node excl_var_node_val.
+    excl_var_node ∈ ns ∩ var_nodes fg ∧
+    LENGTH (excl_var_node_val) = get_variable_length_map fg ' excl_var_node ⇒
+    ∃val_map.
+      val_map ∈ val_map_assignments fg ns excl_var_node excl_var_node_val
+Proof
+  rpt strip_tac
+  >> gvs[val_map_assignments_def]
+  >> qexists ‘FUN_FMAP
+              (λm.
+                 if m = excl_var_node then excl_var_node_val
+                 else
+                   REPLICATE (get_variable_length_map fg ' m) ARB)
+              (ns ∩ var_nodes fg)’
+  >> sg ‘FINITE (ns ∩ var_nodes fg)’
+  >- metis_tac[INTER_FINITE, INTER_COMM, var_nodes_finite]
+  >> gvs[]
+  >> rpt strip_tac >> gvs[]
+  >> rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -935,6 +974,17 @@ QED
 Theorem RHS_CONG:
   ∀LHS RHS1 RHS2.
     RHS1 = RHS2 ⇒ (LHS = RHS1 ⇔ LHS = RHS2)
+Proof
+  metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A congruence rule which tells the simplifier to not simplify within an     *)
+(* equality.                                                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem IGNORE_EQ_CONG:
+  ∀LHS RHS.
+    LHS = RHS ⇔ LHS = RHS
 Proof
   metis_tac[]
 QED
@@ -977,7 +1027,62 @@ QED
 
 ∑ (λx. ∏ (λy. f x y) T) S = ∏ (λy. ∑ (λx. f x y) S) T : extreal
  *)
-                                                          
+
+(* -------------------------------------------------------------------------- *)
+(* Π Σ f = Σ Π f                                                              *)
+(* where the variables summed over by the sums are disjoint, and the values   *)
+(* of each function only depend on the variables in the corresponding sum.    *)
+(*                                                                            *)
+(* The "f" at the end of "nsf", "exclf", "excl_valf" stands for "function"    *)
+(* -------------------------------------------------------------------------- *)
+Theorem generalised_distributive_law:
+  ∀fg S ff nsf exclf excl_valf.
+    INJ nsf S 𝕌(:unit + num -> bool) ∧
+    pairwise DISJOINT (IMAGE nsf S) ⇒
+    ∏ (λk.
+         ∑ (λval_map.
+              ff k val_map
+           ) (val_map_assignments fg (nsf k) (exclf k) (excl_valf k))
+      ) S
+    = ∑ (λval_map.
+           ∏ (λk.
+                ff k val_map
+             ) S
+        ) (val_map_assignments fg (BIGUNION (IMAGE nsf S)) ARB ARB)
+Proof
+QED
+
+(*
+gvs[Cong LHS_CONG, sum_prod_def]
+gvs[val_map_assignments_def]
+*)
+
+Theorem adjacent_nodes_inter_var_nodes_get_function_nodes[simp]:
+  ∀fg src.
+    src ∈ get_function_nodes fg ⇒
+    adjacent_nodes fg src ∩ var_nodes fg = adjacent_nodes fg src
+Proof
+  rpt strip_tac
+  >> gvs[EXTENSION]
+  >> rpt strip_tac
+  >> EQ_TAC >> gvs[]
+  >> rpt strip_tac
+  >> metis_tac[adjacent_in_function_nodes_not_in_function_nodes]
+QED
+
+Theorem adjacent_nodes_inter_var_nodes_var_nodes[simp]:
+  ∀fg src.
+    src ∈ var_nodes fg ⇒
+    adjacent_nodes fg src ∩ var_nodes fg = ∅
+Proof
+  rpt strip_tac
+  >> gvs[EXTENSION]
+  >> rpt strip_tac
+  >> CCONTR_TAC
+  >> gvs[]
+  >> metis_tac[adjacent_in_function_nodes_not_in_function_nodes]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
@@ -1072,6 +1177,7 @@ Proof
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
          construct a mapping and satisfy this precondition *)
+      >> gvs[Cong IGNORE_EQ_CONG, val_map_assignments_def]
       >> qspecl_then [‘fg’, ‘src’] assume_tac exists_val_map >> gvs[]
       >> last_x_assum $ qspecl_then [‘val_map : unit + num |-> bool list’]
                       assume_tac >> gvs[]
@@ -1099,15 +1205,18 @@ Proof
       (* Simplify if-statement. The condition always applies in this scenario.
          Since we have adjacent _ src instead of adjacent src _, we need to use
          adjacent_SYM *)
+      >> gvs[val_map_assignments_def]
       >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG,
              adjacent_SYM]
-      (* Now siplify sum_*)
-      
+      (* Unexpand val_map_assignments to make it easier to read *)
+      >> qspecl_then [‘fg’, ‘adjacent_nodes fg src’, ‘dst’, ‘excl_var_node_val’]
+                     assume_tac (GSYM val_map_assignments_def)
+      >> gvs[]
+      >> qpat_x_assum ‘_ = val_map_assignments _ _ _ _’ kall_tac
+      (* *)
+      >> gvs[Cong LHS_CONG, sum_prod_def]
 
       
-      >> gvs[sum_prod_def]
-      >> sum_prod_map_def
-         
      )
 
 
