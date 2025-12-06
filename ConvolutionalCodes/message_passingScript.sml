@@ -367,10 +367,9 @@ Definition sp_message_def:
       FUN_FMAP
       (λdst_val_map.
          ∑ (λval_map.
-              (get_function_map fg) ' src ' (DRESTRICT val_map (adjacent_nodes
-                                                                fg src)) *
+              (get_function_map fg) ' src ' val_map *
               ∏ (λprev.
-                   sp_message fg prev src ' (DRESTRICT val_map {dst})
+                   sp_message fg prev src ' (DRESTRICT val_map {prev})
                 ) {prev | prev ∈ adjacent_nodes fg src ∧
                           prev ≠ dst})
            (val_map_assignments fg (adjacent_nodes fg src) dst_val_map)
@@ -379,7 +378,7 @@ Definition sp_message_def:
       FUN_FMAP
       (λsrc_val_map.
          ∏ (λprev.
-              sp_message fg prev src ' (src_val_map)
+              sp_message fg prev src ' src_val_map
            )
            {prev | prev ∈ adjacent_nodes fg src ∧
                 prev ≠ dst})
