@@ -662,6 +662,22 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* More generalised verison of EXTREAL_SUM_IMAGE_EQ', which itself is more    *)
+(* general that EXTREAL_SUM_IMAGE_EQ                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem EXTREAL_SUM_IMAGE_EQ3:
+  ∀f g S.
+    (∀x. x ∈ S ⇒ f x = g x) ⇒
+    ∑ f S = ∑ g S : extreal
+Proof
+  rpt strip_tac
+  >> Cases_on ‘FINITE S’ >- metis_tac[EXTREAL_SUM_IMAGE_EQ']
+  >> gvs[EXTREAL_SUM_IMAGE_DEF]
+  >> PURE_ONCE_REWRITE_TAC[ITSET_def]
+  >> rw[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
 (* nodes in that branch of the tree, where the variable node which is an      *)
@@ -713,9 +729,9 @@ Theorem sp_message_sum_prod:
         cur_subtree = subtree (get_underlying_graph fg) dst src;
         sum_prod_ns = nodes cur_subtree ∪ {msg_var_node};
       in
-        sum_prod_map fg sum_prod_ns msg_var_node
+        sum_prod_map fg sum_prod_ns {msg_var_node}
     else
-      FUN_FMAP (λdst_val. 0) (length_n_codes 0)
+      FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
 Proof
 
   (* Simplify special case of invalid input to sp_message *)
@@ -873,18 +889,6 @@ Proof
      )
 (* Now consider the case where the source is a variable node rather than a
      function node *)
-QED
-
-Theorem EXTREAL_SUM_IMAGE_EQ3:
-  ∀f g S.
-    (∀x. x ∈ S ⇒ f x = g x) ⇒
-    ∑ f S = ∑ g S : extreal
-Proof
-  rpt strip_tac
-  >> Cases_on ‘FINITE S’ >- metis_tac[EXTREAL_SUM_IMAGE_EQ']
-  >> gvs[EXTREAL_SUM_IMAGE_DEF]
-  >> PURE_ONCE_REWRITE_TAC[ITSET_def]
-  >> rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
