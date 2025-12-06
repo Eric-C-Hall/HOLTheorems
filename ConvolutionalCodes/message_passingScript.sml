@@ -509,26 +509,29 @@ Proof
   >> rpt strip_tac >> gvs[]
 QED
 
+Theorem finite_inter_var_nodes[simp]:
+  ∀ns fg.
+    FINITE (ns ∩ var_nodes fg)
+Proof
+  metis_tac[INTER_FINITE, INTER_COMM, var_nodes_finite]
+QED
+
 Theorem exists_val_map_assignments:
-  ∀fg ns excl_var_node excl_var_node_val.
-    excl_var_node ∈ ns ∩ var_nodes fg ∧
-    LENGTH (excl_var_node_val) = get_variable_length_map fg ' excl_var_node ⇒
+  ∀fg ns excl_val_map.
+    (∀n. n ∈ (ns ∩ var_nodes fg) ⇒
+         LENGTH (excl_val_map ' n) = get_variable_length_map fg ' n) ⇒
     ∃val_map.
-      val_map ∈ val_map_assignments fg ns excl_var_node excl_var_node_val
+      val_map ∈ val_map_assignments fg ns excl_val_map
 Proof
   rpt strip_tac
   >> gvs[val_map_assignments_def]
   >> qexists ‘FUN_FMAP
               (λm.
-                 if m = excl_var_node then excl_var_node_val
+                 if m ∈ ns ∩ var_nodes fg then excl_val_map ' m
                  else
                    REPLICATE (get_variable_length_map fg ' m) ARB)
               (ns ∩ var_nodes fg)’
-  >> sg ‘FINITE (ns ∩ var_nodes fg)’
-  >- metis_tac[INTER_FINITE, INTER_COMM, var_nodes_finite]
   >> gvs[]
-  >> rpt strip_tac >> gvs[]
-  >> rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
