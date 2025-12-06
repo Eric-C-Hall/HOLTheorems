@@ -92,8 +92,14 @@ QED
 (*          values of the given lengths                                       *)
 (*                                                                            *)
 (* We require the type that is being assigned to the variables to be          *)
-(*   bool list: we could allow more general types, but restricting to bool    *)
-(*   list ensures that we have only finitely many assignments.                *)
+(* bool list: we could allow more general types, but restricting to bool      *)
+(* list ensures that we have only finitely many assignments.                  *)
+(*                                                                            *)
+(* Note: This overlaps with val_map_assignments in message_passingScript.     *)
+(* val_map_assignments works when applied to a factor graph, which is         *)
+(* generally more useful. However, var_assignments must be defined before the *)
+(* definition of wffactor_graph, so it must be defined before abstract factor *)
+(* graphs exist, so we need this definition too.                              *)
 (* -------------------------------------------------------------------------- *)
 Definition var_assignments_def:
   var_assignments assign_nodes assign_lengths =

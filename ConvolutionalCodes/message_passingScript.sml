@@ -331,6 +331,11 @@ QED
 (* vals: a finite map from nodes to values. val_map is the same as vals on    *)
 (*       these nodes. We expect that these values have the appropriate        *)
 (*       lengths                                                              *)
+(*                                                                            *)
+(* This currently overlaps with var_assignments. val_map_assignments works    *)
+(* with an abstract factor graph, which is its advantage. By contrast,        *)
+(* var_assignments is used in the definition of abstract factor graphs, so    *)
+(* we can't combine the two definitions easily.                               *)
 (* -------------------------------------------------------------------------- *)
 Definition val_map_assignments_def:
   val_map_assignments fg ns excl_val_map =
@@ -341,6 +346,61 @@ Definition val_map_assignments_def:
              (∀n. n ∈ FDOM val_map ∩ FDOM excl_val_map ⇒ val_map ' n = excl_val_map ' n)
                     }
 End
+
+(* -------------------------------------------------------------------------- *)
+(* Our more convenient, more general definition for describing the set of     *)
+(* assignments of variables to values is a subset of the more low-level       *)
+(* definition.                                                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem val_map_assignments_subset_var_assignments:
+  ∀fg ns excl_val_map.
+    ns ⊆ var_nodes fg ⇒
+    val_map_assignments fg ns excl_val_map ⊆ var_assignments ns (get_variable_length_map fg)
+Proof
+  rpt strip_tac
+  >> gvs[val_map_assignments_def, var_assignments_def]
+  >> simp[SUBSET_DEF]
+  >> qx_gen_tac ‘val_map’
+  >> rpt strip_tac
+  >> gvs[]
+  >> metis_tac[SUBSET_INTER1]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Finding the assignements for a certain set of nodes is equivalent to       *)
+(* finding the assignments for the subset of those nodes that are variable    *)
+(* nodes in the factor graph.                                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem val_map_assignments_restrict_nodes:
+  ∀fg ns excl_val_map.
+    val_map_assignments fg ns excl_val_map =
+    val_map_assignments fg (ns ∩ var_nodes fg) excl_val_map
+Proof
+  rpt strip_tac
+  >> gvs[val_map_assignments_def]
+  >> simp[EXTENSION] >> rpt strip_tac >> EQ_TAC >> rpt strip_tac >> simp[]
+  >> metis_tac[]
+QED
+
+Theorem finite_inter_var_nodes[simp]:
+  ∀ns fg.
+    FINITE (ns ∩ var_nodes fg)
+Proof
+  metis_tac[INTER_FINITE, INTER_COMM, var_nodes_finite]
+QED
+
+Theorem val_map_assignments_finite[simp]:
+  ∀fg ns excl_val_map.
+    FINITE (val_map_assignments fg ns excl_val_map)
+Proof
+  rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+  >> irule SUBSET_FINITE
+  >> qexists ‘var_assignments (ns ∩ var_nodes fg) (get_variable_length_map fg)’
+  >> conj_tac >- gvs[]
+  >> irule val_map_assignments_subset_var_assignments
+  >> simp[]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Calculate the message according to the message passing algorithm over the  *)
@@ -507,13 +567,6 @@ Proof
               (λm. REPLICATE (get_variable_length_map fg ' m) ARB)
               (adjacent_nodes fg n)’
   >> rpt strip_tac >> gvs[]
-QED
-
-Theorem finite_inter_var_nodes[simp]:
-  ∀ns fg.
-    FINITE (ns ∩ var_nodes fg)
-Proof
-  metis_tac[INTER_FINITE, INTER_COMM, var_nodes_finite]
 QED
 
 Theorem exists_val_map_assignments:
