@@ -1,0 +1,445 @@
+
+(* -------------------------------------------------------------------------- *)
+(* Sum-product message calculation:                                           *)
+(*                                                                            *)
+(* Attempts to calculate the value of a single message on the factor graph    *)
+(* using sum-product message passing.                                         *)
+(*                                                                            *)
+(* A message has type (bool list |-> α). Each message corresponds to          *)
+(* precisely one free variable: it takes as input the value of that free      *)
+(* variable and outputs the value of the message in the case that the free    *)
+(* variable takes that value.                                                 *)
+(*                                                                            *)
+(* fg: factor graph                                                           *)
+(* org: origin node for message                                               *)
+(* dst: destination node for message                                          *)
+(* msgs: all previous messages that have been calculated. A finite map from   *)
+(*       message_domain to message option                                     *)
+(*                                                                            *)
+(* Returns a message option                                                   *)
+(*                                                                            *)
+(* Possible improvement: outdated, use val_map_assignments                    *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_calculate_single_message0_def:
+  sp_calculate_single_message0 fg org dst msgs =
+  let
+    adjacent_nodes_not_dst = {n | n ∈ adjacent_nodes fg org ∧
+                                  n ≠ dst};
+    incoming_msg_edges = {(n, org) | n | n ∈ adjacent_nodes_not_dst };
+  in
+    if ¬(incoming_msg_edges ⊆ FDOM msgs) then
+      NONE (* Incoming messages aren't available yet *)
+    else
+      if org ∈ fg.function_nodes
+      then
+        SOME (FUN_FMAP
+              (
+              λdst_val.
+                ∑ (λval_map.
+                     (fg.function_map ' org) ' val_map *
+                     ∏ (λcur_msg_edge.
+                          msgs ' cur_msg_edge '
+                               (val_map ' (FST cur_msg_edge))
+                       ) incoming_msg_edges
+                  )
+                  {val_map | FDOM val_map = adjacent_nodes fg org ∧
+                             (∀n. n ∈ adjacent_nodes fg org ⇒
+                                  LENGTH (val_map ' n) =
+                                  fg.variable_length_map ' n) ∧
+                             val_map ' dst = dst_val
+                         }                         
+              ) (length_n_codes (fg.variable_length_map ' dst))
+             )
+      else
+        SOME (FUN_FMAP
+              (λorg_val.
+                 ∏ (λcur_msg_edge. msgs ' cur_msg_edge ' org_val : extreal)
+                   incoming_msg_edges)
+              (length_n_codes (fg.variable_length_map ' org))
+             )
+End
+
+Theorem sp_calculate_single_message0_respects:
+  (fgequiv ===> (=) ===> (=) ===> (=) ===> (=))
+  sp_calculate_single_message0 sp_calculate_single_message0
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef sp_calculate_single_message0_respects "sp_calculate_single_message";
+
+
+(* -------------------------------------------------------------------------- *)
+(* Using the sum-product message-passing algorithm, calculate all messages    *)
+(* that can be calculated using the currently available messages (including   *)
+(* those from leaf nodes)                                                     *)
+(*                                                                            *)
+(* fg: the factor graph                                                       *)
+(* msgs: the map containing all messages that have been calculated so far     *)
+(*                                                                            *)
+(* Output: the map containing all messages that can be directly calculated    *)
+(*         from the messages that have been calculated so far.                *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_calculate_messages_step0_def:
+  sp_calculate_messages_step0 fg msgs =
+  let
+    calculated_messages =
+    FUN_FMAP (λ(org, dst). sp_calculate_single_message0 fg org dst msgs)
+             (message_domain fg);
+    restricted_messages = RRESTRICT calculated_messages {SOME x | T};
+  in
+    (* Change from option type into the underlying message type *)
+    FMAP_MAP2 (THE ∘ SND) restricted_messages
+End
+
+Theorem sp_calculate_messages_step0_respects:
+  (fgequiv ===> (=) ===> (=))
+  sp_calculate_messages_step0 sp_calculate_messages_step0 
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef sp_calculate_messages_step0_respects "sp_calculate_messages_step";
+
+
+
+(* -------------------------------------------------------------------------- *)
+(* Uses the sum-product algorithm to calculate all messages in the factor     *)
+(* graph, starting from a set of messages that have already been calculated.  *)
+(*                                                                            *)
+(* fg: the factor graph                                                       *)
+(* msgs: the messages that have already been calculated. If no messages have  *)
+(*       been calculated yet, then set this to the empty map.                 *)
+(*                                                                            *)
+(* Output: all messages on the factor graph as calculated by the sum-product  *)
+(*         algorithm                                                          *)
+(*                                                                            *)
+(* Note: I tried removing the FUNION, but this interferes with termination.   *)
+(* Consider a factor graph consisting of a single loop of nodes, where a      *)
+(* single message is sent from one of the nodes. This message will loop       *)
+(* around the nodes forever, never terminating.                               *)
+(*                                                                            *)
+(* Termination is also harder to prove if we only terminate when the messages *)
+(* themselves dont change, rather than when the domain of the messages        *)
+(* doesn't change, because we may have a change in messages propogating       *)
+(* around a circle in a never-ending cycle. In a previous iteration of this   *)
+(* definition, I did manage to prove termination when defining termination in *)
+(* this way, but that may be due to other differences in the definition       *)
+(* (although to be honest I'm not sure what that might have been)             *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_calculate_messages0_def:
+  sp_calculate_messages0 fg msgs =
+  let
+    restricted_msgs = DRESTRICT msgs (message_domain fg);
+    new_msgs = sp_calculate_messages_step0 fg restricted_msgs ⊌ restricted_msgs;
+  in
+    if FDOM new_msgs = FDOM msgs
+    then
+      new_msgs
+    else
+      sp_calculate_messages0 fg (new_msgs)
+Termination
+  (* We expect that at least one message will be added in each step. The number
+     of possible messages is limited above by the (finite) number of pairs of
+     nodes in the (finite) factor graph. Thus, this process will eventually end
+     and we will terminate.
+.
+     Thus, we expect CARD (message_domain fg) - CARD (FDOM msgs) to decrease
+     by at least 1 in each step. We use this as the basis for our termination
+     measure.
+.    
+     In practice, adding 1 to this value simplifies the proof process.
+.
+     If there are messages outside the valid message_domain, then they will be
+     removed in the first call to this function. This may reduce the number of
+     messages, but it will only happen on the first call. Thus, in this case,
+     we treat it as though we have less than 0 messages, in order to ensure
+     that the number of messages is always increasing
+.     
+     We use prim_recTheory.measure to turn our termination measure into a
+     well-founded relation.
+   *)
+  WF_REL_TAC ‘measure (λ(fg, msgs).
+                         (CARD (message_domain fg) + 2) -
+                         (if FDOM msgs ⊆ message_domain fg
+                          then
+                            CARD (FDOM msgs) + 1
+                          else 0
+                         )
+                      )’
+  >> REVERSE (rpt strip_tac)
+  >- (rw[]
+      >> ‘CARD (FDOM msgs) ≤ CARD (message_domain fg)’ suffices_by simp[]
+      >> simp[CARD_SUBSET]
+     )
+  >> qmatch_goalsub_abbrev_tac ‘const < new_val + (const - old_val)’
+  >> qsuff_tac ‘old_val < new_val’
+  >- gvs[]
+  >> unabbrev_all_tac
+  >> gvs[]
+  >> rw[]
+  >> irule CARD_PSUBSET
+  >> gvs[]
+  >> gvs[PSUBSET_MEMBER]
+  >> gvs[FDOM_SUBSET_DRESTRICT]
+  >> gvs[EXTENSION]
+  >> Cases_on ‘x ∈ FDOM msgs’
+  >- gvs[]
+  >> gvs[]
+  >> qexists ‘x’
+  >> gvs[]
+End
+
+Theorem sp_calculate_messages0_respects:
+  (fgequiv ===> (=) ===> (=))
+  sp_calculate_messages0 sp_calculate_messages0
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef sp_calculate_messages0_respects "sp_calculate_messages";
+
+Theorem fdom_sp_calculate_messages_step_subset_message_domain[simp]:
+  ∀fg msg.
+    FDOM (sp_calculate_messages_step0 fg msg) ⊆ message_domain fg
+Proof
+  rw[sp_calculate_messages_step0_def]
+  >> irule FDOM_RRESTRICT_SUBSET_IMPLIES
+  >> gvs[RRESTRICT_DEF]
+QED
+
+Theorem drestrict_sp_calculate_messages_step0_drestrict[simp]:
+  ∀fg msgs.
+    DRESTRICT (sp_calculate_messages_step0 fg msgs) (message_domain fg) =
+    sp_calculate_messages_step0 fg msgs
+Proof
+  metis_tac[FDOM_SUBSET_DRESTRICT, fdom_sp_calculate_messages_step_subset_message_domain,
+            FDOM_DRESTRICT, INTER_SUBSET]
+QED
+
+Theorem fdom_sp_calculate_messages_step_in_message_domain:
+  ∀msgs fg step_msg.
+    step_msg ∈ FDOM (sp_calculate_messages_step0 fg msgs) ⇒
+    step_msg ∈ message_domain fg
+Proof
+  rw[]
+  >> qspecl_then [‘fg’, ‘msgs’] assume_tac
+                 fdom_sp_calculate_messages_step_subset_message_domain
+  >> ASM_SET_TAC[]
+QED
+
+Theorem drestrict_sp_calculate_messages_step0_message_domain[simp]:
+  ∀fg msgs.
+    DRESTRICT (sp_calculate_messages_step0 fg msgs) (message_domain fg) =
+    sp_calculate_messages_step0 fg msgs
+Proof
+  rpt strip_tac
+  >> irule FDOM_SUBSET_DRESTRICT
+  >> gvs[fdom_sp_calculate_messages_step_subset_message_domain]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Runs the message passing algorithm on a factor graph and returns a         *)
+(* finite map which takes a variable node and returns the final result of the *)
+(* message passing algorithm at that node.                                    *)
+(*                                                                            *)
+(* fg: The factor graph to apply the message passing algorithm to             *)
+(*                                                                            *)
+(* The output at a given node has type (bool list |-> α), just like a         *)
+(* message.                                                                   *)
+(*                                                                            *)
+(* Possible improvement: outdayed. replace length_n_codes with the            *)
+(* val_map_assignments for a single node. Summing over the values of one node *)
+(* should be treated as a special case of summing over the values for an      *)
+(* arbitrary number of nodes                                                  *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_run_message_passing0_def:
+  sp_run_message_passing0 fg =
+  let
+    msgs = sp_calculate_messages0 fg FEMPTY
+  in
+    FUN_FMAP
+    (λcur_var_node.
+       FUN_FMAP
+       (λcur_var_node_val.
+          ∏ (λcur_msg_edge. msgs ' cur_msg_edge ' cur_var_node_val : extreal)
+            {(adj_node, cur_var_node)
+          | adj_node ∈ adjacent_nodes fg cur_var_node}
+       ) (length_n_codes (fg.variable_length_map ' cur_var_node))
+    )
+    (var_nodes fg)
+End
+
+Theorem sp_run_message_passing0_respects:
+  (fgequiv ===> (=))
+  sp_run_message_passing0 sp_run_message_passing0
+Proof
+  gvs[FUN_REL_def]
+  >> gvs[fgequiv_def]
+QED
+
+val _ = liftdef sp_run_message_passing0_respects "sp_run_message_passing";
+
+
+
+
+
+
+
+
+
+
+
+
+(* The following theorems were being written when I was using
+   sp_calculate_messages, rather than sp_message
+
+Theorem fdom_sp_calculate_messages0_subset[local]:
+  ∀msgs fg.
+    FDOM (sp_calculate_messages0 fg msgs) ⊆ message_domain fg
+Proof
+  rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
+  >> rw[]
+  >- (pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> gvs[UNION_SUBSET]
+     )
+  >> gvs[EXTENSION]
+  >> Cases_on ‘x ∈ FDOM msgs’ >> gvs[]
+QED
+
+Theorem fdom_sp_calculate_messages0[simp]:
+  ∀msgs fg.
+    FDOM (sp_calculate_messages0 fg msgs) = message_domain fg
+Proof
+  rpt strip_tac
+  >> PURE_REWRITE_TAC[EXTENSION]
+  >> qx_gen_tac ‘dir_edge’
+  >> EQ_TAC
+  >- (PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
+      >> gvs[]
+      >> rw[]
+
+      
+      >> gvs[]
+      >> PURE_ONCE_REWRITE_TAC[sp_calculate_messages0_def]
+      >> gvs[]
+      >> rw[]
+      >- cheat
+
+         
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A message arriving at a variable node is the sum of products of all        *)
+(* function nodes in that branch of the tree. Similarly, a message arriving   *)
+(* at a function node is the sum of products of all function nodes in that    *)
+(* branch of the tree.                                                        *)
+(*                                                                            *)
+(* We can work by induction to prove this. In the base case, we have a leaf   *)
+(* node, and want to prove that our proposition holds. In the inductive step, *)
+(* we have a set of child trees for which the proposition holds, and want to  *)
+(* prove that it holds for the new tree consisting of the parent node and all *)
+(* its child nodes.                                                           *)
+(*                                                                            *)
+(* In particular, our proposition is that the                                 *)
+(*                                                                            *)
+(* In the base case: if we have a variable node, then the product of all      *)
+(* child functions will be 1                                                  *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem sp_calculate_messages0_sum_prod:
+  ∀fg.
+    sp_calculate_messages0 fg FEMPTY =
+    FUN_FMAP
+    (λdir_edge.
+       let
+         cur_var_node = if SND dir_edge ∈ var_nodes fg
+                        then
+                          SND dir_edge
+                        else
+                          FST dir_edge;
+         cur_subtree = subtree fg.underlying_graph (SND dir_edge) (FST dir_edge);
+       in
+         FUN_FMAP
+         (λcur_var_node_val.
+            ∑ (λval_map.
+                 ∏ (λfunc_node. (fg.function_map ' func_node)
+                                ' (DRESTRICT val_map
+                                             (adjacent_nodes fg cur_var_node)))
+                   (fg.function_nodes ∩ nodes cur_subtree)
+              ) {val_map | FDOM val_map = (var_nodes fg ∩ nodes cur_subtree) ∧
+                           (∀n. n ∈ FDOM val_map ⇒
+                                LENGTH (val_map ' n) =
+                                fg.variable_length_map ' n) ∧
+                           val_map ' cur_var_node = cur_var_node_val
+                         }
+         ) (length_n_codes (fg.variable_length_map ' (cur_var_node)))
+    ) (message_domain fg)
+Proof
+  (* Want to prove equivalence for all choices of edge on fg.*)
+  
+  rpt strip_tac
+  >> qmatch_abbrev_tac ‘f = g’
+  >> gvs[GSYM fmap_EQ_THM]
+  >> conj_tac
+  >- (unabbrev_all_tac
+      >> gvs[]
+     )
+  >> gvs[fmap_EQ_THM_ALT]
+  >> qx_gen_tac ‘msg_dir_edge’
+
+  >> unabbrev_all_tac >> gvs[]
+  >> 
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The message passing algorithm will give us the same result as summing over *)
+(* the product of the terms in the factor graph.                              *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem sp_run_message_passing0_sum_prod:
+  ∀fg.
+    sp_run_message_passing0 fg =
+    FUN_FMAP
+    (λcur_var_node.
+       FUN_FMAP
+       (λcur_var_node_val.
+          ∑ (λval_map.
+               ∏ (λ(f,n). f ' (DRESTRICT val_map (adjacent_nodes fg n)))
+                 { (f,n) | f = fg.function_map ' n}
+            ) {val_map | FDOM val_map = var_nodes fg ∧
+                         (∀n. n ∈ var_nodes fg ⇒
+                              LENGTH (val_map ' n) =
+                              fg.variable_length_map ' n) ∧
+                         val_map ' cur_var_node = cur_var_node_val
+                         }
+       ) (length_n_codes (fg.variable_length_map ' cur_var_node))
+    ) (var_nodes fg)
+Proof
+  (* Expand the definition of running the message passing algorithm *)
+  qx_gen_tac ‘fg’
+  >> gvs[sp_run_message_passing0_def]
+  (* The creation of a finite map is boilerplate, and it is the same on both
+     sides. We only really care that the actual function is equivalent on its
+     domain. Use FUN_FMAP_EQ_THM to break it down so that we have to show that.
+ *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_EQ_THM]
+  >> conj_tac >- gvs[]
+  >> rpt strip_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_EQ_THM]
+  >> conj_tac >- gvs[]
+  >> rpt strip_tac
+  (* *)
+  >> 
+QED
+ *)
+
