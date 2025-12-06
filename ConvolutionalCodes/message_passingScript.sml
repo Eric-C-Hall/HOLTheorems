@@ -613,7 +613,7 @@ QED
 (*                                                                            *)
 (* The "f" at the end of "nsf", "exclf", "excl_valf" stands for "function"    *)
 (* -------------------------------------------------------------------------- *)
-Theorem generalised_distributive_law:
+(*Theorem generalised_distributive_law:
   ∀fg S ff nsf exclf excl_valf.
     INJ nsf S 𝕌(:unit + num -> bool) ∧
     pairwise DISJOINT (IMAGE nsf S) ⇒
@@ -628,7 +628,7 @@ Theorem generalised_distributive_law:
              ) S
         ) (val_map_assignments fg (BIGUNION (IMAGE nsf S)) ARB ARB)
 Proof
-QED
+QED*)
 
 (*
 gvs[Cong LHS_CONG, sum_prod_def]
@@ -773,7 +773,8 @@ Proof
          construct a mapping and satisfy this precondition *)
       >> gvs[Cong IGNORE_EQ_CONG, val_map_assignments_def]
       >> qspecl_then [‘fg’, ‘src’] assume_tac exists_val_map >> gvs[]
-      >> last_x_assum $ qspecl_then [‘val_map : unit + num |-> bool list’]
+      >> last_x_assum $ qspecl_then [‘val_map : unit + num |-> bool list’,
+                                     ‘FEMPTY’]
                       assume_tac >> gvs[]
       >> qpat_x_assum ‘FDOM val_map = _’ kall_tac
       >> qpat_x_assum ‘∀m. _ ⇒ LENGTH (val_map ' _) = _’ kall_tac
