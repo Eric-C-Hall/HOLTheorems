@@ -57,3 +57,7 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* AllCaseEqs(), fmap_EXT *)
 
 (* M-h M-t: display elapsed times for HOL commands *)
+
+(* set_trace "simplifier" 2 *)
+
+(* traces() *)

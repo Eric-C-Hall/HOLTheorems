@@ -977,22 +977,28 @@ Proof
          adjacent_SYM *)
       >> gvs[Cong extreal_sum_image_val_map_assignments_cong,
              Cong EXTREAL_PROD_IMAGE_CONG, adjacent_SYM]
-            (* Simplify FUN_FMAP followed by FAPPLY *)
-            ‘∀prev val_map.
-               prev ∈ nodes (get_underlying_graph fg) ⇒
-               DRESTRICT val_map {prev} ∈ val_map_assignments fg {prev} FEMPTY’ by cheat
-      >> gvs[]
+      (* Simplify FUN_FMAP followed by FAPPLY. In order to do this, we need to
+         know that the argument is in the domain. *)
+      >> ‘∀prev val_map.
+            prev ∈ nodes (get_underlying_graph fg) ∧
+            adjacent (get_underlying_graph fg) prev src ∧
+            val_map ∈ val_map_assignments fg (adjacent_nodes fg src) excl_val_map ⇒
+            DRESTRICT val_map {prev} ∈ val_map_assignments fg {prev} FEMPTY’
+      >- (rpt strip_tac
+          >> irule drestrict_in_val_map_assignments
+          >> qexistsl [‘excl_val_map’, ‘adjacent_nodes fg src’]
+          >> gvs[]
+         )
       >> gvs[Cong EXTREAL_SUM_IMAGE_CONG,
              Cong EXTREAL_PROD_IMAGE_CONG,
              val_map_assignments_finite,
              cj 2 FUN_FMAP_DEF]
-            
+      >> qpat_x_assum ‘∀prev val_map. _ ∧ _ ⇒ DRESTRICT _ _ ∈ _’ kall_tac
+      (* *)
+      >>
             
             
      )
-     set_trace "simplifier" 2
-  >> gvs[]
-        traces()
   >> gvs[]
 
 
