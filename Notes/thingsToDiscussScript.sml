@@ -6,7 +6,88 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+Theorem cheat1:
+  ∀val_map ns1 ns2 fg excl_val_map1 excl_val_map2.
+    val_map ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+    ns2 ⊆ ns1 ∧
+    excl_val_map2 ⊑ DRESTRICT excl_val_map1 ns2 ⇒
+    DRESTRICT val_map ns2 ∈ val_map_assignments fg ns2 excl_val_map2
+Proof
+  cheat
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This expression occurs naturally when sp_message is applied to something,  *)
+(* so automatically simplify it.                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem cheat2:
+  ∀fg f ns val_map.
+    val_map ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+    ns ⊆ ns1 ⇒
+    FUN_FMAP f (val_map_assignments fg ns FEMPTY) '
+             (DRESTRICT val_map ns) = f (DRESTRICT val_map ns)
+Proof
+  cheat
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* I am trying to rewrite FUN_FMAP f _ ' x into f x. I have cheat1 and        *)
+(* cheat2, but they each have a precondition that cannot be solved because it *)
+(* has variables that aren't specified in the postcondition and thus need to  *)
+(* be instantiated, as they are existential conditions.                       *)
+(* -------------------------------------------------------------------------- *)
 Theorem test1:
+  is_tree (get_underlying_graph fg) ∧
+  adjacent (get_underlying_graph fg) dst src ∧
+  src ≠ dst ∧
+  src ∈ nodes (get_underlying_graph fg) ∧
+  dst ∈ nodes (get_underlying_graph fg) ∧
+  (∀b. adjacent (get_underlying_graph fg) b src ⇒
+       b ∉ get_function_nodes fg) ∧
+  src ∈ get_function_nodes fg ∧
+  excl_val_map ∈ val_map_assignments fg {dst} FEMPTY
+  ⇒
+  ∑
+  (λval_map.
+     get_function_map fg ' src ' val_map *
+     ∏
+     (λprev.
+        FUN_FMAP
+        (λexcl_val_map'.
+           sum_prod fg
+                    (nodes
+                     (subtree (get_underlying_graph fg) src prev) ∪
+                     {prev}) excl_val_map')
+        (val_map_assignments fg {prev} FEMPTY) '
+        (DRESTRICT val_map {prev}))
+     {prev |
+     (prev ∈ nodes (get_underlying_graph fg) ∧
+      adjacent (get_underlying_graph fg) prev src) ∧ prev ≠ dst})
+  (val_map_assignments fg (adjacent_nodes fg src) excl_val_map) =
+  sum_prod fg
+           (nodes (subtree (get_underlying_graph fg) dst src) ∪ {dst})
+           excl_val_map
+Proof
+  rpt strip_tac
+  >> ‘∀prev. prev ∈ nodes (get_underlying_graph fg) ∧ adjacent (get_underlying_graph fg) prev src ⇒ {prev} ⊆ adjacent_nodes fg src’ by cheat
+  >> simp[Cong EXTREAL_SUM_IMAGE_CONG,
+          Cong EXTREAL_PROD_IMAGE_CONG,
+          SUBSET_DEF,
+          SPEC “excl_val_map : unit + num |-> bool list”
+               (GEN “excl_val_map1 : unit + num |-> bool list”
+                    (SPEC “adjacent_nodes fg src : unit + num -> bool”
+                          (GEN “ns1 : unit + num -> bool”
+                               (SPEC “fg: α factor_graph” FUN_FMAP_val_map_assignments_DRESTRICT))))]
+QED
+
+(* I'm struggling with trying to perform a rewrite when the precondition has things that aren't in the postcondition. This is inside a ∑ f S, and we rely on the fact that x ∈ S to rewrite f. *)
+
+(* How can I qspecl on things in the middle, while leaving the first untouched? *)
+
+(* Review val_map_assignments_cong in message_passingScript: should I move
+   the FDOM comparison into the next condition? *)
+
+Theorem test2:
   ∀s f c.
     ∑ (λx. Normal c * f x) s = Normal c * ∑ f s
 Proof

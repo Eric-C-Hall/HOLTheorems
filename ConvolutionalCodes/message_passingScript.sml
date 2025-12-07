@@ -759,9 +759,9 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Congruence relation for the set of assignments to variables: the           *)
-(* excl_val_map only needs to be the same when it is applied to values in     *)
-(* the appropriate set                                                        *)
+(* Congruence rule for the set of assignments to variables: the excl_val_map  *)
+(* only needs to be the same when it is applied to values in the appropriate  *)
+(* set                                                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem val_map_assignments_cong:
   ∀fg1 fg2 ns1 ns2 excl_val_map1 excl_val_map2.
@@ -799,18 +799,57 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* If we restrict an assignment of variables to values to a smaller subset,   *)
-(* we get an assignment of variables to values on that smaller subset,        *)
-(*                                                                            *)
+(* we get an assignment of variables to values on that smaller subset.        *)
 (* -------------------------------------------------------------------------- *)
-Theorem drestrict_in_val_map_assignments_fempty:
-  ∀val_map ns1 ns2 fg.
+Theorem drestrict_in_val_map_assignments:
+  ∀val_map ns1 ns2 fg excl_val_map1 excl_val_map2.
     val_map ∈ val_map_assignments fg ns1 excl_val_map1 ∧
-    DRESTRICT excl_val_map_1 ns2 = DRESTRICT excl_val_map_1 ns2 ⇒
+    ns2 ⊆ ns1 ∧
+    excl_val_map2 ⊑ DRESTRICT excl_val_map1 ns2 ⇒
     DRESTRICT val_map ns2 ∈ val_map_assignments fg ns2 excl_val_map2
 Proof
   rpt strip_tac
+  >> simp[val_map_assignments_def]
+  >> rpt conj_tac >> gvs[DRESTRICT_DEF]
+  >- (gvs[val_map_assignments_def]
+      >> ASM_SET_TAC[]
+     )
+  >- gvs[val_map_assignments_def]
+  >> rpt strip_tac
+  >> gvs[SUBMAP_DEF, DRESTRICT_DEF]
   >> gvs[val_map_assignments_def]
-  >> rw[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This expression occurs naturally when sp_message is applied to something,  *)
+(* so automatically simplify it.                                              *)
+(* -------------------------------------------------------------------------- *)
+Theorem FUN_FMAP_val_map_assignments_DRESTRICT:
+  ∀fg f ns val_map.
+    val_map ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+    ns ⊆ ns1 ⇒
+    FUN_FMAP f (val_map_assignments fg ns FEMPTY) '
+             (DRESTRICT val_map ns) = f (DRESTRICT val_map ns)
+Proof
+  rpt strip_tac
+  >> irule (cj 2 FUN_FMAP_DEF)
+  >> simp[]
+  >> simp[drestrict_in_val_map_assignments]
+  >> irule drestrict_in_val_map_assignments
+  >> qexistsl [‘excl_val_map1’, ‘ns1’]
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Congruence rule to specify that we would like to perform our rewrites      *)
+(* within the function of a sum, and not within the set.                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem EXTREAL_SUM_IMAGE_FUNC_CONG:
+  ∀f1 f2 S.
+    (∀x. x ∈ S ⇒ f1 x = f2 x) ⇒
+    ∑ f1 S = ∑ f2 S : extreal
+Proof
+  gvs[EXTREAL_SUM_IMAGE_CONG]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -869,7 +908,7 @@ Theorem sp_message_sum_prod:
     else
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
 Proof
-
+  
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -902,7 +941,7 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-
+              
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -938,14 +977,23 @@ Proof
          adjacent_SYM *)
       >> gvs[Cong extreal_sum_image_val_map_assignments_cong,
              Cong EXTREAL_PROD_IMAGE_CONG, adjacent_SYM]
-      (* Simplify FUN_FMAP followed by FAPPLY *)
-      >> gvs[FUN_FMAP_DEF]
-      >> gvs[Cong LHS_CONG, val_map_assignments_def]
-      >> gvs[Cong LHS_CONG, sum_prod_def]
-
+            (* Simplify FUN_FMAP followed by FAPPLY *)
+            ‘∀prev val_map.
+               prev ∈ nodes (get_underlying_graph fg) ⇒
+               DRESTRICT val_map {prev} ∈ val_map_assignments fg {prev} FEMPTY’ by cheat
+      >> gvs[]
+      >> gvs[Cong EXTREAL_SUM_IMAGE_CONG,
+             Cong EXTREAL_PROD_IMAGE_CONG,
+             val_map_assignments_finite,
+             cj 2 FUN_FMAP_DEF]
+            
+            
             
      )
-
+     set_trace "simplifier" 2
+  >> gvs[]
+        traces()
+  >> gvs[]
 
 
 
@@ -953,7 +1001,6 @@ Proof
   >> gvs[]
   (* Consider the case where the source is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-
 
   (* Any node that is adjacent to src is a variable node *)
   >> sg ‘∀prev. adjacent (get_underlying_graph fg) prev src ⇒
