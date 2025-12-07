@@ -759,6 +759,61 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Congruence relation for the set of assignments to variables: the           *)
+(* excl_val_map only needs to be the same when it is applied to values in     *)
+(* the appropriate set                                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem val_map_assignments_cong:
+  ∀fg1 fg2 ns1 ns2 excl_val_map1 excl_val_map2.
+    fg1 = fg2 ∧
+    ns1 = ns2 ∧
+    (FDOM excl_val_map1 ∩ ns2 = FDOM excl_val_map2 ∩ ns2) ∧
+    (∀x. x ∈ ns2 ∧
+         x ∈ FDOM excl_val_map1 ∧
+         x ∈ FDOM excl_val_map2 ⇒ excl_val_map1 ' x = excl_val_map2 ' x) ⇒
+    val_map_assignments fg1 ns1 excl_val_map1 =
+    val_map_assignments fg2 ns2 excl_val_map2
+Proof
+  rpt strip_tac
+  >> gvs[]
+  >> simp[SET_EQ_SUBSET]
+  (* Without loss of generality, we only need to prove that one is a subset
+        of the other in one direction *)
+  >> wlog_tac ‘¬(val_map_assignments fg1 ns1 excl_val_map1 ⊆
+                                     val_map_assignments fg1 ns1 excl_val_map2)’
+              [‘excl_val_map1’, ‘excl_val_map2’]
+  >- (Cases_on ‘val_map_assignments fg1 ns1 excl_val_map2 ⊆
+                val_map_assignments fg1 ns2 excl_val_map2’
+      >> metis_tac[SET_EQ_SUBSET])
+  >> gvs[]
+  >> pop_assum mp_tac >> gvs[]
+  (* Simplify using basic definitions *)
+  >> simp[val_map_assignments_def]
+  >> simp[SUBSET_DEF]
+  >> qx_gen_tac ‘val_map’
+  >> rpt strip_tac
+  (* *)
+  >> ‘n ∈ FDOM excl_val_map1’ by ASM_SET_TAC[]
+  >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we restrict an assignment of variables to values to a smaller subset,   *)
+(* we get an assignment of variables to values on that smaller subset,        *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem drestrict_in_val_map_assignments_fempty:
+  ∀val_map ns1 ns2 fg.
+    val_map ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+    DRESTRICT excl_val_map_1 ns2 = DRESTRICT excl_val_map_1 ns2 ⇒
+    DRESTRICT val_map ns2 ∈ val_map_assignments fg ns2 excl_val_map2
+Proof
+  rpt strip_tac
+  >> gvs[val_map_assignments_def]
+  >> rw[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
 (* nodes in that branch of the tree, where the variable node which is an      *)
@@ -883,7 +938,7 @@ Proof
          adjacent_SYM *)
       >> gvs[Cong extreal_sum_image_val_map_assignments_cong,
              Cong EXTREAL_PROD_IMAGE_CONG, adjacent_SYM]
-      (* *)
+      (* Simplify FUN_FMAP followed by FAPPLY *)
       >> gvs[FUN_FMAP_DEF]
       >> gvs[Cong LHS_CONG, val_map_assignments_def]
       >> gvs[Cong LHS_CONG, sum_prod_def]
