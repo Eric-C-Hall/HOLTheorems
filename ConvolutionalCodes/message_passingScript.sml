@@ -26,6 +26,11 @@ val _ = hide "S";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
+(* EXTREAL_SUM_IMAGE_CONG, EXTREAL_PROD_IMAGE_CONG, and                       *)
+(* extreal_sum_image_val_map_assignments_cong are particularly useful tools   *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* TODO: Consider moving generalised distributive law into its own file?      *)
 (* -------------------------------------------------------------------------- *)
 
@@ -731,6 +736,29 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Special version of congruence rule to use when summing over a set of       *)
+(* assignments of variables to values, which allows us to bring the relevant  *)
+(* information into our context during rewrites without having to expand out  *)
+(* val_map_assignments                                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem extreal_sum_image_val_map_assignments_cong:
+  ∀f g fg ns excl_val_map.
+    (∀val_map.
+       FDOM val_map = ns ∩ var_nodes fg ∧
+       (∀n. n ∈ FDOM val_map ⇒
+            LENGTH (val_map ' n) = get_variable_length_map fg ' n) ∧
+       (∀n. n ∈ FDOM val_map ∩ FDOM excl_val_map ⇒
+            val_map ' n = excl_val_map ' n) ⇒
+       f val_map = g val_map)
+    ⇒ ∑ f (val_map_assignments fg ns excl_val_map) =
+      ∑ g (val_map_assignments fg ns excl_val_map) : extreal
+Proof
+  rpt strip_tac
+  >> irule EXTREAL_SUM_IMAGE_CONG
+  >> simp[val_map_assignments_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
 (* nodes in that branch of the tree, where the variable node which is an      *)
@@ -853,18 +881,14 @@ Proof
       (* Simplify if-statement. The condition always applies in this scenario.
          Since we have adjacent _ src instead of adjacent src _, we need to use
          adjacent_SYM *)
-      >> gvs[val_map_assignments_def]
-      >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG,
-             adjacent_SYM]
-      (* Unexpand val_map_assignments to make it easier to read *)
-      >> qspecl_then [‘fg’, ‘adjacent_nodes fg src’, ‘dst’, ‘excl_var_node_val’]
-                     assume_tac (GSYM val_map_assignments_def)
-      >> gvs[]
-      >> qpat_x_assum ‘_ = val_map_assignments _ _ _ _’ kall_tac
+      >> gvs[Cong extreal_sum_image_val_map_assignments_cong,
+             Cong EXTREAL_PROD_IMAGE_CONG, adjacent_SYM]
       (* *)
+      >> gvs[FUN_FMAP_DEF]
+      >> gvs[Cong LHS_CONG, val_map_assignments_def]
       >> gvs[Cong LHS_CONG, sum_prod_def]
 
-      
+            
      )
 
 
