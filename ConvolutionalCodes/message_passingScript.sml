@@ -1,10 +1,17 @@
 Theory message_passing
 
-Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec transc transfer tree
+Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec topology transc transfer tree
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
-val _ = augment_srw_ss [rewrites[FDOM_FMAP, FUN_FMAP_DEF]];
+val _ = augment_srw_ss [rewrites[FDOM_FMAP,
+                                 FUN_FMAP_DEF,
+                                 EXTREAL_PROD_IMAGE_EMPTY,
+                                 PROD_IMAGE_EMPTY,
+                                 EXTREAL_SUM_IMAGE_EMPTY,
+                                 SUM_IMAGE_EMPTY,
+                                 PAIRWISE_EMPTY,
+                                 SUM_IMAGE_SING]];
 
 val _ = hide "S";
 
@@ -820,9 +827,26 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Bigunion for finite maps: only works on finite sets of fmaps.              *)
 (* -------------------------------------------------------------------------- *)
-Definition FBIGUNION_def:
+Definition FBIGUNION_DEF:
   FBIGUNION S = ITSET FUNION S FEMPTY
 End
+
+Theorem FBIGUNION_EMPTY[simp]:
+  FBIGUNION ∅ = FEMPTY
+Proof
+  gvs[FBIGUNION_DEF]
+QED
+
+Theorem val_map_assignments_empty[simp]:
+  ∀fg excl_val_map.
+    val_map_assignments fg ∅ excl_val_map = {FEMPTY}
+Proof
+  rpt strip_tac
+  >> gvs[val_map_assignments_def]
+  >> gvs[EXTENSION] >> qx_gen_tac ‘val_map’ >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >> gvs[GSYM fmap_EQ_THM]
+  >> gvs[EXTENSION]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
@@ -852,6 +876,17 @@ Theorem generalised_distributive_law:
         ) (val_map_assignments fg (BIGUNION (IMAGE nsf S))
                                (FBIGUNION (IMAGE excl_val_mapf S)))
 Proof
+  (* Rewrite so that FINITE S is our only assumption, so we can use induction *)
+  rpt strip_tac
+  >> NTAC 2 (pop_assum mp_tac)
+  >> SPEC_ALL_TAC
+  (* *)
+  >> Induct_on ‘S’ using FINITE_INDUCT
+  >> rpt strip_tac
+  (* Base case: S is empty *)
+  >- gvs[]
+  (* *)
+  >> 
 QED
 
 (*Theorem generalised_distributive_law:
