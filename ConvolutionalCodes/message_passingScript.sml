@@ -1,6 +1,6 @@
 Theory message_passing
 
-Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting partite_ea probability pred_set prim_rec topology transc transfer tree
+Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting marker partite_ea probability pred_set prim_rec topology transc transfer tree
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
@@ -826,6 +826,9 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* Bigunion for finite maps: only works on finite sets of fmaps.              *)
+(*                                                                            *)
+(* Possible improvement: would be nice to have a version which works on       *)
+(* infinite sets of fmaps.                                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition FBIGUNION_DEF:
   FBIGUNION S = ITSET FUNION S FEMPTY
@@ -846,6 +849,65 @@ Proof
   >> gvs[EXTENSION] >> qx_gen_tac ‘val_map’ >> EQ_TAC >> rpt strip_tac >> gvs[]
   >> gvs[GSYM fmap_EQ_THM]
   >> gvs[EXTENSION]
+QED
+
+Theorem FDOM_ITSET_FUNION_FEMPTY:
+  ∀S acc.
+    FINITE S ⇒
+    FDOM (ITSET FUNION S acc) = BIGUNION (IMAGE FDOM S) ∪ FDOM acc
+Proof
+  (* Typical FINITE_INDUCT isn't sufficient in this case because we don't know
+     which element ITSET will choose first when performing its iterations, and
+     as a result, if our large instance is e INSERT S, our smaller instance may
+     not be S, but rather an element other than e may have been removed. Thus,
+     we instead induct on the cardinality of S. Thus, we introduce a variable
+     to represent the cardinality of S.
+.
+     I initially tried proving FDOM_FBIGUNION directly, but it turns out we
+     need our inductive hypothesis to work for an arbitrary accumulator, so I
+     had to expand out FBIGUNION to allow for that *)
+  rpt strip_tac
+  >> qabbrev_tac ‘c = CARD S’ >> gs[Abbrev_def]
+  >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
+  (* Induct on cardinality *)
+  >> Induct_on ‘c’ >> rpt strip_tac >> gvs[]
+  (* Perform one iteration, so that we may reduce to a smaller instance to use
+     our inductive hypothesis *)
+  >> PURE_ONCE_REWRITE_TAC[ITSET_def]
+  >> simp[]
+  >> Cases_on ‘S = ∅’ >> gvs[]
+  (* Use inductive hypothesis on appropriate set *)
+  >> last_x_assum $ qspecl_then
+                  [‘REST S’, ‘CHOICE S ⊌ acc’]
+                  assume_tac
+  >> gvs[CARD_REST]
+  (* *)
+  >> simp[AC UNION_COMM UNION_ASSOC]
+  >> qmatch_abbrev_tac ‘s1 ∪ s2 = s1 ∪ s3’
+  >> ‘s2 = s3’ suffices_by simp[] >> simp[Abbr ‘s1’, Abbr ‘s2’, Abbr ‘s3’]
+  >> PURE_ONCE_REWRITE_TAC[GSYM BIGUNION_INSERT]
+  >> PURE_ONCE_REWRITE_TAC[GSYM IMAGE_INSERT]
+  >> metis_tac[CHOICE_INSERT_REST]
+QED
+
+Theorem FDOM_FBIGUNION:
+  ∀S.
+    FINITE S ⇒
+    FDOM (FBIGUNION S) =
+    BIGUNION (IMAGE FDOM S)
+Proof
+  rpt strip_tac
+  >> gvs[FBIGUNION_DEF]
+  >> gvs[FDOM_ITSET_FUNION_FEMPTY]
+QED
+
+Theorem FBIGUNION_INSERT:
+  ∀e S.
+    FINIET S ⇒
+    DISJOINT (FDOM e) () ⇒
+    FBIGUNION (e INSERT S) =
+    FUNION e (FBIGUNION S)
+Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -897,7 +959,11 @@ Proof
   >> gvs[INJ_INSERT]
   (* The inductive hypothesis has been applied, so get rid of it *)
   >> qpat_x_assum ‘∏ _ _ = ∑ (λval_map. ∏ _ _) _’ kall_tac
-  (* *)
+  (* Just as we reduced to a smaller instance on the LHS, now reduce to a
+     smaller instance on the RHS to make the LHS equivalent to the RHS *)
+  >>
+  
+  >> 
   >>
 QED
 
@@ -1047,9 +1113,9 @@ Proof
          know that the argument is in the domain. *)
       >> sg ‘∀prev val_map.
                prev ∈ nodes (get_underlying_graph fg) ∧
-            adjacent (get_underlying_graph fg) prev src ∧
-            val_map ∈ val_map_assignments fg (adjacent_nodes fg src) excl_val_map ⇒
-            DRESTRICT val_map {prev} ∈ val_map_assignments fg {prev} FEMPTY’
+               adjacent (get_underlying_graph fg) prev src ∧
+               val_map ∈ val_map_assignments fg (adjacent_nodes fg src) excl_val_map ⇒
+               DRESTRICT val_map {prev} ∈ val_map_assignments fg {prev} FEMPTY’
       >- (rpt strip_tac
           >> irule drestrict_in_val_map_assignments
           >> qexistsl [‘excl_val_map’, ‘adjacent_nodes fg src’]
@@ -1064,7 +1130,7 @@ Proof
          we'll have to use the generalised distributive law. *)
       >> gvs[Cong LHS_CONG, sum_prod_def]
 
-         
+            
 
       (* -------------------------------------------------------------------- *)
       (* Π Σ f S T                                                            *)
