@@ -793,12 +793,29 @@ QED
 (* Perform a repeated sum over a function which takes an assignment of nodes  *)
 (* to values and returns an extreal                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition rpt_val_map_assignments_sum:
+Definition rpt_val_map_assignments_sum_def:
   rpt_val_map_assignments_sum fg f [] val_map = f val_map : extreal ∧
   rpt_val_map_assignments_sum fg f (l::ls) val_map =  
   ∑ (λval_map_new. rpt_val_map_assignments_sum fg f ls val_map_new)
     (val_map_assignments fg (l ∪ FDOM val_map) val_map)
 End
+
+Theorem rpt_val_map_assignments_sum_empty[simp]:
+  ∀fg f.
+    rpt_val_map_assignments_sum fg f [] = f
+Proof
+  gvs[FUN_EQ_THM, rpt_val_map_assignments_sum_def]
+QED
+
+Theorem rpt_val_map_assignments_sum_sing:
+  ∀fg f l val_map.
+    rpt_val_map_assignments_sum fg f [l] val_map =
+    ∑ f (val_map_assignments fg (l ∪ FDOM val_map) val_map)
+Proof
+  rpt strip_tac
+  >> gvs[rpt_val_map_assignments_sum_def]
+  >> gvs[SF ETA_ss]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
@@ -971,8 +988,8 @@ Proof
              Cong EXTREAL_PROD_IMAGE_CONG, adjacent_SYM]
       (* Simplify FUN_FMAP followed by FAPPLY. In order to do this, we need to
          know that the argument is in the domain. *)
-      >> ‘∀prev val_map.
-            prev ∈ nodes (get_underlying_graph fg) ∧
+      >> sg ‘∀prev val_map.
+               prev ∈ nodes (get_underlying_graph fg) ∧
             adjacent (get_underlying_graph fg) prev src ∧
             val_map ∈ val_map_assignments fg (adjacent_nodes fg src) excl_val_map ⇒
             DRESTRICT val_map {prev} ∈ val_map_assignments fg {prev} FEMPTY’
@@ -986,9 +1003,11 @@ Proof
              val_map_assignments_finite,
              cj 2 FUN_FMAP_DEF]
       >> qpat_x_assum ‘∀prev val_map. _ ∧ _ ⇒ DRESTRICT _ _ ∈ _’ kall_tac
-      (* *)
+      (* Expand out sum_prod on the left so that we can see the place where
+         we'll have to use the generalised distributive law. *)
+      >> gvs[Cong LHS_CONG, sum_prod_def]
 
-                      
+         
 
       (* -------------------------------------------------------------------- *)
       (* Π Σ f S T                                                            *)
@@ -997,8 +1016,8 @@ Proof
       (* -------------------------------------------------------------------- *)
 
       >>
-            
-            
+      
+      
      )
   >> gvs[]
 
