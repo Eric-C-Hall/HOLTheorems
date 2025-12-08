@@ -818,6 +818,13 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Bigunion for finite maps: only works on finite sets of fmaps.              *)
+(* -------------------------------------------------------------------------- *)
+Definition FBIGUNION_def:
+  FBIGUNION S = ITSET FUNION S FEMPTY
+End
+
+(* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
 (*                                                                            *)
 (* The basic idea is Σ Π f = Π Σ f.                                           *)
@@ -826,24 +833,27 @@ QED
 (* for f3, etc                                                                *)
 (* - no two choices of f can involve the same variables.                      *)
 (*                                                                            *)
-(* The "f" at the end of "nsf", "exclf", "excl_valf" stands for "function"    *)
+(* The "f" at the end of "nsf", "excl_val_mapf" stands for "function"    *)
 (* -------------------------------------------------------------------------- *)
 Theorem generalised_distributive_law:
-  ∀fg S ff nsf exclf excl_valf.
+  ∀fg S ff nsf excl_val_mapf.
+    FINITE S ∧
     INJ nsf S 𝕌(:unit + num -> bool) ∧
     pairwise DISJOINT (IMAGE nsf S) ⇒
     ∏ (λk.
          ∑ (λval_map.
               ff k val_map
-           ) (val_map_assignments fg (nsf k) (exclf k) (excl_valf k))
+           ) (val_map_assignments fg (nsf k) (excl_val_mapf k))
       ) S
     = ∑ (λval_map.
            ∏ (λk.
                 ff k val_map
              ) S
-        ) (val_map_assignments fg (BIGUNION (IMAGE nsf S)) ARB ARB)
+        ) (val_map_assignments fg (BIGUNION (IMAGE nsf S))
+                               (FBIGUNION (IMAGE excl_val_mapf S)))
 Proof
 QED
+
 (*Theorem generalised_distributive_law:
   ∀fg S ff nsf exclf excl_valf.
     INJ nsf S 𝕌(:unit + num -> bool) ∧
