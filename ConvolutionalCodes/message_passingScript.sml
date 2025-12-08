@@ -333,14 +333,20 @@ QED
 (*                                                                            *)
 (* fg: the factor graph                                                       *)
 (* ns: the set of nodes                                                       *)
-(* vals: a finite map from nodes to values. val_map is the same as vals on    *)
-(*       these nodes. We expect that these values have the appropriate        *)
-(*       lengths                                                              *)
+(* excl_val_map: a finite map from nodes to values. val_map is the same as    *)
+(*               excl_val_map on these nodes. We expect that these values     *)
+(*               have the appropriate lengths                                 *)
 (*                                                                            *)
 (* This currently overlaps with var_assignments. val_map_assignments works    *)
 (* with an abstract factor graph, which is its advantage. By contrast,        *)
 (* var_assignments is used in the definition of abstract factor graphs, so    *)
 (* we can't combine the two definitions easily.                               *)
+(*                                                                            *)
+(* It is a common pattern to have an outer sum over all assignments to a      *)
+(* subset of variables, and then within that sum, sum over all assignments to *)
+(* a greater subset of variables while keeping the previous assignment fixed  *)
+(* by including it in excl_val_map. This allows us to sum over a few          *)
+(* variables at a time.                                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition val_map_assignments_def:
   val_map_assignments fg ns excl_val_map =
@@ -414,12 +420,6 @@ QED
 (* To ensure termination, this only returns a sensible result if the factor   *)
 (* graph we are working on is a tree. If it is not a tree, we return the map  *)
 (* which always returns 0.                                                    *)
-(*                                                                            *)
-(* TODO: is it possible to remove the if-statements that are only added       *)
-(*       because the termination proof doesn't recognise that certain         *)
-(*       variables satisfy certain properties? Specifically, it doesn't       *)
-(*       recognise that, for example,  Σ f S means that every input given to  *)
-(*       f is in S.                                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition sp_message_def:
   sp_message fg src dst =
@@ -628,50 +628,27 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
 (*                                                                            *)
-(* Σ over sets Σ                                                              *)
+(* The basic idea is Σ Π f = Π Σ f.                                           *)
+(* - The LHS sum is a repeated sum, where we sum over the variables           *)
+(* appropriate for f1, then those appropriate for f2, then those appropriate  *)
+(* for f3, etc                                                                *)
+(* - no two choices of f can involve the same variables.                      *)
 (*                                                                            *)
 (*                                                                            *)
-(* Richardson and Urbanke write this as something along the lines of          *)
-(* Σ_~z Π_k=1^K g_k(z, ...) = Π_k=1^K Σ_~z g_k(z, ...), where the variables   *)
-(* in each g_k are distinct, except for z.                                    *)
-(*                                                                            *)
-(* But HOL4 has no concept of a named variable, such as "x", "y", or "z", so  *)
-(* it's not straightforward to sum out a function over a particular variable. *)
-(* Rather, the arguments to a function are provided in a particular order.    *)
 (*                                                                            *)
 (* Thus, I use an alternative, more general representation of the generalised *)
 (* distributive law.                                                          *)
 (*                                                                            *)
-(* Again, the basic idea is Σ Π f = Π Σ f, where the things being summed over *)
-(* for one choice of f have no effect for any other choice of f.              *)
-(*                                                                            *)
-(* We split the sum up so that when it                                        *)
 (*                                                                            *)
 (*                                                                            *)
-(* If we are taking a sum over a set of sets, over a sum over the current     *)
-(* choice of set, over a product, then this is equivalent                     *)
 (*                                                                            *)
-
-(* -------------------------------------------------------------------------- *)
-(*Theorem generalised_distributive_law:
-  ∀f S' T.
-    ∑ (λS. ∑ (λx. ∏ (λy. f x y) T) S) S' = ∏ (λy. ∑ (λx. f x y) (S' y)) T : extreal
-Proof
-  rpt strip_tac
-  >> 
-QED
-
-∑ (λx. ∏ (λy. f x y) T) S = ∏ (λy. ∑ (λx. f x y) S) T : extreal
- *)
-
-(* -------------------------------------------------------------------------- *)
 (* Π Σ f = Σ Π f                                                              *)
 (* where the variables summed over by the sums are disjoint, and the values   *)
 (* of each function only depend on the variables in the corresponding sum.    *)
 (*                                                                            *)
 (* The "f" at the end of "nsf", "exclf", "excl_valf" stands for "function"    *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem generalised_distributive_law:
+Theorem generalised_distributive_law:
   ∀fg S ff nsf exclf excl_valf.
     INJ nsf S 𝕌(:unit + num -> bool) ∧
     pairwise DISJOINT (IMAGE nsf S) ⇒
@@ -686,7 +663,7 @@ QED
              ) S
         ) (val_map_assignments fg (BIGUNION (IMAGE nsf S)) ARB ARB)
 Proof
-QED*)
+QED
 
 (*
 gvs[Cong LHS_CONG, sum_prod_def]
@@ -995,6 +972,15 @@ Proof
              cj 2 FUN_FMAP_DEF]
       >> qpat_x_assum ‘∀prev val_map. _ ∧ _ ⇒ DRESTRICT _ _ ∈ _’ kall_tac
       (* *)
+
+                      
+
+      (* -------------------------------------------------------------------- *)
+      (* Π Σ f S T                                                            *)
+      (*                                                                      *)
+      (*                                                                      *)
+      (* -------------------------------------------------------------------- *)
+
       >>
             
             
