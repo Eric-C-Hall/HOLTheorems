@@ -589,7 +589,7 @@ Proof
                  else
                    REPLICATE (get_variable_length_map fg ' m) ARB)
               (ns ∩ var_nodes fg)’
-  >> gvs[]
+  >> gvs[finite_inter_var_nodes]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -623,46 +623,6 @@ Theorem IGNORE_EQ_CONG:
     LHS = RHS ⇔ LHS = RHS
 Proof
   metis_tac[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* The generalised distributive law.                                          *)
-(*                                                                            *)
-(* The basic idea is Σ Π f = Π Σ f.                                           *)
-(* - The LHS sum is a repeated sum, where we sum over the variables           *)
-(* appropriate for f1, then those appropriate for f2, then those appropriate  *)
-(* for f3, etc                                                                *)
-(* - no two choices of f can involve the same variables.                      *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* Thus, I use an alternative, more general representation of the generalised *)
-(* distributive law.                                                          *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* Π Σ f = Σ Π f                                                              *)
-(* where the variables summed over by the sums are disjoint, and the values   *)
-(* of each function only depend on the variables in the corresponding sum.    *)
-(*                                                                            *)
-(* The "f" at the end of "nsf", "exclf", "excl_valf" stands for "function"    *)
-(* -------------------------------------------------------------------------- *)
-Theorem generalised_distributive_law:
-  ∀fg S ff nsf exclf excl_valf.
-    INJ nsf S 𝕌(:unit + num -> bool) ∧
-    pairwise DISJOINT (IMAGE nsf S) ⇒
-    ∏ (λk.
-         ∑ (λval_map.
-              ff k val_map
-           ) (val_map_assignments fg (nsf k) (exclf k) (excl_valf k))
-      ) S
-    = ∑ (λval_map.
-           ∏ (λk.
-                ff k val_map
-             ) S
-        ) (val_map_assignments fg (BIGUNION (IMAGE nsf S)) ARB ARB)
-Proof
 QED
 
 (*
@@ -799,7 +759,7 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* This expression occurs naturally when sp_message is applied to something,  *)
-(* so automatically simplify it.                                              *)
+(* so simplify it.                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem FUN_FMAP_val_map_assignments_DRESTRICT:
   ∀fg f ns val_map.
@@ -828,6 +788,61 @@ Theorem EXTREAL_SUM_IMAGE_FUNC_CONG:
 Proof
   gvs[EXTREAL_SUM_IMAGE_CONG]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* Perform a repeated sum over a function which takes an assignment of nodes  *)
+(* to values and returns an extreal                                           *)
+(* -------------------------------------------------------------------------- *)
+Definition rpt_val_map_assignments_sum:
+  rpt_val_map_assignments_sum fg f [] val_map = f val_map : extreal ∧
+  rpt_val_map_assignments_sum fg f (l::ls) val_map =  
+  ∑ (λval_map_new. rpt_val_map_assignments_sum fg f ls val_map_new)
+    (val_map_assignments fg (l ∪ FDOM val_map) val_map)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The generalised distributive law.                                          *)
+(*                                                                            *)
+(* The basic idea is Σ Π f = Π Σ f.                                           *)
+(* - The LHS sum is a repeated sum, where we sum over the variables           *)
+(* appropriate for f1, then those appropriate for f2, then those appropriate  *)
+(* for f3, etc                                                                *)
+(* - no two choices of f can involve the same variables.                      *)
+(*                                                                            *)
+(* The "f" at the end of "nsf", "exclf", "excl_valf" stands for "function"    *)
+(* -------------------------------------------------------------------------- *)
+Theorem generalised_distributive_law:
+  ∀fg S ff nsf exclf excl_valf.
+    INJ nsf S 𝕌(:unit + num -> bool) ∧
+    pairwise DISJOINT (IMAGE nsf S) ⇒
+    ∏ (λk.
+         ∑ (λval_map.
+              ff k val_map
+           ) (val_map_assignments fg (nsf k) (exclf k) (excl_valf k))
+      ) S
+    = ∑ (λval_map.
+           ∏ (λk.
+                ff k val_map
+             ) S
+        ) (val_map_assignments fg (BIGUNION (IMAGE nsf S)) ARB ARB)
+Proof
+QED
+(*Theorem generalised_distributive_law:
+  ∀fg S ff nsf exclf excl_valf.
+    INJ nsf S 𝕌(:unit + num -> bool) ∧
+    pairwise DISJOINT (IMAGE nsf S) ⇒
+    ∏ (λk.
+         ∑ (λval_map.
+              ff k val_map
+           ) (val_map_assignments fg (nsf k) (exclf k) (excl_valf k))
+      ) S
+    = ∑ (λval_map.
+           ∏ (λk.
+                ff k val_map
+             ) S
+        ) (val_map_assignments fg (BIGUNION (IMAGE nsf S)) ARB ARB)
+Proof
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
