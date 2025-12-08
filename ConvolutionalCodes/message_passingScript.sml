@@ -901,13 +901,109 @@ Proof
   >> gvs[FDOM_ITSET_FUNION_FEMPTY]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* A stronger version of ITSET_REDUCTION.                                     *)
+(*                                                                            *)
+(* We only require the assumption of associativity and commutativity on the   *)
+(* set we are iterating over, and not in general.                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem ITSET_REDUCTION':
+  ∀f s e b.
+    (∀x y z.
+       x ∈ e INSERT s ∧
+       y ∈ e INSERT s ∧
+       z ∈ e INSERT s ⇒
+       f x (f y z) = f y (f x z)) ∧
+    FINITE s ∧
+    e ∉ s ⇒
+    ITSET f (e INSERT s) b = f e (ITSET f s b)
+Proof
+  rpt strip_tac
+  (* We want to use ITSET_REDUCTION, but our function isn't AC in general, only
+     on the set. It suffices to use ITSET_REDUCTION on a function that is AC in
+     general and also agrees on the function we are working with on the set.
+.
+     If the set is univeral, we immediately have our result from
+     ITSET_REDUCTION.
+.
+     Otherwise, we can find an element out of the set. Then when applying our
+     function to anything out of the set, map it to the chosen element out of
+     the set. Thus, it will satisfy AC out of the set, and we already know it
+     satisfies AC in the set.
+   *)
+  >> Cases_on ‘∀x. x ∈ e INSERT s’
+  >- simp[ITSET_REDUCTION]
+  >> gvs[Excl "IN_INSERT"]
+  (* Our new function *)
+  >> qabbrev_tac ‘g = (λin1 in2. if in1 ∈ e INSERT s ∧ in2 ∈ e INSERT s
+                                 then f in1 in2 else x)’
+  >> gs[Abbrev_def, Excl "IN_INSERT"]
+  (* Our new function is AC *)
+  >> sg ‘(∀x y z. g x (g y z) = g y (g x z))’
+  >- (rpt strip_tac
+      (* If any individual input is out of the range, LHS = RHS = x*)
+      >> Cases_on ‘x' ∉ e INSERT s’ >- gs[]
+      >> Cases_on ‘y ∉ e INSERT s’ >- gs[]
+      >> Cases_on ‘z ∉ e INSERT s’ >- gs[]
+      (* If all inputs are in the set *)
+      >> gvs[Excl "IN_INSERT"]
+      >> rw[Excl "IN_INSERT"]
+     )
+  >> sg ‘ITSET f (e INSERT s) b = ITSET g (e INSERT s) b’
+  >- (gvs[]
+      >> irule ITSET_CONG
+      >> REVERSE (rpt conj_tac)
+      >- simp[] >- simp[]
+      >> rpt strip_tac
+      >> rw[]
+      >> gvs[]
+            
+      >> rpt strip_tac >> simp
+      >- (rw[]
+          >> gvs[]
+          >> metis_tac[]
+         )
+      >> gvs[]
+     )
+
+     ITSET_CONG
+     
+  >> ITSET_REDUCTION
+     
+  >> 
+  ITSET_REDUCTION      
+QED
+
 Theorem FBIGUNION_INSERT:
   ∀e S.
-    FINIET S ⇒
-    DISJOINT (FDOM e) () ⇒
+    FINITE S ∧
+    DISJOINT (FDOM e) (FDOM (FBIGUNION S)) ⇒
     FBIGUNION (e INSERT S) =
     FUNION e (FBIGUNION S)
 Proof
+  rpt strip_tac
+  >> simp[]
+  >> Cases_on ‘e ∈ S’
+  >- (gvs[ABSORPTION_RWT]
+      >> gvs[FDOM_FBIGUNION]
+      >> last_x_assum $ qspecl_then [‘FDOM e’] assume_tac
+      >> gvs[]
+      >> ‘FDOM e = ∅’ by metis_tac[]
+      >> gvs[FDOM_EQ_EMPTY]
+     )
+  >> gvs[FBIGUNION_DEF]
+  >> DEP_PURE_ONCE_REWRITE_TAC[ITSET_REDUCTION]
+
+  >> gvs[FUNION_COMM]
+  >> simp[]
+
+  >> conj_tac
+  >- (simp[]
+     )
+     
+     ITSET_REDUCTION
+     
+  >> gvs[FBIGUNION_DEF]
 QED
 
 (* -------------------------------------------------------------------------- *)
