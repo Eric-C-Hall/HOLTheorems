@@ -851,10 +851,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
 (*                                                                            *)
-(* The basic idea is Σ Π f = Π Σ f.                                           *)
-(* - The LHS sum is a repeated sum, where we sum over the variables           *)
-(* appropriate for f1, then those appropriate for f2, then those appropriate  *)
-(* for f3, etc                                                                *)
+(* The basic idea is Π Σ f = Σ Π f.                                           *)
+(* - In the LHS, the sum depends only on the variables appropriate to the     *)
+(*   current choice of f, whereas in the RHS, the sum depends on all          *)
+(*   variables in any f.                                                      *)
 (* - no two choices of f can involve the same variables.                      *)
 (*                                                                            *)
 (* The "f" at the end of "nsf", "excl_val_mapf" stands for "function"    *)
@@ -873,8 +873,11 @@ Theorem generalised_distributive_law:
            ∏ (λk.
                 ff k val_map
              ) S
-        ) (val_map_assignments fg (BIGUNION (IMAGE nsf S))
-                               (FBIGUNION (IMAGE excl_val_mapf S)))
+        ) (val_map_assignments
+           fg
+           (BIGUNION (IMAGE nsf S))
+           (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))
+          )
 Proof
   (* Rewrite so that FINITE S is our only assumption, so we can use induction *)
   rpt strip_tac
@@ -885,8 +888,17 @@ Proof
   >> rpt strip_tac
   (* Base case: S is empty *)
   >- gvs[]
+  (* Reduce to smaller instance of product to allow inductive hypothesis to be
+     applied *)
+  >> gvs[PROD_IMAGE_INSERT]
+  (* Ready the inductive hypothesis to be applied *)
+  >> last_x_assum (qspecl_then [‘excl_val_mapf’, ‘ff’, ‘fg’, ‘nsf’] assume_tac)
+  >> gvs[PAIRWISE_INSERT]
+  >> gvs[INJ_INSERT]
+  (* The inductive hypothesis has been applied, so get rid of it *)
+  >> qpat_x_assum ‘∏ _ _ = ∑ (λval_map. ∏ _ _) _’ kall_tac
   (* *)
-  >> 
+  >>
 QED
 
 (*Theorem generalised_distributive_law:
