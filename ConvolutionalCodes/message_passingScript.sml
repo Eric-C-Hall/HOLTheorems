@@ -907,10 +907,8 @@ QED
 (* We only require the assumption of associativity and commutativity on the   *)
 (* set we are iterating over, and not in general.                             *)
 (*                                                                            *)
-(* -------------------                                                        *)
-(* See also SUBSET_COMMUTING_ITSET_REDUCTION: does this pre-existing theorem  *)
-(* already do what we're trying to prove here? Seems a bit different.         *)
-(* -------------------                                                        *)
+(* See also SUBSET_COMMUTING_ITEST_REDUCTION: this proves a similar thing,    *)
+(* but it does not seem to suffice for my purposes.                           *)
 (*                                                                            *)
 (* It is tricky to try to prove this using induction. Initially, I was        *)
 (* wanting to induct on the size of the set, apply a single iteration of      *)
@@ -921,7 +919,8 @@ QED
 (* in the accumulator, in the innermost part of the sequence of function      *)
 (* applications is equivalent to applying it in the outermost part of the     *)
 (* sequence of function applications. Perhaps we could prove this by doing    *)
-(* a second induction. The second issue is that if the iteration of ITSET     *)
+(* a second induction. This appears to be how the initial implementation of   *)
+(* ITSET_REDUCTION The second issue is that if the iteration of ITSET     *)
 (* chooses something other than e, then we can use the inductive hypothesis,  *)
 (* but while we want to get the result ITSET f S b, we actually get           *)
 (* ITSET f (S DELETE x) (f x b). It is unclear that these are equivalent      *)
@@ -943,7 +942,7 @@ QED
 (* set, so if we naively change this function to always the same value if an  *)
 (* input is not in the set, we may break the property we need.                *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem ITSET_REDUCTION_GEN:
+Theorem ITSET_REDUCTION_GEN:
   ∀f s e b.
   (∀x y z.
      x ∈ e INSERT s ∧
@@ -953,9 +952,9 @@ QED
   e ∉ s ⇒
   ITSET f (e INSERT s) b = f e (ITSET f s b)
 Proof
-  (* --- First approach --- *)
   (* We induct over the size of e INSERT s. When we take an element out, if it
-     is not e, our result is trivial by inductive hypothesis. *)
+     is not e, then the inductive hypothesis applies: we use a lemma to move f
+     from the accumulator to the outside. *)
   rpt strip_tac
   >> qabbrev_tac ‘c = CARD s’
   >> gs[Abbrev_def]
@@ -1023,7 +1022,7 @@ Proof
       >> 
       ITSET_REDUCTION      
 QED
- *)
+
 
 Theorem FBIGUNION_INSERT:
   ∀e S.
@@ -1043,8 +1042,7 @@ Proof
       >> gvs[FDOM_EQ_EMPTY]
      )
   >> gvs[FBIGUNION_DEF]
-  >> qspecl_then [‘FUNION’, ‘S’, ‘’] assume_tac
-                 SUBSET_COMMUTING_ITSET_RECURSES
+  >> 
         
   >> irule SUBSET_COMMUTING_ITSET_RECURSES
            
