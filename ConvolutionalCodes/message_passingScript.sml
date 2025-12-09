@@ -907,7 +907,7 @@ QED
 (* We only require the assumption of associativity and commutativity on the   *)
 (* set we are iterating over, and not in general.                             *)
 (*                                                                            *)
-(* See also SUBSET_COMMUTING_ITEST_REDUCTION: this proves a similar thing,    *)
+(* See also SUBSET_COMMUTING_ITSET_REDUCTION: this proves a similar thing,    *)
 (* but it does not seem to suffice for my purposes.                           *)
 (*                                                                            *)
 (* It is tricky to try to prove this using induction. Initially, I was        *)
