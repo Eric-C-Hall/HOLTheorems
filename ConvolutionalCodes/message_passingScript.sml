@@ -902,23 +902,73 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* A stronger version of ITSET_REDUCTION.                                     *)
+(* A generalised version of ITSET_REDUCTION.                                  *)
 (*                                                                            *)
 (* We only require the assumption of associativity and commutativity on the   *)
 (* set we are iterating over, and not in general.                             *)
+(*                                                                            *)
+(* -------------------                                                        *)
+(* See also SUBSET_COMMUTING_ITSET_REDUCTION: does this pre-existing theorem  *)
+(* already do what we're trying to prove here? Seems a bit different.         *)
+(* -------------------                                                        *)
+(*                                                                            *)
+(* It is tricky to try to prove this using induction. Initially, I was        *)
+(* wanting to induct on the size of the set, apply a single iteration of      *)
+(* ITSET on the LHS, and use the inductive hypothesis. However, this runs     *)
+(* into two problems: firstly, if the iteration of ITSET chooses e, then      *)
+(* e is suddenly in the accumulator, and because it isn't in the set, our     *)
+(* inductive hypothesis doesn't apply, and it isn't obvious that applying f   *)
+(* in the accumulator, in the innermost part of the sequence of function      *)
+(* applications is equivalent to applying it in the outermost part of the     *)
+(* sequence of function applications. Perhaps we could prove this by doing    *)
+(* a second induction. The second issue is that if the iteration of ITSET     *)
+(* chooses something other than e, then we can use the inductive hypothesis,  *)
+(* but while we want to get the result ITSET f S b, we actually get           *)
+(* ITSET f (S DELETE x) (f x b). It is unclear that these are equivalent      *)
+(* because ITSETs on different sets may choose their elements in a different  *)
+(* order. In particular, x was chosen from e INSERT S, but now that we are    *)
+(* choosing an element from S instead, we may not                             *)
+(*                                                                            *)
+(* An alternative approach is to try to find a function which is equivalent   *)
+(* to f if the first element is in the set (for all choices of second,        *)
+(* argument, including those not in the set) but is otherwise modified to     *)
+(* satisfy the required condition. Then we can use ITSET_REDUCTION to solve.  *)
+(* Initially, I considered setting the function to a specific arbitrary value *)
+(* not in the set if either argument was not in the set, but this fails       *)
+(* because the function needs to be the same if the left element is in the    *)
+(* set for arbitrary right elements. Perhaps if we know b is in the set and   *)
+(* the set is closed under f, we would only need the function to be the same  *)
+(* if both elements are in the set? Another problem is the fact that if       *)
+(* we apply f to x and y in the set, we may end up with an element not in the *)
+(* set, so if we naively change this function to always the same value if an  *)
+(* input is not in the set, we may break the property we need.                *)
 (* -------------------------------------------------------------------------- *)
-Theorem ITSET_REDUCTION':
+(*Theorem ITSET_REDUCTION_GEN:
   ∀f s e b.
-    (∀x y z.
-       x ∈ e INSERT s ∧
-       y ∈ e INSERT s ∧
-       z ∈ e INSERT s ⇒
-       f x (f y z) = f y (f x z)) ∧
-    FINITE s ∧
-    e ∉ s ⇒
-    ITSET f (e INSERT s) b = f e (ITSET f s b)
+  (∀x y z.
+     x ∈ e INSERT s ∧
+     y ∈ e INSERT s ⇒
+     f x (f y z) = f y (f x z)) ∧
+  FINITE s ∧
+  e ∉ s ⇒
+  ITSET f (e INSERT s) b = f e (ITSET f s b)
 Proof
+  (* --- First approach --- *)
+  (* We induct over the size of e INSERT s. When we take an element out, if it
+     is not e, our result is trivial by inductive hypothesis. *)
   rpt strip_tac
+  >> qabbrev_tac ‘c = CARD s’
+  >> gs[Abbrev_def]
+  >> rpt $ pop_assum mp_tac >> SPEC_ALL_TAC
+  (* Perform the induction *)
+  >> Induct_on ‘c’ >> rpt strip_tac >> gvs[]
+  (* Step once over ITSET on the left so we get a smaller set to use our
+     inductive hypothesis on. *)
+  >> simp[Once ITSET_def, Cong LHS_CONG]
+  (* Instantiate our inductive hypothesis with the correct values *)
+  >> last_x_assum (qspecl_then [‘f (CHOICE (e INSERT s)) b’, ‘e’, ‘f’] assume_tac)
+
+  (* --- Second approach --- *) 
   (* We want to use ITSET_REDUCTION, but our function isn't AC in general, only
      on the set. It suffices to use ITSET_REDUCTION on a function that is AC in
      general and also agrees on the function we are working with on the set.
@@ -970,9 +1020,10 @@ Proof
      
   >> ITSET_REDUCTION
      
-  >> 
-  ITSET_REDUCTION      
+      >> 
+      ITSET_REDUCTION      
 QED
+ *)
 
 Theorem FBIGUNION_INSERT:
   ∀e S.
@@ -992,18 +1043,13 @@ Proof
       >> gvs[FDOM_EQ_EMPTY]
      )
   >> gvs[FBIGUNION_DEF]
-  >> DEP_PURE_ONCE_REWRITE_TAC[ITSET_REDUCTION]
-
-  >> gvs[FUNION_COMM]
+  >> qspecl_then [‘FUNION’, ‘S’, ‘’] assume_tac
+                 SUBSET_COMMUTING_ITSET_RECURSES
+        
+  >> irule SUBSET_COMMUTING_ITSET_RECURSES
+           
+  >> irule ITSET_REDUCTION'
   >> simp[]
-
-  >> conj_tac
-  >- (simp[]
-     )
-     
-     ITSET_REDUCTION
-     
-  >> gvs[FBIGUNION_DEF]
 QED
 
 (* -------------------------------------------------------------------------- *)
