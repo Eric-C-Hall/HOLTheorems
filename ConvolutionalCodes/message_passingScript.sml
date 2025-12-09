@@ -901,6 +901,87 @@ Proof
   >> gvs[FDOM_ITSET_FUNION_FEMPTY]
 QED
 
+Theorem REST_INSERT:
+  ∀x S.
+    REST (x INSERT S) =
+    (if CHOICE (x INSERT S) = x
+     then
+       S DELETE x
+     else
+       x INSERT (S DELETE (CHOICE (x INSERT S)))
+    )
+Proof
+  rpt strip_tac
+  >> rw[] >> gvs[REST_DEF, DELETE_INSERT, INSERT_DELETE]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A generalised version of COMMUTING_ITSET_INSERT                            *)
+(*                                                                            *)
+(* We only require the assumption of associativity and commutativity on the   *)
+(* set we are iterating over, and not in general.                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem COMMUTING_ITSET_INSERT_GEN:
+  ∀f e S acc.
+    (∀x y z.
+       x ∈ e INSERT S ∧
+       y ∈ e INSERT S ⇒
+       f x (f y z) = f y (f x z)) ∧
+    FINITE S ⇒
+    ITSET f (e INSERT S) acc = ITSET f (S DELETE e) (f e acc)
+Proof
+  (* Prepare for induction on the cardinality of S *)
+  rpt strip_tac
+  >> qabbrev_tac ‘c = CARD S’
+  >> gs[Abbrev_def]
+  >> rpt (pop_assum mp_tac)
+  >> SPEC_ALL_TAC
+  (* Induction on the cardinality of S *)
+  >> Induct_on ‘c’ >> rpt strip_tac >> gvs[]
+  (* Expand out according to the definition of ITSET once on the left hand side
+     to reduce to a smaller set so we can use the inductive hypothesis. *)
+  >> simp[Once ITSET_def, Cong LHS_CONG]
+  (* The case where we chose e as our first choice to iterate over *)
+  >> Cases_on ‘CHOICE (e INSERT S) = e’
+  >- (simp[REST_DEF]
+      >> simp[DELETE_INSERT])
+  (* The case where we iterate over another element as our first choice.
+     In this case, e is in the REST, so we can use our inductive hypothesis *)
+  >> 
+  
+  >> rw[]
+       
+  >> simp[Once ITSET_def, Cong RHS_CONG]
+  >> rw[]
+  >- (Cases_on ‘e = e'’ >> gvs[]
+      >> gvs[EXTENSION]
+      >> metis_tac[]
+     )
+  >> gvs[]
+     )
+     
+     rpt strip_tac
+  >> 
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* A generalised version of COMMUTING_ITSET_RECURSES                          *)
+(*                                                                            *)
+(* We only require the assumption of associativity and commutativity on the   *)
+(* set we are iterating over, and not in general.                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem COMMUTING_ITSET_RECURSES_GEN:
+  ∀e S f acc.
+    (∀x y z.
+       x ∈ e INSERT S ∧
+       y ∈ e INSERT S ⇒
+       f x (f y z) = f y (f x z)) ∧
+    FINITE S ⇒
+    ITSET f (e INSERT S) acc = f e (ITSET f (S DELETE e) acc)
+Proof
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A generalised version of ITSET_REDUCTION.                                  *)
 (*                                                                            *)
@@ -944,13 +1025,13 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem ITSET_REDUCTION_GEN:
   ∀f s e b.
-  (∀x y z.
-     x ∈ e INSERT s ∧
-     y ∈ e INSERT s ⇒
-     f x (f y z) = f y (f x z)) ∧
-  FINITE s ∧
-  e ∉ s ⇒
-  ITSET f (e INSERT s) b = f e (ITSET f s b)
+    (∀x y z.
+       x ∈ e INSERT s ∧
+       y ∈ e INSERT s ⇒
+       f x (f y z) = f y (f x z)) ∧
+    FINITE s ∧
+    e ∉ s ⇒
+    ITSET f (e INSERT s) b = f e (ITSET f s b)
 Proof
   (* We induct over the size of e INSERT s. When we take an element out, if it
      is not e, then the inductive hypothesis applies: we use a lemma to move f
@@ -1019,8 +1100,8 @@ Proof
      
   >> ITSET_REDUCTION
      
-      >> 
-      ITSET_REDUCTION      
+  >> 
+  ITSET_REDUCTION      
 QED
 
 
@@ -1043,7 +1124,7 @@ Proof
      )
   >> gvs[FBIGUNION_DEF]
   >> 
-        
+  
   >> irule SUBSET_COMMUTING_ITSET_RECURSES
            
   >> irule ITSET_REDUCTION'
