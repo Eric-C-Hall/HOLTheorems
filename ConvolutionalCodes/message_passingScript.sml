@@ -933,11 +933,11 @@ Proof
   (* Prepare for induction on the cardinality of S *)
   rpt strip_tac
   >> qabbrev_tac ‘c = CARD S’
-  >> gs[Abbrev_def]
-  >> rpt (pop_assum mp_tac)
+  >> gs[Abbrev_def, Excl "IN_INSERT"]
+  >> rpt (pop_assum mp_tac) >> simp[AND_IMP_INTRO, Excl "IN_INSERT"]
   >> SPEC_ALL_TAC
   (* Induction on the cardinality of S *)
-  >> Induct_on ‘c’ >> rpt strip_tac >> gvs[]
+  >> Induct_on ‘c’ >> rpt strip_tac >> gvs[Excl "IN_INSERT"]
   (* Expand out according to the definition of ITSET once on the left hand side
      to reduce to a smaller set so we can use the inductive hypothesis. *)
   >> simp[Once ITSET_def, Cong LHS_CONG]
@@ -947,8 +947,24 @@ Proof
       >> simp[DELETE_INSERT])
   (* The case where we iterate over another element as our first choice.
      In this case, e is in the REST, so we can use our inductive hypothesis *)
-  >> 
-  
+  >> simp[REST_INSERT]
+  >> last_assum (qspecl_then [‘S DELETE CHOICE (e INSERT S)’,
+                              ‘f (CHOICE (e INSERT S)) acc’, ‘e’, ‘f’]
+                             assume_tac)
+  (* Prove preconditions to use the inductive hypothesis *)
+  >> gvs[FINITE_DELETE, Excl "IN_INSERT"]
+  >> Cases_on ‘CHOICE (e INSERT S) = e’ >> gvs[Excl "IN_INSERT"]
+  >> ‘CHOICE (e INSERT S) ∈ S’ by metis_tac[CHOICE_DEF, IN_INSERT,
+                                            NOT_INSERT_EMPTY]
+  >> gvs[Excl "IN_INSERT"]
+  (* Final precondition to use the inductive hypothesis *)
+  >> qmatch_asmsub_abbrev_tac ‘b ⇒ ITSET f _ _ = ITSET _ _ _’
+  >> sg ‘b’ >> gvs[Abbr ‘b’, Excl "IN_INSERT"] >> rpt strip_tac
+  >- gvs[]
+  (* We have now applied the inductive hypothesis. *)
+  >> gvs[Excl "IN_INSERT"]
+  >> first_x_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+                   
   >> rw[]
        
   >> simp[Once ITSET_def, Cong RHS_CONG]
