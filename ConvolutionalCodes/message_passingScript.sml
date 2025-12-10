@@ -1212,6 +1212,27 @@ Proof
   >> gvs[pairwise]
 QED
 
+Theorem drag_out_precondition:
+  ∀b1 b2 b3.
+    (b1 ∧ b2 ⇔ b3 ∧ b2) ⇔ (b2 ⇒ (b1 ⇔ b3))
+Proof
+  metis_tac[]
+QED
+
+Theorem disjoint_domains_insert:
+  ∀e S.
+    disjoint_domains (e INSERT S) ⇔
+      (∀x. x ∈ S ∧ x ≠ e ⇒ DISJOINT (FDOM e) (FDOM x)) ∧
+      disjoint_domains S
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_domains_def]
+  >> gvs[PAIRWISE_INSERT]
+  >> gvs[drag_out_precondition]
+  >> rpt strip_tac
+  >> metis_tac[DISJOINT_SYM]
+QED
+
 Theorem FUNION_FBIGUNION_ABSORPTION:
   ∀e S.
     FINITE S ∧
@@ -1241,24 +1262,25 @@ QED
 Theorem FBIGUNION_INSERT:
   ∀e S.
     FINITE S ∧
-    pred_set$pairwise DISJOINT (IMAGE FDOM (e INSERT S)) ⇒
+    disjoint_domains (e INSERT S) ⇒
     FBIGUNION (e INSERT S) =
     FUNION e (FBIGUNION S)
 Proof
   rpt strip_tac
-  >> simp[]
   (* If e is not in S, this is a special case of ITSET_REDUCTION_GEN *)
   >> Cases_on ‘e ∉ S’
   >- (simp[FBIGUNION_DEF]
       >> irule ITSET_REDUCTION_GEN
       >> simp[Excl "IN_INSERT"]
-      >> rw[Excl "IN_INSERT"]
-      >> gvs[FUNION_ASSOC, Excl "IN_INSERT"]
+      >> rpt strip_tac
+      >> simp[FUNION_ASSOC, Excl "IN_INSERT"]
       >> ‘x ⊌ y = y ⊌ x’ suffices_by metis_tac[]
+      >> Cases_on ‘x = y’ >- simp[]
       >> irule FUNION_COMM
-      >> gvs[pairwise_def, Excl "IN_INSERT"]
-      >> last_x_assum irule
-      >> gvs[]
+      >> irule disjoint_domains_disjoint
+      >> simp[]
+      >> qexists ‘e INSERT S’
+      >> simp[]
      )
   (* If e is in S, we can absorb it into S and into FBIGUNION S. *)
   >> gvs[iffLR ABSORPTION, FUNION_FBIGUNION_ABSORPTION]
