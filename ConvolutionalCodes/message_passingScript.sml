@@ -1286,13 +1286,6 @@ Proof
   >> gvs[iffLR ABSORPTION, FUNION_FBIGUNION_ABSORPTION]
 QED
 
-Theorem pairwise_INSERT:
-  ∀r x S.
-    pred_set$pairwise r (x INSERT S) ⇔
-      (∀y. y ∈ S ∧ y ≠ x ⇒ r x y ∧ r y x) ∧ pred_set$pairwise r S
-                                                              ProofpairwiseD_alt_pairwiseN 
-QED
-
 (* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
 (*                                                                            *)
