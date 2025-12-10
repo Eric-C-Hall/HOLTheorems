@@ -937,7 +937,36 @@ Proof
   >> rpt (pop_assum mp_tac) >> simp[AND_IMP_INTRO, Excl "IN_INSERT"]
   >> SPEC_ALL_TAC
   (* Induction on the cardinality of S *)
-  >> Induct_on ‘c’ >> rpt strip_tac >> gvs[Excl "IN_INSERT"]
+  >> completeInduct_on ‘c’ >> rpt strip_tac >> gvs[Excl "IN_INSERT"]
+  (* We only need to prove the theorem in the case where e ∉ S, because if
+     e ∈ S, then e INSERT S is equivalent to e INSERT (S DELETE e), and thus
+     we can apply the version of the theorem which only works when e ∉ S to
+     S DELETE e insead of S. *)
+  >> wlog_tac ‘e ∉ S’ [‘c’, ‘e’, ‘S’]
+  >- (gvs[iffLR ABSORPTION]
+      >> Cases_on ‘S = ∅’ >> gvs[]
+      >> ‘S = e INSERT (S DELETE e)’ by metis_tac[INSERT_DELETE]
+      >> pop_assum (fn th => PURE_REWRITE_TAC[Once th])
+      (* Handle case where S has cardinality 1 *)
+      >> Cases_on ‘CARD S = 1’
+      >- (Cases_on ‘S’ >> gvs[])
+      (* Use case of theorem which requires that it isn't a member *)
+      >> qpat_x_assum ‘∀e' S' acc. _ ∧ _ ∧ _ ∧ _ ⇒ _’
+                      (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+      (* The final result is now trivial *)
+      >> REVERSE conj_tac >- simp[]
+      (* We now just need to prove the preconditions of the theorem in the
+         case where it isn't a member *)
+      >> simp[]
+      >> conj_tac
+      >- (rpt strip_tac >> gvs[])
+      >> ‘∀m. m < CARD S - 1 ⇒ m < CARD S’ by decide_tac
+      >> gen_tac >> disch_tac
+      >> last_x_assum (qspec_then ‘m’ assume_tac)
+      >> gvs[]
+     )
+  (* It's nice to know that S is nonempty *)
+  >> Cases_on ‘S = ∅’ >> gvs[Excl "IN_INSERT"]
   (* Expand out according to the definition of ITSET once on the left hand side
      to reduce to a smaller set so we can use the inductive hypothesis. *)
   >> simp[Once ITSET_def, Cong LHS_CONG]
@@ -948,38 +977,38 @@ Proof
   (* The case where we iterate over another element as our first choice.
      In this case, e is in the REST, so we can use our inductive hypothesis *)
   >> simp[REST_INSERT]
-  >> last_assum (qspecl_then [‘S DELETE CHOICE (e INSERT S)’,
-                              ‘f (CHOICE (e INSERT S)) acc’, ‘e’, ‘f’]
-                             assume_tac)
-  (* Prove preconditions to use the inductive hypothesis *)
-  >> gvs[FINITE_DELETE, Excl "IN_INSERT"]
-  >> Cases_on ‘CHOICE (e INSERT S) = e’ >> gvs[Excl "IN_INSERT"]
-  >> ‘CHOICE (e INSERT S) ∈ S’ by metis_tac[CHOICE_DEF, IN_INSERT,
-                                            NOT_INSERT_EMPTY]
-  >> gvs[Excl "IN_INSERT"]
-  (* Final precondition to use the inductive hypothesis *)
-  >> qmatch_asmsub_abbrev_tac ‘b ⇒ ITSET f _ _ = ITSET _ _ _’
-  >> sg ‘b’ >> gvs[Abbr ‘b’, Excl "IN_INSERT"] >> rpt strip_tac
-  >- gvs[]
-  (* We have now applied the inductive hypothesis. *)
-  >> gvs[Excl "IN_INSERT"]
-  >> first_x_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
-                   
-  >> rw[]
-       
-  >> simp[Once ITSET_def, Cong RHS_CONG]
-  >> rw[]
-  >- (Cases_on ‘e = e'’ >> gvs[]
-      >> gvs[EXTENSION]
-      >> metis_tac[]
+  >> last_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  (* Prove preconditions for inductive hypothesis *)
+  >> conj_tac
+  >- (qexists ‘CARD S - 1’ >> gvs[Excl "IN_INSERT"]
+      >> conj_tac >- (Cases_on ‘S’ >> gvs[Excl "IN_INSERT"])
+      >> Cases_on ‘CHOICE (e INSERT S) = e’ >> gvs[Excl "IN_INSERT"]
+      >> ‘CHOICE (e INSERT S) ∈ S’ by metis_tac[CHOICE_DEF, IN_INSERT,
+                                                NOT_INSERT_EMPTY]
+      >> gvs[Excl "IN_INSERT"]
+      (* Final precondition to use the inductive hypothesis *)
+      >> rpt strip_tac
+      >> gvs[])
+  (* We can also use the inductive hypothesis on the RHS to take the chosen
+     element from the set to the accumulator *)
+  >> qabbrev_tac ‘e' = CHOICE (e INSERT S)’
+  (* It's helpful to know e' ∈ S *)
+  >> ‘e' ∈ S’ by metis_tac[CHOICE_DEF, IN_INSERT, NOT_INSERT_EMPTY]
+  (* Rewrite set on RHS to make it clear that e' is contained in it so we can
+     use the inductive hypothesis*)
+  >> ‘S DELETE e = e' INSERT (S DELETE e DELETE e')’ by simp[INSERT_DELETE]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  (* Use inductive hypothesis on RHS *)
+  >> last_x_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  (* Preconditions for inductive hypothesis *)
+  >> conj_tac
+  >- (simp[]
+      >> conj_tac >- (Cases_on ‘S’ >> gvs[])
+      >> rpt strip_tac >> gvs[]
      )
-  >> gvs[]
-     )
-     
-     rpt strip_tac
-  >> 
+  (* Simplify, and use commutativity assumption to solve *)
+  >> gvs[DELETE_COMM]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* A generalised version of COMMUTING_ITSET_RECURSES                          *)
