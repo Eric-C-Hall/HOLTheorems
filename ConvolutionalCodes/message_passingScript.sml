@@ -1010,6 +1010,21 @@ Proof
   >> gvs[DELETE_COMM]
 QED
 
+Theorem INSERT_DELETE_EQ:
+  ∀s x y.
+    x INSERT (s DELETE y) =
+    if y = x then x INSERT s else (x INSERT s) DELETE y
+Proof
+  rpt strip_tac
+  >> Cases_on ‘x = y’
+  >- (gvs[]
+      >> Cases_on ‘x ∈ s’
+      >- simp[iffLR ABSORPTION]
+      >> simp[DELETE_NON_ELEMENT_RWT]
+     )
+  >> simp[DELETE_INSERT]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A generalised version of COMMUTING_ITSET_RECURSES                          *)
 (*                                                                            *)
@@ -1025,6 +1040,53 @@ Theorem COMMUTING_ITSET_RECURSES_GEN:
     FINITE S ⇒
     ITSET f (e INSERT S) acc = f e (ITSET f (S DELETE e) acc)
 Proof
+  (* We induct over the size of e INSERT s. When we take an element out, if it
+     is not e, then the inductive hypothesis applies: we use a lemma to move f
+     from the accumulator to the outside. *)
+  rpt strip_tac
+  >> qabbrev_tac ‘c = CARD S’
+  >> gs[Abbrev_def, Excl "IN_INSERT"]
+  >> rpt $ pop_assum mp_tac >> simp[AND_IMP_INTRO, Excl "IN_INSERT"]
+  >> SPEC_ALL_TAC
+  (* Perform the induction *)
+  >> completeInduct_on ‘c’ >> rpt strip_tac >> gvs[Excl "IN_INSERT"]
+  (* We want to take an element other than e out of e INSERT s. First prove
+     that such an element exists *)
+  >> CCONTR_TAC
+  >> sg ‘∃x. x ≠ e ∧ x ∈ S’
+  >- (Cases_on ‘S’
+      >- gvs[] (* S is size 0 *)
+      >> Cases_on ‘t’
+      >- (Cases_on ‘x = e’ >> gvs[]) (* S is size 1 *)
+      >> Cases_on ‘x = e’ (* S has size 2 or more: choose appropriate elt *)
+      >- (qexists ‘x'’ >> gvs[])
+      >> qexists ‘x’ >> gvs[]
+     )
+  >> qpat_x_assum ‘ITSET _ _ _ ≠ f e (ITSET _ _ _)’ mp_tac >> simp[]
+  (* Rewrite our set so that the element we would like to take out is at the
+     front *)
+  >> sg ‘e INSERT S = x INSERT (e INSERT S) DELETE x’
+  >- metis_tac[INSERT_DELETE, IN_INSERT]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  (* Using COMMUTING_ITSET_INSERT_GEN, take our element x which is not e out of
+     e INSERT S and into the accumulator *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[COMMUTING_ITSET_INSERT_GEN]
+  >> conj_tac
+  >- (simp[] >> rw[] >> simp[])
+  >> simp[DELETE_DELETE]
+  (* Now we can apply our inductive hypothesis, because we have a smaller set
+     which still has e in it. *)
+  >> simp[DELETE_INSERT]
+  >> last_x_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> conj_tac
+  >- (gvs[] >> rw[] >> gvs[] >> Cases_on ‘S’ >> gvs[]) 
+  (* Use COMMUTING_ITSET_INSERT_GEN again to move x back into the set from the
+     accumulator *)
+  >> PURE_ONCE_REWRITE_TAC[DELETE_COMM]
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM COMMUTING_ITSET_INSERT_GEN]
+  >> conj_tac
+  >- (rw[] >> gvs[])
+  >> gvs[INSERT_DELETE_EQ, iffLR ABSORPTION]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1078,77 +1140,12 @@ Theorem ITSET_REDUCTION_GEN:
     e ∉ s ⇒
     ITSET f (e INSERT s) b = f e (ITSET f s b)
 Proof
-  (* We induct over the size of e INSERT s. When we take an element out, if it
-     is not e, then the inductive hypothesis applies: we use a lemma to move f
-     from the accumulator to the outside. *)
   rpt strip_tac
-  >> qabbrev_tac ‘c = CARD s’
-  >> gs[Abbrev_def]
-  >> rpt $ pop_assum mp_tac >> SPEC_ALL_TAC
-  (* Perform the induction *)
-  >> Induct_on ‘c’ >> rpt strip_tac >> gvs[]
-  (* Step once over ITSET on the left so we get a smaller set to use our
-     inductive hypothesis on. *)
-  >> simp[Once ITSET_def, Cong LHS_CONG]
-  (* Instantiate our inductive hypothesis with the correct values *)
-  >> last_x_assum (qspecl_then [‘f (CHOICE (e INSERT s)) b’, ‘e’, ‘f’] assume_tac)
-
-  (* --- Second approach --- *) 
-  (* We want to use ITSET_REDUCTION, but our function isn't AC in general, only
-     on the set. It suffices to use ITSET_REDUCTION on a function that is AC in
-     general and also agrees on the function we are working with on the set.
-.
-     If the set is univeral, we immediately have our result from
-     ITSET_REDUCTION.
-.
-     Otherwise, we can find an element out of the set. Then when applying our
-     function to anything out of the set, map it to the chosen element out of
-     the set. Thus, it will satisfy AC out of the set, and we already know it
-     satisfies AC in the set.
-   *)
-  >> Cases_on ‘∀x. x ∈ e INSERT s’
-  >- simp[ITSET_REDUCTION]
-  >> gvs[Excl "IN_INSERT"]
-  (* Our new function *)
-  >> qabbrev_tac ‘g = (λin1 in2. if in1 ∈ e INSERT s ∧ in2 ∈ e INSERT s
-                                 then f in1 in2 else x)’
-  >> gs[Abbrev_def, Excl "IN_INSERT"]
-  (* Our new function is AC *)
-  >> sg ‘(∀x y z. g x (g y z) = g y (g x z))’
-  >- (rpt strip_tac
-      (* If any individual input is out of the range, LHS = RHS = x*)
-      >> Cases_on ‘x' ∉ e INSERT s’ >- gs[]
-      >> Cases_on ‘y ∉ e INSERT s’ >- gs[]
-      >> Cases_on ‘z ∉ e INSERT s’ >- gs[]
-      (* If all inputs are in the set *)
-      >> gvs[Excl "IN_INSERT"]
-      >> rw[Excl "IN_INSERT"]
-     )
-  >> sg ‘ITSET f (e INSERT s) b = ITSET g (e INSERT s) b’
-  >- (gvs[]
-      >> irule ITSET_CONG
-      >> REVERSE (rpt conj_tac)
-      >- simp[] >- simp[]
-      >> rpt strip_tac
-      >> rw[]
-      >> gvs[]
-            
-      >> rpt strip_tac >> simp
-      >- (rw[]
-          >> gvs[]
-          >> metis_tac[]
-         )
-      >> gvs[]
-     )
-
-     ITSET_CONG
-     
-  >> ITSET_REDUCTION
-     
-  >> 
-  ITSET_REDUCTION      
+  >> DEP_PURE_ONCE_REWRITE_TAC[COMMUTING_ITSET_RECURSES_GEN]
+  >> conj_tac
+  >- (gvs[] >> rw[] >> gvs[])
+  >> simp[DELETE_NON_ELEMENT_RWT]
 QED
-
 
 Theorem FBIGUNION_INSERT:
   ∀e S.
