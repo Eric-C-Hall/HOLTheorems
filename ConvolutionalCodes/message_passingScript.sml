@@ -1,6 +1,6 @@
 Theory message_passing
 
-Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting marker partite_ea probability pred_set prim_rec transc transfer tree
+Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list lifting marker partite_ea probability pred_set prim_rec topology transc transfer tree
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
@@ -1186,10 +1186,36 @@ Proof
   >> gvs[FUNION_ASSOC]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Returns true if the domains of the given fmaps are disjoint.               *)
+(*                                                                            *)
+(* Using disjoint (IMAGE FDOM S) doesn't work because if two of the fmaps     *)
+(* have the same domain, then they will map to the same set, and so the       *)
+(* resulting set of sets will only have one element and hence will be         *)
+(* trivially disjoint, but we want them to not be considered disjoint in this *)
+(* case as we have two fmaps with the same domain.                            *)
+(* -------------------------------------------------------------------------- *)
+Definition disjoint_domains_def:
+  disjoint_domains S ⇔ pairwiseD (λf1 f2. DISJOINT (FDOM f1) (FDOM f2)) S
+End
+
+Theorem disjoint_domains_disjoint:
+  ∀f g S.
+    f ∈ S ∧
+    g ∈ S ∧
+    f ≠ g ∧
+    disjoint_domains S ⇒
+    DISJOINT (FDOM f) (FDOM g)
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_domains_def]
+  >> gvs[pairwise]
+QED
+
 Theorem FUNION_FBIGUNION_ABSORPTION:
   ∀e S.
     FINITE S ∧
-    pred_set$pairwise DISJOINT (IMAGE FDOM S) ∧
+    disjoint_domains S ∧
     e ∈ S ⇒
     e ⊌ FBIGUNION S = FBIGUNION S
 Proof
@@ -1201,10 +1227,9 @@ Proof
   >> rpt disch_tac
   >> gnvs[FUNION_ASSOC]
   >> ‘x ⊌ y = y ⊌ x’ suffices_by metis_tac[]
+  >> Cases_on ‘x = y’ >- metis_tac[]
   >> irule FUNION_COMM
-  >> gnvs[pairwise_def]
-  >> last_x_assum irule
-  >> metis_tac[]
+  >> metis_tac[disjoint_domains_disjoint]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1237,6 +1262,13 @@ Proof
      )
   (* If e is in S, we can absorb it into S and into FBIGUNION S. *)
   >> gvs[iffLR ABSORPTION, FUNION_FBIGUNION_ABSORPTION]
+QED
+
+Theorem pairwise_INSERT:
+  ∀r x S.
+    pred_set$pairwise r (x INSERT S) ⇔
+      (∀y. y ∈ S ∧ y ≠ x ⇒ r x y ∧ r y x) ∧ pred_set$pairwise r S
+                                                              ProofpairwiseD_alt_pairwiseN 
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1284,7 +1316,7 @@ Proof
   >> gvs[PROD_IMAGE_INSERT]
   (* Ready the inductive hypothesis to be applied *)
   >> last_x_assum (qspecl_then [‘excl_val_mapf’, ‘ff’, ‘fg’, ‘nsf’] assume_tac)
-  >> gvs[PAIRWISE_INSERT]
+  >> gvs[]
   >> gvs[INJ_INSERT]
   (* The inductive hypothesis has been applied, so get rid of it *)
   >> qpat_x_assum ‘∏ _ _ = ∑ (λval_map. ∏ _ _) _’ kall_tac
