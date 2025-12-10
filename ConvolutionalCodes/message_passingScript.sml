@@ -829,6 +829,11 @@ QED
 (*                                                                            *)
 (* Possible improvement: would be nice to have a version which works on       *)
 (* infinite sets of fmaps.                                                    *)
+(*                                                                            *)
+(* FBIGUNION is pretty messy to use unless you know that all of the fmaps     *)
+(* being operated on have disjoint domains. Otherwise, the chosen value at    *)
+(* a point where the maps overlap is ambiguous, and may change as elements    *)
+(* are added/removed from the set.                                            *)
 (* -------------------------------------------------------------------------- *)
 Definition FBIGUNION_DEF:
   FBIGUNION S = ITSET FUNION S FEMPTY
@@ -1005,6 +1010,7 @@ Proof
   >- (simp[]
       >> conj_tac >- (Cases_on ‘S’ >> gvs[])
       >> rpt strip_tac >> gvs[]
+      >> metis_tac[]
      )
   (* Simplify, and use commutativity assumption to solve *)
   >> gvs[DELETE_COMM]
@@ -1131,14 +1137,14 @@ QED
 (* input is not in the set, we may break the property we need.                *)
 (* -------------------------------------------------------------------------- *)
 Theorem ITSET_REDUCTION_GEN:
-  ∀f s e b.
+  ∀f S e acc.
     (∀x y z.
-       x ∈ e INSERT s ∧
-       y ∈ e INSERT s ⇒
+       x ∈ e INSERT S ∧
+       y ∈ e INSERT S ⇒
        f x (f y z) = f y (f x z)) ∧
-    FINITE s ∧
-    e ∉ s ⇒
-    ITSET f (e INSERT s) b = f e (ITSET f s b)
+    FINITE S ∧
+    e ∉ S ⇒
+    ITSET f (e INSERT S) acc = f e (ITSET f S acc)
 Proof
   rpt strip_tac
   >> DEP_PURE_ONCE_REWRITE_TAC[COMMUTING_ITSET_RECURSES_GEN]
@@ -1147,30 +1153,91 @@ Proof
   >> simp[DELETE_NON_ELEMENT_RWT]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* If we have a function that is idempotent (when applied twice with the      *)
+(* same first input) and is commuting (between possible orders of two first   *)
+(* elements applied to a second element), then applying f with a first        *)
+(* element that is in the set will have no effect on the ITSET                *)
+(* -------------------------------------------------------------------------- *)
+Theorem COMMUTING_ITSET_IDEMPOTENT_GEN:
+  ∀f S e acc.
+    (∀y. f e (f e y) = f e y) ∧
+    (∀x y z.
+       x ∈ e INSERT S ∧
+       y ∈ e INSERT S ⇒
+       f x (f y z) = f y (f x z)) ∧
+    FINITE S ∧
+    e ∈ S ⇒
+    f e (ITSET f S acc) = ITSET f S acc
+Proof
+  rpt strip_tac
+  >> ‘S = e INSERT (S DELETE e)’ by simp[]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> DEP_PURE_ONCE_REWRITE_TAC[ITSET_REDUCTION_GEN]
+  >> conj_tac
+  >- (gvs[] >> rw[] >> gvs[])
+  >> gvs[]
+QED
+
+Theorem FUNION_IDEMPOT_2[simp]:
+  ∀f g.
+    f ⊌ (f ⊌ g) = f ⊌ g
+Proof
+  rpt strip_tac
+  >> gvs[FUNION_ASSOC]
+QED
+
+Theorem FUNION_FBIGUNION_ABSORPTION:
+  ∀e S.
+    FINITE S ∧
+    pred_set$pairwise DISJOINT (IMAGE FDOM S) ∧
+    e ∈ S ⇒
+    e ⊌ FBIGUNION S = FBIGUNION S
+Proof
+  rpt strip_tac
+  >> gvs[FBIGUNION_DEF]
+  >> irule COMMUTING_ITSET_IDEMPOTENT_GEN
+  >> gvs[]
+  >> rpt gen_tac
+  >> rpt disch_tac
+  >> gnvs[FUNION_ASSOC]
+  >> ‘x ⊌ y = y ⊌ x’ suffices_by metis_tac[]
+  >> irule FUNION_COMM
+  >> gnvs[pairwise_def]
+  >> last_x_assum irule
+  >> metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Taking the FBIGUNION of a set of finite maps is equivalent to FUNION-ing   *)
+(* the first finite map with the FBIGUNION of the rest (assuming that all     *)
+(* the maps have disjoint domains: otherwise the FBIGUNION is indeterminate   *)
+(* on the shared points which may make these maps non-equivalent              *)
+(* -------------------------------------------------------------------------- *)
 Theorem FBIGUNION_INSERT:
   ∀e S.
     FINITE S ∧
-    DISJOINT (FDOM e) (FDOM (FBIGUNION S)) ⇒
+    pred_set$pairwise DISJOINT (IMAGE FDOM (e INSERT S)) ⇒
     FBIGUNION (e INSERT S) =
     FUNION e (FBIGUNION S)
 Proof
   rpt strip_tac
   >> simp[]
-  >> Cases_on ‘e ∈ S’
-  >- (gvs[ABSORPTION_RWT]
-      >> gvs[FDOM_FBIGUNION]
-      >> last_x_assum $ qspecl_then [‘FDOM e’] assume_tac
+  (* If e is not in S, this is a special case of ITSET_REDUCTION_GEN *)
+  >> Cases_on ‘e ∉ S’
+  >- (simp[FBIGUNION_DEF]
+      >> irule ITSET_REDUCTION_GEN
+      >> simp[Excl "IN_INSERT"]
+      >> rw[Excl "IN_INSERT"]
+      >> gvs[FUNION_ASSOC, Excl "IN_INSERT"]
+      >> ‘x ⊌ y = y ⊌ x’ suffices_by metis_tac[]
+      >> irule FUNION_COMM
+      >> gvs[pairwise_def, Excl "IN_INSERT"]
+      >> last_x_assum irule
       >> gvs[]
-      >> ‘FDOM e = ∅’ by metis_tac[]
-      >> gvs[FDOM_EQ_EMPTY]
      )
-  >> gvs[FBIGUNION_DEF]
-  >> 
-  
-  >> irule SUBSET_COMMUTING_ITSET_RECURSES
-           
-  >> irule ITSET_REDUCTION'
-  >> simp[]
+  (* If e is in S, we can absorb it into S and into FBIGUNION S. *)
+  >> gvs[iffLR ABSORPTION, FUNION_FBIGUNION_ABSORPTION]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1188,7 +1255,7 @@ Theorem generalised_distributive_law:
   ∀fg S ff nsf excl_val_mapf.
     FINITE S ∧
     INJ nsf S 𝕌(:unit + num -> bool) ∧
-    pairwise DISJOINT (IMAGE nsf S) ⇒
+    pred_set$pairwise DISJOINT (IMAGE nsf S) ⇒
     ∏ (λk.
          ∑ (λval_map.
               ff k val_map
