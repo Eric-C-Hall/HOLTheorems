@@ -1,6 +1,6 @@
 Theory message_passing
 
-Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting marker partite_ea probability pred_set prim_rec topology transc transfer tree
+Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list  lifting marker partite_ea probability pred_set prim_rec transc transfer tree
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
@@ -10,7 +10,6 @@ val _ = augment_srw_ss [rewrites[FDOM_FMAP,
                                  PROD_IMAGE_EMPTY,
                                  EXTREAL_SUM_IMAGE_EMPTY,
                                  SUM_IMAGE_EMPTY,
-                                 PAIRWISE_EMPTY,
                                  SUM_IMAGE_SING]];
 
 val _ = hide "S";
