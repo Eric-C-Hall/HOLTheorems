@@ -1406,7 +1406,7 @@ Proof
      In particular, we have a multiplication and division by a constant. *)
   >> qmatch_goalsub_abbrev_tac ‘LHS = c * ∑ (λbs. g1 (g2 bs ∩ g3) / c) S’
   (* Move the constant into the sum. *)
-  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT]
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_L_ALT]
   >> rw[]
   >- (unabbrev_all_tac >> gvs[PROB_FINITE])
   >- (unabbrev_all_tac >> gvs[PROB_FINITE])
@@ -1418,6 +1418,7 @@ Proof
       >> gvs[]
      )
   (* Cancel out the constant *)
+  >> PURE_ONCE_REWRITE_TAC[mul_comm]
   >> unabbrev_all_tac >> gvs[prob_div_mul_refl]
   (* Intersection commutativity *)
   >> gvs[INTER_COMM]

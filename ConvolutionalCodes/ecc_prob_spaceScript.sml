@@ -1335,14 +1335,12 @@ Theorem EXTREAL_SUM_IMAGE_CMUL_R_ALT:
       ∀f c.
         c ≠ +∞ ∧ c ≠ −∞ ∧
         ((∀x. x ∈ s ⇒ f x ≠ −∞) ∨ (∀x. x ∈ s ⇒ f x ≠ +∞)) ⇒
-        ∑ (λx. f x * c) s = c * ∑ f s
+        ∑ (λx. f x * c) s = (∑ f s) * c
 Proof
   rw[]
   (* Both proofs are essentially the same *)
   >> (PURE_ONCE_REWRITE_TAC[mul_comm]
-      >> Cases_on ‘c’ >> gvs[EXTREAL_SUM_IMAGE_CMUL]
-      >> metis_tac[mul_comm]
-     )
+      >> Cases_on ‘c’ >> gvs[EXTREAL_SUM_IMAGE_CMUL])
 QED
 
 (* -------------------------------------------------------------------------- *)
