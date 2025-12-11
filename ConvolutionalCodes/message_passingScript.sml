@@ -1592,8 +1592,12 @@ Proof
       >> disj1_tac
       >> gvs[]
      )
-     
-  >>
+
+  (* Move the product into the inner sum, as a constant *)
+  >> EXTREAL_SUM_IMAGE_CMUL_R_ALT
+
+  (* Combine the composed sums together *)
+  >> 
 QED
 
 (*Theorem generalised_distributive_law:
