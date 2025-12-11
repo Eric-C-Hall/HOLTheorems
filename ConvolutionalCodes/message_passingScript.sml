@@ -832,7 +832,7 @@ QED
 (* FBIGUNION is pretty messy to use unless you know that all of the fmaps     *)
 (* being operated on have disjoint domains. Otherwise, the chosen value at    *)
 (* a point where the maps overlap is ambiguous, and may change as elements    *)
-(* are added/removed from the set.                                            *)
+(* are added/removed from the set. Use disjoint_domains_def to test for this. *)
 (* -------------------------------------------------------------------------- *)
 Definition FBIGUNION_DEF:
   FBIGUNION S = ITSET FUNION S FEMPTY
@@ -1287,6 +1287,106 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Allow us to induct on the cardinality of a set, rather than the elements   *)
+(* in that set.                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem CARD_INDUCT:
+  ∀P.
+    P ∅ ∧
+    (∀s. FINITE s ∧ (∀s2. FINITE s2 ∧ CARD s2 < CARD s ⇒ P s2) ⇒ P s) ⇒
+    (∀s. FINITE s ⇒ P s)
+Proof
+  rpt strip_tac
+  >> qabbrev_tac ‘c = CARD s’ >> gs[Abbrev_def]
+  >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
+  >> completeInduct_on ‘c’ >> rpt strip_tac >> metis_tac[]
+QED
+
+Theorem disjoint_domains_image:
+  ∀S r f.
+    disjoint_domains S ⇒
+    (disjoint_domains (IMAGE f S) ⇔
+       ∀x y.
+         x ∈ S ∧ y ∈ S ∧ x ≠ y ∧ f x ≠ f y ⇒
+         DISJOINT (FDOM (f x)) (FDOM (f y))
+    )
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_domains_def]
+  >> gvs[PAIRWISE_IMAGE]
+  >> gvs[pairwise]
+  >> metis_tac[]
+QED
+
+Theorem disjoint_domains_image_drestrict:
+  ∀S r.
+    disjoint_domains S ⇒
+    disjoint_domains (IMAGE (λx. DRESTRICT x r) S)
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_domains_image] >> rpt strip_tac
+  >> gvs[FDOM_DRESTRICT]
+  >> irule sigma_algebraTheory.DISJOINT_RESTRICT_L
+  >> metis_tac[disjoint_domains_disjoint]
+QED
+
+Theorem DIFF_NO_EFFECT:
+  ∀S T.
+    S DIFF T = S ⇔ T ∩ S = ∅
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem DRESTRICT_FBIGUNION:
+  ∀S r.
+    FINITE S ∧
+    disjoint_domains S ⇒
+    DRESTRICT (FBIGUNION S) r = FBIGUNION (IMAGE (λx. DRESTRICT x r) S)
+Proof
+  (* Induct on S *)
+  simp[GSYM AND_IMP_INTRO]
+  >> simp[RIGHT_FORALL_IMP_THM]
+  >> Induct_on ‘S’ using CARD_INDUCT >> rpt strip_tac >> simp[]
+  >> gvs[AND_IMP_INTRO, GSYM RIGHT_FORALL_IMP_THM]
+  >> Cases_on ‘S’ >> gvs[]
+  (* Break down LHS so as to use inductive hypothesis *)
+  >> gvs[FBIGUNION_INSERT]
+  >> gvs[DRESTRICTED_FUNION]
+  (* Use inductive hypothesis *)
+  >> qpat_x_assum ‘∀S' r. _ ⇒ _’ (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  (* Precondition for inductive hypothesis *)
+  >> conj_tac
+  >- (simp[] >> metis_tac[disjoint_domains_insert])
+  (* Break down the RHS to match the LHS *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[FBIGUNION_INSERT]
+  >> conj_tac
+  >- (simp[]
+      >> Q.SUBGOAL_THEN ‘DRESTRICT x r INSERT IMAGE (λx. DRESTRICT x r) t =
+                         IMAGE (λx. DRESTRICT x r) (x INSERT t)’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- simp[]
+      >> metis_tac[disjoint_domains_image_drestrict]
+     )
+  (* We only need to prove that restricting everything in t to r is equivalent
+        to restricting everything in t to r without the domain of x, because
+        the domain of x was disjoint with the domain of anything in r. *)
+  >> ‘IMAGE (λx'. DRESTRICT x' (r DIFF FDOM x)) t = IMAGE (λx. DRESTRICT x r) t’
+    suffices_by metis_tac[]
+  >> irule IMAGE_CHANGE_FUN
+  >> rpt strip_tac
+  >> simp[FUN_EQ_THM] >> rpt strip_tac
+  >> simp[DRESTRICT_EQ_DRESTRICT]
+  >> simp[DIFF_INTER]
+  >> simp[DIFF_NO_EFFECT]
+  >> ‘FDOM x ∩ FDOM x' = ∅’ suffices_by ASM_SET_TAC[]
+  >> simp[GSYM DISJOINT_DEF]
+  >> irule disjoint_domains_disjoint
+  >> Cases_on ‘x = x'’ >> gvs[]
+  >> qexists ‘x INSERT t’
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
 (*                                                                            *)
 (* The basic idea is Π Σ f = Σ Π f.                                           *)
@@ -1295,13 +1395,26 @@ QED
 (*   variables in any f.                                                      *)
 (* - no two choices of f can involve the same variables.                      *)
 (*                                                                            *)
-(* The "f" at the end of "nsf", "excl_val_mapf" stands for "function"    *)
+(* The "f" at the end of "nsf", "excl_val_mapf" stands for "function"         *)
+(*                                                                            *)
+(* fg: the factor graph of nodes assignments we're summing over               *)
+(* S: The set of we're taking the product over                                *)
+(* ff: a function from an element of S to the corresponding choice of f in    *)
+(*     this term of the product. This takes a mapping from only the variables *)
+(*     in the corresponding nsf to values, and returns an extreal.            *)
+(* nsf: a function from an element of S to the set of variables that are      *)
+(*      relevant to this term of the product                                  *)
+(* excl_val_mapf: a function from an element of S to a map of variables that  *)
+(*                take a fixed value in this term of the product.             *)
 (* -------------------------------------------------------------------------- *)
 Theorem generalised_distributive_law:
   ∀fg S ff nsf excl_val_mapf.
     FINITE S ∧
     INJ nsf S 𝕌(:unit + num -> bool) ∧
-    pred_set$pairwise DISJOINT (IMAGE nsf S) ⇒
+    disjoint_domains S ∧
+    (∀k x.
+       x ∈ val_map_assignments fg (nsf k) (excl_val_mapf k) ⇒
+       ff k x ≠ +∞ ∧ ff k x ≠ −∞) ⇒
     ∏ (λk.
          ∑ (λval_map.
               ff k val_map
@@ -1309,38 +1422,61 @@ Theorem generalised_distributive_law:
       ) S
     = ∑ (λval_map.
            ∏ (λk.
-                ff k val_map
+                ff k (DRESTRICT val_map (nsf k))
              ) S
         ) (val_map_assignments
            fg
            (BIGUNION (IMAGE nsf S))
            (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))
-          )
+          ) : extreal
 Proof
+
   (* Rewrite so that FINITE S is our only assumption, so we can use induction *)
   rpt strip_tac
-  >> NTAC 2 (pop_assum mp_tac)
+  >> NTAC 3 (pop_assum mp_tac)
   >> SPEC_ALL_TAC
-  (* *)
+  (* Perform induction *)
   >> Induct_on ‘S’ using FINITE_INDUCT
   >> rpt strip_tac
   (* Base case: S is empty *)
   >- gvs[]
   (* Reduce to smaller instance of product to allow inductive hypothesis to be
      applied *)
-  >> gvs[PROD_IMAGE_INSERT]
+  >> gvs[EXTREAL_PROD_IMAGE_PROPERTY, DELETE_NON_ELEMENT_RWT]
   (* Ready the inductive hypothesis to be applied *)
   >> last_x_assum (qspecl_then [‘excl_val_mapf’, ‘ff’, ‘fg’, ‘nsf’] assume_tac)
-  >> gvs[]
+  >> gvs[disjoint_domains_insert]
   >> gvs[INJ_INSERT]
   (* The inductive hypothesis has been applied, so get rid of it *)
   >> qpat_x_assum ‘∏ _ _ = ∑ (λval_map. ∏ _ _) _’ kall_tac
-  (* Just as we reduced to a smaller instance on the LHS, now reduce to a
-     smaller instance on the RHS to make the LHS equivalent to the RHS *)
-  >>
-  
-  >> 
-  >>
+  (* Move one sum into the other, as a constant *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_L_ALT]
+  >> conj_tac
+     
+  >- (rpt conj_tac
+      >- gvs[]
+      >- (gvs[]
+          >> irule EXTREAL_SUM_IMAGE_NOT_POSINF
+          >> gvs[])
+      >- (gvs[]
+          >> irule EXTREAL_SUM_IMAGE_NOT_NEGINF
+          >> gvs[])
+      >> disj1_tac
+      >> gen_tac >> disch_tac >> simp[]
+      >> irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
+      >> simp[]
+      >> qx_gen_tac ‘k’ >> disch_tac
+      >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
+      >> last_x_assum irule
+      >> irule drestrict_in_val_map_assignments
+      >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments fg ns1 excl_val_map1’
+      >> qexistsl [‘excl_val_map1’, ‘ns1’] >> simp[Abbr ‘excl_val_map1’, Abbr ‘ns1’]
+      >> conj_tac
+      >- (
+       )
+      >> simp[BIGUNION_IMAGE, SUBSET_DEF]
+      >> metis_tac[]
+     )
 QED
 
 (*Theorem generalised_distributive_law:
