@@ -1,6 +1,6 @@
 Theory message_passing
 
-Ancestors arithmetic bool ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list lifting marker partite_ea probability pred_set prim_rec topology transc transfer tree
+Ancestors arithmetic bool combin ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list lifting marker partite_ea probability pred_set prim_rec topology transc transfer tree
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
@@ -748,7 +748,7 @@ Theorem drestrict_in_val_map_assignments:
   ∀val_map ns1 ns2 fg excl_val_map1 excl_val_map2.
     val_map ∈ val_map_assignments fg ns1 excl_val_map1 ∧
     ns2 ⊆ ns1 ∧
-    excl_val_map2 ⊑ DRESTRICT excl_val_map1 ns2 ⇒
+    DRESTRICT excl_val_map2 ns2 ⊑ DRESTRICT excl_val_map1 ns2 ⇒
     DRESTRICT val_map ns2 ∈ val_map_assignments fg ns2 excl_val_map2
 Proof
   rpt strip_tac
@@ -1386,6 +1386,87 @@ Proof
   >> simp[]
 QED
 
+Theorem disjoint_insert_iff:
+  ∀e S.
+    disjoint (e INSERT S) ⇔
+      disjoint S ∧ (∀x. x ∈ S ∧ x ≠ e ⇒ DISJOINT e x)
+Proof
+  rpt strip_tac
+  (* It is sufficient to prove this only for e not in S. If e is in S, then
+     we can apply the version of the theorem which only works for e not in S on
+     e INSERT (S DELETE e) *)
+  >> wlog_tac ‘e ∉ S’ [‘e’, ‘S’]
+  >- (gvs[iffLR ABSORPTION]
+      >> last_x_assum (qspecl_then [‘e’, ‘S DELETE e’] assume_tac)
+      >> gvs[ELT_IN_DELETE]
+      >> metis_tac[]
+     )
+  >> REVERSE EQ_TAC
+  >- (disch_tac
+      >> irule disjoint_insert
+      >> metis_tac[DISJOINT_SYM]
+     )
+  >> gvs[disjoint_def]
+QED
+
+Theorem DISJOINT_RESTRICT_LL:
+  ∀a1 a2 b1.
+    DISJOINT a1 b1 ⇒ DISJOINT (a1 ∩ a2) b1
+Proof
+  rpt strip_tac
+  >> gvs[DISJOINT_DEF]
+  >> gvs[EXTENSION]
+  >> metis_tac[]
+QED
+
+Theorem DISJOINT_RESTRICT_LR:
+  ∀a1 a2 b1.
+    DISJOINT a2 b1 ⇒ DISJOINT (a1 ∩ a2) b1
+Proof
+  metis_tac[DISJOINT_RESTRICT_LL, DISJOINT_SYM, INTER_COMM]
+QED
+
+Theorem DISJOINT_RESTRICT_RL:
+  ∀a1 b1 b2.
+    DISJOINT a1 b1 ⇒ DISJOINT a1 (b1 ∩ b2)
+Proof
+  metis_tac[DISJOINT_RESTRICT_LL, DISJOINT_SYM, INTER_COMM]
+QED
+
+Theorem DISJOINT_RESTRICT_RR:
+  ∀a1 b1 b2.
+    DISJOINT a1 b2 ⇒ DISJOINT a1 (b1 ∩ b2)
+Proof
+  metis_tac[DISJOINT_RESTRICT_LL, DISJOINT_SYM, INTER_COMM]
+QED
+
+Theorem FBIGUNION_IN_DELETE:
+  ∀e S.
+    FINITE S ∧
+    disjoint_domains S ∧
+    e ∈ S ⇒
+    FBIGUNION S = e ⊌ FBIGUNION (S DELETE e)
+Proof
+  rpt strip_tac
+  >> Q.SUBGOAL_THEN ‘S = e INSERT S DELETE e’
+      (fn th => PURE_ONCE_REWRITE_TAC[th]) >- simp[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[FBIGUNION_INSERT]
+  >> simp[]
+QED
+
+Theorem disjoint_image_iff:
+  ∀f S.
+    INJ f S 𝕌(:β -> bool) ⇒
+    (disjoint (IMAGE f S) ⇔
+       (∀i j. i ∈ S ∧ j ∈ S ∧ i ≠ j ⇒ DISJOINT (f i) (f j)))
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_def, pairwise]
+  >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >- metis_tac[INJ_DEF]
+  >> metis_tac[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
 (*                                                                            *)
@@ -1411,15 +1492,11 @@ Theorem generalised_distributive_law:
   ∀fg S ff nsf excl_val_mapf.
     FINITE S ∧
     INJ nsf S 𝕌(:unit + num -> bool) ∧
-    disjoint_domains S ∧
+    disjoint (IMAGE nsf S) ∧
     (∀k x.
        x ∈ val_map_assignments fg (nsf k) (excl_val_mapf k) ⇒
        ff k x ≠ +∞ ∧ ff k x ≠ −∞) ⇒
-    ∏ (λk.
-         ∑ (λval_map.
-              ff k val_map
-           ) (val_map_assignments fg (nsf k) (excl_val_mapf k))
-      ) S
+    ∏ (λk. ∑ (ff k) (val_map_assignments fg (nsf k) (excl_val_mapf k))) S
     = ∑ (λval_map.
            ∏ (λk.
                 ff k (DRESTRICT val_map (nsf k))
@@ -1445,14 +1522,13 @@ Proof
   >> gvs[EXTREAL_PROD_IMAGE_PROPERTY, DELETE_NON_ELEMENT_RWT]
   (* Ready the inductive hypothesis to be applied *)
   >> last_x_assum (qspecl_then [‘excl_val_mapf’, ‘ff’, ‘fg’, ‘nsf’] assume_tac)
-  >> gvs[disjoint_domains_insert]
+  >> gvs[disjoint_insert_iff]
   >> gvs[INJ_INSERT]
   (* The inductive hypothesis has been applied, so get rid of it *)
   >> qpat_x_assum ‘∏ _ _ = ∑ (λval_map. ∏ _ _) _’ kall_tac
   (* Move one sum into the other, as a constant *)
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_L_ALT]
   >> conj_tac
-     
   >- (rpt conj_tac
       >- gvs[]
       >- (gvs[]
@@ -1467,16 +1543,57 @@ Proof
       >> simp[]
       >> qx_gen_tac ‘k’ >> disch_tac
       >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
-      >> last_x_assum irule
+      >> last_x_assum irule       
       >> irule drestrict_in_val_map_assignments
       >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments fg ns1 excl_val_map1’
       >> qexistsl [‘excl_val_map1’, ‘ns1’] >> simp[Abbr ‘excl_val_map1’, Abbr ‘ns1’]
+      >> REVERSE conj_tac
+      >- (simp[BIGUNION_IMAGE, SUBSET_DEF]
+          >> metis_tac[])
+      >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FBIGUNION]
       >> conj_tac
-      >- (
-       )
-      >> simp[BIGUNION_IMAGE, SUBSET_DEF]
-      >> metis_tac[]
+      >- (simp[]
+          >> gvs[disjoint_domains_def, pairwise]
+          >> rpt strip_tac
+          >> gvs[FDOM_DRESTRICT]
+          >> irule DISJOINT_RESTRICT_RR
+          >> irule DISJOINT_RESTRICT_LR
+          >> gvs[disjoint_def]
+          >> Cases_on ‘k' = k''’ >> gvs[]
+          >> ‘nsf k' ≠ nsf k''’ by metis_tac[INJ_DEF]
+          >> last_x_assum irule
+          >> simp[]
+          >> metis_tac[]
+         )
+      >> gvs[IMAGE_IMAGE]
+      >> gvs[o_DEF]
+      >> Q.SUBGOAL_THEN ‘S = k INSERT S DELETE k’
+          (fn th => PURE_ONCE_REWRITE_TAC[th]) >- simp[]
+      >> simp[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[FBIGUNION_INSERT]
+      >> conj_tac
+      >- (simp[]
+          >> Q.SUBGOAL_THEN ‘DRESTRICT (excl_val_mapf k) (nsf k) INSERT
+                             IMAGE (λk'. DRESTRICT (excl_val_mapf k') (nsf k' ∩ nsf k))
+                             (S DELETE k) =
+                             IMAGE (λk'. DRESTRICT (excl_val_mapf k') (nsf k' ∩ nsf k))
+                                  (k INSERT S DELETE k)’ (fn th => PURE_ONCE_REWRITE_TAC[th]) >- simp[]
+          >> simp[disjoint_domains_def, pairwise, Excl "IN_INSERT"]
+          >> rpt gen_tac >> rpt disch_tac
+          >> gvs[FDOM_DRESTRICT]
+          >> irule DISJOINT_RESTRICT_LR
+          >> irule DISJOINT_RESTRICT_LL
+          >> irule DISJOINT_RESTRICT_RR
+          >> irule DISJOINT_RESTRICT_RL
+          >> gvs[disjoint_image_iff]
+          >> metis_tac[]
+         )
+      >> irule SUBMAP_FUNION
+      >> disj1_tac
+      >> gvs[]
      )
+     
+  >>
 QED
 
 (*Theorem generalised_distributive_law:
@@ -1641,7 +1758,7 @@ Proof
       (* Expand out sum_prod on the left so that we can see the place where
          we'll have to use the generalised distributive law. *)
       >> gvs[Cong LHS_CONG, sum_prod_def]
-
+            
             
 
       (* -------------------------------------------------------------------- *)
