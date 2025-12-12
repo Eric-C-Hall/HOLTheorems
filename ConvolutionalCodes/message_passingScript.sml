@@ -1467,6 +1467,34 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem test1:
+  ∀ff e nsf excl_val_mapf S fg.
+    (∀f : (unit + num |-> bool list) -> extreal e.
+       e * ∑ f S = RHS : extreal) ⇒
+    ∑ (λval_map.
+         ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S *
+         ∑ (ff e) (val_map_assignments fg (nsf e) (excl_val_mapf e)))
+      (val_map_assignments fg (BIGUNION (IMAGE nsf S))
+                           (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))) = ARB : extreal
+Proof
+  rpt strip_tac
+  >> gvs[]
+QED
+
+Theorem test2:
+  ∀ff e nsf excl_val_mapf S fg.
+    (∀f : (unit + num |-> bool list) -> extreal e_loc S_loc.
+       e_loc * ∑ f S_loc = RHS : extreal) ⇒
+    ∑ (λval_map.
+         ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S *
+         ∑ (ff e) (val_map_assignments fg (nsf e) (excl_val_mapf e)))
+      (val_map_assignments fg (BIGUNION (IMAGE nsf S))
+                           (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))) = ARB : extreal
+Proof
+  rpt strip_tac
+  >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
 (*                                                                            *)
@@ -1573,11 +1601,13 @@ Proof
       >> DEP_PURE_ONCE_REWRITE_TAC[FBIGUNION_INSERT]
       >> conj_tac
       >- (simp[]
-          >> Q.SUBGOAL_THEN ‘DRESTRICT (excl_val_mapf k) (nsf k) INSERT
-                             IMAGE (λk'. DRESTRICT (excl_val_mapf k') (nsf k' ∩ nsf k))
-                             (S DELETE k) =
-                             IMAGE (λk'. DRESTRICT (excl_val_mapf k') (nsf k' ∩ nsf k))
-                                  (k INSERT S DELETE k)’ (fn th => PURE_ONCE_REWRITE_TAC[th]) >- simp[]
+          >> Q.SUBGOAL_THEN
+              ‘DRESTRICT (excl_val_mapf k) (nsf k) INSERT
+               IMAGE (λk'. DRESTRICT (excl_val_mapf k') (nsf k' ∩ nsf k))
+               (S DELETE k) =
+               IMAGE (λk'. DRESTRICT (excl_val_mapf k') (nsf k' ∩ nsf k))
+                     (k INSERT S DELETE k)’
+              (fn th => PURE_ONCE_REWRITE_TAC[th]) >- simp[]
           >> simp[disjoint_domains_def, pairwise, Excl "IN_INSERT"]
           >> rpt gen_tac >> rpt disch_tac
           >> gvs[FDOM_DRESTRICT]
@@ -1593,8 +1623,14 @@ Proof
       >> gvs[]
      )
 
+  >> sg ‘∀f : (unit + num |-> bool list) -> extreal S.
+           ∑ f S * c = RHS’
+  >- cheat
+  >> gvs[]
+        
   (* Move the product into the inner sum, as a constant *)
-  >> EXTREAL_SUM_IMAGE_CMUL_R_ALT
+  >> gvs[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT, Cong EXTREAL_SUM_IMAGE_CONG]
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT]
 
   (* Combine the composed sums together *)
   >> 
