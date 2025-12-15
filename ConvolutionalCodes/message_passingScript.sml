@@ -1622,18 +1622,33 @@ Proof
       >> disj1_tac
       >> gvs[]
      )
-
-  >> sg ‘∀f : (unit + num |-> bool list) -> extreal S.
-           ∑ f S * c = RHS’
+     
+  >> sg ‘∀f : (unit + num |-> bool list) -> extreal S c.
+           c ≠ +∞ ⇒
+           ∑ f S * c = ∑ (λx. f x * c) S : extreal’
   >- cheat
-  >> gvs[]
+
+  >> sg ‘∀f : β -> extreal S.
+           FINITE S ∧
+           (∀x. x ∈ S ⇒ f x ≠ −∞ ∧ f x ≠ +∞)
+           ⇒
+           ∏ f S ≠ +∞’
+  >- cheat
+     
+  >> qpat_x_assum ‘∀y. y ∈ S ∧ nsf e = nsf y ⇒ e = y’ kall_tac                  
+  >> gvs[Cong EXTREAL_SUM_IMAGE_CONG]
+        
+  >> sg ‘∀val_map. ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S)
+(val_map_assignments fg (BIGUNION (IMAGE nsf S)) ≠ +∞’
+        
+  >> gvs[EXTREAL_PROD_IMAGE_NOT_INFTY, Cong EXTREAL_SUM_IMAGE_CONG]
         
   (* Move the product into the inner sum, as a constant *)
   >> gvs[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT, Cong EXTREAL_SUM_IMAGE_CONG]
-  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT]
+     >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT]
 
-  (* Combine the composed sums together *)
-  >> 
+     (* Combine the composed sums together *)
+     >> 
 QED
 
 (*Theorem generalised_distributive_law:
