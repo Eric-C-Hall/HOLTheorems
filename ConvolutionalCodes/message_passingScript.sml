@@ -10,7 +10,8 @@ val _ = augment_srw_ss [rewrites[FDOM_FMAP,
                                  PROD_IMAGE_EMPTY,
                                  EXTREAL_SUM_IMAGE_EMPTY,
                                  SUM_IMAGE_EMPTY,
-                                 SUM_IMAGE_SING]];
+                                 SUM_IMAGE_SING,
+                                 DRESTRICT_IS_FEMPTY]];
 
 val _ = hide "S";
 
@@ -1467,32 +1468,145 @@ Proof
   >> metis_tac[]
 QED
 
-Theorem test1:
-  ∀ff e nsf excl_val_mapf S fg.
-    (∀f : (unit + num |-> bool list) -> extreal e.
-       e * ∑ f S = RHS : extreal) ⇒
-    ∑ (λval_map.
-         ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S *
-         ∑ (ff e) (val_map_assignments fg (nsf e) (excl_val_mapf e)))
-      (val_map_assignments fg (BIGUNION (IMAGE nsf S))
-                           (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))) = ARB : extreal
+Theorem FBIGUNION_SING[simp]:
+  ∀f.
+    FBIGUNION {f} = f
 Proof
   rpt strip_tac
-  >> gvs[]
+  >> gvs[FBIGUNION_DEF]
 QED
 
-Theorem test2:
-  ∀ff e nsf excl_val_mapf S fg.
-    (∀f : (unit + num |-> bool list) -> extreal e_loc S_loc.
-       e_loc * ∑ f S_loc = RHS : extreal) ⇒
-    ∑ (λval_map.
-         ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S *
-         ∑ (ff e) (val_map_assignments fg (nsf e) (excl_val_mapf e)))
-      (val_map_assignments fg (BIGUNION (IMAGE nsf S))
-                           (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))) = ARB : extreal
+Theorem disjoint_domains_delete:
+  ∀S x.
+    disjoint_domains S ⇒ disjoint_domains (S DELETE x)
 Proof
   rpt strip_tac
-  >> gvs[]
+  >> gvs[disjoint_domains_def]
+  >> gvs[pairwise]
+QED
+
+Theorem disjoint_domains_insert_delete:
+  ∀S x1 x2.
+    disjoint_domains (x1 INSERT S) ⇒ disjoint_domains (x1 INSERT (S DELETE x2))
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_domains_def, pairwise]
+  >> metis_tac[]
+QED
+
+Theorem disjoint_domains_fempty_insert:
+  ∀S.
+    disjoint_domains (FEMPTY INSERT S) ⇔ disjoint_domains S
+Proof
+  gvs[disjoint_domains_insert]
+QED
+
+Theorem disjoint_domains_delete_fempty:
+  ∀S.
+    disjoint_domains (S DELETE FEMPTY) ⇔ disjoint_domains S
+Proof
+  rpt strip_tac
+  >> REVERSE EQ_TAC >> rpt strip_tac
+  >- (irule disjoint_domains_delete >> simp[])
+  >> REVERSE $ Cases_on ‘FEMPTY ∈ S’
+  >- gvs[DELETE_NON_ELEMENT_RWT]
+  >> Q.SUBGOAL_THEN ‘S = FEMPTY INSERT (S DELETE FEMPTY)’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[]
+  >> simp[disjoint_domains_insert]
+QED
+
+Theorem FBIGUNION_DELETE_FEMPTY:
+  ∀S.
+    FINITE S ∧
+    disjoint_domains (S DELETE FEMPTY) ⇒
+    FBIGUNION S = FBIGUNION (S DELETE FEMPTY)
+Proof
+  simp[disjoint_domains_delete_fempty]
+  >> simp[GSYM AND_IMP_INTRO]
+  >> Induct_on ‘S’ using FINITE_INDUCT
+  >> rpt strip_tac >> simp[]
+  >> gvs[DELETE_INSERT]
+  >> Cases_on ‘e = FEMPTY’
+  >- gvs[FBIGUNION_INSERT, disjoint_domains_insert]
+  >> simp[FBIGUNION_INSERT, disjoint_domains_insert_delete]
+  >> gvs[disjoint_domains_insert]
+QED
+
+Theorem disjoint_domains_empty[simp]:
+  disjoint_domains ∅
+Proof
+  gvs[disjoint_domains_def, pairwise]
+QED
+
+Theorem disjoint_domains_sing[simp]:
+  ∀f.
+    disjoint_domains {f}
+Proof
+  gvs[disjoint_domains_def, pairwise]
+QED
+
+Theorem disjoint_domains_alt:
+  ∀S : (α |-> β) -> bool.
+    disjoint_domains S ⇔
+      disjoint (IMAGE FDOM S) ∧
+      INJ FDOM S 𝕌(:α -> bool)
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_domains_def, pairwise, disjoint_def, INJ_DEF]
+  >> EQ_TAC >> rpt strip_tac
+  >- metis_tac[]
+  >- (last_x_assum $ qspecl_then [‘x’, ‘y’] assume_tac
+      >> gvs[] >> CCONTR_TAC >> gvs[FDOM_EQ_EMPTY])
+  >> last_x_assum irule
+  >> Cases_on ‘FDOM f1 = FDOM f2’ >> gvs[]
+  >> metis_tac[]
+QED
+
+Theorem disjoint_domains_image_drestrict_func:
+  ∀rf ff S.
+    INJ rf S 𝕌(:α -> bool) ∧
+    disjoint (IMAGE rf S) ⇒
+    disjoint_domains (IMAGE (λk. DRESTRICT (ff k) (rf k)) S)
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_domains_alt]
+  >> gvs[IMAGE_IMAGE, o_DEF, FDOM_DRESTRICT]
+  >> conj_tac
+  >- (simp[disjoint_def]
+      >> rpt strip_tac
+      >> Cases_on ‘k = k'’ >> gvs[]
+      >> irule DISJOINT_RESTRICT_LR >> irule DISJOINT_RESTRICT_RR
+      >> gvs[disjoint_def]
+      >> last_x_assum irule
+      >> sg ‘rf k ≠ rf k'’
+      >- (gvs[INJ_DEF]
+          >> metis_tac[])
+      >> simp[]
+      >> conj_tac
+      >- (qexists ‘k’ >> gvs[])
+      >> qexists ‘k'’ >> gvs[]
+     )
+  >> gvs[INJ_DEF]
+  >> rpt strip_tac
+  >> gvs[FDOM_DRESTRICT]
+  >> Cases_on ‘k = k'’ >> simp[]
+  (* This will have to be the empty set, because the rf are disjoint *)
+  >> REVERSE $ Cases_on ‘FDOM (ff k) ∩ rf k = ∅’
+  >- (gvs[]
+      >> ‘F’ suffices_by simp[]
+      >> qpat_x_assum ‘disjoint _’ mp_tac
+      >> simp[disjoint_def]
+      >> qexistsl [‘rf k’, ‘rf k'’]
+      >> rpt conj_tac
+      >- (qexists ‘k’ >> simp[])
+      >- (qexists ‘k'’ >> simp[])
+      >- metis_tac[]
+      >> simp[DISJOINT_DEF]
+      >> ASM_SET_TAC[])
+  >> ‘FDOM (DRESTRICT (ff k) (rf k)) = ∅’ by simp[FDOM_DRESTRICT]
+  >> ‘FDOM (DRESTRICT (ff k') (rf k')) = ∅’ by gvs[FDOM_DRESTRICT]
+  >> metis_tac[FDOM_EQ_EMPTY]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1622,33 +1736,84 @@ Proof
       >> disj1_tac
       >> gvs[]
      )
-     
-  >> sg ‘∀f : (unit + num |-> bool list) -> extreal S c.
-           c ≠ +∞ ⇒
-           ∑ f S * c = ∑ (λx. f x * c) S : extreal’
-  >- cheat
-
-  >> sg ‘∀f : β -> extreal S.
-           FINITE S ∧
-           (∀x. x ∈ S ⇒ f x ≠ −∞ ∧ f x ≠ +∞)
-           ⇒
-           ∏ f S ≠ +∞’
-  >- cheat
-     
-  >> qpat_x_assum ‘∀y. y ∈ S ∧ nsf e = nsf y ⇒ e = y’ kall_tac                  
-  >> gvs[Cong EXTREAL_SUM_IMAGE_CONG]
-        
-  >> sg ‘∀val_map. ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S)
-(val_map_assignments fg (BIGUNION (IMAGE nsf S)) ≠ +∞’
-        
-  >> gvs[EXTREAL_PROD_IMAGE_NOT_INFTY, Cong EXTREAL_SUM_IMAGE_CONG]
-        
   (* Move the product into the inner sum, as a constant *)
-  >> gvs[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT, Cong EXTREAL_SUM_IMAGE_CONG]
-     >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT]
+  >> qmatch_goalsub_abbrev_tac ‘∑ _ assignments’  
+  >> sg ‘∀val_map.
+           val_map ∈ assignments ⇒
+           ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S ≠ +∞ ∧
+           ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S ≠ −∞’
 
-     (* Combine the composed sums together *)
-     >> 
+  >- (gen_tac >> disch_tac
+      >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
+      >> irule EXTREAL_PROD_IMAGE_NOT_INFTY
+      >> REVERSE conj_tac >- simp[]
+      >> qx_gen_tac ‘k’
+      >> disch_tac >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
+      >> last_x_assum irule
+      >> irule drestrict_in_val_map_assignments
+      >> simp[Abbr ‘assignments’]
+      >> qmatch_asmsub_abbrev_tac ‘val_map_assignments fg ns1 excl_val_map1’
+      >> qexistsl [‘excl_val_map1’, ‘ns1’]
+      >> conj_tac >- simp[]
+      >> REVERSE conj_tac
+      >- (unabbrev_all_tac
+          >> simp[]
+          >> simp[BIGUNION, SUBSET_DEF]
+          >> metis_tac[]
+         )
+      >> unabbrev_all_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FBIGUNION]
+      >> conj_tac
+      >- (simp[]
+          >> cheat
+         )
+      >> simp[IMAGE_IMAGE, o_DEF]
+      >> sg ‘∀k'. k' ∈ S ⇒ nsf k' ∩ nsf k = if k' = k then nsf k else ∅’
+      >- (rpt strip_tac
+          >> rw[]
+          >> simp[GSYM DISJOINT_DEF]
+          >> gvs[disjoint_def]
+          >> last_x_assum irule
+          >> conj_tac
+          >- (qexists ‘k'’ >> simp[])
+          >> conj_tac
+          >- (qexists ‘k’ >> simp[])
+          >> gvs[INJ_DEF]
+          >> metis_tac[]
+         )
+      >> simp[Cong IMAGE_CONG]
+      >> Q.SUBGOAL_THEN ‘S = k INSERT (S DELETE k)’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- simp[]
+      >> simp[]
+      >> qmatch_goalsub_abbrev_tac ‘IMAGE f (S DELETE k)’
+              >> sg ‘IMAGE f (S DELETE k) = if S = {k} then ∅ else {FEMPTY}’
+              >- (rw[]
+                  >> simp[EXTENSION]
+                  >> qx_gen_tac ‘fmap’
+                  >> EQ_TAC >> rpt strip_tac
+                  >- simp[Abbr ‘f’]
+                  >> Cases_on ‘S’
+                  >- gvs[]
+                  >> Cases_on ‘t’
+                  >- gvs[]
+                  >> Cases_on ‘x = k’
+                  >- (qexists ‘x'’ >> gvs[Abbr ‘f’])
+                  >> qexists ‘x’ >> gvs[Abbr ‘f’]
+                 )
+              >> gvs[]
+              >> rw[]
+              >> DEP_PURE_ONCE_REWRITE_TAC[FBIGUNION_DELETE_FEMPTY]
+              >> conj_tac
+              >- (gvs[DELETE_DEF] >> rw[])
+      >> simp[DELETE_DEF]
+      >> rw[]
+     )
+  >> gvs[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT, Cong EXTREAL_SUM_IMAGE_CONG]
+
+  (* Combine the composed sums together *)
+>> 
 QED
 
 (*Theorem generalised_distributive_law:
