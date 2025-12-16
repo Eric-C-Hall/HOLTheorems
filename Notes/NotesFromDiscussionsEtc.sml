@@ -131,6 +131,10 @@ QED
 
 (* ETA_ss: eta reduce i.e. convert \x. f x to f *)
 
+(* help "drule_at" *)
+
+(* drule_at (PAT `r_`)*)
+
+(* mp_then *)
+
 val _ = export_theory();
-
-

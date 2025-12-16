@@ -4,6 +4,7 @@ Ancestors arithmetic bool combin ecc_prob_space extreal factor_graph finite_map 
 
 Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
+(* export_rewrites ["FDOM_FMAP", "FUN_FMAP_DEF", ...] *)
 val _ = augment_srw_ss [rewrites[FDOM_FMAP,
                                  FUN_FMAP_DEF,
                                  EXTREAL_PROD_IMAGE_EMPTY,
@@ -327,6 +328,10 @@ Proof
   >> irule ITSET_CONG
   >> simp[]
 QED
+
+val _ = augment_srw_ss [SSFRAG {ac=[], congs=[EXTREAL_SUM_IMAGE_CONG, EXTREAL_PROD_IMAGE_CONG], convs=[], dprocs=[], filter=NONE, name=SOME "EXTREAL_CONGS", rewrs=[]}];
+
+(* ExclSF "EXTREAL_CONGS" *)
 
 (* -------------------------------------------------------------------------- *)
 (* The set of all assignments to a particular set of variable nodes in a      *)
@@ -1808,6 +1813,7 @@ Proof
       >> simp[DELETE_DEF]
       >> rw[]
      )
+  >> gvs[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT]
   >> gvs[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT, Cong EXTREAL_SUM_IMAGE_CONG]
   >> simp[Abbr ‘assignments’]
 
