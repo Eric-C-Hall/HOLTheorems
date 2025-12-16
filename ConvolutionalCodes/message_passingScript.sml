@@ -1742,7 +1742,6 @@ Proof
            val_map ∈ assignments ⇒
            ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S ≠ +∞ ∧
            ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S ≠ −∞’
-
   >- (gen_tac >> disch_tac
       >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
       >> irule EXTREAL_PROD_IMAGE_NOT_INFTY
@@ -1766,8 +1765,7 @@ Proof
       >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FBIGUNION]
       >> conj_tac
       >- (simp[]
-          >> cheat
-         )
+          >> metis_tac[disjoint_domains_image_drestrict_func])
       >> simp[IMAGE_IMAGE, o_DEF]
       >> sg ‘∀k'. k' ∈ S ⇒ nsf k' ∩ nsf k = if k' = k then nsf k else ∅’
       >- (rpt strip_tac
@@ -1788,32 +1786,33 @@ Proof
       >- simp[]
       >> simp[]
       >> qmatch_goalsub_abbrev_tac ‘IMAGE f (S DELETE k)’
-              >> sg ‘IMAGE f (S DELETE k) = if S = {k} then ∅ else {FEMPTY}’
-              >- (rw[]
-                  >> simp[EXTENSION]
-                  >> qx_gen_tac ‘fmap’
-                  >> EQ_TAC >> rpt strip_tac
-                  >- simp[Abbr ‘f’]
-                  >> Cases_on ‘S’
-                  >- gvs[]
-                  >> Cases_on ‘t’
-                  >- gvs[]
-                  >> Cases_on ‘x = k’
-                  >- (qexists ‘x'’ >> gvs[Abbr ‘f’])
-                  >> qexists ‘x’ >> gvs[Abbr ‘f’]
-                 )
-              >> gvs[]
-              >> rw[]
-              >> DEP_PURE_ONCE_REWRITE_TAC[FBIGUNION_DELETE_FEMPTY]
-              >> conj_tac
-              >- (gvs[DELETE_DEF] >> rw[])
+      >> sg ‘IMAGE f (S DELETE k) = if S = {k} then ∅ else {FEMPTY}’
+      >- (rw[]
+          >> simp[EXTENSION]
+          >> qx_gen_tac ‘fmap’
+          >> EQ_TAC >> rpt strip_tac
+          >- simp[Abbr ‘f’]
+          >> Cases_on ‘S’
+          >- gvs[]
+          >> Cases_on ‘t’
+          >- gvs[]
+          >> Cases_on ‘x = k’
+          >- (qexists ‘x'’ >> gvs[Abbr ‘f’])
+          >> qexists ‘x’ >> gvs[Abbr ‘f’]
+         )
+      >> gvs[]
+      >> rw[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[FBIGUNION_DELETE_FEMPTY]
+      >> conj_tac
+      >- (gvs[DELETE_DEF] >> rw[])
       >> simp[DELETE_DEF]
       >> rw[]
      )
   >> gvs[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT, Cong EXTREAL_SUM_IMAGE_CONG]
+  >> simp[Abbr ‘assignments’]
 
   (* Combine the composed sums together *)
->> 
+  >> 
 QED
 
 (*Theorem generalised_distributive_law:
