@@ -1614,6 +1614,44 @@ Proof
   >> metis_tac[FDOM_EQ_EMPTY]
 QED
 
+Theorem EXTREAL_SUM_IMAGE_CHANGE_SET:
+  ∀f g S1 S2 bij.
+    FINITE S1 ∧
+    BIJ bij S1 S2 ∧
+    ((∀x. x ∈ S1 ⇒ f x ≠ −∞) ∨
+     (∀x. x ∈ S1 ⇒ f x ≠ +∞)) ∧
+    (∀x. x ∈ S1 ⇒ f x = g (bij x)) ⇒
+    ∑ f S1 = ∑ g S2 : extreal
+Proof
+  (* Avoid strip_tac here because it would split on the disjunct too early *)
+  simp[GSYM AND_IMP_INTRO]
+  >> rpt gen_tac >> rpt disch_tac
+  (* Use existing theorem regarding IMAGEs: rewrite S2 as the IMAGE of S1 *)
+  >> Q.SUBGOAL_THEN ‘S2 = IMAGE bij S1’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[BIJ_IMAGE]
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
+  >> conj_tac
+  >- (simp[]
+      >> metis_tac[BIJ_DEF, BIJ_IMAGE])
+  (* Finish proof *)
+  >> simp[o_DEF] 
+QED
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem val_map_assignments_cross:
+  val_map_assignments fg ns1 excl_val_map1 ×
+  val_map_assignments fg ns2 excl_val_map2 =
+  val_map_assignments fg (ns1 ∪ ns2) (DRESTRICT)
+Proof
+  EXTREAL_SUM_IMAGE_EQ3
+QED
+
+
 (* -------------------------------------------------------------------------- *)
 (* If we sum over assignments to one set of variables and then sum over       *)
 (* assignments to another set of variables, then                               *)
@@ -1622,18 +1660,37 @@ QED
 (* correct form before applying this                                          *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem EXTREAL_SUM_IMAGE_val_map_assignments_combine:
+Theorem extreal_sum_image_val_map_assignments_combine:
   ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f.
-    ∑ (λx.
-         ∑ (λy. f x y)
-           (val_map_assignments fg ns2 excl_val_map2)
-      ) (val_map_assignments fg ns1 excl_val_map1) =
-    ∑ (λz.
-         f (DRESTRICT z ns1) (DRESTRICT z ns2)
-      ) (val_map_assignments fg (ns1 ∪ ns2) ((DRESTRICT excl_val_map1 ns1) ⊌ (DRESTRICT excl_val_map2 ns2))) : extreal
+    DISJOINT ns1 ns2 ∧
+    ((∀x y.
+        x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+        y ∈ val_map_assignments fg ns2 excl_val_map2 ⇒
+        f x y ≠ +∞) ∨
+     (∀x y.
+        x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+        y ∈ val_map_assignments fg ns2 excl_val_map2 ⇒
+        f x y ≠ −∞))
+    ⇒ ∑ (λx.
+           ∑ (λy. f x y)
+             (val_map_assignments fg ns2 excl_val_map2)
+        ) (val_map_assignments fg ns1 excl_val_map1) =
+      ∑ (λz.
+           f (DRESTRICT z ns1) (DRESTRICT z ns2)
+        ) (val_map_assignments fg (ns1 ∪ ns2) ((DRESTRICT excl_val_map1 ns1) ⊌ (DRESTRICT excl_val_map2 ns2))) : extreal
 Proof
-  rpt strip_tac
-  >> cheat
+  rpt gen_tac >> rpt disch_tac
+  (* Our double sum over S and T is equivalent to a single sum over S × T *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_SUM_IMAGE]
+  >> conj_tac
+  >- (simp[]
+      >> metis_tac[])
+  (* Our single sum over S × T is equivalent to *)
+  >> gvs[val_map_assignments_def]
+        
+  (* An assignment to ns1 and ns2 corresponds to the ns1-th outer sum term and
+     the ns2-th inner sum term. *)
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1841,7 +1898,7 @@ Proof
   (* Combine the composed sums together *)
   >> Q.HO_MATCH_ABBREV_TAC ‘∑ (λval_map. ∑ (λx. inner_func val_map x) (val_map_assignments fg ns2 excl_val_map2)) (val_map_assignments fg ns1 excl_val_map1) = _ : extreal’
   >> simp[]
-  >> gvs[EXTREAL_SUM_IMAGE_val_map_assignments_combine]
+  >> gvs[extreal_sum_image_val_map_assignments_combine]
 
 QED
 
