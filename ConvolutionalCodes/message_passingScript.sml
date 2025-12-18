@@ -1615,6 +1615,28 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* If we sum over assignments to one set of variables and then sum over       *)
+(* assignments to another set of variables, then                               *)
+(*                                                                            *)
+(* Use HO_MATCH_ABBREV_TAC to ensure the inside of the inner sum is in the    *)
+(* correct form before applying this                                          *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem EXTREAL_SUM_IMAGE_val_map_assignments_combine:
+  ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f.
+    ∑ (λx.
+         ∑ (λy. f x y)
+           (val_map_assignments fg ns2 excl_val_map2)
+      ) (val_map_assignments fg ns1 excl_val_map1) =
+    ∑ (λz.
+         f (DRESTRICT z ns1) (DRESTRICT z ns2)
+      ) (val_map_assignments fg (ns1 ∪ ns2) ((DRESTRICT excl_val_map1 ns1) ⊌ (DRESTRICT excl_val_map2 ns2))) : extreal
+Proof
+  rpt strip_tac
+  >> cheat
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
 (*                                                                            *)
 (* The basic idea is Π Σ f = Σ Π f.                                           *)
@@ -1654,7 +1676,7 @@ Theorem generalised_distributive_law:
            (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))
           ) : extreal
 Proof
-
+  
   (* Rewrite so that FINITE S is our only assumption, so we can use induction *)
   rpt strip_tac
   >> NTAC 3 (pop_assum mp_tac)
@@ -1816,9 +1838,11 @@ Proof
   >> gvs[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT]
   >> gvs[GSYM EXTREAL_SUM_IMAGE_CMUL_R_ALT, Cong EXTREAL_SUM_IMAGE_CONG]
   >> simp[Abbr ‘assignments’]
-
   (* Combine the composed sums together *)
-  >> 
+  >> Q.HO_MATCH_ABBREV_TAC ‘∑ (λval_map. ∑ (λx. inner_func val_map x) (val_map_assignments fg ns2 excl_val_map2)) (val_map_assignments fg ns1 excl_val_map1) = _ : extreal’
+  >> simp[]
+  >> gvs[EXTREAL_SUM_IMAGE_val_map_assignments_combine]
+
 QED
 
 (*Theorem generalised_distributive_law:
