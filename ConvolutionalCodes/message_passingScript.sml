@@ -359,6 +359,9 @@ val _ = augment_srw_ss [SSFRAG {ac=[], congs=[EXTREAL_SUM_IMAGE_CONG, EXTREAL_PR
 (* a greater subset of variables while keeping the previous assignment fixed  *)
 (* by including it in excl_val_map. This allows us to sum over a few          *)
 (* variables at a time.                                                       *)
+(*                                                                            *)
+(* We can use wlog_tac to show that without loss of generality, ns is a       *)
+(* subset of var_nodes and excl_val_map is defined on a subset of ns.         *)
 (* -------------------------------------------------------------------------- *)
 Definition val_map_assignments_def:
   val_map_assignments fg ns excl_val_map =
@@ -1638,19 +1641,142 @@ Proof
   >> simp[o_DEF] 
 QED
 
-(* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-Theorem val_map_assignments_cross:
-  val_map_assignments fg ns1 excl_val_map1 ×
-  val_map_assignments fg ns2 excl_val_map2 =
-  val_map_assignments fg (ns1 ∪ ns2) (DRESTRICT)
+Theorem in_val_map_assignments_fdom:
+  ∀f fg ns1 excl_val_map1.
+    f ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
+    FDOM f = ns1 ∩ var_nodes fg
 Proof
-  EXTREAL_SUM_IMAGE_EQ3
+  simp[val_map_assignments_def]
 QED
 
+Theorem funion_in_val_map_assignments:
+  ∀q r fg ns1 excl_val_map1 ns2 excl_val_map2.
+    DISJOINT ns1 ns2 ∧
+    FDOM excl_val_map1 ⊆ ns1 ∧
+    FDOM excl_val_map2 ⊆ ns2 ∧
+    q ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+    r ∈ val_map_assignments fg ns2 excl_val_map2 ⇒
+    q ⊌ r ∈ val_map_assignments fg (ns1 ∪ ns2)
+      (excl_val_map1 ⊌ excl_val_map2)
+Proof
+  rpt strip_tac
+  >> simp[val_map_assignments_def]
+  >> rpt conj_tac
+  >- (gvs[val_map_assignments_def]
+      >> ASM_SET_TAC[])
+  >- (rpt gen_tac >> rpt disch_tac
+      >> simp[FUNION_DEF]
+      >> rw[]
+      >> gvs[val_map_assignments_def])
+  >> gen_tac
+  >> Cases_on ‘n ∈ ns1 ⇔ n ∈ ns2’
+  >- (gvs[DISJOINT_ALT]
+      >> Cases_on ‘n ∈ ns1’ >> gvs[]
+      >> gvs[val_map_assignments_def])
+  >> rpt strip_tac
+  >- (simp[FUNION_DEF]
+      >> gvs[val_map_assignments_def])
+  >- (‘n ∈ ns1’ by gvs[val_map_assignments_def]
+      >> ‘n ∈ ns2’ by metis_tac[SUBSET_DEF]
+      >> metis_tac[])
+  >- (‘n ∈ ns1’ by metis_tac[SUBSET_DEF]
+      >> ‘n ∈ ns2’ by gvs[val_map_assignments_def]
+      >> metis_tac[])
+  >> simp[FUNION_DEF]
+  >> rw[]
+  >- metis_tac[SUBSET_DEF]
+  >- gvs[val_map_assignments_def]
+  >- metis_tac[SUBSET_DEF]
+  >> gvs[val_map_assignments_def]
+QED
+
+Theorem val_map_assignments_drestrict_excl_val_map:
+  ∀fg ns excl_val_map.
+    val_map_assignments fg ns (DRESTRICT excl_val_map ns) =
+    val_map_assignments fg ns excl_val_map
+Proof
+  rpt strip_tac
+  >> simp[val_map_assignments_def]
+  >> sg ‘∀val_map : (unit + num |-> bool list) n.
+           FDOM val_map = ns ∩ var_nodes fg ∧
+           n ∈ FDOM val_map ⇒
+           (n ∈ FDOM (DRESTRICT excl_val_map ns) ⇔ n ∈ FDOM excl_val_map) ∧
+           (DRESTRICT excl_val_map ns ' n = excl_val_map ' n)’
+  >- (rpt strip_tac
+      >- gvs[FDOM_DRESTRICT]
+      >> gvs[DRESTRICT_DEF]
+      >> rw[]
+      >> simp[NOT_FDOM_FAPPLY_FEMPTY]
+     )
+  >> irule (iffRL EXTENSION) >> qx_gen_tac ‘val_map’
+  >> EQ_TAC >> rpt strip_tac >> gvs[] >> rpt strip_tac >> gvs[]
+  >> first_x_assum $ qspec_then ‘n’ assume_tac
+  >> last_x_assum $ qspecl_then [‘val_map’, ‘n’] assume_tac
+  >> gvs[]
+QED
+
+Theorem extreal_sum_image_val_map_assignments_cross:
+  ∀f fg ns1 excl_val_map1 ns2 excl_val_map2 S.
+    DISJOINT ns1 ns2 ∧
+    ((∀x.
+        FST x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+        SND x ∈ val_map_assignments fg ns2 excl_val_map2 ⇒
+        f x ≠ +∞) ∨
+     (∀x .
+        FST x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+        SND x ∈ val_map_assignments fg ns2 excl_val_map2 ⇒
+        f x ≠ −∞)) ⇒
+    ∑ f ((val_map_assignments fg ns1 excl_val_map1)
+         × val_map_assignments fg ns2 excl_val_map2) =
+    ∑ (λz. f (DRESTRICT z ns1, DRESTRICT z ns2))
+      (val_map_assignments
+       fg (ns1 ∪ ns2)
+       (DRESTRICT excl_val_map1 ns1 ⊌ DRESTRICT excl_val_map2 ns2)
+      ) : extreal
+Proof
+  rpt gen_tac >> rpt disch_tac
+  >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
+  >> rpt conj_tac
+  >- simp[]
+  >- gvs[]
+  >> qexists ‘λ(x1, x2). x1 ⊌ x2’
+  >> conj_tac
+  >- (rpt strip_tac
+      >> simp[]
+      >> Cases_on ‘x’ >> simp[]
+      >> gnvs[CROSS_DEF]
+      >> simp[DRESTRICTED_FUNION_ALT]
+      >> sg ‘FDOM q = ns1 ∩ var_nodes fg ∧ FDOM r = ns2 ∩ var_nodes fg’
+      >- metis_tac[in_val_map_assignments_fdom]
+      >> sg ‘DRESTRICT q ns1 = q ∧ DRESTRICT r ns1 = FEMPTY ∧
+             DRESTRICT q ns2 = FEMPTY ∧ DRESTRICT r ns2 = r’
+      >- metis_tac[DRESTRICT_EQ_FEMPTY, FDOM_SUBSET_DRESTRICT, INTER_SUBSET,
+                   DISJOINT_RESTRICT_LL, DISJOINT_RESTRICT_LR,
+                   DISJOINT_RESTRICT_RL, DISJOINT_RESTRICT_RR,
+                   DISJOINT_SYM]
+      >> simp[]
+     )
+  >> simp[BIJ_IFF_INV]
+  >> conj_tac
+  >- (rpt strip_tac
+      >> Cases_on ‘x’
+      >> gnvs[]
+      >> irule funion_in_val_map_assignments
+      >> simp[]
+      >> simp[val_map_assignments_drestrict_excl_val_map]
+     )
+     
+  >> simp[BIJ_DEF]
+  >> conj_tac
+  >- (simp[INJ_DEF]
+     )
+  >> simp[SURJ_DEF]
+         
+  (* An assignment to ns1 and ns2 corresponds to the ns1-th outer sum term and
+     the ns2-th inner sum term. *)
+  >> 
+
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* If we sum over assignments to one set of variables and then sum over       *)
@@ -1679,18 +1805,14 @@ Theorem extreal_sum_image_val_map_assignments_combine:
            f (DRESTRICT z ns1) (DRESTRICT z ns2)
         ) (val_map_assignments fg (ns1 ∪ ns2) ((DRESTRICT excl_val_map1 ns1) ⊌ (DRESTRICT excl_val_map2 ns2))) : extreal
 Proof
+
   rpt gen_tac >> rpt disch_tac
   (* Our double sum over S and T is equivalent to a single sum over S × T *)
   >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_SUM_IMAGE]
   >> conj_tac
   >- (simp[]
       >> metis_tac[])
-  (* Our single sum over S × T is equivalent to *)
-  >> gvs[val_map_assignments_def]
-        
-  (* An assignment to ns1 and ns2 corresponds to the ns1-th outer sum term and
-     the ns2-th inner sum term. *)
-  >> 
+  >> simp[extreal_sum_image_val_map_assignments_cross]
 QED
 
 (* -------------------------------------------------------------------------- *)

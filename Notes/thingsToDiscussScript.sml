@@ -6,6 +6,13 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* -------------------------------------------------------------------------- *)
+(* Would be cool to be able to rewrite within a set comprehension using CONG  *)
+(* somehow.                                                                   *)
+(* -------------------------------------------------------------------------- *)
+
+(* Already discussed *)
+
 Theorem cheat1:
   ∀val_map ns1 ns2 fg excl_val_map1 excl_val_map2.
     val_map ∈ val_map_assignments fg ns1 excl_val_map1 ∧
