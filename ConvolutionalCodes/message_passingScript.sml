@@ -1463,11 +1463,40 @@ Proof
   >> simp[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* A more specific version of disjoint_image_iff_general_codomain.            *)
+(*                                                                            *)
+(* This allows the simplifier to automatically discharge the precondition,    *)
+(* because it is specific, and will not involve introducing an existential    *)
+(* over a variable that could be anything.                                    *)
+(* -------------------------------------------------------------------------- *)
 Theorem disjoint_image_iff:
   ∀f S.
     INJ f S 𝕌(:β -> bool) ⇒
     (disjoint (IMAGE f S) ⇔
        (∀i j. i ∈ S ∧ j ∈ S ∧ i ≠ j ⇒ DISJOINT (f i) (f j)))
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_def, pairwise]
+  >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >- metis_tac[INJ_DEF]
+  >> metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A more general version of disjoint_image_iff                               *)
+(*                                                                            *)
+(* Advantage: works with an arbitrary codomain                                *)
+(* Disadvantage: the simplifier can't automatically discharge the assumption, *)
+(*   because it would need to introduce an existential over S2, and the       *)
+(*   simplifier can't instantiate existentials. By contast, the specific      *)
+(*   version is able to automatically discharge the assumption.               *)
+(* -------------------------------------------------------------------------- *)
+Theorem disjoint_image_iff_general_codomain:
+  ∀f S1 S2.
+    INJ f S1 S2 ⇒
+    (disjoint (IMAGE f S1) ⇔
+       (∀i j. i ∈ S1∧ j ∈ S1 ∧ i ≠ j ⇒ DISJOINT (f i) (f j)))
 Proof
   rpt strip_tac
   >> gvs[disjoint_def, pairwise]
@@ -1862,6 +1891,8 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem extreal_sum_image_val_map_assignments_combine:
   ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f.
+    ns1 ⊆ var_nodes fg ∧
+    ns2 ⊆ var_nodes fg ∧
     DISJOINT ns1 ns2 ∧
     ((∀x y.
         x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
@@ -1879,14 +1910,13 @@ Theorem extreal_sum_image_val_map_assignments_combine:
            f (DRESTRICT z ns1) (DRESTRICT z ns2)
         ) (val_map_assignments fg (ns1 ∪ ns2) ((DRESTRICT excl_val_map1 ns1) ⊌ (DRESTRICT excl_val_map2 ns2))) : extreal
 Proof
-
   rpt gen_tac >> rpt disch_tac
   (* Our double sum over S and T is equivalent to a single sum over S × T *)
   >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_SUM_IMAGE]
   >> conj_tac
   >- (simp[]
       >> metis_tac[])
-  >> simp[extreal_sum_image_val_map_assignments_cross]
+  >> gvs[extreal_sum_image_val_map_assignments_cross]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -2017,7 +2047,7 @@ Proof
       >> gvs[]
      )
   (* Move the product into the inner sum, as a constant *)
-  >> qmatch_goalsub_abbrev_tac ‘∑ _ assignments’  
+  >> qmatch_goalsub_abbrev_tac ‘∑ _ assignments’
   >> sg ‘∀val_map.
            val_map ∈ assignments ⇒
            ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S ≠ +∞ ∧
@@ -2094,7 +2124,22 @@ Proof
   (* Combine the composed sums together *)
   >> Q.HO_MATCH_ABBREV_TAC ‘∑ (λval_map. ∑ (λx. inner_func val_map x) (val_map_assignments fg ns2 excl_val_map2)) (val_map_assignments fg ns1 excl_val_map1) = _ : extreal’
   >> simp[]
-  >> gvs[extreal_sum_image_val_map_assignments_combine]
+  (* *)
+  >> 
+
+         
+  >> wlog_tac ‘ns1 ⊆ var_nodes fg ∧ ns2 ⊆ var_nodes fg’ [‘ns1’, ‘ns2’]
+  >- (first_x_assum $ qspecl_then [‘ns1 ∩ var_nodes fg’, ‘ns2 ∩ var_nodes fg’]
+                    assume_tac
+      >> gnvs[GSYM val_map_assignments_restrict_nodes]
+      >> last_x_assum irule
+      >> gvs[]
+     )
+  
+  >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
+  >> conj_tac
+  >- (simp[]
+     )
 
 QED
 
@@ -2341,7 +2386,7 @@ Proof
          It's less trivial to show that x ∈ P.
          After adding the proof above that any node adjacent to src was a
          variable node, that seemed to be enough to get this to work.
-       *)
+                    *)
       >> gvs[cj 2 FUN_FMAP_DEF, Cong EXTREAL_SUM_IMAGE_CONG,
              Cong EXTREAL_PROD_IMAGE_CONG,
              length_n_codes_finite]
