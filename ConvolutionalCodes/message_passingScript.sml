@@ -1643,10 +1643,13 @@ QED
 
 Theorem in_val_map_assignments_fdom:
   ∀f fg ns1 excl_val_map1.
+    ns1 ⊆ var_nodes fg ∧
     f ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
-    FDOM f = ns1 ∩ var_nodes fg
+    FDOM f = ns1
 Proof
-  simp[val_map_assignments_def]
+  rpt strip_tac
+  >> gvs[val_map_assignments_def]
+  >> gvs[GSYM SUBSET_INTER_ABSORPTION]
 QED
 
 Theorem funion_in_val_map_assignments:
@@ -1715,8 +1718,38 @@ Proof
   >> gvs[]
 QED
 
+Theorem INTER_DIFF_ABSORB[simp]:
+  ∀a b.
+    a ∩ (a DIFF b) = a DIFF b
+Proof
+  rpt strip_tac
+  >> simp[DIFF_DEF, INTER_DEF, EXTENSION]
+  >> metis_tac[]
+QED
+
+Theorem DISJOINT_DIFF_EMPTY:
+  ∀a b.
+    DISJOINT a b ⇔
+      b DIFF a = b ∧ a DIFF b = a
+Proof
+  rpt strip_tac
+  >> simp[DISJOINT_DEF, DIFF_DEF]
+  >> ASM_SET_TAC[]
+QED
+
+Theorem DIFF_UNION_ABSORB[simp]:
+  ∀a b.
+    a DIFF b ∪ a = a
+Proof
+  rpt strip_tac
+  >> simp[DIFF_DEF]
+  >> ASM_SET_TAC[]
+QED
+
 Theorem extreal_sum_image_val_map_assignments_cross:
   ∀f fg ns1 excl_val_map1 ns2 excl_val_map2 S.
+    ns1 ⊆ var_nodes fg ∧
+    ns2 ⊆ var_nodes fg ∧
     DISJOINT ns1 ns2 ∧
     ((∀x.
         FST x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
@@ -1746,14 +1779,13 @@ Proof
       >> Cases_on ‘x’ >> simp[]
       >> gnvs[CROSS_DEF]
       >> simp[DRESTRICTED_FUNION_ALT]
-      >> sg ‘FDOM q = ns1 ∩ var_nodes fg ∧ FDOM r = ns2 ∩ var_nodes fg’
+      >> sg ‘FDOM q = ns1 ∧ FDOM r = ns2’
       >- metis_tac[in_val_map_assignments_fdom]
-      >> sg ‘DRESTRICT q ns1 = q ∧ DRESTRICT r ns1 = FEMPTY ∧
-             DRESTRICT q ns2 = FEMPTY ∧ DRESTRICT r ns2 = r’
-      >- metis_tac[DRESTRICT_EQ_FEMPTY, FDOM_SUBSET_DRESTRICT, INTER_SUBSET,
-                   DISJOINT_RESTRICT_LL, DISJOINT_RESTRICT_LR,
-                   DISJOINT_RESTRICT_RL, DISJOINT_RESTRICT_RR,
-                   DISJOINT_SYM]
+      >> gnvs[]
+      >> simp[DRESTRICT_FDOM]
+      >> DEP_PURE_REWRITE_TAC [iffLR DRESTRICT_EQ_FEMPTY]
+      >> conj_tac
+      >- metis_tac[DISJOINT_SYM]
       >> simp[]
      )
   >> simp[BIJ_IFF_INV]
@@ -1765,17 +1797,59 @@ Proof
       >> simp[]
       >> simp[val_map_assignments_drestrict_excl_val_map]
      )
-     
-  >> simp[BIJ_DEF]
+  >> qexists ‘λval_map. (DRESTRICT val_map ns1, DRESTRICT val_map ns2)’ 
   >> conj_tac
-  >- (simp[INJ_DEF]
+  >- (qx_gen_tac ‘val_map’
+      >> disch_tac >> gnvs[]
+      >> conj_tac
+      >- (irule drestrict_in_val_map_assignments
+          >> qexistsl [‘DRESTRICT excl_val_map1 ns1 ⊌ DRESTRICT excl_val_map2 ns2’, ‘ns1 ∪ ns2’]
+          >> simp[]
+          >> simp[DRESTRICTED_FUNION]
+          >> irule SUBMAP_FUNION
+          >> simp[]
+         )
+      >> irule drestrict_in_val_map_assignments
+      >> qexistsl [‘DRESTRICT excl_val_map1 ns1 ⊌ DRESTRICT excl_val_map2 ns2’, ‘ns1 ∪ ns2’]
+      >> simp[]
+      >> simp[DRESTRICTED_FUNION]
+      >> ‘ns1 ∩ ns2 = ∅’ by metis_tac[DISJOINT_DEF]
+      >> simp[]
+      >> simp[FDOM_DRESTRICT]
+      >> simp[sigma_algebraTheory.DIFF_INTER_PAIR]
+      >> ‘ns2 DIFF ns1 = ns2’ by metis_tac[DISJOINT_DIFF_EMPTY]
+      >> simp[]
      )
-  >> simp[SURJ_DEF]
-         
-  (* An assignment to ns1 and ns2 corresponds to the ns1-th outer sum term and
-     the ns2-th inner sum term. *)
-  >> 
-
+  >> conj_tac
+  >- (rpt strip_tac
+      >> simp[]
+      >> Cases_on ‘x’ >> gnvs[]
+      >> simp[DRESTRICTED_FUNION]
+      >> ‘FDOM q = ns1 ∧ FDOM r = ns2’ by metis_tac[in_val_map_assignments_fdom]
+      >> gnvs[]
+      >> simp[DRESTRICT_FDOM, iffLR DISJOINT_DIFF_EMPTY]
+      >> DEP_PURE_ONCE_REWRITE_TAC[iffLR DRESTRICT_EQ_FEMPTY]
+      >> simp[] >> metis_tac[DISJOINT_SYM]
+     )
+  >> qx_gen_tac ‘val_map’
+  >> disch_tac
+  >> simp[]
+  >> simp[GSYM fmap_EQ_THM]
+  >> conj_tac
+  >- (simp[FDOM_DRESTRICT]
+      >> ‘FDOM val_map = ns1 ∪ ns2’ by metis_tac[in_val_map_assignments_fdom,
+                                                 UNION_SUBSET]
+      >> simp[]
+      >> ASM_SET_TAC[]
+     )
+  >> gen_tac >> disch_tac
+  >> simp[FUNION_DEF]
+  >> Cases_on ‘x ∈ FDOM (DRESTRICT val_map ns1)’ >> simp[]
+  >- (simp[DRESTRICT_DEF]
+      >> gnvs[FDOM_DRESTRICT])
+  >> gnvs[]
+  >> simp[DRESTRICT_DEF]
+  >> gnvs[FDOM_DRESTRICT]
 QED
 
 (* -------------------------------------------------------------------------- *)
