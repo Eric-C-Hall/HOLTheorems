@@ -2269,38 +2269,6 @@ Proof
   >> metis_tac[]
 QED
 
-
-
-(* Prove equivalence of these sets of assignments to the variable nodes. While
-     the second set has a larger excl_val_map, since it gets restricted to the
-     nodes we are assigning to, which is the same in both cases, this is
-     equivalent. *)
->> simp[Cong RHS_CONG, Once (GSYM val_map_assignments_drestrict_excl_val_map),
-        Excl "IMAGE_INSERT"]
->> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FBIGUNION]
->> conj_tac
->- (simp[Excl "IMAGE_INSERT"]
-    >> irule disjoint_domains_image_drestrict_func
-    >> simp[INJ_INSERT, disjoint_insert_iff])
->> simp[IMAGE_IMAGE, o_DEF, Excl "IMAGE_INSERT"]
-
-(*Theorem generalised_distributive_law:
-  ∀fg S ff nsf exclf excl_valf.
-    INJ nsf S 𝕌(:unit + num -> bool) ∧
-    pairwise DISJOINT (IMAGE nsf S) ⇒
-    ∏ (λk.
-         ∑ (λval_map.
-              ff k val_map
-           ) (val_map_assignments fg (nsf k) (exclf k) (excl_valf k))
-      ) S
-    = ∑ (λval_map.
-           ∏ (λk.
-                ff k val_map
-             ) S
-        ) (val_map_assignments fg (BIGUNION (IMAGE nsf S)) ARB ARB)
-Proof
-QED*)
-
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
