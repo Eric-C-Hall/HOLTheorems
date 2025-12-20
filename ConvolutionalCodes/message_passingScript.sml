@@ -329,9 +329,10 @@ Proof
   >> simp[]
 QED
 
-val _ = augment_srw_ss [SSFRAG {ac=[], congs=[EXTREAL_SUM_IMAGE_CONG, EXTREAL_PROD_IMAGE_CONG], convs=[], dprocs=[], filter=NONE, name=SOME "EXTREAL_CONGS", rewrs=[]}];
+(*val _ = augment_srw_ss [SSFRAG {ac=[], congs=[EXTREAL_SUM_IMAGE_CONG, EXTREAL_PROD_IMAGE_CONG], convs=[], dprocs=[], filter=NONE, name=SOME "EXTREAL_CONGS", rewrs=[]}];
+ *)
 
-(* ExclSF "EXTREAL_CONGS" *)
+(* ExclSF "EXTREAL_CONGS" <- not working for some reason *)
 
 (* -------------------------------------------------------------------------- *)
 (* The set of all assignments to a particular set of variable nodes in a      *)
@@ -1667,7 +1668,7 @@ Proof
   >- (simp[]
       >> metis_tac[BIJ_DEF, BIJ_IMAGE])
   (* Finish proof *)
-  >> simp[o_DEF] 
+  >> simp[o_DEF, Cong EXTREAL_SUM_IMAGE_CONG]
 QED
 
 Theorem in_val_map_assignments_fdom:
@@ -2414,97 +2415,167 @@ Proof
       (* Expand out sum_prod on the left so that we can see the place where
          we'll have to use the generalised distributive law. *)
       >> gvs[Cong LHS_CONG, sum_prod_def]
-            
-            
+      (* Rewrite into an appropriate higher order form so that we can apply the
+         generalised distributive law. First rewrite our inner function in the
+         form "ff prev" *)
+      >> qabbrev_tac ‘ff = λprev val_map.
+                             ∏ (λfunc_node.
+                                  get_function_map fg ' func_node '
+                                                 (DRESTRICT val_map
+                                                            (adjacent_nodes fg func_node)))
+                               ((nodes
+                                       (subtree (get_underlying_graph fg) src
+                                                prev) ∪ {prev}) ∩ get_function_nodes fg)’
+      >> simp[]
+      (* Now rewrite the set we are assigning over in the form "nsf prev" *)
+      >> qabbrev_tac
+         ‘nsf = λprev.
+                  nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}’
+      >> simp[]
+      (* Now rewrite the map of nodes to chosen values in the form
+         "excl_val_map val_map prev" *)
+      >> qabbrev_tac
+         ‘excl_val_mapf = λval_map : unit + num |-> bool list prev.
+                            (DRESTRICT val_map {prev})’
+      >> simp[]
+      (* *)
+                                                     >>
+                                          
+                                          
+      >> generalised_distributive_law
+      (* *)
+      >> sg ‘∀fg S : unit + num -> bool ff nsf excl_val_mapf.
+               ∏ (λk. ∑ (ff k) (val_map_assignments fg (nsf k) (excl_val_mapf k))) S =
+               ∑ (λval_map. ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S)
+                 (val_map_assignments fg (BIGUNION (IMAGE nsf S))
+                                      (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))) : extreal’
+      >- cheat
 
-      (* -------------------------------------------------------------------- *)
-      (* Π Σ f S T                                                            *)
-      (*                                                                      *)
-      (*                                                                      *)
-      (* -------------------------------------------------------------------- *)
+      >> simp[]
+             
+      >> sg ‘∀f : (unit + num -> extreal) S. ∏ f S = ARB : extreal’
+              >- cheat
+              >> simp[]
+              >> simp[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG]
 
-      >>
-      
-      
+           (* We want to apply a theorem to rewrite the inside of a function that is
+         being summed over. Unfortunately, it isn't obvious enough to
+         automatically discharge the assumptions via congruence rules, nor to
+         quickly and easily add to the context the necessary ingredients
+         to discharge the assumptions via congruence rules. DEP_PURE_REWRITE_TAC
+         doesn't work in this situation because it can't use congruence rules.
+         It is further complicated by the fact that our theorem involves higher
+         order logic. *)
+                  
+
+
+
+                  
+           (* *)
+           >> qspecl_then [‘fg’,
+                           ‘{prev |
+                            (prev ∈ nodes (get_underlying_graph fg) ∧
+                             adjacent (get_underlying_graph fg) prev src) ∧ prev ≠ dst}’,
+                           ‘(λfunc_node.
+                               get_function_map fg ' func_node '
+                                                (DRESTRICT val_map
+                                                           (adjacent_nodes fg func_node)))’,
+                           ‘’,
+                           ‘’] assume_tac generalised_distributive_law
+                          
+                          
+           >> DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
+                                       
+                                       
+
+           (* -------------------------------------------------------------------- *)
+           (* Π Σ f S T                                                            *)
+           (*                                                                      *)
+           (*                                                                      *)
+           (* -------------------------------------------------------------------- *)
+
+           >>
+           
+           
      )
   >> gvs[]
 
+QED
 
 
-  >> PURE_ONCE_REWRITE_TAC[sp_message_def]
-  >> gvs[]
-  (* Consider the case where the source is a function node *)
-  >> Cases_on ‘src ∈ get_function_nodes fg’
+>> PURE_ONCE_REWRITE_TAC[sp_message_def]
+>> gvs[]
+(* Consider the case where the source is a function node *)
+>> Cases_on ‘src ∈ get_function_nodes fg’
 
-  (* Any node that is adjacent to src is a variable node *)
-  >> sg ‘∀prev. adjacent (get_underlying_graph fg) prev src ⇒
-                prev ∈ var_nodes fg’
-  >- (rpt strip_tac
-      >> gvs[]
-      >> conj_tac >- metis_tac[adjacent_members]
-      >> metis_tac[adjacent_in_function_nodes_not_in_function_nodes]
-     )
-     
-  >- (gvs[]
-      >> gvs[sum_prod_def]
-      >> gvs[FUN_FMAP_EQ_THM]
-      >> rpt gen_tac >> rpt disch_tac
-      (* The left hand side is the sum of products of the incoming messages,
+(* Any node that is adjacent to src is a variable node *)
+>> sg ‘∀prev. adjacent (get_underlying_graph fg) prev src ⇒
+              prev ∈ var_nodes fg’
+>- (rpt strip_tac
+    >> gvs[]
+    >> conj_tac >- metis_tac[adjacent_members]
+    >> metis_tac[adjacent_in_function_nodes_not_in_function_nodes]
+   )
+   
+>- (gvs[]
+    >> gvs[sum_prod_def]
+    >> gvs[FUN_FMAP_EQ_THM]
+    >> rpt gen_tac >> rpt disch_tac
+    (* The left hand side is the sum of products of the incoming messages,
          with respect to only those variable nodes that are immediately
          relevant to the current function node.
            The right hand side is the sum of products over all function nodes
          in the relevant subtree.
            We first aim to use the inductive hypothesis to simplify the incoming
            messages. *)
-      >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
-      >> qabbrev_tac ‘EXAMPLE_VAL_MAP = ARB : unit + num |-> bool list’
-      >> last_x_assum (qspec_then ‘EXAMPLE_VAL_MAP’ assume_tac)
-      >> sg ‘(FDOM EXAMPLE_VAL_MAP = adjacent_nodes fg src ∧
-              ∀n. n ∈ FDOM EXAMPLE_VAL_MAP ⇒ LENGTH (EXAMPLE_VAL_MAP ' n) =
-                                             get_variable_length_map fg ' n)’
-      >- cheat
-      >> gvs[]
-      >> pop_assum kall_tac
-      >> qpat_x_assum ‘FDOM EXAMPLE_VAL_MAP = _’ kall_tac
-      >> qpat_x_assum ‘Abbrev (EXAMPLE_VAL_MAP = _)’ kall_tac
-      >> gvs[]
-      (* Use EXTREAL_SUM_IMAGE_CONG and EXTREAL_PROD_IMAGE_CONG to use the
+    >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
+    >> qabbrev_tac ‘EXAMPLE_VAL_MAP = ARB : unit + num |-> bool list’
+    >> last_x_assum (qspec_then ‘EXAMPLE_VAL_MAP’ assume_tac)
+    >> sg ‘(FDOM EXAMPLE_VAL_MAP = adjacent_nodes fg src ∧
+            ∀n. n ∈ FDOM EXAMPLE_VAL_MAP ⇒ LENGTH (EXAMPLE_VAL_MAP ' n) =
+                                           get_variable_length_map fg ' n)’
+    >- cheat
+    >> gvs[]
+    >> pop_assum kall_tac
+    >> qpat_x_assum ‘FDOM EXAMPLE_VAL_MAP = _’ kall_tac
+    >> qpat_x_assum ‘Abbrev (EXAMPLE_VAL_MAP = _)’ kall_tac
+    >> gvs[]
+    (* Use EXTREAL_SUM_IMAGE_CONG and EXTREAL_PROD_IMAGE_CONG to use the
          inductive hypothesis to rewrite our incoming messages *)
-      >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG]
-      (* We've used an inductive hypothesis and we no longer need either of
+    >> gvs[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG]
+    (* We've used an inductive hypothesis and we no longer need either of
          them *)
-      >> NTAC 2 (pop_assum kall_tac)
-      (* Simplify out the test that prev ≠ src when prev is adjacent to src *)
-      >> sg ‘∀x. adjacent (get_underlying_graph fg) x src ⇒ (x ≠ src ⇔ T)’
-      >- (rpt strip_tac
-          >> EQ_TAC >> gvs[]
-          >> metis_tac[adjacent_irrefl]
-         )
-      >> pop_assum (fn th => simp[th, Cong EXTREAL_SUM_IMAGE_CONG,
-                                  Cong EXTREAL_PROD_IMAGE_CONG])
-      (* Any node that is adjacent to src is a variable node *)
-      >> sg ‘∀prev. adjacent (get_underlying_graph fg) prev src ⇒
-                    prev ∈ var_nodes fg’
-      >- (rpt strip_tac
-          >> gvs[]
-          >> conj_tac >- metis_tac[adjacent_members]
-          >> metis_tac[adjacent_in_function_nodes_not_in_function_nodes]
-         )
-      (* Simplify FUN_FMAP f P ' x.
+    >> NTAC 2 (pop_assum kall_tac)
+    (* Simplify out the test that prev ≠ src when prev is adjacent to src *)
+    >> sg ‘∀x. adjacent (get_underlying_graph fg) x src ⇒ (x ≠ src ⇔ T)’
+    >- (rpt strip_tac
+        >> EQ_TAC >> gvs[]
+        >> metis_tac[adjacent_irrefl]
+       )
+    >> pop_assum (fn th => simp[th, Cong EXTREAL_SUM_IMAGE_CONG,
+                                Cong EXTREAL_PROD_IMAGE_CONG])
+    (* Any node that is adjacent to src is a variable node *)
+    >> sg ‘∀prev. adjacent (get_underlying_graph fg) prev src ⇒
+                  prev ∈ var_nodes fg’
+    >- (rpt strip_tac
+        >> gvs[]
+        >> conj_tac >- metis_tac[adjacent_members]
+        >> metis_tac[adjacent_in_function_nodes_not_in_function_nodes]
+       )
+    (* Simplify FUN_FMAP f P ' x.
          Proving that P is finite is trivial in this scenario.
          It's less trivial to show that x ∈ P.
          After adding the proof above that any node adjacent to src was a
          variable node, that seemed to be enough to get this to work.
-                    *)
-      >> gvs[cj 2 FUN_FMAP_DEF, Cong EXTREAL_SUM_IMAGE_CONG,
-             Cong EXTREAL_PROD_IMAGE_CONG,
-             length_n_codes_finite]
-            
-     )
+     *)
+    >> gvs[cj 2 FUN_FMAP_DEF, Cong EXTREAL_SUM_IMAGE_CONG,
+           Cong EXTREAL_PROD_IMAGE_CONG,
+           length_n_codes_finite]
+          
+   )
 (* Now consider the case where the source is a variable node rather than a
      function node *)
-QED
-
+   
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm gives us the same result as summing over the *)
 (* product of the terms in the factor graph                                   *)
