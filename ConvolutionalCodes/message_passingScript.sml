@@ -1920,6 +1920,42 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* This is certainly not an iff: perhaps a better theorem can be found?       *)
+(* -------------------------------------------------------------------------- *)
+Theorem FBIGUNION_FAPPLY:
+  ∀S x f.
+    FINITE S ∧
+    disjoint_domains S ∧
+    f ∈ S ∧
+    x ∈ FDOM f ⇒
+    FBIGUNION S ' x = f ' x
+Proof
+  rpt strip_tac
+  >> Q.SUBGOAL_THEN ‘S = f INSERT S DELETE f’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[]
+  >> simp[FBIGUNION_INSERT]
+  >> simp[FUNION_DEF]
+QED
+
+Theorem DRESTRICT_FAPPLY_FDOM:
+  ∀S f x.
+    x ∈ FDOM (DRESTRICT f S) ⇒
+    DRESTRICT f S ' x = f ' x
+Proof
+  rpt strip_tac
+  >> gvs[FDOM_DRESTRICT]
+  >> gvs[DRESTRICT_DEF]
+QED
+
+Theorem INTER_IDEMPOTENT[simp]:
+  ∀a b.
+    (a ∩ b) ∩ b = a ∩ b
+Proof
+  ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* The generalised distributive law.                                          *)
 (*                                                                            *)
 (* The basic idea is Π Σ f = Σ Π f.                                           *)
@@ -1944,6 +1980,7 @@ Theorem generalised_distributive_law:
   ∀fg S ff nsf excl_val_mapf.
     FINITE S ∧
     INJ nsf S 𝕌(:unit + num -> bool) ∧
+    (∀k. k ∈ S ⇒ nsf k ⊆ var_nodes fg) ∧
     disjoint (IMAGE nsf S) ∧
     (∀k x.
        x ∈ val_map_assignments fg (nsf k) (excl_val_mapf k) ⇒
@@ -1959,10 +1996,9 @@ Theorem generalised_distributive_law:
            (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))
           ) : extreal
 Proof
-  
   (* Rewrite so that FINITE S is our only assumption, so we can use induction *)
   rpt strip_tac
-  >> NTAC 3 (pop_assum mp_tac)
+  >> NTAC 4 (pop_assum mp_tac)
   >> SPEC_ALL_TAC
   (* Perform induction *)
   >> Induct_on ‘S’ using FINITE_INDUCT
@@ -2124,24 +2160,129 @@ Proof
   (* Combine the composed sums together *)
   >> Q.HO_MATCH_ABBREV_TAC ‘∑ (λval_map. ∑ (λx. inner_func val_map x) (val_map_assignments fg ns2 excl_val_map2)) (val_map_assignments fg ns1 excl_val_map1) = _ : extreal’
   >> simp[]
-  (* *)
-  >> 
-
-         
-  >> wlog_tac ‘ns1 ⊆ var_nodes fg ∧ ns2 ⊆ var_nodes fg’ [‘ns1’, ‘ns2’]
-  >- (first_x_assum $ qspecl_then [‘ns1 ∩ var_nodes fg’, ‘ns2 ∩ var_nodes fg’]
-                    assume_tac
-      >> gnvs[GSYM val_map_assignments_restrict_nodes]
+  (* We need ns1 and ns2 to be a subset of var_nodes fg in order for them to be
+     valid selections of variable nodes so that we can apply useful theorems *)
+  >> sg ‘ns1 ⊆ var_nodes fg ∧ ns2 ⊆ var_nodes fg’
+  >- (conj_tac >> unabbrev_all_tac
+      >- (simp[BIGUNION_SUBSET]
+          >> metis_tac[])
+      >> metis_tac[])
+  (* ns1 and ns2 are disjoint *)
+  >> sg ‘DISJOINT ns1 ns2’
+  >- (unabbrev_all_tac
+      >> simp[DISJOINT_BIGUNION]
+      >> rpt strip_tac
+      >> irule (iffLR DISJOINT_SYM)
       >> last_x_assum irule
-      >> gvs[]
+      >> metis_tac[]
      )
-  
+  (* The inner func is non-infinite on its domain *)
+  >> sg ‘∀val_map x. x ∈ val_map_assignments fg (nsf e) (excl_val_mapf e) ∧
+                     val_map ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
+                     inner_func val_map x ≠ +∞ ∧ inner_func val_map x ≠ −∞’
+  >- (rpt gen_tac >> rpt disch_tac
+      >> simp[Abbr ‘inner_func’]
+      >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+      >> irule mul_not_infty2
+      >> metis_tac[]
+     )
   >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
   >> conj_tac
   >- (simp[]
+      >> metis_tac[])
+  (* Prove equivalence of these sums *)
+  >> irule EXTREAL_SUM_IMAGE_CONG
+  >> conj_tac
+  >- (rpt strip_tac
+      >> simp[Abbr ‘inner_func’]
+      (* Since x has domain ns1 ∩ ns2, and our product ranges over all nsf
+         except ns2, our expressions are equivalent *)
+      >> qsuff_tac ‘∀k. k ∈ S ⇒ DRESTRICT x (ns1 ∩ nsf k) = DRESTRICT x (nsf k)’
+      >- gvs[Cong EXTREAL_PROD_IMAGE_CONG]
+      >> rpt strip_tac
+      >> simp[DRESTRICT_EQ_DRESTRICT]
+      >> ‘ns2 ∪ ns1 ⊆ var_nodes fg’ by metis_tac[UNION_SUBSET]
+      >> ‘FDOM x = ns2 ∪ ns1’ by metis_tac[in_val_map_assignments_fdom]
+      >> simp[]
+      >> ASM_SET_TAC[]
      )
-
+  (* It's nicer and more compact to unexpand the INSERT here. In particular,
+     this allows us to show that the maps have disjoint domains in a neat
+     expression: otherwise we would have treat e seperately from the FBIGUNION
+     of S when showing that they have disjoint domains. *)
+  >> qmatch_abbrev_tac ‘_ = val_map_assignments _ _ (FBIGUNION maps)’
+  >> Q.SUBGOAL_THEN ‘maps = IMAGE
+                            (λk. DRESTRICT (excl_val_mapf k) (nsf k))
+                            (e INSERT S)’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[Abbr ‘maps’]
+  >> qpat_x_assum ‘Abbrev (maps = _)’ kall_tac
+  (* Show that the inside of the FBIGUNION has disjoint domains, so that the
+     FBIGUNION is valid *)
+  >> qmatch_abbrev_tac ‘_ = val_map_assignments fg _ (FBIGUNION maps)’
+  >> sg ‘disjoint_domains maps’
+  >- (simp[Abbr ‘maps’, Excl "IMAGE_INSERT"]
+      >> irule disjoint_domains_image_drestrict_func
+      >> simp[disjoint_insert_iff, INJ_INSERT]
+     )
+  (* Rewrite union to be consistent on LHS and RHS*)
+  >> simp[UNION_COMM, Excl "IMAGE_INSERT"]
+  (* Prove equivalence of these sets of assignments to the variable nodes. *)     
+  >> irule val_map_assignments_cong
+  >> rpt strip_tac >> simp[UNION_COMM, Excl "IMAGE_INSERT"]
+  >- (simp[FUNION_DEF, Excl "IMAGE_INSERT"]
+      >> REVERSE $ rw[Excl "IMAGE_INSERT"]
+      >- (gnvs[FUNION_DEF, Excl "IMAGE_INSERT"]
+          >> irule EQ_SYM
+          >> irule FBIGUNION_FAPPLY
+          >> simp[Abbr ‘maps’, Excl "IMAGE_INSERT"]
+          >> qexists ‘e’
+          >> simp[Abbr ‘excl_val_map2’, Abbr ‘ns2’, Excl "IMAGE_INSERT"]
+         )
+      >> simp[DRESTRICT_FAPPLY_FDOM, Excl "IMAGE_INSERT"]
+      >> gnvs[FDOM_DRESTRICT, Excl "IMAGE_INSERT"]
+      >> simp[Abbr ‘excl_val_map1’, Abbr ‘maps’, Excl "IMAGE_INSERT"]
+      >> gnvs[FBIGUNION_INSERT]
+      >> simp[FUNION_DEF]
+      >> sg ‘x ∉ FDOM (DRESTRICT excl_val_map2 ns2)’
+      >- (simp[FDOM_DRESTRICT]
+          >> disj2_tac
+          >> metis_tac[DISJOINT_ALT]
+         )
+      >> simp[]
+     )
+  (* *)
+  >> simp[Abbr ‘maps’, Abbr ‘excl_val_map1’]
+  >> simp[FDOM_FBIGUNION, IMAGE_IMAGE, o_DEF, FDOM_DRESTRICT]
+  >> qmatch_abbrev_tac ‘((bigunionset ∩ _) ∪ _) ∩ _ = _’
+  >> simp[AC INTER_COMM INTER_ASSOC]
+  >> simp[UNION_OVER_INTER]
+  >> ‘bigunionset ∩ ns1 = bigunionset’ suffices_by ASM_SET_TAC[]
+  >> unabbrev_all_tac
+  >> simp[GSYM SUBSET_INTER_ABSORPTION]
+  >> simp[BIGUNION_IMAGE_SUBSET]
+  >> rpt strip_tac
+  >> irule sigma_algebraTheory.SUBSET_INTER_SUBSET_R
+  >> simp[BIGUNION_IMAGE]
+  >> simp[SUBSET_DEF]
+  >> gen_tac >> disch_tac
+  >> metis_tac[]
 QED
+
+
+
+(* Prove equivalence of these sets of assignments to the variable nodes. While
+     the second set has a larger excl_val_map, since it gets restricted to the
+     nodes we are assigning to, which is the same in both cases, this is
+     equivalent. *)
+>> simp[Cong RHS_CONG, Once (GSYM val_map_assignments_drestrict_excl_val_map),
+        Excl "IMAGE_INSERT"]
+>> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FBIGUNION]
+>> conj_tac
+>- (simp[Excl "IMAGE_INSERT"]
+    >> irule disjoint_domains_image_drestrict_func
+    >> simp[INJ_INSERT, disjoint_insert_iff])
+>> simp[IMAGE_IMAGE, o_DEF, Excl "IMAGE_INSERT"]
 
 (*Theorem generalised_distributive_law:
   ∀fg S ff nsf exclf excl_valf.
