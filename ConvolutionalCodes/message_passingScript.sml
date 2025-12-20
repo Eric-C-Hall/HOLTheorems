@@ -2269,7 +2269,7 @@ Proof
   >> gen_tac >> disch_tac
   >> metis_tac[]
 QED
-
+       
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
@@ -2438,7 +2438,32 @@ Proof
          ‘excl_val_mapf = λval_map : unit + num |-> bool list prev.
                             (DRESTRICT val_map {prev})’
       >> simp[]
-      (* *)
+             
+      (* We need to know that nsf is injective and disjoint *)
+      >> sg ‘INJ nsf ∧ disjoint nsf’
+            
+      (* Rewrite our inner function using the generalised distributive law. *)
+      >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’
+      >> sg ‘func = ARB’
+            
+      >- (simp[Abbr ‘func’]
+          >> simp[FUN_EQ_THM]
+          >> gen_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
+          >> conj_tac
+          >- (rpt conj_tac
+              >- (irule FINITE_SUBSET
+                  >> qexists ‘adjacent_nodes fg src’
+                  >> simp[SUBSET_DEF])
+              >- (cheat
+                 )
+              >- (gen_tac
+                  >> simp[]
+                  >> rpt strip_tac
+                  >> simp[var_nodes_def]
+                 )
+             )
+         )
 
       >> generalised_distributive_law
 
@@ -2446,6 +2471,7 @@ Proof
          but one which lacks the preconditions of the generalised distributive
          law*)
       >> sg ‘∀val_map S : unit + num -> bool.
+               T ⇒
                ∏ (λprev.
                     ∑ (ff prev)
                       (val_map_assignments fg (nsf prev)
@@ -2453,7 +2479,7 @@ Proof
                ∑ (λval_map. ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S)
                  (val_map_assignments fg (BIGUNION (IMAGE nsf S)) (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf val_map k) (nsf k)) S))) : extreal’
       >- cheat
-      >> simp[]
+      >> simp[Cong EXTREAL_SUM_IMAGE_CONG]
 
       >> gvs[generalised_distributive_law]
       >> generalised_distributive_law
