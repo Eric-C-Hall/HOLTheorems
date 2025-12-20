@@ -61,3 +61,7 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* set_trace "simplifier" 2 *)
 
 (* traces() *)
+
+(* Abbrev seems to work okay with lambda functions: it automatically detects 
+   the appropriate choices for the arguments (only tested so far when each arg
+   is a variable and not a more complicated term) *)

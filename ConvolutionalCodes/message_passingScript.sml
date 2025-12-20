@@ -2421,12 +2421,12 @@ Proof
       >> qabbrev_tac ‘ff = λprev val_map.
                              ∏ (λfunc_node.
                                   get_function_map fg ' func_node '
-                                                 (DRESTRICT val_map
-                                                            (adjacent_nodes fg func_node)))
+                                                   (DRESTRICT val_map
+                                                              (adjacent_nodes fg func_node)))
                                ((nodes
-                                       (subtree (get_underlying_graph fg) src
-                                                prev) ∪ {prev}) ∩ get_function_nodes fg)’
-      >> simp[]
+                                 (subtree (get_underlying_graph fg) src
+                                          prev) ∪ {prev}) ∩ get_function_nodes fg)’
+      >> simp[SF ETA_ss]
       (* Now rewrite the set we are assigning over in the form "nsf prev" *)
       >> qabbrev_tac
          ‘nsf = λprev.
@@ -2439,64 +2439,24 @@ Proof
                             (DRESTRICT val_map {prev})’
       >> simp[]
       (* *)
-                                                     >>
-                                          
-                                          
+
       >> generalised_distributive_law
-      (* *)
-      >> sg ‘∀fg S : unit + num -> bool ff nsf excl_val_mapf.
-               ∏ (λk. ∑ (ff k) (val_map_assignments fg (nsf k) (excl_val_mapf k))) S =
+
+      (* TODO: an appropriate instance of the generalised distributive law,
+         but one which lacks the preconditions of the generalised distributive
+         law*)
+      >> sg ‘∀val_map S : unit + num -> bool.
+               ∏ (λprev.
+                    ∑ (ff prev)
+                      (val_map_assignments fg (nsf prev)
+                                           (excl_val_mapf val_map prev))) S =
                ∑ (λval_map. ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S)
-                 (val_map_assignments fg (BIGUNION (IMAGE nsf S))
-                                      (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))) : extreal’
+                 (val_map_assignments fg (BIGUNION (IMAGE nsf S)) (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf val_map k) (nsf k)) S))) : extreal’
       >- cheat
-
       >> simp[]
-             
-      >> sg ‘∀f : (unit + num -> extreal) S. ∏ f S = ARB : extreal’
-              >- cheat
-              >> simp[]
-              >> simp[Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG]
 
-           (* We want to apply a theorem to rewrite the inside of a function that is
-         being summed over. Unfortunately, it isn't obvious enough to
-         automatically discharge the assumptions via congruence rules, nor to
-         quickly and easily add to the context the necessary ingredients
-         to discharge the assumptions via congruence rules. DEP_PURE_REWRITE_TAC
-         doesn't work in this situation because it can't use congruence rules.
-         It is further complicated by the fact that our theorem involves higher
-         order logic. *)
-                  
-
-
-
-                  
-           (* *)
-           >> qspecl_then [‘fg’,
-                           ‘{prev |
-                            (prev ∈ nodes (get_underlying_graph fg) ∧
-                             adjacent (get_underlying_graph fg) prev src) ∧ prev ≠ dst}’,
-                           ‘(λfunc_node.
-                               get_function_map fg ' func_node '
-                                                (DRESTRICT val_map
-                                                           (adjacent_nodes fg func_node)))’,
-                           ‘’,
-                           ‘’] assume_tac generalised_distributive_law
-                          
-                          
-           >> DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
-                                       
-                                       
-
-           (* -------------------------------------------------------------------- *)
-           (* Π Σ f S T                                                            *)
-           (*                                                                      *)
-           (*                                                                      *)
-           (* -------------------------------------------------------------------- *)
-
-           >>
-           
-           
+      >> gvs[generalised_distributive_law]
+      >> generalised_distributive_law
      )
   >> gvs[]
 
