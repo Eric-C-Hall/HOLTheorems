@@ -1,3 +1,12 @@
+(*                                                                            *)
+(* It would be possible to remove the precondition that each of the nsf k is  *)
+(* a subset of the variable nodes. See generalised_distributive_law2 in       *)
+(* obsolete_message_passing for a start in this direction. However, proving   *)
+(* this probably isn't worth the effort, because we can simply make sure that *)
+(* when using val_map_assignments, we always only provide it with variable    *)
+(* nodes.                                                                     *)
+
+
 
 (* -------------------------------------------------------------------------- *)
 (* Sum-product message calculation:                                           *)

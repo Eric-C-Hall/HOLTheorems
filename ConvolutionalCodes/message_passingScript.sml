@@ -750,6 +750,21 @@ Proof
   >> gvs[]
 QED
 
+Theorem val_map_assignments_cong_alt:
+  ∀fg1 fg2 ns1 ns2 excl_val_map1 excl_val_map2.
+    fg1 = fg2 ∧
+    ns1 = ns2 ∧
+    (ns1 = ns2 ⇒ DRESTRICT excl_val_map1 ns2 = DRESTRICT excl_val_map2 ns2) ⇒
+    val_map_assignments fg1 ns1 excl_val_map1 =
+    val_map_assignments fg2 ns2 excl_val_map2
+Proof
+  rpt strip_tac
+  >> irule val_map_assignments_cong
+  >> rpt strip_tac >> gvs[]
+  >- gvs[DRESTRICT_EQ_DRESTRICT_SAME]
+  >> metis_tac[FDOM_DRESTRICT]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* If we restrict an assignment of variables to values to a smaller subset,   *)
 (* we get an assignment of variables to values on that smaller subset.        *)
@@ -1673,13 +1688,22 @@ QED
 
 Theorem in_val_map_assignments_fdom:
   ∀f fg ns1 excl_val_map1.
-    ns1 ⊆ var_nodes fg ∧
-    f ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
+    f ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+    ns1 ⊆ var_nodes fg ⇒
     FDOM f = ns1
 Proof
   rpt strip_tac
   >> gvs[val_map_assignments_def]
   >> gvs[GSYM SUBSET_INTER_ABSORPTION]
+QED
+
+Theorem in_val_map_assignments_fdom_inter:
+  ∀f fg ns1 excl_val_map1.
+    f ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
+    FDOM f = ns1 ∩ var_nodes fg
+Proof
+  rpt strip_tac
+  >> gvs[val_map_assignments_def]
 QED
 
 Theorem funion_in_val_map_assignments:
@@ -2269,7 +2293,192 @@ Proof
   >> gen_tac >> disch_tac
   >> metis_tac[]
 QED
-       
+
+Theorem inj_inter_var_nodes:
+  INJ nsf S 𝕌(:unit + num -> bool) ⇒
+  INJ (λk. nsf k ∩ var_nodes fg) S 𝕌(:unit + num -> bool)
+Proof
+  cheat (* See (currently incomplete) proof in generalised_distributive_law2 *)
+QED
+
+Theorem disjoint_image_inter_var_nodes:
+  ∀fg nsf S.
+    disjoint (IMAGE nsf S) ⇒
+    disjoint (IMAGE (λk. nsf k ∩ var_nodes fg) S)
+Proof
+  cheat
+(*rpt strip_tac
+   >> DEP_PURE_ONCE_REWRITE_TAC[disjoint_image_iff]
+   >> conj_tac
+   >- simp[]
+   >> rpt strip_tac
+   >> irule DISJOINT_RESTRICT_LL
+   >> irule DISJOINT_RESTRICT_RL
+   >> irule disjointD
+   >> conj_tac
+   >- metis_tac[INJ_DEF]
+   >> qexists ‘IMAGE nsf S’
+   >> simp[]*)
+QED
+
+Theorem generalised_distributive_law2:
+  ∀fg S ff nsf excl_val_mapf.
+    FINITE S ∧
+    INJ nsf S 𝕌(:unit + num -> bool) ∧
+    disjoint (IMAGE nsf S) ∧
+    (∀k x.
+       x ∈ val_map_assignments fg (nsf k) (excl_val_mapf k) ⇒
+       ff k x ≠ +∞ ∧ ff k x ≠ −∞) ⇒
+    ∏ (λk. ∑ (ff k) (val_map_assignments fg (nsf k) (excl_val_mapf k))) S
+    = ∑ (λval_map.
+           ∏ (λk.
+                ff k (DRESTRICT val_map (nsf k))
+             ) S
+        ) (val_map_assignments
+           fg
+           (BIGUNION (IMAGE nsf S))
+           (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))
+          ) : extreal
+Proof
+  
+  rpt strip_tac      
+  (* Without loss of generality, we only need to prove this theorem in the case
+     where each nsf has at least one variable node.
+.
+     We work by induction on the number of nsf which have no variable nodes.
+     - The base case is when there are no nsf with no variable nodes, in which
+       case we can use our proof of this theorem in the case where each nsf has
+       at least one variable node.
+     - In the inductive step, the assignments corresponding to the nsf k with
+       no variable nodes will be the empty set, in which case on the left hand
+       side, the corresponding sum will turn to 1 and can be removed. On the
+       right hand side, the corresponding nsf k can be dragged out of the union,
+       we can restrict our assignments to only variable nodes in order to remove
+       the corresponding nsf k, and then we can unrestrict our assignments to
+       not necessarily only variable nodes.
+   *)
+      
+  >> sg ‘(∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k)’
+  >- (qabbrev_tac ‘num_with_no_var_nodes = CARD (∑ (λns. if ns ∩ ARB = ∅ then 1 else 0) (IMAGE nsf S))’
+
+      >> rpt (pop_assum mp_tac)
+      >> SPEC_ALL_TAC
+      >> 
+     )
+  (* Without loss of generality, prove that the nsf may be considered to be
+     subsets of the variable nodes, because the parts of nsf that are not a
+     subset of the variable nodes are ignored. *)
+  >> wlog_tac ‘(∀k. k ∈ S ⇒ nsf k ⊆ var_nodes fg)’ [‘nsf’]
+              
+  >- (last_x_assum $ qspecl_then [‘λk. nsf k ∩ var_nodes fg’] assume_tac
+      >> pop_assum mp_tac
+      >> simp[]
+      >> ‘∀k. val_map_assignments fg (nsf k ∩ var_nodes fg) (excl_val_mapf k) =
+              val_map_assignments fg (nsf k) (excl_val_mapf k)’
+        by simp[GSYM val_map_assignments_restrict_nodes]
+      >> simp[]
+      (* The new nsf is still injective. In addition to the requirement that the
+         original nsf were injective, this requires that the original nsf were
+         disjoint. *)
+      >> sg ‘INJ (λk. nsf k ∩ var_nodes fg) S 𝕌(:unit + num -> bool)’
+      >- (simp[INJ_DEF]
+          >> rpt strip_tac
+          (* We have previously proven that each nsf has at least one variable
+             node. Thus, this node will be in nsf k ∩ var_nodes fg, and it will
+             thus also be in nsf k' ∩ var_nodes fg. Thus, it is also in nsf k',
+             contradicting the fact that nsf k and nsf k' are disjoint. *)
+          >> ‘∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’ by metis_tac[]
+          >> cheat
+         )
+      (* This precondition should be trivial from the corresponding assumption,
+         but isn't sufficiently trivial to be proven automatically. *)
+      >> sg ‘(∀k. k ∈ S ⇒
+                  ∃n. (n ∈ nodes (get_underlying_graph fg) ∧
+                       n ∉ get_function_nodes fg) ∧ n ∈ nsf k ∧
+                      n ∈ nodes (get_underlying_graph fg) ∧
+                      n ∉ get_function_nodes fg)’
+      >- (rpt strip_tac
+          >> qpat_x_assum ‘∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’ drule
+          >> simp[]
+          >> metis_tac[])
+      >> simp[]
+      (* The new nsf are still disjoint *)
+      >> sg ‘disjoint (IMAGE (λk. nsf k ∩ var_nodes fg) S)’
+      >- (DEP_PURE_ONCE_REWRITE_TAC[disjoint_image_iff]
+          >> conj_tac
+          >- simp[]
+          >> rpt strip_tac
+          >> irule DISJOINT_RESTRICT_LL
+          >> irule DISJOINT_RESTRICT_RL
+          >> irule disjointD
+          >> conj_tac
+          >- metis_tac[INJ_DEF]
+          >> qexists ‘IMAGE nsf S’
+          >> simp[]
+         )
+      >> simp[]
+      (* We have now applied the special case of our theorem, and we no longer
+         need it. *)
+      >> disch_then kall_tac                   
+      (* *)
+      >> qmatch_abbrev_tac ‘∑ _ assigns1 = ∑ _ assigns2 : extreal’
+      (* Simplify the functions we are summing over. Since our val_map has a
+         domain in var_nodes, we can remove the intersection with var_nodes to
+         bring the LHS and RHS closer together. *)
+      >> Q.SUBGOAL_THEN ‘∀val_map k.
+                           val_map ∈ assigns1 ∧ k ∈ S ⇒
+                           DRESTRICT val_map (nsf k ∩ var_nodes fg) =
+                           DRESTRICT val_map (nsf k)’
+          (fn th => simp[th, Cong EXTREAL_SUM_IMAGE_CONG,
+                         Cong EXTREAL_PROD_IMAGE_CONG])
+      >- (rpt strip_tac
+          >> PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_DRESTRICT]
+          >> irule FDOM_SUBSET_DRESTRICT
+          >> simp[FDOM_DRESTRICT]
+          >> irule sigma_algebraTheory.SUBSET_INTER_SUBSET_L
+          >> simp[Abbr ‘assigns1’]
+          >> drule in_val_map_assignments_fdom_inter
+          >> simp[]
+         )
+      (* The sets we are summing over are the same, which is sufficient to
+         prove the result we need. *)
+      >> ‘assigns1 = assigns2’ suffices_by (rpt (pop_assum kall_tac) >> simp[])
+      >> simp[Abbr ‘assigns1’, Abbr ‘assigns2’]
+     >> simp[Once val_map_assignments_restrict_nodes, Cong RHS_CONG]
+     >> qmatch_abbrev_tac ‘val_map_assignments _ ns1 excl_val_map1 =
+                           val_map_assignments _ ns2 excl_val_map2’
+     >> Q.SUBGOAL_THEN ‘ns1 = ns2’
+         (fn th => PURE_ONCE_REWRITE_TAC[th])
+     >- (unabbrev_all_tac
+         >> simp[INTER_BIGUNION]
+         >> simp[IMAGE_DEF, BIGUNION]
+         >> simp[EXTENSION]
+         >> metis_tac[])
+     >> irule val_map_assignments_cong
+      >> REVERSE conj_tac
+      >- (unabbrev_all_tac
+          >> simp[FDOM_FBIGUNION, IMAGE_IMAGE, o_DEF, FDOM_DRESTRICT]
+          >> qmatch_abbrev_tac ‘_ ∩ (set1 ∩ vn1) = _ ∩ (set1 ∩ vn1)’
+          >> simp[sigma_algebraTheory.BIGUNION_OVER_INTER_L]
+          >> cong_tac (SOME 2)
+          >> simp[AC INTER_COMM INTER_ASSOC]
+          >> metis_tac[inter_lemma]
+         )
+      >> rpt strip_tac
+      >> simp[Abbr ‘excl_val_map1’, Abbr ‘excl_val_map2’, Abbr ‘ns1’]
+             
+      >> qmatch_abbrev_tac ‘FBIGUNION maps1 ' x = FBIGUNION maps2 ' x’
+      >> sg ‘disjoint_domains maps2’
+      >- (unabbrev_all_tac
+          >> irule disjoint_domains_image_drestrict_func
+          >> simp[])
+      >> simp[Abbr ‘maps1’]
+      >> cheat
+      >> (* ? *) PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_DRESTRICT]
+      >> (* ? *) DEP_PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_FBIGUNION]
+     )
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
@@ -2460,7 +2669,7 @@ Proof
               >- (gen_tac
                   >> simp[]
                   >> rpt strip_tac
-                  >> simp[var_nodes_def]
+                  >> simp[Abbr ‘nsf’]
                  )
              )
          )

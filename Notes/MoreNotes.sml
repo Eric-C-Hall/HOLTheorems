@@ -65,3 +65,12 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* Abbrev seems to work okay with lambda functions: it automatically detects 
    the appropriate choices for the arguments (only tested so far when each arg
    is a variable and not a more complicated term) *)
+
+(* impl_tac and impl_keep_tac *)
+
+(* See mk_asm and asm in the HOL4 cheatsheet *)
+
+(* See INST_TYPE in the HOL4 cheatsheet *)
+
+(* See Cong_tac in the HOL4 cheatsheet. Can reduce f x = g x to f = g and can
+   reduce f x = f y to x = y, but can also do smarter stuff with congruence rules, etc *)
