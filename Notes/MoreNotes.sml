@@ -72,5 +72,5 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 
 (* See INST_TYPE in the HOL4 cheatsheet *)
 
-(* See Cong_tac in the HOL4 cheatsheet. Can reduce f x = g x to f = g and can
+(* See cong_tac in the HOL4 cheatsheet. Can reduce f x = g x to f = g and can
    reduce f x = f y to x = y, but can also do smarter stuff with congruence rules, etc *)

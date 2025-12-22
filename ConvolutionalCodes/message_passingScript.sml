@@ -765,6 +765,22 @@ Proof
   >> metis_tac[FDOM_DRESTRICT]
 QED
 
+Theorem val_map_assignments_cong_alt2:
+  ∀fg1 fg2 ns1 ns2 excl_val_map1 excl_val_map2.
+    fg1 = fg2 ∧
+    ns1 ∩ var_nodes fg2 = ns2 ∩ var_nodes fg2 ∧
+    (ns1 ∩ var_nodes fg2 = ns2 ∩ var_nodes fg2 ⇒
+     DRESTRICT excl_val_map1 (ns2 ∩ var_nodes fg2) =
+     DRESTRICT excl_val_map2 (ns2 ∩ var_nodes fg2)) ⇒
+    val_map_assignments fg1 ns1 excl_val_map1 =
+    val_map_assignments fg2 ns2 excl_val_map2
+Proof
+  rpt strip_tac
+  >> gvs[]
+  >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+  >> simp[val_map_assignments_cong_alt]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* If we restrict an assignment of variables to values to a smaller subset,   *)
 (* we get an assignment of variables to values on that smaller subset.        *)
@@ -878,6 +894,16 @@ Proof
   >> gvs[EXTENSION] >> qx_gen_tac ‘val_map’ >> EQ_TAC >> rpt strip_tac >> gvs[]
   >> gvs[GSYM fmap_EQ_THM]
   >> gvs[EXTENSION]
+QED
+
+Theorem val_map_assignments_inter_var_nodes_empty:
+  ∀fg ns excl_val_map.
+    ns ∩ var_nodes fg = ∅ ⇒
+    val_map_assignments fg ns excl_val_map = {FEMPTY}
+Proof
+  rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+  >> simp[]
 QED
 
 Theorem FDOM_ITSET_FUNION_FEMPTY:
@@ -1749,8 +1775,8 @@ QED
 
 Theorem val_map_assignments_drestrict_excl_val_map:
   ∀fg ns excl_val_map.
-    val_map_assignments fg ns (DRESTRICT excl_val_map ns) =
-    val_map_assignments fg ns excl_val_map
+    val_map_assignments fg ns excl_val_map =
+    val_map_assignments fg ns (DRESTRICT excl_val_map ns)
 Proof
   rpt strip_tac
   >> simp[val_map_assignments_def]
@@ -1770,6 +1796,21 @@ Proof
   >> first_x_assum $ qspec_then ‘n’ assume_tac
   >> last_x_assum $ qspecl_then [‘val_map’, ‘n’] assume_tac
   >> gvs[]
+QED
+
+Theorem val_map_assignments_drestrict_excl_val_map_var_nodes:
+  ∀fg ns excl_val_map.
+    val_map_assignments fg ns excl_val_map =
+    val_map_assignments fg ns (DRESTRICT excl_val_map (var_nodes fg))
+Proof
+  rpt strip_tac
+  >> simp[Once val_map_assignments_restrict_nodes, Cong LHS_CONG]
+  >> simp[Once val_map_assignments_drestrict_excl_val_map, Cong LHS_CONG]
+  >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+  >> simp[GSYM DRESTRICT_DRESTRICT, Excl "DRESTRICT_DRESTRICT"]
+  >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+  >> simp[GSYM val_map_assignments_restrict_nodes, Excl "DRESTRICT_DRESTRICT"]
+  >> simp[GSYM val_map_assignments_drestrict_excl_val_map]
 QED
 
 Theorem INTER_DIFF_ABSORB[simp]:
@@ -1849,7 +1890,7 @@ Proof
       >> gnvs[]
       >> irule funion_in_val_map_assignments
       >> simp[]
-      >> simp[val_map_assignments_drestrict_excl_val_map]
+      >> simp[GSYM val_map_assignments_drestrict_excl_val_map]
      )
   >> qexists ‘λval_map. (DRESTRICT val_map ns1, DRESTRICT val_map ns2)’ 
   >> conj_tac
@@ -2321,6 +2362,44 @@ Proof
    >> simp[]*)
 QED
 
+Theorem SUM_IMAGE_LAMBDA_ZERO[simp]:
+  ∀S.
+    FINITE S ⇒
+    ∑ (λns. 0n) S = 0n
+Proof
+  rpt strip_tac
+  >> simp[SUM_IMAGE_ZERO]
+QED
+
+Theorem EXTREAL_SUM_IMAGE_FUNC_ONLY_CONG:
+  ∀f g S.
+    (∀x. x ∈ S ⇒ f x = g x) ⇒
+    ∑ f S = ∑ g S : extreal
+Proof
+  rpt strip_tac
+  >> irule EXTREAL_SUM_IMAGE_CONG
+  >> simp[]
+QED
+
+Theorem disjoint_subset:
+  ∀S1 S2.
+    disjoint S1 ∧
+    S2 ⊆ S1 ⇒
+    disjoint S2
+Proof
+  rpt strip_tac
+  >> gvs[disjoint_def, SUBSET_DEF]
+QED
+
+Theorem INJ_DELETE_FIRST:
+  ∀f s t e.
+    INJ f s t ⇒
+    INJ f (s DELETE e) t
+Proof
+  rpt strip_tac
+  >> gvs[INJ_DEF]
+QED
+
 Theorem generalised_distributive_law2:
   ∀fg S ff nsf excl_val_mapf.
     FINITE S ∧
@@ -2340,15 +2419,15 @@ Theorem generalised_distributive_law2:
            (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))
           ) : extreal
 Proof
-  
+
   rpt strip_tac      
-  (* Without loss of generality, we only need to prove this theorem in the case
-     where each nsf has at least one variable node.
+  (* We only need to prove this theorem in the where each nsf has at least one
+      variable node.
 .
      We work by induction on the number of nsf which have no variable nodes.
-     - The base case is when there are no nsf with no variable nodes, in which
-       case we can use our proof of this theorem in the case where each nsf has
-       at least one variable node.
+     - The base case is when there are no nsf with no variable nodes. In this
+       case, we have successfully reduced to needing to prove this theorem in
+       the special case where each nsf has at least one variable node.
      - In the inductive step, the assignments corresponding to the nsf k with
        no variable nodes will be the empty set, in which case on the left hand
        side, the corresponding sum will turn to 1 and can be removed. On the
@@ -2357,18 +2436,138 @@ Proof
        the corresponding nsf k, and then we can unrestrict our assignments to
        not necessarily only variable nodes.
    *)
-      
-  >> sg ‘(∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k)’
-  >- (qabbrev_tac ‘num_with_no_var_nodes = CARD (∑ (λns. if ns ∩ ARB = ∅ then 1 else 0) (IMAGE nsf S))’
-
-      >> rpt (pop_assum mp_tac)
-      >> SPEC_ALL_TAC
-      >> 
+  >> qabbrev_tac ‘num_with_no_var_nodes =
+                  ∑ (λns. if ns ∩ var_nodes fg = ∅ then 1 else 0) (IMAGE nsf S)’
+  >> gs[Abbrev_def]      
+  >> rpt (pop_assum mp_tac)
+  >> SPEC_ALL_TAC
+  >> REVERSE $ Induct_on ‘num_with_no_var_nodes’
+            
+  >- (rpt strip_tac
+      (* Choose a k where nsf k has no variable nodes *)
+      >> sg ‘∃k. k ∈ S ∧ nsf k ∩ var_nodes fg = ∅’
+      >- (CCONTR_TAC
+          >> qpat_x_assum ‘SUC _ = ∑ _ _’ mp_tac >> simp[]
+          >> qmatch_abbrev_tac ‘_ ≠ RHS’
+          >> ‘RHS = 0’ suffices_by simp[]
+          >> simp[Abbr ‘RHS’]
+          >> ‘∀ns. ns ∈ IMAGE nsf S ⇒ ns ∩ var_nodes fg ≠ ∅’ by
+            (simp[IMAGE_DEF] >> metis_tac[IMAGE_DEF])
+          >> simp[Cong SUM_IMAGE_CONG])
+      (* Lets focus on the LHS for now *)
+      >> qmatch_abbrev_tac ‘_ = RHS’
+      (* Take k out of S, so that we can treat the kth term seperately. *)
+      >> Q.SUBGOAL_THEN ‘S = k INSERT (S DELETE k)’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- simp[GSYM INSERT_DELETE]
+      >> simp[cj 2 EXTREAL_PROD_IMAGE_THM, Excl "INSERT_DELETE"]
+      >> qmatch_abbrev_tac ‘_ * LHS_STEP = _ : extreal’
+      >> simp[val_map_assignments_inter_var_nodes_empty]
+      (* Now lets focus on the RHS *)
+      >> simp[Abbr ‘RHS’]
+      >> qmatch_abbrev_tac ‘LHS = _’
+      (* Take k out of S as an argument to the product. *)
+      >> Q.SUBGOAL_THEN ‘S = k INSERT (S DELETE k)’
+          (fn th => simp[Once th, Excl "INSERT_DELETE"])
+      >- simp[GSYM INSERT_DELETE]
+      >> simp[cj 2 EXTREAL_PROD_IMAGE_THM, Excl "INSERT_DELETE"]
+      (* Reduce the assignments we are summing over to match the inductive
+         hypothesis *)
+      >> qmatch_abbrev_tac ‘_ = ∑ func (val_map_assignments fg _ fmap) : extreal’
+      >> Q.SUBGOAL_THEN
+          ‘∑ func (val_map_assignments fg (BIGUNION (IMAGE nsf S)) fmap)
+           = ∑ func (val_map_assignments fg (BIGUNION (IMAGE nsf (S DELETE k))) fmap) : extreal’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (Q.SUBGOAL_THEN ‘S = k INSERT (S DELETE k)’
+           (fn th => simp[Once th, Excl "INSERT_DELETE", Cong LHS_CONG])
+          >- simp[GSYM INSERT_DELETE]
+          >> cong_tac (SOME 1)
+          >> irule val_map_assignments_cong_alt2
+          >> simp[]
+          >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+          >> PURE_ONCE_REWRITE_TAC[UNION_OVER_INTER]
+          >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+          >> simp[]
+         )
+      (* Reduce our map of fixed values to match the inductive hypothesis
+         (i.e. replace S by S DELETE k) *)
+      >> qmatch_abbrev_tac ‘_ = ∑ _ (val_map_assignments fg ns _) : extreal’
+      >> simp[Abbr ‘fmap’]
+      >> qmatch_abbrev_tac ‘_ = ∑ _ (val_map_assignments fg ns (FBIGUNION fmaps)) : extreal’
+      >> sg ‘disjoint_domains fmaps’ >> simp[Abbr ‘fmaps’]
+      >- (irule disjoint_domains_image_drestrict_func
+          >> simp[])
+      >> pop_assum mp_tac
+      >> Q.SUBGOAL_THEN ‘S = k INSERT (S DELETE k)’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- simp[GSYM INSERT_DELETE]
+      >> simp[Excl "INSERT_DELETE"]
+      >> rpt strip_tac
+      >> simp[FBIGUNION_INSERT]
+      >> PURE_ONCE_REWRITE_TAC[val_map_assignments_drestrict_excl_val_map_var_nodes]
+      >> PURE_ONCE_REWRITE_TAC[DRESTRICTED_FUNION_ALT]
+      >> simp[]
+      >> simp[GSYM val_map_assignments_drestrict_excl_val_map_var_nodes]
+      (* Take a look to see what we need to do next *)
+      >> unabbrev_all_tac
+      (* ff k ((DRESTRICT val_map (nsf k)) reduces to ff k FEMPTY, because
+         val_map's domain is in var_nodes but nsf k is disjoint from var_nodes *)
+      >> qmatch_abbrev_tac ‘LHS = ∑ _ assigns : extreal’      
+      >> sg ‘∀val_map. val_map ∈ assigns ⇒ DRESTRICT val_map (nsf k) = FEMPTY’
+      >- (rpt strip_tac
+          >> simp[GSYM FDOM_EQ_EMPTY]
+          >> simp[FDOM_DRESTRICT]
+          >> Q.SUBGOAL_THEN ‘FDOM val_map = FDOM val_map ∩ var_nodes fg’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- (irule EQ_SYM
+              >> irule SUBSET_INTER1
+              >> simp[Abbr ‘assigns’]
+              >> drule in_val_map_assignments_fdom_inter
+              >> simp[])
+          >> metis_tac[INTER_ASSOC, INTER_COMM, INTER_EMPTY]
+         )         
+      >> simp[Cong EXTREAL_SUM_IMAGE_CONG]
+      (* Since this is a constant, we can take it out of the sum. *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_CMUL_L_ALT]
+      >> conj_tac
+      >- (rpt conj_tac
+          >- simp[Abbr ‘assigns’]
+          >- cheat
+          >- cheat
+          >> cheat
+         )
+      (* We have changed our expression into the form of the inductive
+         hypothesis. Now we just need to prove that the preconditions of the
+         inductive hypothesis hold. *)
+      >> unabbrev_all_tac
+      >> cong_tac (SOME 1)
+      >> last_x_assum irule
+      (* *)
+      >> rpt conj_tac
+      >- cheat
+      >- simp[]
+      >- metis_tac[disjoint_subset, DELETE_SUBSET, IMAGE_SUBSET]
+      >- (qpat_x_assum ‘SUC _ = _’ mp_tac
+          >> Q.SUBGOAL_THEN ‘S = k INSERT (S DELETE k)’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- simp[GSYM INSERT_DELETE]
+          >> simp[Excl "INSERT_DELETE"] >> simp[]
+          >> simp[cj 2 SUM_IMAGE_THM]
+          >> simp[ADD1]
+          >> disch_then kall_tac
+          >> cong_tac NONE
+          >> DEP_PURE_ONCE_REWRITE_TAC[DELETE_NON_ELEMENT_RWT]
+          >> simp[]
+          >> rpt strip_tac
+          >> metis_tac[INJ_DEF]
+         )
+      >> simp[INJ_DELETE_FIRST]
      )
   (* Without loss of generality, prove that the nsf may be considered to be
      subsets of the variable nodes, because the parts of nsf that are not a
      subset of the variable nodes are ignored. *)
   >> wlog_tac ‘(∀k. k ∈ S ⇒ nsf k ⊆ var_nodes fg)’ [‘nsf’]
+
               
   >- (last_x_assum $ qspecl_then [‘λk. nsf k ∩ var_nodes fg’] assume_tac
       >> pop_assum mp_tac
@@ -2444,17 +2643,17 @@ Proof
          prove the result we need. *)
       >> ‘assigns1 = assigns2’ suffices_by (rpt (pop_assum kall_tac) >> simp[])
       >> simp[Abbr ‘assigns1’, Abbr ‘assigns2’]
-     >> simp[Once val_map_assignments_restrict_nodes, Cong RHS_CONG]
-     >> qmatch_abbrev_tac ‘val_map_assignments _ ns1 excl_val_map1 =
-                           val_map_assignments _ ns2 excl_val_map2’
-     >> Q.SUBGOAL_THEN ‘ns1 = ns2’
-         (fn th => PURE_ONCE_REWRITE_TAC[th])
-     >- (unabbrev_all_tac
-         >> simp[INTER_BIGUNION]
-         >> simp[IMAGE_DEF, BIGUNION]
-         >> simp[EXTENSION]
-         >> metis_tac[])
-     >> irule val_map_assignments_cong
+      >> simp[Once val_map_assignments_restrict_nodes, Cong RHS_CONG]
+      >> qmatch_abbrev_tac ‘val_map_assignments _ ns1 excl_val_map1 =
+                            val_map_assignments _ ns2 excl_val_map2’
+      >> Q.SUBGOAL_THEN ‘ns1 = ns2’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (unabbrev_all_tac
+          >> simp[INTER_BIGUNION]
+          >> simp[IMAGE_DEF, BIGUNION]
+          >> simp[EXTENSION]
+          >> metis_tac[])
+      >> irule val_map_assignments_cong
       >> REVERSE conj_tac
       >- (unabbrev_all_tac
           >> simp[FDOM_FBIGUNION, IMAGE_IMAGE, o_DEF, FDOM_DRESTRICT]
