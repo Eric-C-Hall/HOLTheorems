@@ -2419,10 +2419,10 @@ Theorem generalised_distributive_law2:
            (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))
           ) : extreal
 Proof
-
+  
   rpt strip_tac      
-  (* We only need to prove this theorem in the where each nsf has at least one
-      variable node.
+  (* First, show that we only need to prove this theorem in the case where each
+     nsf has at least one variable node.
 .
      We work by induction on the number of nsf which have no variable nodes.
      - The base case is when there are no nsf with no variable nodes. In this
@@ -2442,7 +2442,6 @@ Proof
   >> rpt (pop_assum mp_tac)
   >> SPEC_ALL_TAC
   >> REVERSE $ Induct_on ‘num_with_no_var_nodes’
-            
   >- (rpt strip_tac
       (* Choose a k where nsf k has no variable nodes *)
       >> sg ‘∃k. k ∈ S ∧ nsf k ∩ var_nodes fg = ∅’
@@ -2525,16 +2524,50 @@ Proof
               >> drule in_val_map_assignments_fdom_inter
               >> simp[])
           >> metis_tac[INTER_ASSOC, INTER_COMM, INTER_EMPTY]
-         )         
+         )
       >> simp[Cong EXTREAL_SUM_IMAGE_CONG]
       (* Since this is a constant, we can take it out of the sum. *)
       >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_CMUL_L_ALT]
       >> conj_tac
       >- (rpt conj_tac
           >- simp[Abbr ‘assigns’]
-          >- cheat
-          >- cheat
-          >> cheat
+          >- (‘FEMPTY ∈ val_map_assignments fg (nsf k) (excl_val_mapf k)’
+                by simp[val_map_assignments_inter_var_nodes_empty]
+              >> metis_tac[])
+          >- (‘FEMPTY ∈ val_map_assignments fg (nsf k) (excl_val_mapf k)’
+                by simp[val_map_assignments_inter_var_nodes_empty]
+              >> metis_tac[])
+          >> disj1_tac
+          >> gen_tac >> disch_tac
+          >> irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
+          >> simp[]
+          >> gen_tac >> disch_tac
+          >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
+          >> last_x_assum irule
+          >> irule drestrict_in_val_map_assignments
+          >> simp[Abbr ‘assigns’]
+          >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments _ ns excl_val_map’
+          >> qexistsl [‘excl_val_map’, ‘ns’]
+          >> simp[Abbr ‘excl_val_map’, Abbr ‘ns’]
+          (* We're going to need to know that our current interior of our
+             fbigunion has disjoint domains *)
+          >> qmatch_goalsub_abbrev_tac ‘FBIGUNION fmaps’
+          >> sg ‘disjoint_domains fmaps’ >> simp[Abbr ‘fmaps’]
+          >- (metis_tac[disjoint_domains_insert])
+          >> pop_assum mp_tac
+          >> Q.SUBGOAL_THEN ‘S = x INSERT S DELETE x’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- simp[INSERT_DELETE]
+          >> simp[DELETE_INSERT, Excl "INSERT_DELETE"]
+          >> disch_tac
+          (* Use the fact that our current interior of our fbigunion has
+             disjoint domains to move the relevant member of the fbigunion out.
+           *)
+          >> simp[FBIGUNION_INSERT]
+          (* It's now clear that the individual map is a submap of the fbigunion
+             of maps, proving this will be straightforward. *)
+          >> simp[DRESTRICTED_FUNION]
+          >> irule (cj 1 SUBMAP_FUNION_ID)
          )
       (* We have changed our expression into the form of the inductive
          hypothesis. Now we just need to prove that the preconditions of the
@@ -2544,7 +2577,9 @@ Proof
       >> last_x_assum irule
       (* *)
       >> rpt conj_tac
-      >- cheat
+      >- (rpt gen_tac >> disch_tac
+          >> last_x_assum irule
+          >> pop_assum irule)
       >- simp[]
       >- metis_tac[disjoint_subset, DELETE_SUBSET, IMAGE_SUBSET]
       >- (qpat_x_assum ‘SUC _ = _’ mp_tac
@@ -2563,12 +2598,30 @@ Proof
          )
       >> simp[INJ_DELETE_FIRST]
      )
+     
+  >> rpt strip_tac
+  (* Rewrite our new assumption to say that each nsf has at least one variable
+     node. *)
+  >> Q.SUBGOAL_THEN ‘∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’
+      (fn th => pop_assum kall_tac >> assume_tac th)
+  >- (rpt strip_tac
+      >> CCONTR_TAC
+      >> qpat_x_assum ‘0 = ∑ _ _ : num’ mp_tac
+      >> Q.SUBGOAL_THEN ‘S = k INSERT S DELETE k’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- simp[INSERT_DELETE]
+      >> simp[SUM_IMAGE_THM, Excl "INSERT_DELETE"]
+      >> rw[]
+      >> pop_assum mp_tac
+      >> simp[EXTENSION]
+      >> gvs[]
+      >> metis_tac[]
+     )
+     
   (* Without loss of generality, prove that the nsf may be considered to be
      subsets of the variable nodes, because the parts of nsf that are not a
      subset of the variable nodes are ignored. *)
   >> wlog_tac ‘(∀k. k ∈ S ⇒ nsf k ⊆ var_nodes fg)’ [‘nsf’]
-
-              
   >- (last_x_assum $ qspecl_then [‘λk. nsf k ∩ var_nodes fg’] assume_tac
       >> pop_assum mp_tac
       >> simp[]
@@ -2673,6 +2726,7 @@ Proof
           >> simp[])
       >> simp[Abbr ‘maps1’]
       >> cheat
+      >> simp[Abbr ‘maps2’]
       >> (* ? *) PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_DRESTRICT]
       >> (* ? *) DEP_PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_FBIGUNION]
      )
