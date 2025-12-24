@@ -1538,7 +1538,7 @@ Theorem disjoint_image_iff_general_codomain:
   ∀f S1 S2.
     INJ f S1 S2 ⇒
     (disjoint (IMAGE f S1) ⇔
-       (∀i j. i ∈ S1∧ j ∈ S1 ∧ i ≠ j ⇒ DISJOINT (f i) (f j)))
+       (∀i j. i ∈ S1 ∧ j ∈ S1 ∧ i ≠ j ⇒ DISJOINT (f i) (f j)))
 Proof
   rpt strip_tac
   >> gvs[disjoint_def, pairwise]
@@ -2336,10 +2336,28 @@ Proof
 QED
 
 Theorem inj_inter_var_nodes:
-  INJ nsf S 𝕌(:unit + num -> bool) ⇒
-  INJ (λk. nsf k ∩ var_nodes fg) S 𝕌(:unit + num -> bool)
+  ∀fg S k nsf.
+    (∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k) ∧
+    INJ nsf S 𝕌(:unit + num -> bool) ∧
+    disjoint (IMAGE nsf S) ⇒
+    INJ (λk. nsf k ∩ var_nodes fg) S 𝕌(:unit + num -> bool)
 Proof
-  cheat (* See (currently incomplete) proof in generalised_distributive_law2 *)
+  rpt strip_tac
+  >> simp[INJ_DEF]
+  >> rpt strip_tac
+  >> 
+  
+  >> gvs[INJ_DEF]
+  >> rpt strip_tac
+  >> metis_tac[]
+
+              
+  (* We have previously proven that each nsf has at least one variable
+             node. Thus, this node will be in nsf k ∩ var_nodes fg, and it will
+             thus also be in nsf k' ∩ var_nodes fg. Thus, it is also in nsf k',
+             contradicting the fact that nsf k and nsf k' are disjoint. *)
+  >> ‘∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’ by metis_tac[]
+  >> cheat
 QED
 
 Theorem disjoint_image_inter_var_nodes:
@@ -2598,7 +2616,6 @@ Proof
          )
       >> simp[INJ_DELETE_FIRST]
      )
-     
   >> rpt strip_tac
   (* Rewrite our new assumption to say that each nsf has at least one variable
      node. *)
@@ -2617,58 +2634,53 @@ Proof
       >> gvs[]
       >> metis_tac[]
      )
-     
   (* Without loss of generality, prove that the nsf may be considered to be
      subsets of the variable nodes, because the parts of nsf that are not a
      subset of the variable nodes are ignored. *)
   >> wlog_tac ‘(∀k. k ∈ S ⇒ nsf k ⊆ var_nodes fg)’ [‘nsf’]
-  >- (last_x_assum $ qspecl_then [‘λk. nsf k ∩ var_nodes fg’] assume_tac
+
+  >- (all_tac
+      (* We are assuming the more specific case of this theorem and trying to
+         prove the more general case from it (to avoid loss of generality).
+         Here, we don't need to know that we aren't in the specific case. *)
+      >> pop_assum kall_tac
+      (* Instantiate the variables in the more specific case in such a way that
+         we satisfy the stricter precondition while being equivalent to the
+         general case. *)
+      >> last_x_assum $ qspecl_then [‘λk. nsf k ∩ var_nodes fg’] assume_tac
       >> pop_assum mp_tac
       >> simp[]
-      >> ‘∀k. val_map_assignments fg (nsf k ∩ var_nodes fg) (excl_val_mapf k) =
-              val_map_assignments fg (nsf k) (excl_val_mapf k)’
-        by simp[GSYM val_map_assignments_restrict_nodes]
-      >> simp[]
-      (* The new nsf is still injective. In addition to the requirement that the
-         original nsf were injective, this requires that the original nsf were
-         disjoint. *)
-      >> sg ‘INJ (λk. nsf k ∩ var_nodes fg) S 𝕌(:unit + num -> bool)’
-      >- (simp[INJ_DEF]
-          >> rpt strip_tac
-          (* We have previously proven that each nsf has at least one variable
-             node. Thus, this node will be in nsf k ∩ var_nodes fg, and it will
-             thus also be in nsf k' ∩ var_nodes fg. Thus, it is also in nsf k',
-             contradicting the fact that nsf k and nsf k' are disjoint. *)
-          >> ‘∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’ by metis_tac[]
-          >> cheat
+      (* Prove the preconditions of the specific case. *)
+      >> impl_keep_tac
+         
+      >- (rpt conj_tac
+          >- (rpt strip_tac
+              >> qpat_x_assum ‘∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’ drule
+              >> simp[]
+              >> metis_tac[]
+             )
+          >- simp[GSYM val_map_assignments_restrict_nodes]
+          (* The new nsf are still disjoint *)
+          >- (DEP_PURE_ONCE_REWRITE_TAC[disjoint_image_iff]
+              >> conj_tac
+              >- simp[inj_inter_var_nodes]
+              >> rpt strip_tac
+              >> irule DISJOINT_RESTRICT_LL
+              >> irule DISJOINT_RESTRICT_RL
+              >> irule disjointD
+              >> conj_tac
+              >- metis_tac[INJ_DEF]
+              >> qexists ‘IMAGE nsf S’
+              >> simp[]
+              >> cheat (* TODO: turn this into a lemma*)
+             )
+          (* The new nsf is still injective. In addition to the requirement that
+             the original nsf were injective, this requires that the original
+             nsf were disjoint. *)
+          >> simp[inj_inter_var_nodes]
          )
-      (* This precondition should be trivial from the corresponding assumption,
-         but isn't sufficiently trivial to be proven automatically. *)
-      >> sg ‘(∀k. k ∈ S ⇒
-                  ∃n. (n ∈ nodes (get_underlying_graph fg) ∧
-                       n ∉ get_function_nodes fg) ∧ n ∈ nsf k ∧
-                      n ∈ nodes (get_underlying_graph fg) ∧
-                      n ∉ get_function_nodes fg)’
-      >- (rpt strip_tac
-          >> qpat_x_assum ‘∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’ drule
-          >> simp[]
-          >> metis_tac[])
-      >> simp[]
-      (* The new nsf are still disjoint *)
-      >> sg ‘disjoint (IMAGE (λk. nsf k ∩ var_nodes fg) S)’
-      >- (DEP_PURE_ONCE_REWRITE_TAC[disjoint_image_iff]
-          >> conj_tac
-          >- simp[]
-          >> rpt strip_tac
-          >> irule DISJOINT_RESTRICT_LL
-          >> irule DISJOINT_RESTRICT_RL
-          >> irule disjointD
-          >> conj_tac
-          >- metis_tac[INJ_DEF]
-          >> qexists ‘IMAGE nsf S’
-          >> simp[]
-         )
-      >> simp[]
+         
+      >> simp[GSYM val_map_assignments_restrict_nodes]
       (* We have now applied the special case of our theorem, and we no longer
          need it. *)
       >> disch_then kall_tac                   
@@ -2730,6 +2742,10 @@ Proof
       >> (* ? *) PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_DRESTRICT]
       >> (* ? *) DEP_PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_FBIGUNION]
      )
+  (* We have reduced to the case where we may assume that the nsf are contained
+     in the vairable nodes, so we may use the special case of this theorem to
+     complete the proof*)
+  >> metis_tac[generalised_distributive_law]
 QED
 
 (* -------------------------------------------------------------------------- *)
