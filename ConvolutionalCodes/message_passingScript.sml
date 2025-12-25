@@ -2815,7 +2815,7 @@ Theorem sp_message_sum_prod:
     else
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
 Proof
-  
+
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -2927,14 +2927,35 @@ Proof
          ‘excl_val_mapf = λval_map : unit + num |-> bool list prev.
                             (DRESTRICT val_map {prev})’
       >> simp[]
-             
-      (* We need to know that nsf is injective and disjoint *)
-      >> sg ‘INJ nsf ∧ disjoint nsf’
-            
+      
       (* Rewrite our inner function using the generalised distributive law. *)
       >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’
-      >> sg ‘func = ARB’
-            
+      >> Q.SUBGOAL_THEN
+          ‘func =
+           λval_map.
+             get_function_map fg ' src ' val_map *
+             ∑
+             (λval_map.
+                ∏ (λprev. ff prev (DRESTRICT val_map (nsf prev)))
+                  {prev |
+                (prev ∈ nodes (get_underlying_graph fg) ∧
+                 adjacent (get_underlying_graph fg) prev src) ∧ prev ≠ dst})
+             (val_map_assignments fg
+                                  (BIGUNION
+                                   (IMAGE nsf
+                                          {prev |
+                                    (prev ∈ nodes (get_underlying_graph fg) ∧
+                                     adjacent (get_underlying_graph fg) prev src) ∧
+                                    prev ≠ dst}))
+                                  (FBIGUNION
+                                   (IMAGE
+                                    (λprev. DRESTRICT (excl_val_mapf val_map prev) (nsf prev))
+                                    {prev |
+                                    (prev ∈ nodes (get_underlying_graph fg) ∧
+                                     adjacent (get_underlying_graph fg) prev src) ∧
+                                    prev ≠ dst})))
+          ’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
       >- (simp[Abbr ‘func’]
           >> simp[FUN_EQ_THM]
           >> gen_tac
@@ -2946,13 +2967,15 @@ Proof
                   >> simp[SUBSET_DEF])
               >- (cheat
                  )
-              >- (gen_tac
-                  >> simp[]
-                  >> rpt strip_tac
-                  >> simp[Abbr ‘nsf’]
+              >- (cheat
                  )
+              >> rpt gen_tac >> rpt disch_tac
+              >> cheat
              )
+          >> simp[]
          )
+
+      >> 
 
       >> generalised_distributive_law
 
@@ -2970,8 +2993,8 @@ Proof
       >- cheat
       >> simp[Cong EXTREAL_SUM_IMAGE_CONG]
 
-      >> gvs[generalised_distributive_law]
-      >> generalised_distributive_law
+                                          >> gvs[generalised_distributive_law]
+                                          >> generalised_distributive_law
      )
   >> gvs[]
 
