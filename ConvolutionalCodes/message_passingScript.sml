@@ -1547,6 +1547,17 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem disjoint_image_iff_alt:
+  ∀f S.
+    (disjoint (IMAGE f S) ⇔
+       (∀i j. i ∈ S ∧ j ∈ S ∧ i ≠ j ⇒ DISJOINT (f i) (f j) ∨ f i = f j))
+Proof
+  rpt strip_tac
+  >> simp[disjoint_def, pairwise]
+  >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >> metis_tac[]
+QED
+
 Theorem FBIGUNION_SING[simp]:
   ∀f.
     FBIGUNION {f} = f
@@ -2021,28 +2032,7 @@ Proof
   ASM_SET_TAC[]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* The generalised distributive law.                                          *)
-(*                                                                            *)
-(* The basic idea is Π Σ f = Σ Π f.                                           *)
-(* - In the LHS, the sum depends only on the variables appropriate to the     *)
-(*   current choice of f, whereas in the RHS, the sum depends on all          *)
-(*   variables in any f.                                                      *)
-(* - no two choices of f can involve the same variables.                      *)
-(*                                                                            *)
-(* The "f" at the end of "nsf", "excl_val_mapf" stands for "function"         *)
-(*                                                                            *)
-(* fg: the factor graph of nodes assignments we're summing over               *)
-(* S: The set of we're taking the product over                                *)
-(* ff: a function from an element of S to the corresponding choice of f in    *)
-(*     this term of the product. This takes a mapping from only the variables *)
-(*     in the corresponding nsf to values, and returns an extreal.            *)
-(* nsf: a function from an element of S to the set of variables that are      *)
-(*      relevant to this term of the product                                  *)
-(* excl_val_mapf: a function from an element of S to a map of variables that  *)
-(*                take a fixed value in this term of the product.             *)
-(* -------------------------------------------------------------------------- *)
-Theorem generalised_distributive_law:
+Theorem generalised_distributive_law_lemma:
   ∀fg S ff nsf excl_val_mapf.
     FINITE S ∧
     INJ nsf S 𝕌(:unit + num -> bool) ∧
@@ -2335,6 +2325,24 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem disjoint_image_inter_var_nodes:
+  ∀fg nsf S.
+    disjoint (IMAGE nsf S) ⇒
+    disjoint (IMAGE (λk. nsf k ∩ var_nodes fg) S)
+Proof
+  rpt strip_tac
+  >> simp[disjoint_image_iff_alt]
+  >> rpt strip_tac
+  >> Cases_on ‘nsf k ∩ var_nodes fg = nsf k' ∩ var_nodes fg’ >> simp[]
+  >> irule DISJOINT_RESTRICT_LL
+  >> irule DISJOINT_RESTRICT_RL
+  >> irule disjointD
+  >> conj_tac
+  >- (CCONTR_TAC >> gvs[])
+  >> qexists ‘IMAGE nsf S’
+  >> simp[]
+QED
+
 Theorem inj_inter_var_nodes:
   ∀fg S k nsf.
     (∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k) ∧
@@ -2345,39 +2353,20 @@ Proof
   rpt strip_tac
   >> simp[INJ_DEF]
   >> rpt strip_tac
-  >> 
-  
-  >> gvs[INJ_DEF]
-  >> rpt strip_tac
-  >> metis_tac[]
-
-              
-  (* We have previously proven that each nsf has at least one variable
-             node. Thus, this node will be in nsf k ∩ var_nodes fg, and it will
-             thus also be in nsf k' ∩ var_nodes fg. Thus, it is also in nsf k',
-             contradicting the fact that nsf k and nsf k' are disjoint. *)
-  >> ‘∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’ by metis_tac[]
-  >> cheat
-QED
-
-Theorem disjoint_image_inter_var_nodes:
-  ∀fg nsf S.
-    disjoint (IMAGE nsf S) ⇒
-    disjoint (IMAGE (λk. nsf k ∩ var_nodes fg) S)
-Proof
-  cheat
-(*rpt strip_tac
-   >> DEP_PURE_ONCE_REWRITE_TAC[disjoint_image_iff]
-   >> conj_tac
-   >- simp[]
-   >> rpt strip_tac
-   >> irule DISJOINT_RESTRICT_LL
-   >> irule DISJOINT_RESTRICT_RL
-   >> irule disjointD
-   >> conj_tac
-   >- metis_tac[INJ_DEF]
-   >> qexists ‘IMAGE nsf S’
-   >> simp[]*)
+  >> CCONTR_TAC
+  (* Since there is a variable node in each nsf k, we know that there is a node
+     in both nsf k ∩ var_nodes fg and nsf k' ∩ var_nodes fg, showing that
+     nsf k and nsf k' are not disjoint, which is a contradiction. *)
+  >> last_x_assum $ qspec_then ‘k’ assume_tac
+  >> gvs[]
+  >> ‘n ∈ nsf k ∩ var_nodes fg’ by simp[]
+  >> ‘n ∈ nsf k' ∩ var_nodes fg’ by metis_tac[]
+  >> gvs[]
+  >> ‘¬DISJOINT (nsf k) (nsf k')’ by (simp[DISJOINT_DEF, EXTENSION] >> metis_tac[])
+  >> pop_assum mp_tac >> simp[]
+  >> gvs[disjoint_def]
+  >> last_x_assum irule
+  >> metis_tac[INJ_DEF]
 QED
 
 Theorem SUM_IMAGE_LAMBDA_ZERO[simp]:
@@ -2418,7 +2407,37 @@ Proof
   >> gvs[INJ_DEF]
 QED
 
-Theorem generalised_distributive_law2:
+Theorem DRESTRICT_DRESTRICT_o:
+  ∀f r1 r2.
+    DRESTRICT (DRESTRICT f r1) r2 =
+    ((λs. DRESTRICT s r2) ∘ (λs. DRESTRICT s r1)) f
+Proof
+  rpt strip_tac
+  >> simp[o_DEF]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The generalised distributive law.                                          *)
+(*                                                                            *)
+(* The basic idea is Π Σ f = Σ Π f.                                           *)
+(* - In the LHS, the sum depends only on the variables appropriate to the     *)
+(*   current choice of f, whereas in the RHS, the sum depends on all          *)
+(*   variables in any f.                                                      *)
+(* - no two choices of f can involve the same variables.                      *)
+(*                                                                            *)
+(* The "f" at the end of "nsf", "excl_val_mapf" stands for "function"         *)
+(*                                                                            *)
+(* fg: the factor graph of nodes assignments we're summing over               *)
+(* S: The set of we're taking the product over                                *)
+(* ff: a function from an element of S to the corresponding choice of f in    *)
+(*     this term of the product. This takes a mapping from only the variables *)
+(*     in the corresponding nsf to values, and returns an extreal.            *)
+(* nsf: a function from an element of S to the set of variables that are      *)
+(*      relevant to this term of the product                                  *)
+(* excl_val_mapf: a function from an element of S to a map of variables that  *)
+(*                take a fixed value in this term of the product.             *)
+(* -------------------------------------------------------------------------- *)
+Theorem generalised_distributive_law:
   ∀fg S ff nsf excl_val_mapf.
     FINITE S ∧
     INJ nsf S 𝕌(:unit + num -> bool) ∧
@@ -2437,7 +2456,6 @@ Theorem generalised_distributive_law2:
            (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))
           ) : extreal
 Proof
-  
   rpt strip_tac      
   (* First, show that we only need to prove this theorem in the case where each
      nsf has at least one variable node.
@@ -2638,7 +2656,6 @@ Proof
      subsets of the variable nodes, because the parts of nsf that are not a
      subset of the variable nodes are ignored. *)
   >> wlog_tac ‘(∀k. k ∈ S ⇒ nsf k ⊆ var_nodes fg)’ [‘nsf’]
-
   >- (all_tac
       (* We are assuming the more specific case of this theorem and trying to
          prove the more general case from it (to avoid loss of generality).
@@ -2651,8 +2668,7 @@ Proof
       >> pop_assum mp_tac
       >> simp[]
       (* Prove the preconditions of the specific case. *)
-      >> impl_keep_tac
-         
+      >> impl_keep_tac         
       >- (rpt conj_tac
           >- (rpt strip_tac
               >> qpat_x_assum ‘∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’ drule
@@ -2661,25 +2677,12 @@ Proof
              )
           >- simp[GSYM val_map_assignments_restrict_nodes]
           (* The new nsf are still disjoint *)
-          >- (DEP_PURE_ONCE_REWRITE_TAC[disjoint_image_iff]
-              >> conj_tac
-              >- simp[inj_inter_var_nodes]
-              >> rpt strip_tac
-              >> irule DISJOINT_RESTRICT_LL
-              >> irule DISJOINT_RESTRICT_RL
-              >> irule disjointD
-              >> conj_tac
-              >- metis_tac[INJ_DEF]
-              >> qexists ‘IMAGE nsf S’
-              >> simp[]
-              >> cheat (* TODO: turn this into a lemma*)
-             )
+          >- simp[disjoint_image_inter_var_nodes]
           (* The new nsf is still injective. In addition to the requirement that
              the original nsf were injective, this requires that the original
              nsf were disjoint. *)
           >> simp[inj_inter_var_nodes]
-         )
-         
+         )         
       >> simp[GSYM val_map_assignments_restrict_nodes]
       (* We have now applied the special case of our theorem, and we no longer
          need it. *)
@@ -2730,22 +2733,30 @@ Proof
          )
       >> rpt strip_tac
       >> simp[Abbr ‘excl_val_map1’, Abbr ‘excl_val_map2’, Abbr ‘ns1’]
-             
+      (* Our second fbigunion is being taken over a valid set *)
       >> qmatch_abbrev_tac ‘FBIGUNION maps1 ' x = FBIGUNION maps2 ' x’
       >> sg ‘disjoint_domains maps2’
       >- (unabbrev_all_tac
           >> irule disjoint_domains_image_drestrict_func
           >> simp[])
-      >> simp[Abbr ‘maps1’]
-      >> cheat
-      >> simp[Abbr ‘maps2’]
-      >> (* ? *) PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_DRESTRICT]
-      >> (* ? *) DEP_PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_FBIGUNION]
-     )
+      >> simp[Abbr ‘maps1’, Abbr ‘maps2’]
+      (* Drag the restrition over the variable nodes out of the function. *)
+      >> PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_DRESTRICT]
+      >> Q.SUBGOAL_THEN
+          ‘(λk. DRESTRICT (DRESTRICT (excl_val_mapf k) (nsf k)) (var_nodes fg)) =
+           (λs. DRESTRICT s (var_nodes fg)) ∘ (λk. DRESTRICT (excl_val_mapf k) (nsf k))’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- simp[o_DEF]
+      >> PURE_ONCE_REWRITE_TAC[IMAGE_o]
+      >> simp[GSYM DRESTRICT_FBIGUNION]
+      (* *)
+      >> simp[DRESTRICT_DEF]
+      >> simp[Abbr ‘ns2’]
+      >> gvs[])
   (* We have reduced to the case where we may assume that the nsf are contained
      in the vairable nodes, so we may use the special case of this theorem to
      complete the proof*)
-  >> metis_tac[generalised_distributive_law]
+  >> metis_tac[generalised_distributive_law_lemma]
 QED
 
 (* -------------------------------------------------------------------------- *)
