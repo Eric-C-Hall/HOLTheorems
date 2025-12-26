@@ -2815,7 +2815,7 @@ Theorem sp_message_sum_prod:
     else
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
 Proof
-
+ 
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -2915,7 +2915,7 @@ Proof
                                ((nodes
                                  (subtree (get_underlying_graph fg) src
                                           prev) ∪ {prev}) ∩ get_function_nodes fg)’
-      >> simp[SF ETA_ss]
+      >> simp[]
       (* Now rewrite the set we are assigning over in the form "nsf prev" *)
       >> qabbrev_tac
          ‘nsf = λprev.
@@ -2927,7 +2927,6 @@ Proof
          ‘excl_val_mapf = λval_map : unit + num |-> bool list prev.
                             (DRESTRICT val_map {prev})’
       >> simp[]
-      
       (* Rewrite our inner function using the generalised distributive law. *)
       >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’
       >> Q.SUBGOAL_THEN
@@ -2974,27 +2973,21 @@ Proof
              )
           >> simp[]
          )
-
+      >> qpat_x_assum ‘Abbrev (func = _)’ kall_tac
+         
+      (* Move constant into inner sum so that the only thing in the function of
+         the first sum is the second sum, and thus we can use
+         extreal_sum_image_val_map_assignments_combine to combine the two sums *)
+      >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’
       >> 
+      >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_L_ALT]
 
-      >> generalised_distributive_law
+      
+      >> qmatch_goalsub_abbrev_tac ‘∑ (λval_map. _ × _) _’
+                                   
+                                   DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
 
-      (* TODO: an appropriate instance of the generalised distributive law,
-         but one which lacks the preconditions of the generalised distributive
-         law*)
-      >> sg ‘∀val_map S : unit + num -> bool.
-               T ⇒
-               ∏ (λprev.
-                    ∑ (ff prev)
-                      (val_map_assignments fg (nsf prev)
-                                           (excl_val_mapf val_map prev))) S =
-               ∑ (λval_map. ∏ (λk. ff k (DRESTRICT val_map (nsf k))) S)
-                 (val_map_assignments fg (BIGUNION (IMAGE nsf S)) (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf val_map k) (nsf k)) S))) : extreal’
-      >- cheat
-      >> simp[Cong EXTREAL_SUM_IMAGE_CONG]
 
-                                          >> gvs[generalised_distributive_law]
-                                          >> generalised_distributive_law
      )
   >> gvs[]
 

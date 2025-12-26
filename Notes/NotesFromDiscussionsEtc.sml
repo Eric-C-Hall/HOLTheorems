@@ -137,4 +137,6 @@ QED
 
 (* mp_then *)
 
+(* MAP_EVERY qid_spec_tac [‘dst’, ‘src’, ‘fg’] *)
+
 val _ = export_theory();
