@@ -1997,16 +1997,45 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Combine sums of variable assignments when the second assignment            *)
+(* Extend the theorem which takes consecutive sums over variable assignments  *)
+(* so that it                                                                 *)
 (*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+(* If the values excluded from the inner assignment of values is dependent    *)
+(* on the values chosen for the outer assignment of values, then we may treat *)
+(* this as a part of the inner function which is already dependent on the     *)
+(* outer assignment of values, and thus we may apply the more basic version   *)
+(* of this theorem.                                                           *)
+(*                                                                            *)
+(*                                                                            *)
+
+(* We require as assumption that excl_val_map2 always chooses values for the  *)
+(* same set of nodes.                                                          *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem extreal_sum_image_val_map_assignments_combine_two:
-  PLACEHOLDER
+  ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f.
+    ∑ (λx.
+         ∑ (λy. f x y)
+           (val_map_assignments fg ns2 (excl_val_map2 x))
+      ) (val_map_assignments fg ns1 excl_val_map1) =
+    ARB : extreal
 Proof
-  cheat
+  (* TODO: *)
+
+  rpt strip_tac
+  >> qmatch_abbrev_tac ‘LHS = _’
+  >> sg ‘x_choice ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
+         LHS = ∑ (λx.
+                 ∑ (λy. f x (excl_val_map2 x ⊌ y))
+                   (val_map_assignments fg ns2 (excl_val_map2 x_choice))
+                 ) (val_map_assignments fg ns1 excl_val_map1)’
+  >- (cheat
+     )
+     cheat
 QED
-        
+
 (* -------------------------------------------------------------------------- *)
 (* This is certainly not an iff: perhaps a better theorem can be found?       *)
 (* -------------------------------------------------------------------------- *)
@@ -3060,6 +3089,12 @@ Proof
                      prev ≠ dst})’
       >> simp[]
 
+
+      (* The outer sum sums over all assignments to adjacent nodes other than
+         dst. The inner sum sums over all assignments to nodes that are in the
+         branches other than dst, excluding the adjacent ones. Thus, the outer
+         sum can be rewritten to not depend on the inner sum *)
+             
       (* TODO: Might it be possible to simplify excl_val_map2 to not depend on
          val_map because anything in val_map is domained on ns1 and irrelevant
          to maps domained on ns2? *)
@@ -3069,7 +3104,7 @@ Proof
              
       >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
                  >> conj_tac
-                 >- cheat
+      >- cheat
 
 
      )
