@@ -1960,11 +1960,11 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* If we sum over assignments to one set of variables and then sum over       *)
-(* assignments to another set of variables, then                               *)
+(* assignments to another set of variables, then                              *)
+(*                                                                            *)
 (*                                                                            *)
 (* Use HO_MATCH_ABBREV_TAC to ensure the inside of the inner sum is in the    *)
 (* correct form before applying this                                          *)
-(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem extreal_sum_image_val_map_assignments_combine:
   ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f.
@@ -1996,6 +1996,17 @@ Proof
   >> gvs[extreal_sum_image_val_map_assignments_cross]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Combine sums of variable assignments when the second assignment            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem extreal_sum_image_val_map_assignments_combine_two:
+  PLACEHOLDER
+Proof
+  cheat
+QED
+        
 (* -------------------------------------------------------------------------- *)
 (* This is certainly not an iff: perhaps a better theorem can be found?       *)
 (* -------------------------------------------------------------------------- *)
@@ -2974,18 +2985,91 @@ Proof
           >> simp[]
          )
       >> qpat_x_assum ‘Abbrev (func = _)’ kall_tac
-         
       (* Move constant into inner sum so that the only thing in the function of
          the first sum is the second sum, and thus we can use
          extreal_sum_image_val_map_assignments_combine to combine the two sums *)
-      >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’
-      >> 
-      >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_L_ALT]
+      >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’                           
+      >> Q.SUBGOAL_THEN
+          ‘func =
+           λval_map.
+             ∑
+             (λval_map'.
+                get_function_map fg ' src ' val_map *
+                ∏ (λprev. ff prev (DRESTRICT val_map' (nsf prev)))
+                  {prev |
+                (prev ∈ nodes (get_underlying_graph fg) ∧
+                 adjacent (get_underlying_graph fg) prev src) ∧ prev ≠ dst})
+             (val_map_assignments fg
+                                  (BIGUNION
+                                   (IMAGE nsf
+                                          {prev |
+                                    (prev ∈ nodes (get_underlying_graph fg) ∧
+                                     adjacent (get_underlying_graph fg) prev src) ∧
+                                    prev ≠ dst}))
+                                  (FBIGUNION
+                                   (IMAGE
+                                    (λprev. DRESTRICT (excl_val_mapf val_map prev) (nsf prev))
+                                    {prev |
+                                    (prev ∈ nodes (get_underlying_graph fg) ∧
+                                     adjacent (get_underlying_graph fg) prev src) ∧
+                                    prev ≠ dst})))
+             : extreal’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (simp[Abbr ‘func’]
+          >> simp[FUN_EQ_THM]
+          >> gen_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_L_ALT]
+          >> conj_tac
+          >- (rpt conj_tac
+              >- simp[]
+              >- cheat
+              >- cheat
+              >> disj1_tac
+              >> gen_tac >> disch_tac
+              >> cheat
+             )
+          >> simp[]
+         )
+      >> qpat_x_assum ‘Abbrev (func = _)’ kall_tac
+      (* Rewrite inner function in higher-order form so as to be able to apply
+         extreal_sum_image_val_map_assignments_combine to combine the sums *)
+      >> qabbrev_tac ‘inner_func = λval_map val_map'.
+                                     get_function_map fg ' src ' val_map *
+                                     ∏ (λprev. ff prev (DRESTRICT val_map' (nsf prev)))
+                                       {prev |
+                                     (prev ∈ nodes (get_underlying_graph fg) ∧
+                                      adjacent (get_underlying_graph fg) prev src) ∧
+                                     prev ≠ dst}’
+      >> simp[]
+      (* Rename ns1, ns2, excl_val_map1, excl_val_map2 to match our theorem
+         for combining the sums *)
+      >> qmatch_abbrev_tac ‘∑ _ (val_map_assignments fg ns1 excl_val_map1) = _ : extreal’
+      >> qmatch_abbrev_tac ‘∑ _ temp = _ : extreal’
+      >> qmatch_goalsub_abbrev_tac ‘∑ _ (val_map_assignments fg ns2 _)’
+      >> simp[Abbr ‘temp’]
+      >> qabbrev_tac
+         ‘excl_val_map2 =
+          λval_map. FBIGUNION
+                    (IMAGE
+                     (λprev.
+                        DRESTRICT (excl_val_mapf val_map prev)
+                                  (nsf prev))
+                     {prev |
+                     (prev ∈ nodes (get_underlying_graph fg) ∧
+                      adjacent (get_underlying_graph fg) prev src) ∧
+                     prev ≠ dst})’
+      >> simp[]
 
-      
-      >> qmatch_goalsub_abbrev_tac ‘∑ (λval_map. _ × _) _’
-                                   
-                                   DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
+      (* TODO: Might it be possible to simplify excl_val_map2 to not depend on
+         val_map because anything in val_map is domained on ns1 and irrelevant
+         to maps domained on ns2? *)
+
+      (* Combine the sums *)
+      >> simp[extreal_sum_image_val_map_assignments_combine]
+             
+      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
+                 >> conj_tac
+                 >- cheat
 
 
      )
