@@ -1,3 +1,4 @@
+
 Theory message_passing
 
 Ancestors arithmetic bool combin ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list lifting marker partite_ea probability pred_set prim_rec topology transc transfer tree
@@ -1960,8 +1961,9 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* If we sum over assignments to one set of variables and then sum over       *)
-(* assignments to another set of variables, then                              *)
-(*                                                                            *)
+(* assignments to another set of variables, then this can be expressed        *)
+(* equivalently using a single sum over assignments to both sets of           *)
+(* variables.                                                                 *)
 (*                                                                            *)
 (* Use HO_MATCH_ABBREV_TAC to ensure the inside of the inner sum is in the    *)
 (* correct form before applying this                                          *)
@@ -1997,43 +1999,107 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Extend the theorem which takes consecutive sums over variable assignments  *)
-(* so that it                                                                 *)
+(* Extend the theorem which combines consecutive sums over variable           *)
+(* assignements, so that it works even when the inner choice of fixed values  *)
+(* is dependent on the outer choice of assignments.                           *)
 (*                                                                            *)
+(* This is important because it is natural to fix the values in the inner sum *)
+(* to those values chosen in the outer sum. We initially choose some values   *)
+(* in the outer sum, and then choose more values on top of that in the inner  *)
+(* sum, and have to fix the values that were previously chosen.               *)
+(*                                                                            *)
+(* We require that our inner choice of fixed values always fixes values for   *)
+(* the same set of nodes, regardless of our outer assignment of values.       *)
+(*                                                                            *)
+(* We prove this theorem by moving the dependency on x from excl_val_map2 to  *)
+(* the function f, which then allows us to apply the original, un-extended    *)
+(* version of this theorem.                                                   *)
+(*                                                                            *)
+(* TODO: Check that the modified assumption on f being +- infinity is         *)
+(* appropriate.                                                               *)
 (* -------------------------------------------------------------------------- *)
-
-(* If the values excluded from the inner assignment of values is dependent    *)
-(* on the values chosen for the outer assignment of values, then we may treat *)
-(* this as a part of the inner function which is already dependent on the     *)
-(* outer assignment of values, and thus we may apply the more basic version   *)
-(* of this theorem.                                                           *)
-(*                                                                            *)
-(*                                                                            *)
-
-(* We require as assumption that excl_val_map2 always chooses values for the  *)
-(* same set of nodes.                                                          *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-Theorem extreal_sum_image_val_map_assignments_combine_two:
-  ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f.
+Theorem extreal_sum_image_val_map_assignments_combine_dependent_inner_set:
+  ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f x_choice.
+    x_choice ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+    ns1 ⊆ var_nodes fg ∧
+    ns2 ⊆ var_nodes fg ∧
+    DISJOINT ns1 ns2 ∧
+    ((∀x y.
+        x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+        y ∈ val_map_assignments fg ns2 (excl_val_map2 x_choice) ⇒
+        f x y ≠ +∞) ∨
+     ∀x y.
+       x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+       y ∈ val_map_assignments fg ns2 (excl_val_map2 x_choice) ⇒
+       f x y ≠ −∞) ∧
+    (∀x. x ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
+         FDOM (excl_val_map2 x) = FDOM (excl_val_map2 x_choice)) ⇒
     ∑ (λx.
          ∑ (λy. f x y)
            (val_map_assignments fg ns2 (excl_val_map2 x))
       ) (val_map_assignments fg ns1 excl_val_map1) =
-    ARB : extreal
+    ∑ (λz.
+         f (DRESTRICT z ns1)
+           (excl_val_map2 (DRESTRICT z ns1) ⊌ DRESTRICT z ns2))
+      (val_map_assignments fg (ns1 ∪ ns2)
+                           (DRESTRICT excl_val_map1 ns1
+                                      ⊌ DRESTRICT (excl_val_map2 x_choice) ns2
+                           )
+      ) : extreal
 Proof
-  (* TODO: *)
+  (* Move the dependency on x into the function f. *)
 
-  rpt strip_tac
+  rpt gen_tac >> rpt disch_tac
   >> qmatch_abbrev_tac ‘LHS = _’
-  >> sg ‘x_choice ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
-         LHS = ∑ (λx.
-                 ∑ (λy. f x (excl_val_map2 x ⊌ y))
-                   (val_map_assignments fg ns2 (excl_val_map2 x_choice))
+  >> sg ‘LHS = ∑ (λx.
+                    ∑ (λy. f x (excl_val_map2 x ⊌ y))
+                      (val_map_assignments fg ns2 (excl_val_map2 x_choice))
                  ) (val_map_assignments fg ns1 excl_val_map1)’
-  >- (cheat
+  >- (simp[Abbr ‘LHS’]
+      >> irule EXTREAL_SUM_IMAGE_CONG
+      >> simp[]
+      >> rpt strip_tac
      )
-     cheat
+  >> pop_assum $ qspecl_then [‘x_choice’] assume_tac
+  >> pop_assum mp_tac
+  >> impl_tac
+  >- simp[]
+  >> disch_then (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
+  (* Now that the dependency on x is in the function f, we can apply the version
+     of this theorem for which excl_val_map2 doesn't depend on x. *)
+  >> qabbrev_tac ‘f_new = λx y. f x (excl_val_map2 x ⊌ y)’
+  >> simp[]
+  (* *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
+  >> conj_tac
+  >- (simp[Abbr ‘f_new’]
+      >> gvs[]
+      >- (disj1_tac
+          >> rpt gen_tac
+          >> strip_tac
+          >> last_x_assum $ qspecl_then [‘x’, ‘excl_val_map2 x ⊌ y’] assume_tac
+          >> pop_assum mp_tac
+          >> impl_tac
+          >- (simp[]
+              >> cheat
+             )
+          >> simp[]
+         )
+      (* Only difference with the above is the use of disj2_tac instead of
+         disj1_tac *)
+      >> disj2_tac
+      >> rpt gen_tac
+      >> strip_tac
+      >> last_x_assum $ qspecl_then [‘x’, ‘excl_val_map2 x ⊌ y’] assume_tac
+      >> pop_assum mp_tac
+      >> impl_tac
+      >- (simp[]
+          >> cheat
+         )
+      >> simp[]
+     )
+  >> simp[Abbr ‘f_new’]
 QED
 
 (* -------------------------------------------------------------------------- *)
