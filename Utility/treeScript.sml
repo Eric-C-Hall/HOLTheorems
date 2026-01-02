@@ -2259,6 +2259,14 @@ Proof
   >> gvs[]
 QED
 
+Theorem nodes_subtree_subset:
+  ∀g root n.
+    nodes (subtree g root n) ⊆ nodes g
+Proof
+  rpt strip_tac
+  >> simp[subtree_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
 (* input as a tree, which might make it easier to use induction?              *)

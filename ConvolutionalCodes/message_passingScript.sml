@@ -462,7 +462,7 @@ Definition sp_message_def:
               sp_message fg prev src ' src_val_map
            )
            {prev | prev ∈ adjacent_nodes fg src ∧
-                prev ≠ dst})
+                   prev ≠ dst})
       (val_map_assignments fg {src} FEMPTY)
   else
     FUN_FMAP
@@ -493,7 +493,7 @@ Definition contains_all_assoc_var_nodes_def:
   contains_all_assoc_var_nodes fg ns ⇔
     {n | ∃func_node. func_node ∈ ns ∧
                      func_node ∈ get_function_nodes fg ∧
-                      adjacent (get_underlying_graph fg) n func_node} ⊆ ns
+                     adjacent (get_underlying_graph fg) n func_node} ⊆ ns
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -532,7 +532,7 @@ End
 (* It's kinda interesting how this can be proven simply by applying
    gvs[factor_graph_ABSREP]. The second conjunct rewrites wffactor_graph as
    REP (ABS ...), and then the first conjunct simplifies the inner ABS (REP) *)
-Theorem wffactor_graph_factor_graph_REP:
+Theorem wffactor_graph_factor_graph_REP[simp]:
   ∀fg.
     wffactor_graph (factor_graph_REP fg)
 Proof
@@ -3091,6 +3091,77 @@ Proof
   >> metis_tac[generalised_distributive_law_lemma]
 QED
 
+Theorem INTER_UNION_RESTRICT[simp]:
+  ∀a b.
+    a ∩ (b ∪ a) = a
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem get_underlying_graph_factor_graph_ABS[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    get_underlying_graph (factor_graph_ABS fg) = fg.underlying_graph
+Proof
+  rpt strip_tac
+  >> simp[get_underlying_graph_def, iffLR (cj 2 factor_graph_ABSREP)]
+QED
+
+Theorem get_function_nodes_factor_graph_ABS[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    get_function_nodes (factor_graph_ABS fg) = fg.function_nodes
+Proof
+  rpt strip_tac
+  >> simp[get_function_nodes_def, iffLR (cj 2 factor_graph_ABSREP)]
+QED
+
+Theorem get_variable_length_map_factor_graph_ABS[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    get_variable_length_map (factor_graph_ABS fg) = fg.variable_length_map
+Proof
+  rpt strip_tac
+  >> simp[get_variable_length_map_def, iffLR (cj 2 factor_graph_ABSREP)]
+QED
+
+Theorem gen_bipartite_ea_get_underlying_graph[simp]:
+  ∀fg.
+    gen_bipartite_ea (get_underlying_graph fg) (get_function_nodes fg)
+Proof
+  rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM (cj 1 factor_graph_ABSREP)]
+  >> simp[]
+  >> metis_tac[wffactor_graph_def, wffactor_graph_factor_graph_REP]
+QED
+
+Theorem adjacent_get_function_nodes:
+  ∀fg n1 n2.
+    adjacent (get_underlying_graph fg) n1 n2 ⇒
+    (n1 ∈ get_function_nodes fg ⇎ n2 ∈ get_function_nodes fg)
+Proof
+  rpt strip_tac
+  >> qspec_then ‘fg’ assume_tac gen_bipartite_ea_get_underlying_graph
+  >> gvs[gen_bipartite_ea_def, Excl "gen_bipartite_ea_get_underlying_graph"]
+  >> gvs[fsgedges_def]
+  >> metis_tac[]
+QED
+
+Theorem adjacent_nodes_subset_var_nodes:
+  ∀fg src.
+    adjacent_nodes fg src ≠ ∅ ⇒
+    (adjacent_nodes fg src ⊆ var_nodes fg ⇔ src ∈ get_function_nodes fg)
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac
+  >- (gvs[SUBSET_DEF]
+      >> gvs[GSYM MEMBER_NOT_EMPTY]
+      >> pop_assum $ qspec_then ‘x’ assume_tac
+      >> gvs[]
+     )
+  >> ASM_SET_TAC[]
+QED        
+
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
@@ -3147,7 +3218,7 @@ Theorem sp_message_sum_prod:
     else
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
 Proof
- 
+  
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -3380,24 +3451,60 @@ Proof
                       adjacent (get_underlying_graph fg) prev src) ∧
                      prev ≠ dst})’
       >> simp[]
-
-
       (* The outer sum sums over all assignments to adjacent nodes other than
          dst. The inner sum sums over all assignments to nodes that are in the
          branches other than dst, excluding the adjacent ones. Thus, the outer
          sum can be rewritten to not depend on the inner sum *)
-             
       (* TODO: Might it be possible to simplify excl_val_map2 to not depend on
          val_map because anything in val_map is domained on ns1 and irrelevant
          to maps domained on ns2? *)
-
       (* Combine the sums *)
-      >> simp[extreal_sum_image_val_map_assignments_combine]
-             
-      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
-                 >> conj_tac
-      >- cheat
+      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_dependent_inner_set]
+      >> conj_tac
 
+      >- (rpt conj_tac
+          >- (cheat
+             )
+          >- ASM_SET_TAC[]
+          >- (
+           (* TODO: we'll need to restrict ns2 to only include variable nodes
+              before doing this. *)
+           simp[Abbr ‘ns2’]
+           >> simp[BIGUNION_SUBSET]
+           >> rpt strip_tac
+           >> simp[Abbr ‘nsf’]
+           >> gvs[]
+           >> cheat
+           )
+          >- (rpt strip_tac
+              >> simp[Abbr ‘excl_val_map2’, Abbr ‘ns2’]
+              >> DEP_PURE_ONCE_REWRITE_TAC[FDOM_FBIGUNION]
+              >> conj_tac
+              >- (irule IMAGE_FINITE
+                  >> irule SUBSET_FINITE
+                  >> qexists ‘nodes (get_underlying_graph fg)’
+                  >> simp[FINITE_nodes]
+                  >> ASM_SET_TAC[]
+                 )
+              >> simp[IMAGE_IMAGE, o_DEF]
+              >> simp[Abbr ‘nsf’, Abbr ‘excl_val_mapf’]
+              >> simp[FDOM_DRESTRICT]
+              >> drule in_val_map_assignments_fdom
+              >> impl_tac
+              >- (simp[Abbr ‘ns1’]
+                 )
+             )
+          >- (cheat
+             )
+          >- (cheat
+             )
+          >- (cheat
+             )
+          >> cheat
+         )
+
+      >> unabbrev_all_tac
+      >> simp[sum_prod_def]
 
      )
   >> gvs[]
