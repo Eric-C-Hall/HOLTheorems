@@ -2038,19 +2038,81 @@ Proof
   >> gvs[]
 QED
 
+Theorem UNION_LEFT_IDEMPOT[simp]:
+  ∀a b.
+    a ∪ (a ∪ b) = a ∪ b
+Proof
+  metis_tac[UNION_ASSOC, UNION_IDEMPOT]
+QED
+
+Theorem UNION_RIGHT_IDEMPOT[simp]:
+  ∀a b.
+    (a ∪ b) ∪ b = a ∪ b
+Proof
+  metis_tac[UNION_ASSOC, UNION_IDEMPOT]
+QED
+
+Theorem in_val_map_assignments_excl_val_map_fapply:
+  ∀val_map fg ns excl_val_map n.
+    val_map ∈ val_map_assignments fg ns excl_val_map ∧
+    ns ⊆ var_nodes fg ∧
+    FDOM excl_val_map ⊆ ns ∧
+    n ∈ FDOM excl_val_map ⇒
+    val_map ' n = excl_val_map ' n
+Proof
+  rpt strip_tac
+  >> gvs[val_map_assignments_def]
+  >> first_x_assum irule
+  >> simp[]
+  >> ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Write the set of assignments to values with one choice of fixed values in  *)
+(* terms of an image over the same set with another choice of fixed values.   *)
+(*                                                                            *)
+(* We require that the domain of fixed values doesn't change and that one set *)
+(* of fixed values has valid lengths if and only if the other set of fixed    *)
+(* values has vlaid lengths.                                                  *)
+(* -------------------------------------------------------------------------- *)
 Theorem val_map_assignments_change_excl_val_map:
   ∀fg ns excl_val_map1 excl_val_map2.
-    FDOM excl_val_map1 = FDOM excl_val_map2 ⇒
+    FDOM excl_val_map1 = FDOM excl_val_map2 ∧
+    ns ⊆ var_nodes fg ∧
+    FDOM excl_val_map1 ⊆ ns ∧
+    FDOM excl_val_map2 ⊆ ns ∧
+    (∀n. n ∈ FDOM excl_val_map1 ∩ ns ∩ var_nodes fg ⇒
+         LENGTH (excl_val_map1 ' n) = get_variable_length_map fg ' n) ∧
+    (∀n. n ∈ FDOM excl_val_map2 ∩ ns ∩ var_nodes fg ⇒
+         LENGTH (excl_val_map2 ' n) = get_variable_length_map fg ' n) ⇒
     val_map_assignments fg ns excl_val_map1 =
     IMAGE (λx. excl_val_map1 ⊌ x) (val_map_assignments fg ns excl_val_map2)
 Proof
   rpt strip_tac
   >> simp[EXTENSION]
-  >> gen_tac
+  >> qx_gen_tac ‘val_map’
   >> EQ_TAC >> rpt strip_tac
-  >- (qspecl_then [‘fg’, ‘ns’, ‘excl_val_map2’] mp_tac exists_val_map_assignments
+  >- (qexists ‘excl_val_map2 ⊌ val_map’
+      >> conj_tac
+      >- (simp[GSYM fmap_EQ_THM]
+          >> conj_tac
+          >> simp[GSYM SUBSET_UNION_ABSORPTION]
+          >> ‘FDOM val_map = ns’ by metis_tac[in_val_map_assignments_fdom]
+          >> simp[])
+      >> gen_tac >> disch_tac
+      >> simp[FUNION_DEF]
+      >> rw[]
+      >> 
+
+
+      qspecl_then [‘fg’, ‘ns’, ‘excl_val_map2’] mp_tac exists_val_map_assignments
       >> impl_tac
+      >- gvs[]
+      >> rpt strip_tac
+      >> qexists ‘val_map'’
+      >> gvs[]
      )
+  >> 
   >> cheat
 QED
 
