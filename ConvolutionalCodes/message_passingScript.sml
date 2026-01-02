@@ -1,4 +1,3 @@
-
 Theory message_passing
 
 Ancestors arithmetic bool combin ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph hyperbolic_functions integer list lifting marker partite_ea probability pred_set prim_rec topology transc transfer tree
@@ -2067,6 +2066,54 @@ Proof
   >> ASM_SET_TAC[]
 QED
 
+Theorem in_val_map_assignments_length_valid:
+  ∀val_map fg ns excl_val_map n.
+    n ∈ ns ∧
+    ns ⊆ var_nodes fg ∧
+    val_map ∈ val_map_assignments fg ns excl_val_map ⇒
+    LENGTH (val_map ' n) = get_variable_length_map fg ' n
+Proof
+  rpt strip_tac
+  >> gvs[val_map_assignments_def]
+  >> last_x_assum irule
+  >> simp[]
+  >> gvs[SUBSET_DEF]
+QED
+
+Theorem funion_excl_val_map_in_val_map_assignments:
+  ∀fg ns excl_val_map1 excl_val_map2 val_map.
+    val_map ∈ val_map_assignments fg ns excl_val_map2 ∧
+    ns ⊆ var_nodes fg ∧ 
+    FDOM excl_val_map1 ⊆ ns ∧
+    (∀n. n ∈ FDOM excl_val_map1 ∩ ns ∩ var_nodes fg ⇒
+         LENGTH (excl_val_map1 ' n) = get_variable_length_map fg ' n) ⇒
+    excl_val_map1 ⊌ val_map ∈ val_map_assignments fg ns excl_val_map1
+Proof
+  rpt strip_tac
+  >> ‘FDOM val_map = ns’ by metis_tac[in_val_map_assignments_fdom]
+  >> simp[val_map_assignments_def]
+  >> simp[SUBSET_INTER1]
+  >> conj_tac
+  >- (irule (iffLR SUBSET_UNION_ABSORPTION) >> simp[])
+  >> conj_tac
+  >- (gen_tac
+      >> Cases_on ‘n ∈ FDOM excl_val_map1’ >> simp[]
+      >- (simp[FUNION_DEF]
+          >> last_x_assum irule
+          >> ASM_SET_TAC[])
+      >> rpt strip_tac
+      >> simp[FUNION_DEF]
+      >> irule in_val_map_assignments_length_valid
+      >> qexistsl [‘excl_val_map2’, ‘FDOM val_map’]
+      >> simp[]
+     )
+  >> rpt strip_tac
+  >- (PURE_ONCE_REWRITE_TAC[FUNION_DEF]
+      >> rw[])
+  >> PURE_ONCE_REWRITE_TAC[FUNION_DEF]
+  >> rw[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Write the set of assignments to values with one choice of fixed values in  *)
 (* terms of an image over the same set with another choice of fixed values.   *)
@@ -2093,27 +2140,28 @@ Proof
   >> qx_gen_tac ‘val_map’
   >> EQ_TAC >> rpt strip_tac
   >- (qexists ‘excl_val_map2 ⊌ val_map’
+      >> ‘FDOM val_map = ns’ by metis_tac[in_val_map_assignments_fdom]
       >> conj_tac
       >- (simp[GSYM fmap_EQ_THM]
           >> conj_tac
-          >> simp[GSYM SUBSET_UNION_ABSORPTION]
-          >> ‘FDOM val_map = ns’ by metis_tac[in_val_map_assignments_fdom]
-          >> simp[])
-      >> gen_tac >> disch_tac
-      >> simp[FUNION_DEF]
-      >> rw[]
-      >> 
-
-
-      qspecl_then [‘fg’, ‘ns’, ‘excl_val_map2’] mp_tac exists_val_map_assignments
-      >> impl_tac
-      >- gvs[]
-      >> rpt strip_tac
-      >> qexists ‘val_map'’
-      >> gvs[]
+          >- (simp[GSYM SUBSET_UNION_ABSORPTION]
+              >> gen_tac >> disch_tac
+              >> simp[FUNION_DEF]
+              >> rw[]
+              >> metis_tac[in_val_map_assignments_excl_val_map_fapply]
+             )
+          >> rpt strip_tac
+          >> simp[FUNION_DEF]
+          >> rw[]
+          >> metis_tac[in_val_map_assignments_excl_val_map_fapply]
+         )
+      >> irule funion_excl_val_map_in_val_map_assignments
+      >> simp[] >> metis_tac[]
      )
-  >> 
-  >> cheat
+  >> gvs[]
+  >> irule funion_excl_val_map_in_val_map_assignments
+  >> simp[]
+  >> metis_tac[]
 QED
 
 (* -------------------------------------------------------------------------- *)
