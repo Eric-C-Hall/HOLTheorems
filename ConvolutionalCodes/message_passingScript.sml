@@ -2184,7 +2184,7 @@ Theorem extreal_sum_image_change_excl_val_map:
          LENGTH (excl_val_map2 ' n) = get_variable_length_map fg ' n) ∧
     ((∀x. x ∈ val_map_assignments fg ns excl_val_map1 ⇒ f x ≠ −∞) ∨
      ∀x. x ∈ val_map_assignments fg ns excl_val_map1 ⇒ f x ≠ +∞) ⇒
-    ∑ (λx. f x) (val_map_assignments fg ns excl_val_map1) =
+    ∑ f (val_map_assignments fg ns excl_val_map1) =
     ∑ (λx. f (excl_val_map1 ⊌ x))
       (val_map_assignments fg ns excl_val_map2) : extreal
 Proof  
@@ -2241,26 +2241,28 @@ QED
 (* We prove this theorem by moving the dependency on x from excl_val_map2 to  *)
 (* the function f, which then allows us to apply the original, un-extended    *)
 (* version of this theorem.                                                   *)
-(*                                                                            *)
-(* TODO: Check that the modified assumption on f being +- infinity is         *)
-(* appropriate.                                                               *)
 (* -------------------------------------------------------------------------- *)
 Theorem extreal_sum_image_val_map_assignments_combine_dependent_inner_set:
   ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f x_choice.
     x_choice ∈ val_map_assignments fg ns1 excl_val_map1 ∧
     ns1 ⊆ var_nodes fg ∧
     ns2 ⊆ var_nodes fg ∧
+    (∀x. x ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
+         FDOM (excl_val_map2 x) ⊆ ns2) ∧
     DISJOINT ns1 ns2 ∧
     ((∀x y.
         x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
-        y ∈ val_map_assignments fg ns2 (excl_val_map2 x_choice) ⇒
+        y ∈ val_map_assignments fg ns2 (excl_val_map2 x) ⇒
         f x y ≠ +∞) ∨
      ∀x y.
        x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
-       y ∈ val_map_assignments fg ns2 (excl_val_map2 x_choice) ⇒
+       y ∈ val_map_assignments fg ns2 (excl_val_map2 x) ⇒
        f x y ≠ −∞) ∧
     (∀x. x ∈ val_map_assignments fg ns1 excl_val_map1 ⇒
-         FDOM (excl_val_map2 x) = FDOM (excl_val_map2 x_choice)) ⇒
+         FDOM (excl_val_map2 x) = FDOM (excl_val_map2 x_choice)) ∧
+    (∀x n. x ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+           n ∈ FDOM (excl_val_map2 x) ⇒
+           LENGTH (excl_val_map2 x ' n) = get_variable_length_map fg ' n) ⇒
     ∑ (λx.
          ∑ (λy. f x y)
            (val_map_assignments fg ns2 (excl_val_map2 x))
@@ -2275,7 +2277,6 @@ Theorem extreal_sum_image_val_map_assignments_combine_dependent_inner_set:
       ) : extreal
 Proof
   (* Move the dependency on x into the function f. *)
-
   rpt gen_tac >> rpt disch_tac
   >> qmatch_abbrev_tac ‘LHS = _’
   >> Q.SUBGOAL_THEN
@@ -2289,77 +2290,42 @@ Proof
       >> irule EXTREAL_SUM_IMAGE_CONG
       >> simp[]
       >> rpt strip_tac
-      (* The function on the RHS can be written as a composition of the function
-         on the LHS with another function. Furthermore, the function being
-         composed with is injective on the set we are summing over, since we
-         are only modifying the part which was held, and any two assingments
-         differ on a part other than this part. Therefore, we can move the
-         function being composed to instead be applied to the set we are
-         summing over. Then it will be straightforward to show the equivalence
-         of these sums. *)
-      >> Q.SUBGOAL_THEN
-          ‘(λy. f x (excl_val_map2 x ⊌ y)) =
-           (λy. f x y) ∘ (λy. excl_val_map2 x ⊌ y)’
-          (fn th => PURE_ONCE_REWRITE_TAC[th])
-      >- simp[o_DEF]
-      (* Move the composition to the set *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_IMAGE]
-      >> conj_tac
-      >- (rpt conj_tac
-          >- simp[]
-          >- cheat
-          >- cheat
-         )
-      (* At this point the proof is straightforward *)
-      >> irule EXTREAL_SUM_IMAGE_CONG
+      >> qabbrev_tac ‘g = λy. f x y’
       >> simp[]
-      >> cheat
+      >> DEP_PURE_ONCE_REWRITE_TAC[GSYM extreal_sum_image_change_excl_val_map]
+      >> conj_tac
+      >- (simp[Abbr ‘g’]
+          >> gvs[])
+      >> simp[]
      )
   >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
-  (* OLD OLD OLD
-  >> pop_assum $ qspecl_then [‘x_choice’] assume_tac
-  >> pop_assum mp_tac
-  >> impl_tac
-  >- simp[]
-  >> disch_then (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac*)
-                  
   (* Now that the dependency on x is in the function f, we can apply the version
      of this theorem for which excl_val_map2 doesn't depend on x. *)
   >> qabbrev_tac ‘f_new = λx y. f x (excl_val_map2 x ⊌ y)’
   >> simp[]
-  (* *)
   >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
   >> conj_tac
   >- (simp[Abbr ‘f_new’]
       >> gvs[]
       >- (disj1_tac
-          >> rpt gen_tac
-          >> strip_tac
-          >> last_x_assum $ qspecl_then [‘x’, ‘excl_val_map2 x ⊌ y’] assume_tac
-          >> pop_assum mp_tac
-          >> impl_tac
-          >- (simp[]
-              (* TODO: I believe we may need the assumption that excl_val_map2
-                 has domain on ns2 *)
-              >> cheat
-             )
+          >> rpt gen_tac >> strip_tac
+          >> last_x_assum irule
           >> simp[]
+          >> irule funion_excl_val_map_in_val_map_assignments
+          >> simp[]
+          >> metis_tac[]
          )
       (* Only difference with the above is the use of disj2_tac instead of
          disj1_tac *)
       >> disj2_tac
-      >> rpt gen_tac
-      >> strip_tac
-      >> last_x_assum $ qspecl_then [‘x’, ‘excl_val_map2 x ⊌ y’] assume_tac
-      >> pop_assum mp_tac
-      >> impl_tac
-      >- (simp[]
-          >> cheat
-         )
+      >> rpt gen_tac >> strip_tac
+      >> last_x_assum irule
       >> simp[]
+      >> irule funion_excl_val_map_in_val_map_assignments
+      >> simp[]
+      >> metis_tac[]         
      )
-  >> simp[Abbr ‘f_new’]
+  >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
