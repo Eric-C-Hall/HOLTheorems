@@ -2174,13 +2174,21 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem extreal_sum_image_change_excl_val_map:
   ∀fg ns excl_val_map1 excl_val_map2 f x.
-    FDOM excl_val_map1 = FDOM excl_val_map2 ⇒
+    FDOM excl_val_map1 = FDOM excl_val_map2 ∧
+    ns ⊆ var_nodes fg ∧
+    FDOM excl_val_map1 ⊆ ns ∧
+    FDOM excl_val_map2 ⊆ ns ∧
+    (∀n. n ∈ FDOM excl_val_map1 ∩ ns ∩ var_nodes fg ⇒
+         LENGTH (excl_val_map1 ' n) = get_variable_length_map fg ' n) ∧
+    (∀n. n ∈ FDOM excl_val_map2 ∩ ns ∩ var_nodes fg ⇒
+         LENGTH (excl_val_map2 ' n) = get_variable_length_map fg ' n) ∧
+    ((∀x. x ∈ val_map_assignments fg ns excl_val_map1 ⇒ f x ≠ −∞) ∨
+     ∀x. x ∈ val_map_assignments fg ns excl_val_map1 ⇒ f x ≠ +∞) ⇒
     ∑ (λx. f x) (val_map_assignments fg ns excl_val_map1) =
     ∑ (λx. f (excl_val_map1 ⊌ x))
       (val_map_assignments fg ns excl_val_map2) : extreal
-Proof
-
-  rpt strip_tac
+Proof  
+  rpt gen_tac >> simp[GSYM AND_IMP_INTRO] >> rpt disch_tac
   (* The function on the RHS can be written as a composition of the function
          on the LHS with another function. Furthermore, the function being
          composed with is injective on the set we are summing over, since we
@@ -2197,7 +2205,6 @@ Proof
   (* Move the composition to the set *)
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_IMAGE]
   >> conj_tac
-     
   >- (rpt conj_tac
       >- simp[]
       >- (simp[INJ_DEF]
@@ -2212,46 +2219,11 @@ Proof
               >> metis_tac[])
           >> gvs[val_map_assignments_def]
          )
-      >- cheat
-     )
-  (* At this point the proof is straightforward *)
+      >> simp[Excl "IN_IMAGE", GSYM val_map_assignments_change_excl_val_map])
+  (* Finish the proof *)
   >> irule EXTREAL_SUM_IMAGE_CONG
   >> simp[val_map_assignments_change_excl_val_map]
 QED
-
-(* Without loss of generality, we can assume that our excluded nodes are a
-     subset of the domain on which we take our assignments because anything
-     outside of the domain has no effect and so our set of assignments is
-     equivalent*)
->> wlog_tac ‘FDOM excl_val_map1 ⊆ ns ∧
-             FDOM excl_val_map2 ⊆ ns’ [‘excl_val_map1’, ‘excl_val_map2’]
->- (pop_assum kall_tac
-    >> pop_assum $ qspecl_then [‘DRESTRICT excl_val_map1 ns’,
-                                ‘DRESTRICT excl_val_map2 ns’,
-                                ‘ns’, ‘f’, ‘fg’] assume_tac
-    >> gvs[FDOM_DRESTRICT]
-    >> gvs[GSYM val_map_assignments_drestrict_excl_val_map]
-    >> pop_assum kall_tac
-    >> irule EXTREAL_SUM_IMAGE_CONG
-    >> simp[]
-    >> rpt strip_tac
-    >> metis_tac[val_map_assignments_drestrict_excl_val_map]
-   )
-
-(* Restrict excl_val_map1 and excl_val_map2 to ensure that their domains
-     are subsets of ns *)
->> PURE_ONCE_REWRITE_TAC[val_map_assignments_drestrict_excl_val_map]
->> qmatch_abbrev_tac ‘∑ _ (val_map_assignments _ _ new_excl_val_map1) =
-                      ∑ _ (val_map_assignments _ _ new_excl_val_map2) : extreal’
->> ‘FDOM (new_excl_val_map1) ⊆ ns ∧
-    FDOM (new_excl_val_map2) ⊆ ns’ by (unabbrev_all_tac >> simp[])
->> qpat_x_assum ‘Abbrev (new_excl_val_map1 = _)’ kall_tac
->> qpat_x_assum ‘Abbrev (new_excl_val_map2 = _)’ kall_tac
->> rename1 ‘∑ _ (val_map_assignments _ _ excl_val_map1) =
-            ∑ _ (val_map_assignments _ _ excl_val_map2) : extreal’
->> rename [‘∑ _ (val_map_assignments _ _ excl_val_map1) =
-            ∑ _ (val_map_assignments _ _ excl_val_map2) : extreal’]
-
 
 (* -------------------------------------------------------------------------- *)
 (* Extend the theorem which combines consecutive sums over variable           *)
