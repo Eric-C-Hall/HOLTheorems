@@ -3480,7 +3480,6 @@ Proof
       (* Combine the sums *)
       >> disch_then (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
       >> conj_tac
-         
       >- (rpt conj_tac
           >- simp[]
           >- simp[]
@@ -3548,8 +3547,14 @@ Proof
           >> cheat
          )
 
-      >> unabbrev_all_tac
+      (* The outer sum has been combined and we should be summing over the same
+         values as we are expecting. Simplify out the sum. *)
       >> simp[sum_prod_def]
+      >> irule EXTREAL_SUM_IMAGE_CONG
+      >> REVERSE conj_tac
+      (* The sets we are summing over are the same *)
+      >- (
+       )
 
      )
   >> gvs[]
