@@ -3456,22 +3456,11 @@ Proof
       >> simp[]
       (* Prove some helpful, reusable assumptions *)
       >> ‘ns1 ⊆ var_nodes fg’ by ASM_SET_TAC[]
-      >> sg ‘ns2 ⊆ var_nodes fg’
-      >- (
-       (* TODO: we'll need to restrict ns2 to only include variable nodes
-              before doing this. *)
-       simp[Abbr ‘ns2’]
-       >> simp[BIGUNION_SUBSET]
-       >> rpt strip_tac
-       >> simp[Abbr ‘nsf’]
-       >> gvs[]
-       >> cheat
-       )
-                   
-      (* The outer sum sums over all assignments to adjacent nodes other than
-         dst. The inner sum sums over all assignments to nodes that are in the
-         branches other than dst, excluding the adjacent ones. Thus, the outer
-         sum can be rewritten to not depend on the inner sum *)
+      (* To combine the sums, we need to restrict ns2 to only include variable
+         nodes *)
+      >> simp[Once val_map_assignments_restrict_nodes]
+      (* Combine the sums using version of theorem which allows the fixed values
+         in the inner sum to depend on the *)
       (* TODO: Might it be possible to simplify excl_val_map2 to not depend on
          val_map because anything in val_map is domained on ns1 and irrelevant
          to maps domained on ns2? *)
@@ -3500,15 +3489,20 @@ Proof
               >> drule in_val_map_assignments_fdom
               >> simp[]
               >> rpt strip_tac
+              >- (simp[BIGUNION_SUBSET]
+                  >> rpt strip_tac
+                  >> gvs[]
+                  >> simp[SUBSET_DEF]
+                  >> rpt strip_tac
+                  >> qexists ‘nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}’
+                  >> simp[]
+                  >> qexists ‘prev’
+                  >> simp[]
+                 )
               >> simp[BIGUNION_SUBSET]
               >> rpt strip_tac
               >> gvs[]
               >> simp[SUBSET_DEF]
-              >> rpt strip_tac
-              >> qexists ‘nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}’
-              >> simp[]
-              >> qexists ‘prev’
-              >> simp[]
              )
           >- (unabbrev_all_tac
               >> cheat
@@ -3517,6 +3511,7 @@ Proof
              )
           >- (rpt strip_tac
               >> simp[Abbr ‘excl_val_map2’]
+              >> simp[FDOM_DRESTRICT]
               (* Copy/pasted from earlier *)
               >> NTAC 2 (DEP_PURE_ONCE_REWRITE_TAC[FDOM_FBIGUNION]
                          >> conj_tac
