@@ -3158,8 +3158,11 @@ Proof
       >> gvs[GSYM MEMBER_NOT_EMPTY]
       >> pop_assum $ qspec_then ‘x’ assume_tac
       >> gvs[]
+      >> metis_tac[adjacent_get_function_nodes]
      )
-  >> ASM_SET_TAC[]
+  >> simp[SUBSET_DEF]
+  >> rpt strip_tac
+  >> metis_tac[adjacent_get_function_nodes]
 QED        
 
 (* -------------------------------------------------------------------------- *)
@@ -3451,6 +3454,20 @@ Proof
                       adjacent (get_underlying_graph fg) prev src) ∧
                      prev ≠ dst})’
       >> simp[]
+      (* Prove some helpful, reusable assumptions *)
+      >> ‘ns1 ⊆ var_nodes fg’ by ASM_SET_TAC[]
+      >> sg ‘ns2 ⊆ var_nodes fg’
+      >- (
+       (* TODO: we'll need to restrict ns2 to only include variable nodes
+              before doing this. *)
+       simp[Abbr ‘ns2’]
+       >> simp[BIGUNION_SUBSET]
+       >> rpt strip_tac
+       >> simp[Abbr ‘nsf’]
+       >> gvs[]
+       >> cheat
+       )
+                   
       (* The outer sum sums over all assignments to adjacent nodes other than
          dst. The inner sum sums over all assignments to nodes that are in the
          branches other than dst, excluding the adjacent ones. Thus, the outer
@@ -3461,21 +3478,12 @@ Proof
       (* Combine the sums *)
       >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_dependent_inner_set]
       >> conj_tac
-
+         
       >- (rpt conj_tac
           >- (cheat
              )
-          >- ASM_SET_TAC[]
-          >- (
-           (* TODO: we'll need to restrict ns2 to only include variable nodes
-              before doing this. *)
-           simp[Abbr ‘ns2’]
-           >> simp[BIGUNION_SUBSET]
-           >> rpt strip_tac
-           >> simp[Abbr ‘nsf’]
-           >> gvs[]
-           >> cheat
-           )
+          >- simp[]
+          >- simp[]
           >- (rpt strip_tac
               >> simp[Abbr ‘excl_val_map2’, Abbr ‘ns2’]
               >> DEP_PURE_ONCE_REWRITE_TAC[FDOM_FBIGUNION]
@@ -3490,16 +3498,47 @@ Proof
               >> simp[Abbr ‘nsf’, Abbr ‘excl_val_mapf’]
               >> simp[FDOM_DRESTRICT]
               >> drule in_val_map_assignments_fdom
-              >> impl_tac
-              >- (simp[Abbr ‘ns1’]
-                 )
+              >> simp[]
+              >> rpt strip_tac
+              >> simp[BIGUNION_SUBSET]
+              >> rpt strip_tac
+              >> gvs[]
+              >> simp[SUBSET_DEF]
+              >> rpt strip_tac
+              >> qexists ‘nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}’
+              >> simp[]
+              >> qexists ‘prev’
+              >> simp[]
+             )
+          >- (unabbrev_all_tac
+              >> cheat
              )
           >- (cheat
              )
-          >- (cheat
+          >- (rpt strip_tac
+              >> simp[Abbr ‘excl_val_map2’]
+              (* Copy/pasted from earlier *)
+              >> NTAC 2 (DEP_PURE_ONCE_REWRITE_TAC[FDOM_FBIGUNION]
+                         >> conj_tac
+                         >- (irule IMAGE_FINITE
+                             >> irule SUBSET_FINITE
+                             >> qexists ‘nodes (get_underlying_graph fg)’
+                             >> simp[FINITE_nodes]
+                             >> ASM_SET_TAC[]
+                            ))
+              >> simp[IMAGE_IMAGE, o_DEF, FDOM_DRESTRICT]
+              >> simp[Abbr ‘nsf’, Abbr ‘excl_val_mapf’]
+              >> simp[FDOM_DRESTRICT]
+              >> simp[GSYM INTER_ASSOC]
+              >> ‘FDOM val_map = ns1’ by metis_tac[in_val_map_assignments_fdom]
+              >> simp[]
+              (* In an earlier conjunct, we proved that x_choice is in
+              val_map_assignments fg ns1 excl_val_map1, so this follows from that
+              and in_val_map_assignments_fdom *)
+              >> cheat
              )
-          >- (cheat
-             )
+          >> rpt strip_tac
+          >> simp[Abbr ‘excl_val_map2’]
           >> cheat
          )
 
