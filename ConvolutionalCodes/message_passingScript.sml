@@ -3254,7 +3254,7 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-              
+
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -3382,7 +3382,8 @@ Proof
       >> qpat_x_assum ‘Abbrev (func = _)’ kall_tac
       (* Move constant into inner sum so that the only thing in the function of
          the first sum is the second sum, and thus we can use
-         extreal_sum_image_val_map_assignments_combine to combine the two sums *)
+         extreal_sum_image_val_map_assignments_combine_dependent_inner_set
+         to combine the two sums *)
       >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’                           
       >> Q.SUBGOAL_THEN
           ‘func =
@@ -3427,7 +3428,8 @@ Proof
          )
       >> qpat_x_assum ‘Abbrev (func = _)’ kall_tac
       (* Rewrite inner function in higher-order form so as to be able to apply
-         extreal_sum_image_val_map_assignments_combine to combine the sums *)
+         extreal_sum_image_val_map_assignments_combine_dependent_inner_set
+         to combine the sums *)
       >> qabbrev_tac ‘inner_func = λval_map val_map'.
                                      get_function_map fg ' src ' val_map *
                                      ∏ (λprev. ff prev (DRESTRICT val_map' (nsf prev)))
@@ -3456,21 +3458,30 @@ Proof
       >> simp[]
       (* Prove some helpful, reusable assumptions *)
       >> ‘ns1 ⊆ var_nodes fg’ by ASM_SET_TAC[]
+      >> ‘{dst} ⊆ var_nodes fg’ by ASM_SET_TAC[]
+      >> ‘FDOM excl_val_map1 = {dst}’ by metis_tac[in_val_map_assignments_fdom]
       (* To combine the sums, we need to restrict ns2 to only include variable
          nodes *)
       >> simp[Once val_map_assignments_restrict_nodes]
-      (* Combine the sums using version of theorem which allows the fixed values
-         in the inner sum to depend on the *)
-      (* TODO: Might it be possible to simplify excl_val_map2 to not depend on
-         val_map because anything in val_map is domained on ns1 and irrelevant
-         to maps domained on ns2? *)
+      (* When combining sums where the inner set of fixed nodes depends on the
+         outer iteration, we need to choose an iteration for which to take the
+         corresponding set of fixed nodes. Do this here. *)
+      >> sg ‘∃x_choice. x_choice ∈ val_map_assignments fg ns1 excl_val_map1’
+      >- (simp[MEMBER_NOT_EMPTY]
+          >> PURE_REWRITE_TAC[val_map_assignments_empty, NOT_CLAUSES]
+          >> rpt strip_tac
+          >> simp[Abbr ‘excl_val_map1’]
+          >> irule in_val_map_assignments_length_valid
+          >> qexistsl [‘FEMPTY’, ‘{dst}’]
+          >> simp[]
+          >> gvs[]
+         )
+      >> drule extreal_sum_image_val_map_assignments_combine_dependent_inner_set
       (* Combine the sums *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_dependent_inner_set]
+      >> disch_then (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
       >> conj_tac
          
       >- (rpt conj_tac
-          >- (cheat
-             )
           >- simp[]
           >- simp[]
           >- (rpt strip_tac
