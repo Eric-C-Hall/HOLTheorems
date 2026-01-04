@@ -3243,19 +3243,65 @@ Proof
   ASM_SET_TAC[]
 QED
 
-Theorem DRESTRICT_FUNC_CONG:
+(* -------------------------------------------------------------------------- *)
+(* I didn't realise that DRESTRICT_EQ_DRESTRICT already existed, but I like   *)
+(* this expression of the theorem better.                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem DRESTRICT_EQ_DRESTRICT_SAME_SET:
   ∀f g ns.
-    FDOM f ∩ ns = FDOM g ∩ ns ∧
-    (∀x. x ∈ ns ⇒ f ' x = g ' x) ⇒
-    DRESTRICT f ns = DRESTRICT g ns
+    DRESTRICT f ns = DRESTRICT g ns ⇔
+      (FDOM f ∩ ns = FDOM g ∩ ns ∧
+       (∀x. x ∈ FDOM f ∩ ns ⇒ f ' x = g ' x))
 Proof
   rpt strip_tac
-  >> simp[GSYM fmap_EQ_THM]
-  >> simp[FDOM_DRESTRICT]
+  >> REVERSE EQ_TAC
+  >- (simp[GSYM fmap_EQ_THM]
+      >> simp[FDOM_DRESTRICT]
+      >> rpt strip_tac
+      >> simp[DRESTRICT_DEF]
+      >> rw[]
+      >> ASM_SET_TAC[])
   >> rpt strip_tac
-  >> simp[DRESTRICT_DEF]
+  >- gvs[GSYM fmap_EQ_THM, FDOM_DRESTRICT]
+  >> gvs[GSYM fmap_EQ_THM, FDOM_DRESTRICT, DRESTRICT_DEF]
+  >> last_x_assum $ qspecl_then [‘x’] assume_tac
+  >> gvs[]
   >> rw[]
+  >> Cases_on ‘x ∈ FDOM f’ >> gvs[]
   >> ASM_SET_TAC[]
+QED
+
+Theorem SING_UNION_DELETE_AUTOSIMP[simp]:
+  ∀x S.
+    {x} ∪ (S DELETE x) = x INSERT S
+Proof
+  ASM_SET_TAC[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A version of INSERT_INTER that works in the opposite direction             *)
+(* -------------------------------------------------------------------------- *)
+Theorem INSERT_INTER_REVERSE:
+  ∀x s t.
+    x INSERT (s ∩ t) = ((x INSERT s) ∩ (x INSERT t))
+Proof
+  rpt strip_tac
+  >> ASM_SET_TAC[]
+QED
+
+Theorem drestrict_fdom_val_map_assignments:
+  ∀fg ns f g.
+    ns ⊆ var_nodes fg ∧
+    f ∈ val_map_assignments fg ns g ⇒
+    DRESTRICT f (FDOM g) = DRESTRICT g ns
+Proof
+  rpt strip_tac
+  >> ‘FDOM f = ns’ by metis_tac[in_val_map_assignments_fdom]     
+  >> simp[DRESTRICT_EQ_DRESTRICT]
+  >> simp[INTER_COMM]
+  >> simp[SUBMAP_DEF]
+  >> rpt strip_tac >> gvs[FDOM_DRESTRICT] >> simp[DRESTRICT_DEF]
+  >> (gvs[val_map_assignments_def])
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -3347,7 +3393,7 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-              
+
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -3656,10 +3702,8 @@ Proof
          apply FBIGUNION_IMAGE_DRESTRICT_SING to simplify excl_val_map2 *)
       >> ‘FINITE ns1’ by simp[Abbr ‘ns1’]
       >> gvs[]
-
       (* We can simplify both instances of excl_val_map2 *)
       >> simp[Abbr ‘excl_val_map2’]
-
       (* We can simplify (ns1 DELETE dst) ∩ (ns2 ∩ var_nodes fg). We first need
              to show that the first set is a subset of the second *)
       >> sg ‘ns1 DELETE dst ⊆ ns2’
@@ -3672,13 +3716,48 @@ Proof
           >> simp[]
          )
       >> simp[INTER_ASSOC, SUBSET_INTER1]
-
+      (* It's helpful to know the domain of x_choice *)
+      >> ‘FDOM x_choice = ns1’ by metis_tac[in_val_map_assignments_fdom]
       (* x_choice is assigned the same values as excl_val_map where
-         excl_val_map is defined,  *)
+         excl_val_map is defined, so we can simplify the following FUNION
+         to a restriction of excl_val_map *)
+      >> Q.SUBGOAL_THEN
+          ‘DRESTRICT excl_val_map ns1 ⊌
+           DRESTRICT x_choice ((ns1 DELETE dst) ∩ var_nodes fg) =
+           DRESTRICT x_choice (ns1 ∩ var_nodes fg)’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (simp[GSYM fmap_EQ_THM]
+          >> conj_tac
+          >- (simp[FDOM_DRESTRICT]
+              >> ‘dst ∈ ns1’ by simp[Abbr ‘ns1’]
+              >> ‘{dst} ⊆ ns1’ by simp[SUBSET_DEF]
+              >> ‘{dst} ∩ ns1 = {dst}’ by simp[iffLR SUBSET_INTER_ABSORPTION]
+              >> simp[]
+              >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+              (* Move delete to the outside so that it cancels with the insert *)
+              >> simp[DELETE_INTER]
+              >> simp[INSERT_INTER_REVERSE]
+              >> simp[Abbr ‘ns1’]
+              >> ASM_SET_TAC[]
+             )
+          >> gen_tac >> disch_tac
+          >> gnvs[]
+          >> Q.SUBGOAL_THEN
+              ‘DRESTRICT excl_val_map (FDOM x_choice) =
+               DRESTRICT x_choice (FDOM excl_val_map)’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- metis_tac[drestrict_fdom_val_map_assignments]          
+          >> simp[DRESTRICT_FUNION]
+          >> cong_tac (SOME 2)
+          >> simp[INTER_OVER_UNION]
+          >> ‘dst ∈ adjacent_nodes fg src’ by ASM_SET_TAC[]
+          >> ‘dst ∈ FDOM x_choice’ by metis_tac[]
+          >> simp[GSYM INSERT_SING_UNION, ABSORPTION_RWT]
+         )
 
-      >> ‘DRESTRICT excl_val_map ns1 ⊌
-          DRESTRICT x_choice ((ns1 DELETE dst) ∩ var_nodes fg) =’
-             
+      (* *)
+      >>
+      
       >> ‘DRESTRICT excl_val_map ns1 = DRESTRICT x_choice {dst}’
       >- (irule DRESTRICT_FUNC_CONG
           >> simp[]
@@ -3687,14 +3766,14 @@ Proof
       (* At this point, we should be summing over the same values as we are
          expecting. Simplify out the sum. *)
       >> simp[sum_prod_def]
-         >> simp[Abbr ‘excl_val_mapf’]
+      >> simp[Abbr ‘excl_val_mapf’]
 
-         >> irule EXTREAL_SUM_IMAGE_CONG
-         >> REVERSE conj_tac
-         (* The sets we are summing over are the same *)
-              >- (
-               )
-                 
+      >> irule EXTREAL_SUM_IMAGE_CONG
+      >> REVERSE conj_tac
+      (* The sets we are summing over are the same *)
+      >- (
+       )
+         
      )
   >> gvs[]
 
