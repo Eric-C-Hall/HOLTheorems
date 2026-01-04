@@ -3165,6 +3165,99 @@ Proof
   >> metis_tac[adjacent_get_function_nodes]
 QED        
 
+Theorem IN_FDOM_FBIGUNION:
+  ∀x S.
+    FINITE S ⇒
+    (x ∈ FDOM (FBIGUNION S) ⇔ ∃f. f ∈ S ∧ x ∈ FDOM f)
+Proof
+  rpt strip_tac
+  >> simp[FDOM_FBIGUNION]
+  >> metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* FBIGUNION_FAPPLY doesn't know which choice of f should be used, and the    *)
+(* user has to specify it. For example, when using DEP_PURE_ONCE_REWRITE_TAC, *)
+(* it introduces a specific variable f without knowing if this choice of f is *)
+(* the one for which x is in the domain.                                      *)
+(*                                                                            *)
+(* This version of the theorem allows us to use it like a rewrite even when   *)
+(* the choice of f is currently unknown.                                      *)
+(*                                                                            *)
+(* Possible improvement: is there a better way to do this which doesn't       *)
+(* involve the choice function? When applying this in practice, f ∈ S may    *)
+(* simplify, in which case it may be irritating trying to use                 *)
+(* IN_FDOM_FBIGUNION to prove the appropriate existance when showing the      *)
+(* existance of the value returned by the select statement.                   *)
+(* -------------------------------------------------------------------------- *)
+(* Tip:                                                                       *)
+(* It may be helpful to use IN_FDOM_FBIGUNION to show existence of the value  *)
+(* returned by the select statement. The prerequisites of that theorem are    *)
+(* also prerequisites of this one, so you already know that they hold.        *)
+(* -------------------------------------------------------------------------- *)
+Theorem FBIGUNION_FAPPLY_ALT:
+  ∀S x.
+    FINITE S ∧ disjoint_domains S ∧ x ∈ FDOM (FBIGUNION S) ⇒
+    FBIGUNION S ' x = (@f. f ∈ S ∧ x ∈ FDOM f) ' x
+Proof
+  rpt strip_tac
+  >> SELECT_ELIM_TAC
+  >> simp[GSYM IN_FDOM_FBIGUNION]
+  >> rpt strip_tac
+  >> simp[FBIGUNION_FAPPLY]
+QED
+
+Theorem FBIGUNION_IMAGE_DRESTRICT_SING[simp]:
+  ∀S val_map.
+    FINITE S ⇒
+    FBIGUNION (IMAGE (λprev. DRESTRICT val_map {prev}) S) =
+    DRESTRICT val_map S
+Proof
+  rpt strip_tac
+  >> simp[GSYM fmap_EQ_THM]
+  >> rpt strip_tac
+  >- (simp[FDOM_DRESTRICT, FDOM_FBIGUNION, IMAGE_IMAGE, o_DEF]
+      >> simp[BIGUNION_IMAGE]
+      >> simp[INTER_DEF, CONJ_COMM])
+  >> sg ‘disjoint_domains (IMAGE (λprev. DRESTRICT val_map {prev}) S)’
+  >- (simp[disjoint_domains_def, pairwise]
+      >> rpt strip_tac
+      >> gvs[FDOM_DRESTRICT]
+      >> Cases_on ‘prev = prev'’ >> gvs[]
+      >> simp[DISJOINT_ALT]
+     )
+  >> simp[FBIGUNION_FAPPLY_ALT]
+  >> SELECT_ELIM_TAC
+  >> conj_tac
+  >- (gvs[IN_FDOM_FBIGUNION] >> metis_tac[])
+  >> qx_gen_tac ‘f’
+  >> rpt strip_tac
+  >> gvs[FDOM_DRESTRICT]
+  >> simp[DRESTRICT_DEF]
+QED
+
+Theorem inter_delete_absorb[simp]:
+  ∀a x.
+    a ∩ (a DELETE x) = a DELETE x
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem DRESTRICT_FUNC_CONG:
+  ∀f g ns.
+    FDOM f ∩ ns = FDOM g ∩ ns ∧
+    (∀x. x ∈ ns ⇒ f ' x = g ' x) ⇒
+    DRESTRICT f ns = DRESTRICT g ns
+Proof
+  rpt strip_tac
+  >> simp[GSYM fmap_EQ_THM]
+  >> simp[FDOM_DRESTRICT]
+  >> rpt strip_tac
+  >> simp[DRESTRICT_DEF]
+  >> rw[]
+  >> ASM_SET_TAC[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
@@ -3254,7 +3347,7 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-
+              
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -3546,16 +3639,62 @@ Proof
           >> simp[Abbr ‘excl_val_map2’]
           >> cheat
          )
+      (* Simplify a set to a nicer definition*)
+      >> ‘{prev |
+          (prev ∈ nodes (get_underlying_graph fg) ∧
+           adjacent (get_underlying_graph fg) prev src) ∧
+          prev ≠ dst} =
+          adjacent_nodes fg src DELETE dst’ by simp[EXTENSION]
+      >> gvs[]
+      (* Expanding out excl_val_mapf allows us to simplify excl_val_map2,
+         because we are restricting our map to {prev}, which combines with the
+         restriction of our map to nsf prev. *)
+      >> simp[Abbr ‘excl_val_mapf’]
+      (* Simplify an expression in excl_val_map2 *)
+      >> ‘∀prev. {prev} ∩ nsf prev = {prev}’ by simp[Abbr ‘nsf’]
+      (* Prove that ns1 is finite, which provides sufficient information to
+         apply FBIGUNION_IMAGE_DRESTRICT_SING to simplify excl_val_map2 *)
+      >> ‘FINITE ns1’ by simp[Abbr ‘ns1’]
+      >> gvs[]
 
-      (* The outer sum has been combined and we should be summing over the same
-         values as we are expecting. Simplify out the sum. *)
+      (* We can simplify both instances of excl_val_map2 *)
+      >> simp[Abbr ‘excl_val_map2’]
+
+      (* We can simplify (ns1 DELETE dst) ∩ (ns2 ∩ var_nodes fg). We first need
+             to show that the first set is a subset of the second *)
+      >> sg ‘ns1 DELETE dst ⊆ ns2’
+      >- (simp[Abbr ‘ns1’, Abbr ‘ns2’, Abbr ‘nsf’]
+          >> simp[SUBSET_DEF]
+          >> rpt strip_tac
+          >> qexists ‘nodes (subtree (get_underlying_graph fg) src x) ∪ {x}’
+          >> simp[]
+          >> qexists ‘x’
+          >> simp[]
+         )
+      >> simp[INTER_ASSOC, SUBSET_INTER1]
+
+      (* x_choice is assigned the same values as excl_val_map where
+         excl_val_map is defined,  *)
+
+      >> ‘DRESTRICT excl_val_map ns1 ⊌
+          DRESTRICT x_choice ((ns1 DELETE dst) ∩ var_nodes fg) =’
+             
+      >> ‘DRESTRICT excl_val_map ns1 = DRESTRICT x_choice {dst}’
+      >- (irule DRESTRICT_FUNC_CONG
+          >> simp[]
+         )
+
+      (* At this point, we should be summing over the same values as we are
+         expecting. Simplify out the sum. *)
       >> simp[sum_prod_def]
-      >> irule EXTREAL_SUM_IMAGE_CONG
-      >> REVERSE conj_tac
-      (* The sets we are summing over are the same *)
-      >- (
-       )
+         >> simp[Abbr ‘excl_val_mapf’]
 
+         >> irule EXTREAL_SUM_IMAGE_CONG
+         >> REVERSE conj_tac
+         (* The sets we are summing over are the same *)
+              >- (
+               )
+                 
      )
   >> gvs[]
 
