@@ -3572,9 +3572,25 @@ Proof
           >> simp[]
          )
       >> qpat_x_assum ‘Abbrev (func = _)’ kall_tac
-
-
-                      
+      (* Simplify a set to a nicer definition*)
+      >> Q.SUBGOAL_THEN
+          ‘{prev |
+           (prev ∈ nodes (get_underlying_graph fg) ∧
+            adjacent (get_underlying_graph fg) prev src) ∧
+           prev ≠ dst} =
+           adjacent_nodes fg src DELETE dst’
+          (fn th => PURE_REWRITE_TAC[th])
+      >- simp[EXTENSION]      
+      (* Expanding out excl_val_mapf allows us to simplify,
+         because we are restricting our map to {prev}, which combines with the
+         restriction of our map to nsf prev. *)
+      >> simp[Abbr ‘excl_val_mapf’, DRESTRICT_DRESTRICT]
+      >> ‘∀prev. {prev} ∩ nsf prev = {prev}’ by simp[Abbr ‘nsf’]
+      >> simp[FBIGUNION_IMAGE_DRESTRICT_SING]
+      (* Prove some helpful, reusable assumptions *)
+      >> ‘{dst} ⊆ var_nodes fg’ by ASM_SET_TAC[]
+      >> ‘FDOM excl_val_map = {dst}’ by metis_tac[in_val_map_assignments_fdom]
+                                                 
       (* Rewrite inner function in higher-order form so as to be able to apply
          extreal_sum_image_val_map_assignments_combine_dependent_inner_set
          to combine the sums *)
@@ -3592,6 +3608,7 @@ Proof
       >> qmatch_abbrev_tac ‘∑ _ temp = _ : extreal’
       >> qmatch_goalsub_abbrev_tac ‘∑ _ (val_map_assignments fg ns2 _)’
       >> simp[Abbr ‘temp’]
+      (* TODO: Is this helpful still?
       >> qabbrev_tac
          ‘excl_val_map2 =
           λval_map. FBIGUNION
@@ -3603,15 +3620,15 @@ Proof
                      (prev ∈ nodes (get_underlying_graph fg) ∧
                       adjacent (get_underlying_graph fg) prev src) ∧
                      prev ≠ dst})’
-      >> simp[]
+      >> simp[] *)
+             
       (* Prove some helpful, reusable assumptions *)
-      >> ‘ns1 ⊆ var_nodes fg’ by ASM_SET_TAC[]
-      >> ‘{dst} ⊆ var_nodes fg’ by ASM_SET_TAC[]
-      >> ‘FDOM excl_val_map1 = {dst}’ by metis_tac[in_val_map_assignments_fdom]
+      >> ‘ns1 ⊆ var_nodes fg’ by ASM_SET_TAC[]      
+                                            
       (* To combine the sums, we need to restrict ns2 to only include variable
          nodes *)
       >> simp[Once val_map_assignments_restrict_nodes]
-             
+
       (* When combining sums where the inner set of fixed nodes depends on the
          outer iteration, we need to choose an iteration for which to take the
          corresponding set of fixed nodes. Do this here. *)
@@ -3696,24 +3713,7 @@ Proof
           >> simp[Abbr ‘excl_val_map2’]
           >> cheat
          )
-         
-      (* Simplify a set to a nicer definition*)
-      >> ‘{prev |
-          (prev ∈ nodes (get_underlying_graph fg) ∧
-           adjacent (get_underlying_graph fg) prev src) ∧
-          prev ≠ dst} =
-          adjacent_nodes fg src DELETE dst’ by simp[EXTENSION]
-      >> gvs[]
-      (* Expanding out excl_val_mapf allows us to simplify excl_val_map2,
-         because we are restricting our map to {prev}, which combines with the
-         restriction of our map to nsf prev. *)
-      >> simp[Abbr ‘excl_val_mapf’]
-      (* Simplify an expression in excl_val_map2 *)
-      >> ‘∀prev. {prev} ∩ nsf prev = {prev}’ by simp[Abbr ‘nsf’]
-      (* Prove that ns1 is finite, which provides sufficient information to
-         apply FBIGUNION_IMAGE_DRESTRICT_SING to simplify excl_val_map2 *)
-      >> ‘FINITE ns1’ by simp[Abbr ‘ns1’]
-      >> gvs[]
+
       (* We can simplify both instances of excl_val_map2 *)
       >> simp[Abbr ‘excl_val_map2’]
       (* We can simplify (ns1 DELETE dst) ∩ (ns2 ∩ var_nodes fg). We first need
@@ -3817,9 +3817,9 @@ Proof
       (* The sets we are summing over are the same *)
       >- (
        )
-                 
+         
      )
->> gvs[]
+  >> gvs[]
 
 QED
 
