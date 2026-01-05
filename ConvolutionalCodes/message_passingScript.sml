@@ -3754,14 +3754,46 @@ Proof
           >> ‘dst ∈ FDOM x_choice’ by metis_tac[]
           >> simp[GSYM INSERT_SING_UNION, ABSORPTION_RWT]
          )
-
-      (* *)
-      >>
-      
-      >> ‘DRESTRICT excl_val_map ns1 = DRESTRICT x_choice {dst}’
-      >- (irule DRESTRICT_FUNC_CONG
+      >> simp[DRESTRICT_FUNION]
+      (* TODO: merge this with work on other computer. Essentially, this doesn't
+      technically hold by itself, but since we applying it in the context where
+      we are summing over things restricted to var_nodes, it does hold in that
+      case. *)
+      >> Q.SUBGOAL_THEN
+          ‘∀z. z ∈ val_map_assignments fg (ns1 ∪ ns2 ∩ var_nodes fg)
+                 (DRESTRICT x_choice (ns1 ∩ var_nodes fg)) ⇒
+               DRESTRICT z (ns1 DELETE dst ∪ ns2 ∩ var_nodes fg) =
+               DRESTRICT z (ns2 ∩ var_nodes fg)’
+          (fn th => simp[Cong EXTREAL_SUM_IMAGE_CONG, Once th])
+      >- (rpt strip_tac
+          >> simp[DRESTRICT_EQ_DRESTRICT]
+          >> ‘FDOM z = (ns1 ∪ ns2 ∩ var_nodes fg) ∩ var_nodes fg’ by
+            metis_tac[in_val_map_assignments_fdom_inter]
           >> simp[]
+          >> ASM_SET_TAC[]
          )
+      (* Simplification *)
+      >> ‘ns1 ∩ var_nodes fg = ns1’ by simp[Abbr ‘ns1’]
+      >> simp[]
+      (* Useful fact *)
+      >> ‘dst ∈ ns1’ by simp[Abbr ‘ns1’]                            
+      (* *)
+      >> simp[FDOM_SUBSET_DRESTRICT]             
+      (* *)
+      >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+      >> ‘(ns1 ∪ ns2 ∩ var_nodes fg) ∩ var_nodes fg =
+          (dst INSERT ns2) ∩ var_nodes fg’ by ASM_SET_TAC[]
+      >> simp[]
+      >> simp[GSYM val_map_assignments_restrict_nodes]
+      (* *)
+
+
+             
+      >> simp[Abbr ‘inner_func’]
+      >> simp[Abbr ‘ff’]
+      >> simp[Abbr ‘nsf’]
+      >> unabbrev_all_tac
+
 
       (* At this point, we should be summing over the same values as we are
          expecting. Simplify out the sum. *)
@@ -3773,12 +3805,28 @@ Proof
       (* The sets we are summing over are the same *)
       >- (
        )
-         
+                 
      )
-  >> gvs[]
+>> gvs[]
 
 QED
 
+
+>> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+>> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+>> PURE_ONCE_REWRITE_TAC[UNION_OVER_INTER]
+>> PURE_ONCE_REWRITE_TAC[INTER_OVER_UNION]
+>> sg ‘ns1 ∪ ns2 = dst INSERT ns2’
+>- (Q.SUBGOAL_THEN ‘ns2 = ns1 DELETE dst ∪ ns2’
+     (fn th => simp[Cong RHS_CONG, Once th])
+    >- simp[iffLR SUBSET_UNION_ABSORPTION]
+    >> simp[GSYM INSERT_UNION_EQ, INSERT_DELETE_EQ]
+    >> simp[ABSORPTION_RWT]
+   )
+>> simp[]
+
+
+       
 
 >> PURE_ONCE_REWRITE_TAC[sp_message_def]
 >> gvs[]
