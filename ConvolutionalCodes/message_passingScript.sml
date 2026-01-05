@@ -2242,6 +2242,12 @@ QED
 (* the function f, which then allows us to apply the original, un-extended    *)
 (* version of this theorem.                                                   *)
 (* -------------------------------------------------------------------------- *)
+(* It seems as though this is the wrong approach. In particular, this theorem *)
+(* requires ns1 and ns2 to be disjoint, but in the scenarios where you would  *)
+(* usually want to use this theorem, the variables in the inner sum would be  *)
+(* fixed in the outer sum, so they would be present in both the inner sum and *)
+(* the outer sum, and thus ns1 and ns2 would not be disjoint.                 *)
+(* -------------------------------------------------------------------------- *)
 Theorem extreal_sum_image_val_map_assignments_combine_dependent_inner_set:
   ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f x_choice.
     x_choice ∈ val_map_assignments fg ns1 excl_val_map1 ∧
@@ -3566,6 +3572,9 @@ Proof
           >> simp[]
          )
       >> qpat_x_assum ‘Abbrev (func = _)’ kall_tac
+
+
+                      
       (* Rewrite inner function in higher-order form so as to be able to apply
          extreal_sum_image_val_map_assignments_combine_dependent_inner_set
          to combine the sums *)
@@ -3602,6 +3611,7 @@ Proof
       (* To combine the sums, we need to restrict ns2 to only include variable
          nodes *)
       >> simp[Once val_map_assignments_restrict_nodes]
+             
       (* When combining sums where the inner set of fixed nodes depends on the
          outer iteration, we need to choose an iteration for which to take the
          corresponding set of fixed nodes. Do this here. *)
@@ -3654,6 +3664,7 @@ Proof
               >> simp[SUBSET_DEF]
              )
           >- (unabbrev_all_tac
+              (* THIS IS FALSE!!! *)
               >> cheat
              )
           >- (cheat
@@ -3685,6 +3696,7 @@ Proof
           >> simp[Abbr ‘excl_val_map2’]
           >> cheat
          )
+         
       (* Simplify a set to a nicer definition*)
       >> ‘{prev |
           (prev ∈ nodes (get_underlying_graph fg) ∧
