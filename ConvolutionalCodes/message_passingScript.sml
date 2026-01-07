@@ -3677,187 +3677,8 @@ Proof
                    SUBSET_REFL]
       >> 
 
-      (* Rewrite inner function in higher-order form so as to be able to apply
-         extreal_sum_image_val_map_assignments_combine_dependent_inner_set
-         to combine the sums *)
-      (*>> qabbrev_tac ‘inner_func = λval_map val_map'.
-                                      get_function_map fg ' src ' val_map *
-                                     ∏ (λprev. ff prev (DRESTRICT val_map' (nsf prev)))
-                                       {prev |
-                                     (prev ∈ nodes (get_underlying_graph fg) ∧
-                                      adjacent (get_underlying_graph fg) prev src) ∧
-                                     prev ≠ dst}’
-      >> simp[]
-       *)             
-             
-      (* To combine the sums, we need to restrict ns2 to only include variable
-         nodes *)
-      >> simp[Once val_map_assignments_restrict_nodes]
-
-      (* When combining sums where the inner set of fixed nodes depends on the
-         outer iteration, we need to choose an iteration for which to take the
-         corresponding set of fixed nodes. Do this here. *)
-      >> sg ‘∃x_choice. x_choice ∈ val_map_assignments fg ns1 excl_val_map1’
-      >- (simp[MEMBER_NOT_EMPTY]
-          >> PURE_REWRITE_TAC[val_map_assignments_empty, NOT_CLAUSES]
-          >> rpt strip_tac
-          >> simp[Abbr ‘excl_val_map1’]
-          >> irule in_val_map_assignments_length_valid
-          >> qexistsl [‘FEMPTY’, ‘{dst}’]
-          >> simp[]
-          >> gvs[]
-         )
-      >> drule extreal_sum_image_val_map_assignments_combine_dependent_inner_set
-      (* Combine the sums *)
-      >> disch_then (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
-      >> conj_tac
-      >- (rpt conj_tac
-          >- simp[]
-          >- simp[]
-          >- (rpt strip_tac
-              >> simp[Abbr ‘excl_val_map2’, Abbr ‘ns2’]
-              >> DEP_PURE_ONCE_REWRITE_TAC[FDOM_FBIGUNION]
-              >> conj_tac
-              >- (irule IMAGE_FINITE
-                  >> irule SUBSET_FINITE
-                  >> qexists ‘nodes (get_underlying_graph fg)’
-                  >> simp[FINITE_nodes]
-                  >> ASM_SET_TAC[]
-                 )
-              >> simp[IMAGE_IMAGE, o_DEF]
-              >> simp[Abbr ‘nsf’, Abbr ‘excl_val_mapf’]
-              >> simp[FDOM_DRESTRICT]
-              >> drule in_val_map_assignments_fdom
-              >> simp[]
-              >> rpt strip_tac
-              >- (simp[BIGUNION_SUBSET]
-                  >> rpt strip_tac
-                  >> gvs[]
-                  >> simp[SUBSET_DEF]
-                  >> rpt strip_tac
-                  >> qexists ‘nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}’
-                  >> simp[]
-                  >> qexists ‘prev’
-                  >> simp[]
-                 )
-              >> simp[BIGUNION_SUBSET]
-              >> rpt strip_tac
-              >> gvs[]
-              >> simp[SUBSET_DEF]
-             )
-          >- (unabbrev_all_tac
-              (* THIS IS FALSE!!! *)
-              >> cheat
-             )
-          >- (cheat
-             )
-          >- (rpt strip_tac
-              >> simp[Abbr ‘excl_val_map2’]
-              >> simp[FDOM_DRESTRICT]
-              (* Copy/pasted from earlier *)
-              >> NTAC 2 (DEP_PURE_ONCE_REWRITE_TAC[FDOM_FBIGUNION]
-                         >> conj_tac
-                         >- (irule IMAGE_FINITE
-                             >> irule SUBSET_FINITE
-                             >> qexists ‘nodes (get_underlying_graph fg)’
-                             >> simp[FINITE_nodes]
-                             >> ASM_SET_TAC[]
-                            ))
-              >> simp[IMAGE_IMAGE, o_DEF, FDOM_DRESTRICT]
-              >> simp[Abbr ‘nsf’, Abbr ‘excl_val_mapf’]
-              >> simp[FDOM_DRESTRICT]
-              >> simp[GSYM INTER_ASSOC]
-              >> ‘FDOM val_map = ns1’ by metis_tac[in_val_map_assignments_fdom]
-              >> simp[]
-              (* In an earlier conjunct, we proved that x_choice is in
-              val_map_assignments fg ns1 excl_val_map1, so this follows from that
-              and in_val_map_assignments_fdom *)
-              >> cheat
-             )
-          >> rpt strip_tac
-          >> simp[Abbr ‘excl_val_map2’]
-          >> cheat
-         )
-
-      (* We can simplify both instances of excl_val_map2 *)
-      >> simp[Abbr ‘excl_val_map2’]
-      (* It's helpful to know the domain of x_choice *)
-      >> ‘FDOM x_choice = ns1’ by metis_tac[in_val_map_assignments_fdom]
-      (* x_choice is assigned the same values as excl_val_map where
-         excl_val_map is defined, so we can simplify the following FUNION
-         to a restriction of excl_val_map *)
-      >> Q.SUBGOAL_THEN
-          ‘DRESTRICT excl_val_map ns1 ⊌
-           DRESTRICT x_choice ((ns1 DELETE dst) ∩ var_nodes fg) =
-           DRESTRICT x_choice (ns1 ∩ var_nodes fg)’
-          (fn th => PURE_ONCE_REWRITE_TAC[th])
-      >- (simp[GSYM fmap_EQ_THM]
-          >> conj_tac
-          >- (simp[FDOM_DRESTRICT]
-              >> ‘dst ∈ ns1’ by simp[Abbr ‘ns1’]
-              >> ‘{dst} ⊆ ns1’ by simp[SUBSET_DEF]
-              >> ‘{dst} ∩ ns1 = {dst}’ by simp[iffLR SUBSET_INTER_ABSORPTION]
-              >> simp[]
-              >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
-              (* Move delete to the outside so that it cancels with the insert *)
-              >> simp[DELETE_INTER]
-              >> simp[INSERT_INTER_REVERSE]
-              >> simp[Abbr ‘ns1’]
-              >> ASM_SET_TAC[]
-             )
-          >> gen_tac >> disch_tac
-          >> gnvs[]
-          >> Q.SUBGOAL_THEN
-              ‘DRESTRICT excl_val_map (FDOM x_choice) =
-               DRESTRICT x_choice (FDOM excl_val_map)’
-              (fn th => PURE_ONCE_REWRITE_TAC[th])
-          >- metis_tac[drestrict_fdom_val_map_assignments]          
-          >> simp[DRESTRICT_FUNION]
-          >> cong_tac (SOME 2)
-          >> simp[INTER_OVER_UNION]
-          >> ‘dst ∈ adjacent_nodes fg src’ by ASM_SET_TAC[]
-          >> ‘dst ∈ FDOM x_choice’ by metis_tac[]
-          >> simp[GSYM INSERT_SING_UNION, ABSORPTION_RWT]
-         )
-      >> simp[DRESTRICT_FUNION]
-      (* TODO: merge this with work on other computer. Essentially, this doesn't
-      technically hold by itself, but since we applying it in the context where
-      we are summing over things restricted to var_nodes, it does hold in that
-      case. *)
-      >> Q.SUBGOAL_THEN
-          ‘∀z. z ∈ val_map_assignments fg (ns1 ∪ ns2 ∩ var_nodes fg)
-                 (DRESTRICT x_choice (ns1 ∩ var_nodes fg)) ⇒
-               DRESTRICT z (ns1 DELETE dst ∪ ns2 ∩ var_nodes fg) =
-               DRESTRICT z (ns2 ∩ var_nodes fg)’
-          (fn th => simp[Cong EXTREAL_SUM_IMAGE_CONG, Once th])
-      >- (rpt strip_tac
-          >> simp[DRESTRICT_EQ_DRESTRICT]
-          >> ‘FDOM z = (ns1 ∪ ns2 ∩ var_nodes fg) ∩ var_nodes fg’ by
-            metis_tac[in_val_map_assignments_fdom_inter]
-          >> simp[]
-          >> ASM_SET_TAC[]
-         )
-      (* Simplification *)
-      >> ‘ns1 ∩ var_nodes fg = ns1’ by simp[Abbr ‘ns1’]
-      >> simp[]
-      (* Useful fact *)
-      >> ‘dst ∈ ns1’ by simp[Abbr ‘ns1’]                            
-      (* *)
-      >> simp[FDOM_SUBSET_DRESTRICT]             
-      (* *)
-      >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
-      >> ‘(ns1 ∪ ns2 ∩ var_nodes fg) ∩ var_nodes fg =
-          (dst INSERT ns2) ∩ var_nodes fg’ by ASM_SET_TAC[]
-      >> simp[]
-      >> simp[GSYM val_map_assignments_restrict_nodes]
-      (* *)
-
 
              
-      >> simp[Abbr ‘inner_func’]
-      >> simp[Abbr ‘ff’]
-      >> simp[Abbr ‘nsf’]
-      >> unabbrev_all_tac
 
 
       (* At this point, we should be summing over the same values as we are
@@ -3875,6 +3696,194 @@ Proof
   >> gvs[]
 
 QED
+
+
+
+(* Rewrite inner function in higher-order form so as to be able to apply
+         extreal_sum_image_val_map_assignments_combine_dependent_inner_set
+         to combine the sums *)
+(*>> qabbrev_tac ‘inner_func = λval_map val_map'.
+                                      get_function_map fg ' src ' val_map *
+                                     ∏ (λprev. ff prev (DRESTRICT val_map' (nsf prev)))
+                                       {prev |
+                                     (prev ∈ nodes (get_underlying_graph fg) ∧
+                                      adjacent (get_underlying_graph fg) prev src) ∧
+                                     prev ≠ dst}’
+      >> simp[]
+ *)             
+
+(* To combine the sums, we need to restrict ns2 to only include variable
+         nodes *)
+>> simp[Once val_map_assignments_restrict_nodes]
+
+
+(* When combining sums where the inner set of fixed nodes depends on the
+         outer iteration, we need to choose an iteration for which to take the
+         corresponding set of fixed nodes. Do this here. *)
+>> sg ‘∃x_choice. x_choice ∈ val_map_assignments fg ns1 excl_val_map1’
+>- (simp[MEMBER_NOT_EMPTY]
+    >> PURE_REWRITE_TAC[val_map_assignments_empty, NOT_CLAUSES]
+    >> rpt strip_tac
+    >> simp[Abbr ‘excl_val_map1’]
+    >> irule in_val_map_assignments_length_valid
+    >> qexistsl [‘FEMPTY’, ‘{dst}’]
+    >> simp[]
+    >> gvs[]
+   )
+
+   >> drule extreal_sum_image_val_map_assignments_combine_dependent_inner_set
+(* Combine the sums *)
+>> disch_then (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+>> conj_tac
+>- (rpt conj_tac
+    >- simp[]
+    >- simp[]
+    >- (rpt strip_tac
+        >> simp[Abbr ‘excl_val_map2’, Abbr ‘ns2’]
+        >> DEP_PURE_ONCE_REWRITE_TAC[FDOM_FBIGUNION]
+        >> conj_tac
+        >- (irule IMAGE_FINITE
+            >> irule SUBSET_FINITE
+            >> qexists ‘nodes (get_underlying_graph fg)’
+            >> simp[FINITE_nodes]
+            >> ASM_SET_TAC[]
+           )
+        >> simp[IMAGE_IMAGE, o_DEF]
+        >> simp[Abbr ‘nsf’, Abbr ‘excl_val_mapf’]
+        >> simp[FDOM_DRESTRICT]
+        >> drule in_val_map_assignments_fdom
+        >> simp[]
+        >> rpt strip_tac
+        >- (simp[BIGUNION_SUBSET]
+            >> rpt strip_tac
+            >> gvs[]
+            >> simp[SUBSET_DEF]
+            >> rpt strip_tac
+            >> qexists ‘nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}’
+            >> simp[]
+            >> qexists ‘prev’
+            >> simp[]
+           )
+        >> simp[BIGUNION_SUBSET]
+        >> rpt strip_tac
+        >> gvs[]
+        >> simp[SUBSET_DEF]
+       )
+    >- (unabbrev_all_tac
+        (* THIS IS FALSE!!! *)
+        >> cheat
+       )
+    >- (cheat
+       )
+    >- (rpt strip_tac
+        >> simp[Abbr ‘excl_val_map2’]
+        >> simp[FDOM_DRESTRICT]
+        (* Copy/pasted from earlier *)
+        >> NTAC 2 (DEP_PURE_ONCE_REWRITE_TAC[FDOM_FBIGUNION]
+                   >> conj_tac
+                   >- (irule IMAGE_FINITE
+                       >> irule SUBSET_FINITE
+                       >> qexists ‘nodes (get_underlying_graph fg)’
+                       >> simp[FINITE_nodes]
+                       >> ASM_SET_TAC[]
+                      ))
+        >> simp[IMAGE_IMAGE, o_DEF, FDOM_DRESTRICT]
+        >> simp[Abbr ‘nsf’, Abbr ‘excl_val_mapf’]
+        >> simp[FDOM_DRESTRICT]
+        >> simp[GSYM INTER_ASSOC]
+        >> ‘FDOM val_map = ns1’ by metis_tac[in_val_map_assignments_fdom]
+        >> simp[]
+        (* In an earlier conjunct, we proved that x_choice is in
+              val_map_assignments fg ns1 excl_val_map1, so this follows from that
+              and in_val_map_assignments_fdom *)
+        >> cheat
+       )
+    >> rpt strip_tac
+    >> simp[Abbr ‘excl_val_map2’]
+    >> cheat
+   )
+
+
+(* We can simplify both instances of excl_val_map2 *)
+>> simp[Abbr ‘excl_val_map2’]
+(* It's helpful to know the domain of x_choice *)
+>> ‘FDOM x_choice = ns1’ by metis_tac[in_val_map_assignments_fdom]
+(* x_choice is assigned the same values as excl_val_map where
+         excl_val_map is defined, so we can simplify the following FUNION
+         to a restriction of excl_val_map *)
+>> Q.SUBGOAL_THEN
+    ‘DRESTRICT excl_val_map ns1 ⊌
+     DRESTRICT x_choice ((ns1 DELETE dst) ∩ var_nodes fg) =
+     DRESTRICT x_choice (ns1 ∩ var_nodes fg)’
+    (fn th => PURE_ONCE_REWRITE_TAC[th])
+>- (simp[GSYM fmap_EQ_THM]
+    >> conj_tac
+    >- (simp[FDOM_DRESTRICT]
+        >> ‘dst ∈ ns1’ by simp[Abbr ‘ns1’]
+        >> ‘{dst} ⊆ ns1’ by simp[SUBSET_DEF]
+        >> ‘{dst} ∩ ns1 = {dst}’ by simp[iffLR SUBSET_INTER_ABSORPTION]
+        >> simp[]
+        >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+        (* Move delete to the outside so that it cancels with the insert *)
+        >> simp[DELETE_INTER]
+        >> simp[INSERT_INTER_REVERSE]
+        >> simp[Abbr ‘ns1’]
+        >> ASM_SET_TAC[]
+       )
+    >> gen_tac >> disch_tac
+    >> gnvs[]
+    >> Q.SUBGOAL_THEN
+        ‘DRESTRICT excl_val_map (FDOM x_choice) =
+         DRESTRICT x_choice (FDOM excl_val_map)’
+        (fn th => PURE_ONCE_REWRITE_TAC[th])
+    >- metis_tac[drestrict_fdom_val_map_assignments]          
+    >> simp[DRESTRICT_FUNION]
+    >> cong_tac (SOME 2)
+    >> simp[INTER_OVER_UNION]
+    >> ‘dst ∈ adjacent_nodes fg src’ by ASM_SET_TAC[]
+    >> ‘dst ∈ FDOM x_choice’ by metis_tac[]
+    >> simp[GSYM INSERT_SING_UNION, ABSORPTION_RWT]
+   )
+>> simp[DRESTRICT_FUNION]
+(* TODO: merge this with work on other computer. Essentially, this doesn't
+      technically hold by itself, but since we applying it in the context where
+      we are summing over things restricted to var_nodes, it does hold in that
+      case. *)
+>> Q.SUBGOAL_THEN
+    ‘∀z. z ∈ val_map_assignments fg (ns1 ∪ ns2 ∩ var_nodes fg)
+           (DRESTRICT x_choice (ns1 ∩ var_nodes fg)) ⇒
+         DRESTRICT z (ns1 DELETE dst ∪ ns2 ∩ var_nodes fg) =
+         DRESTRICT z (ns2 ∩ var_nodes fg)’
+    (fn th => simp[Cong EXTREAL_SUM_IMAGE_CONG, Once th])
+>- (rpt strip_tac
+    >> simp[DRESTRICT_EQ_DRESTRICT]
+    >> ‘FDOM z = (ns1 ∪ ns2 ∩ var_nodes fg) ∩ var_nodes fg’ by
+      metis_tac[in_val_map_assignments_fdom_inter]
+    >> simp[]
+    >> ASM_SET_TAC[]
+   )
+(* Simplification *)
+>> ‘ns1 ∩ var_nodes fg = ns1’ by simp[Abbr ‘ns1’]
+>> simp[]
+(* Useful fact *)
+>> ‘dst ∈ ns1’ by simp[Abbr ‘ns1’]                            
+(* *)
+>> simp[FDOM_SUBSET_DRESTRICT]             
+(* *)
+>> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+>> ‘(ns1 ∪ ns2 ∩ var_nodes fg) ∩ var_nodes fg =
+    (dst INSERT ns2) ∩ var_nodes fg’ by ASM_SET_TAC[]
+>> simp[]
+>> simp[GSYM val_map_assignments_restrict_nodes]
+(* *)
+
+>> simp[Abbr ‘inner_func’]
+>> simp[Abbr ‘ff’]
+>> simp[Abbr ‘nsf’]
+>> unabbrev_all_tac
+
+
+
 
 
 >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
