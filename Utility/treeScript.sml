@@ -76,6 +76,9 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (* - If we have a - b - c adjacent to each other, then the order of the       *)
 (*   subtree defined by b - c is strictly less than the order of the subtree  *)
 (*   defined by a - b. (tr) (order_subtree_lt_adjacent)                       *)
+(* - A node n is in the subtree defined by a - b if and only if we have       *)
+(*   a - b - n, that is, b is on a - n (definition of subtree)                *)
+(* - If a and b are adjacent, then a - b = [a; b] (tr) (adjacent_get_path)    *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
