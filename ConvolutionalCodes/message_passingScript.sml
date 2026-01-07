@@ -3342,6 +3342,24 @@ fg’
  *)
 
 (* -------------------------------------------------------------------------- *)
+(* adjacent_nodes_inter_nodes_subtree already exists, but it is more general  *)
+(* and doesn't use the overload for adjacent_nodes, which may make it harder  *)
+(* to search for when searching for an expression involving adjacent_nodes    *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_nodes_inter_nodes_subtree_with_overload:
+  ∀g a b.
+    adjacent_nodes g a ∩ nodes (subtree g a b) =
+    if
+    a ≠ b
+    then
+      {EL 1 (get_path g a b)}
+    else ∅
+
+Proof
+QED
+
+
+(* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
 (* nodes in that branch of the tree, where the variable node which is an      *)
@@ -3675,23 +3693,51 @@ Proof
           (fn th => simp[Cong EXTREAL_SUM_IMAGE_CONG, th])
       >- metis_tac[in_val_map_assignments_fdom, FDOM_SUBSET_DRESTRICT,
                    SUBSET_REFL]
-      >> 
-
-
+      (* The only node which is both adjacent to src and in nsf prev is prev. *)
+      >> sg ‘∀prev.
+               prev ∈ ns1 ⇒
+               ns1 ∩ nsf prev = {prev}’
+            
+      >- (rpt strip_tac
+          >> simp[Abbr ‘ns1’, Abbr ‘nsf’]
+          >> simp[UNION_OVER_INTER]
+          >> Q.SUBGOAL_THEN ‘adjacent_nodes fg src ∩ {prev} = {prev}’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- (simp[EXTENSION] >> rpt strip_tac >> EQ_TAC >> gvs[])
              
+          >> qsuff_tac
+             ‘adjacent_nodes fg src ∩
+              nodes (subtree (get_underlying_graph fg) src prev) = {prev}’
+          >- (simp[])
 
-
-      (* At this point, we should be summing over the same values as we are
-         expecting. Simplify out the sum. *)
-      >> simp[sum_prod_def]
-      >> simp[Abbr ‘excl_val_mapf’]
-
-      >> irule EXTREAL_SUM_IMAGE_CONG
-      >> REVERSE conj_tac
-      (* The sets we are summing over are the same *)
-      >- (
-       )
+          >> 
+          >> simp[SUBSET_DEF]
+          
+          >> simp[subtree_def]
+         )
          
+      (* *)
+                   >> Q.SUBGOAL_THEN
+                       ‘∀val_map val_map' prev.
+                          val_map' ∈ val_map_assignments fg ns2 val_map ∧
+                          prev ∈ ns1 DELETE dst ⇒
+                          DRESTRICT val_map' (nsf prev) = DRESTRICT val_map' {prev}’
+
+
+                       
+
+
+                   (* At this point, we should be summing over the same values as we are
+         expecting. Simplify out the sum. *)
+                      >> simp[sum_prod_def]
+                      >> simp[Abbr ‘excl_val_mapf’]
+
+                      >> irule EXTREAL_SUM_IMAGE_CONG
+                      >> REVERSE conj_tac
+                      (* The sets we are summing over are the same *)
+                      >- (
+                       )
+                         
      )
   >> gvs[]
 

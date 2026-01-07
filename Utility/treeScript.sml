@@ -79,6 +79,10 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (* - A node n is in the subtree defined by a - b if and only if we have       *)
 (*   a - b - n, that is, b is on a - n (definition of subtree)                *)
 (* - If a and b are adjacent, then a - b = [a; b] (tr) (adjacent_get_path)    *)
+(* - The first step on a path is adjacent to the origin.                      *)
+(*   (adjacent_el_get_path)                                                   *)
+(* - An expression for the intersection between adjacent nodes and the nodes  *)
+(*   in a subtree (tr) (adjacent_nodes_inter_nodes_subtree)                   *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -2277,6 +2281,86 @@ Theorem nodes_subtree_subset:
 Proof
   rpt strip_tac
   >> simp[subtree_def]
+QED
+
+Theorem BAG_FILTER_T[simp]:
+  ∀b.
+    BAG_FILTER (λe. T) b = b
+Proof
+  simp[BAG_FILTER_EQ]
+QED
+
+Theorem removeNodes_empty[simp]:
+  ∀g.
+    removeNodes ∅ g = g
+Proof
+  rpt strip_tac
+  >> simp[gengraph_component_equality]
+  >> simp[FUN_EQ_THM]
+  >> rpt strip_tac
+  >> rw[]
+QED
+
+Theorem subgraph_nodes[simp]:
+  ∀g.
+    subgraph g (nodes g) = g
+Proof
+  rpt strip_tac
+  >> gvs[subgraph_def]
+QED
+
+Theorem subtree_id:
+  ∀g a.
+    a ∈ nodes g ∧
+    connected g ⇒
+    subtree g a a = g
+Proof
+  rpt strip_tac
+  >> simp[subtree_def]
+  >> Q.SUBGOAL_THEN ‘nodes g ∩ {v | MEM a (get_path g a v)} = nodes g’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (simp[EXTENSION]
+      >> rpt strip_tac >> EQ_TAC >> rpt strip_tac >> simp[]
+      >> gvs[MEM_get_path_first, connected_exists_path]
+     )
+  >> simp[]
+QED
+
+Theorem adjacent_nodes_inter_nodes_subtree:
+  ∀g a b.
+    a ∈ nodes g ∧
+    connected g ⇒
+    ({adj_node | adj_node ∈ nodes g ∧ adjacent g a adj_node})
+    ∩ nodes (subtree g a b) = if a ≠ b
+                              then
+                                {EL 1 (get_path g a b)}
+                              else
+                                if adjacent g a a
+                                then {a}
+                                else ∅
+Proof
+  rpt strip_tac
+  >> simp[INTER_DEF]
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> Cases_on ‘a = b’
+  >- (gvs[]
+      >> EQ_TAC
+      >- (rpt strip_tac
+          >> gvs[subtree_id]
+          >> rw[]
+         )
+      
+      >> EQ_TAC >> rpt strip_tac >> rw[]
+      >> ASM_SET_TAC[]
+      >> CCONTR_TAC >> gvs[]
+      >> gvs[subtree_id]
+     )
+  
+  >> REVERSE $ rw[]
+  >- (simp[EXTENSION] >> rpt strip_tac >> CCONTR_TAC >> gvs[]
+      >> gvs[adjacent_irrefl]
+     )
 QED
 
 (* -------------------------------------------------------------------------- *)
