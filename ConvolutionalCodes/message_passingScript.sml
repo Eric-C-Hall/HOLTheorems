@@ -609,39 +609,6 @@ Proof
   >> rw[]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* A congruence rule which tells the simplifier to only simplify the LHS of   *)
-(* an equality.                                                               *)
-(* -------------------------------------------------------------------------- *)
-Theorem LHS_CONG:
-  ∀LHS1 LHS2 RHS.
-    LHS1 = LHS2 ⇒ (LHS1 = RHS ⇔ LHS2 = RHS)
-Proof
-  metis_tac[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* A congruence rule which tells the simplifier to only simplify the RHS of   *)
-(* an equality.                                                               *)
-(* -------------------------------------------------------------------------- *)
-Theorem RHS_CONG:
-  ∀LHS RHS1 RHS2.
-    RHS1 = RHS2 ⇒ (LHS = RHS1 ⇔ LHS = RHS2)
-Proof
-  metis_tac[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* A congruence rule which tells the simplifier to not simplify within an     *)
-(* equality.                                                                  *)
-(* -------------------------------------------------------------------------- *)
-Theorem IGNORE_EQ_CONG:
-  ∀LHS RHS.
-    LHS = RHS ⇔ LHS = RHS
-Proof
-  metis_tac[]
-QED
-
 (*
 gvs[Cong LHS_CONG, sum_prod_def]
 gvs[val_map_assignments_def]
@@ -3347,21 +3314,24 @@ fg’
 (* to search for when searching for an expression involving adjacent_nodes    *)
 (* -------------------------------------------------------------------------- *)
 Theorem adjacent_nodes_inter_nodes_subtree_with_overload:
-  ∀g a b.
-    a ∈ nodes g ∧
-    b ∈ nodes g ∧
-    is_tree g ⇒
-    adjacent_nodes g a ∩ nodes (subtree g a b) =
+  ∀fg a b.
+    a ∈ nodes (get_underlying_graph fg) ∧
+    b ∈ nodes (get_underlying_graph fg) ∧
+    is_tree (get_underlying_graph fg) ⇒
+    adjacent_nodes fg a ∩ nodes (subtree (get_underlying_graph fg) a b) =
     if a ≠ b then
-      if adjacent g a b then
-        {EL 1 (get_path g a b)}
+      if adjacent (get_underlying_graph fg ) a b then
+        {EL 1 (get_path (get_underlying_graph fg) a b)}
       else
         ∅
     else
-      {ARB}
+      adjacent_nodes fg a
 Proof
+  rpt strip_tac
+  >> simp[adjacent_nodes_inter_nodes_subtree]
+  >> Cases_on ‘a = b’ >> simp[]
+  >> simp[adjacent_SYM]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)

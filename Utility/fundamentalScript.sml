@@ -436,3 +436,37 @@ Proof
   rpt strip_tac
   >> gvs[CARD_PSUBSET]
 QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* A congruence rule which tells the simplifier to only simplify the LHS of   *)
+(* an equality.                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem LHS_CONG:
+  ∀LHS1 LHS2 RHS.
+    LHS1 = LHS2 ⇒ (LHS1 = RHS ⇔ LHS2 = RHS)
+Proof
+  metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A congruence rule which tells the simplifier to only simplify the RHS of   *)
+(* an equality.                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem RHS_CONG:
+  ∀LHS RHS1 RHS2.
+    RHS1 = RHS2 ⇒ (LHS = RHS1 ⇔ LHS = RHS2)
+Proof
+  metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A congruence rule which tells the simplifier to not simplify within an     *)
+(* equality.                                                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem IGNORE_EQ_CONG:
+  ∀LHS RHS.
+    LHS = RHS ⇔ LHS = RHS
+Proof
+  metis_tac[]
+QED

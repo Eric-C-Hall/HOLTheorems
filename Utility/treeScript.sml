@@ -1,4 +1,3 @@
-
 Theory tree
 
 Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set prim_rec product_order relation rich_list
@@ -2359,7 +2358,7 @@ Theorem adjacent_nodes_inter_nodes_subtree:
     a ∈ nodes g ∧
     b ∈ nodes g ∧
     is_tree g ⇒
-    ({adj_node | adj_node ∈ nodes g ∧ adjacent g a adj_node})
+    ({adj_node | adj_node ∈ nodes g ∧ adjacent g adj_node a})
     ∩ nodes (subtree g a b) = if a ≠ b
                               then
                                 if adjacent g a b then
@@ -2371,6 +2370,7 @@ Theorem adjacent_nodes_inter_nodes_subtree:
                                             adjacent g a adj_node}
 Proof
   rpt strip_tac
+  >> simp[Once adjacent_SYM, Cong LHS_CONG]
   >> simp[INTER_DEF]
   >> simp[EXTENSION]
   >> gen_tac
