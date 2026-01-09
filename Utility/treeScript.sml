@@ -1739,7 +1739,7 @@ Theorem adjacent_mem_get_path_alt:
     MEM x (get_path g a b) ∧
     adjacent g a x ∧
     x ≠ a ⇒
-    x = EL 1 (get_path g a b)
+    EL 1 (get_path g a b) = x
 Proof
   metis_tac[adjacent_mem_get_path]
 QED
@@ -2390,7 +2390,7 @@ Proof
   >> gvs[]
   >> simp[subtree_def, first_step_in_nodes]
   >> ‘EL 1 (get_path g a b) = b’ suffices_by simp[]
-  >> irule (GSYM adjacent_mem_get_path_alt)
+  >> irule adjacent_mem_get_path_alt
   >> simp[]
 QED
 

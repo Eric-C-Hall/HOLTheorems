@@ -3388,7 +3388,7 @@ Theorem sp_message_sum_prod:
         sum_prod_map fg sum_prod_ns {msg_var_node}
     else
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
-               
+
 Proof
   
   (* Simplify special case of invalid input to sp_message *)
@@ -3667,43 +3667,67 @@ Proof
           (fn th => simp[Cong EXTREAL_SUM_IMAGE_CONG, th])
       >- metis_tac[in_val_map_assignments_fdom, FDOM_SUBSET_DRESTRICT,
                    SUBSET_REFL]
-      (* The only node which is both adjacent to src and in nsf prev is prev. *)
+
+      (* *)
+      >> 
+      
+      (* The only node which is both adjacent to src and in nsf prev is prev.
+         TODO: Unsure why I wrote this. It doesn't seem helpful.
+         However, something similar to this will likely be helpful when simplifying
+         out the adjacent_nodes within ff in the context where val_map is
+         restricted to nsf *)
       >> sg ‘∀prev.
                prev ∈ ns1 ⇒
-               ns1 ∩ nsf prev = {prev}’
-            
+               ns1 ∩ nsf prev = {prev}’            
       >- (rpt strip_tac
           >> simp[Abbr ‘ns1’, Abbr ‘nsf’]
           >> simp[UNION_OVER_INTER]
           >> Q.SUBGOAL_THEN ‘adjacent_nodes fg src ∩ {prev} = {prev}’
               (fn th => PURE_ONCE_REWRITE_TAC[th])
           >- (simp[EXTENSION] >> rpt strip_tac >> EQ_TAC >> gvs[])
-             
-          >> qsuff_tac
-             ‘adjacent_nodes fg src ∩
-              nodes (subtree (get_underlying_graph fg) src prev) = {prev}’
-          >- (simp[])
-
-          >> 
-          >> simp[SUBSET_DEF]
-          
-          >> simp[subtree_def]
+          >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_nodes_inter_nodes_subtree_with_overload]
+          >> conj_tac
+          >- (simp[] >> ASM_SET_TAC[])
+          >> Cases_on ‘src = prev’ >> simp[]
+          >- gvs[]
+          >> ‘adjacent (get_underlying_graph fg) src prev’ by gvs[adjacent_SYM]
+          >> simp[]
+          >> ‘EL 1 (get_path (get_underlying_graph fg) src prev) = prev’
+            suffices_by simp[]
+          >> irule adjacent_mem_get_path_alt
+          >> simp[]
+          >> conj_tac
+          >- (irule (cj 2 adjacent_members)
+              >> qexists ‘src’
+              >> simp[]
+             )
+          >> irule MEM_get_path_last
+          >> irule is_tree_exists_path
+          >> simp[]
+          >> qpat_x_assum ‘prev ∈ adjacent_nodes fg src’ mp_tac
+          >> rpt (pop_assum kall_tac)
+          >> ASM_SET_TAC[]
          )
+
          
+      >> gvs[]
+
+            
       (* *)
-                   >> Q.SUBGOAL_THEN
-                       ‘∀val_map val_map' prev.
-                          val_map' ∈ val_map_assignments fg ns2 val_map ∧
-                          prev ∈ ns1 DELETE dst ⇒
-                          DRESTRICT val_map' (nsf prev) = DRESTRICT val_map' {prev}’
+      >> 
+
+      (* *)
+      >> 
+      (* *)
+      >> 
+      cheat
+
+      
 
 
-                       
-
-
-                   (* At this point, we should be summing over the same values as we are
+      (* At this point, we should be summing over the same values as we are
          expecting. Simplify out the sum. *)
-                      >> simp[sum_prod_def]
+           >> simp[sum_prod_def]
                       >> simp[Abbr ‘excl_val_mapf’]
 
                       >> irule EXTREAL_SUM_IMAGE_CONG
@@ -3716,6 +3740,56 @@ Proof
   >> gvs[]
 
 QED
+
+
+(* --------- *)
+
+(* Lemma to help simplify the DRESTRICT *)
+>> sg ‘∀val_map val_map' prev.
+         val_map ∈ val_map_assignments fg ns1 excl_val_map ∧
+         val_map' ∈ val_map_assignments fg ns2 val_map ∧
+         prev ∈ ns1 DELETE dst ⇒
+         DRESTRICT val_map' (nsf prev) = DRESTRICT val_map' {prev}’
+>- (rpt strip_tac
+        
+    >> sg ‘val_map' = DRESTRICT val_map' ns1’
+    >- (SYM_TAC
+        >> irule FDOM_SUBSET_DRESTRICT
+        >> simp[in_val_map_assignments_fdom_inter]
+        >> metis_tac[in_val_map_assignments_fdom_inter, INTER_SUBSET,
+                     INTER_COMM]
+                    SUBSET_REFL]
+)
+>> metis_tac[]
+)
+
+(* Simplify the DRESTRICT *)
+>> Q.SUBGOAL_THEN
+    ‘∑ (λval_map. ∑ (λval_map'.
+                       get_function_map fg ' src ' val_map *
+                       ∏ (λprev. ff prev (DRESTRICT val_map' (nsf prev)))
+                         (ns1 DELETE dst))
+                    (val_map_assignments fg ns2 val_map))
+     (val_map_assignments fg ns1 excl_val_map) =
+     ∑ (λval_map. ∑ (λval_map'.
+                       get_function_map fg ' src ' val_map *
+                       ∏ (λprev. ff prev (DRESTRICT val_map' {prev}))
+                         (ns1 DELETE dst))
+                    (val_map_assignments fg ns2 val_map))
+       (val_map_assignments fg ns1 excl_val_map)’
+    (fn th => PURE_ONCE_REWRITE_TAC[th])
+>- (cong_tac (SOME 5)
+    >> last_x_assum irule
+    >> simp[]
+    >> qexists ‘x’ >> simp[]
+   )
+
+(* We no longer need lemma temporarily added to simplify DRESTRICT *)
+>> qpat_x_assum ‘∀val_map val_map' prev.
+                   _ ∧ _ ⇒ DRESTRICT _ _ = DRESTRICT _ _’ kall_tac
+
+(* -------------- *)
+
 
 
 
