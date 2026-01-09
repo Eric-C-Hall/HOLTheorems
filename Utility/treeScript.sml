@@ -1,3 +1,4 @@
+
 Theory tree
 
 Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set prim_rec product_order relation rich_list
@@ -531,7 +532,7 @@ Proof
   >> gvs[connected_exists_path, exists_path_def]
 QED
 
-Theorem is_tree_path_get_path:
+Theorem path_get_path:
   ∀g a b.
     a ∈ nodes g ∧
     b ∈ nodes g ∧
@@ -980,7 +981,7 @@ Proof
   >> conj_tac
   >- simp[is_tree_last_get_path]
   >> qexists ‘g’
-  >> simp[is_tree_path_get_path]
+  >> simp[path_get_path]
 QED
 
 Theorem is_tree_get_path_same:
@@ -1732,6 +1733,18 @@ Proof
   >> Cases_on ‘n'’ >> gvs[]
 QED
 
+Theorem adjacent_mem_get_path_alt:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b x.
+    is_tree g ∧
+    b ∈ nodes g ∧
+    MEM x (get_path g a b) ∧
+    adjacent g a x ∧
+    x ≠ a ⇒
+    x = EL 1 (get_path g a b)
+Proof
+  metis_tac[adjacent_mem_get_path]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The subtree of nodes reachable by taking a certain edge from a certain     *)
 (* node is disjoint from the subtree of nodes reachable by taking a different *)
@@ -2326,41 +2339,59 @@ Proof
   >> simp[]
 QED
 
-Theorem adjacent_nodes_inter_nodes_subtree:
+Theorem first_step_in_nodes:
   ∀g a b.
     a ∈ nodes g ∧
-    connected g ⇒
+    b ∈ nodes g ∧
+    is_tree g ∧
+    a ≠ b ⇒
+    EL 1 (get_path g a b) ∈ nodes g
+Proof
+  rpt strip_tac
+  >> irule path_in_nodes
+  >> qexists ‘get_path g a b’
+  >> simp[path_get_path]
+  >> simp[EL_MEM]
+QED
+
+Theorem adjacent_nodes_inter_nodes_subtree:
+  ∀g: ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    is_tree g ⇒
     ({adj_node | adj_node ∈ nodes g ∧ adjacent g a adj_node})
     ∩ nodes (subtree g a b) = if a ≠ b
                               then
-                                {EL 1 (get_path g a b)}
+                                if adjacent g a b then
+                                  {EL 1 (get_path g a b)}
+                                else
+                                  ∅
                               else
-                                if adjacent g a a
-                                then {a}
-                                else ∅
+                                {adj_node | adj_node ∈ nodes g ∧
+                                            adjacent g a adj_node}
 Proof
   rpt strip_tac
   >> simp[INTER_DEF]
   >> simp[EXTENSION]
   >> gen_tac
-  >> Cases_on ‘a = b’
-  >- (gvs[]
-      >> EQ_TAC
-      >- (rpt strip_tac
-          >> gvs[subtree_id]
-          >> rw[]
-         )
-      
-      >> EQ_TAC >> rpt strip_tac >> rw[]
-      >> ASM_SET_TAC[]
-      >> CCONTR_TAC >> gvs[]
-      >> gvs[subtree_id]
+  >> Cases_on ‘a = b’ >> gvs[]
+  >- (CCONTR_TAC >> gvs[]
+      >> gvs[subtree_id, iffLR is_tree_def]
+      >> metis_tac[]
      )
-  
-  >> REVERSE $ rw[]
-  >- (simp[EXTENSION] >> rpt strip_tac >> CCONTR_TAC >> gvs[]
-      >> gvs[adjacent_irrefl]
+  >> EQ_TAC
+  >- (rpt strip_tac
+      >> gvs[subtree_def]
+      >> qspecl_then [‘g’, ‘a’, ‘x’] assume_tac adjacent_get_path
+      >> gvs[]
+      >> Cases_on ‘a = x’ >> gvs[]
      )
+  >> Cases_on ‘adjacent g a b’ >> simp[] >> disch_tac
+  >> gvs[]
+  >> simp[subtree_def, first_step_in_nodes]
+  >> ‘EL 1 (get_path g a b) = b’ suffices_by simp[]
+  >> irule (GSYM adjacent_mem_get_path_alt)
+  >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)

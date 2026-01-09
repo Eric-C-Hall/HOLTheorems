@@ -3348,13 +3348,17 @@ fg’
 (* -------------------------------------------------------------------------- *)
 Theorem adjacent_nodes_inter_nodes_subtree_with_overload:
   ∀g a b.
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    is_tree g ⇒
     adjacent_nodes g a ∩ nodes (subtree g a b) =
-    if
-    a ≠ b
-    then
-      {EL 1 (get_path g a b)}
-    else ∅
-
+    if a ≠ b then
+      if adjacent g a b then
+        {EL 1 (get_path g a b)}
+      else
+        ∅
+    else
+      {ARB}
 Proof
 QED
 
