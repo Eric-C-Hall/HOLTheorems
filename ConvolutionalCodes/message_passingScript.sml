@@ -3847,7 +3847,6 @@ Proof
       >> simp[Abbr ‘temp’]
       (* *)
       >> ‘ns1 ⊆ var_nodes fg’ by ASM_SET_TAC[]
-
       (* *)
       >> sg ‘ns1 DELETE dst ⊆ ns2’
       >- (simp[Abbr ‘ns1’, Abbr ‘ns2’, Abbr ‘nsf’]
@@ -3896,13 +3895,15 @@ Proof
       (* To combine the sums, we need to restrict ns2 to only include variable
          nodes *)
       >> simp[Once val_map_assignments_restrict_nodes]
+      (* Combine the sums *)
       >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_fixed]
       >> conj_tac
       >- (rpt conj_tac
           >- simp[]
           >- simp[]
           >> cheat
-         )         
+         )
+         
       (* At this point, we should be summing over the same values as we are
          expecting. Simplify out the sum. *)
          
@@ -3957,9 +3958,8 @@ Proof
           >> qpat_x_assum ‘prev ∈ adjacent_nodes fg src’ mp_tac
           >> rpt (pop_assum kall_tac)
           >> ASM_SET_TAC[]
-         )
-         
-         
+         )         
+
      )
   >> gvs[]
 
@@ -4060,7 +4060,7 @@ QED
     >> gvs[]
    )
 
-   >> drule extreal_sum_image_val_map_assignments_combine_dependent_inner_set
+>> drule extreal_sum_image_val_map_assignments_combine_dependent_inner_set
 (* Combine the sums *)
 >> disch_then (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
 >> conj_tac
