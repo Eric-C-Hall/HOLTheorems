@@ -88,7 +88,7 @@ Proof
   >> qpat_x_assum ‘Abbrev _’ kall_tac
   >> gvs[]
 (* Old proof for old definition
-  rw[]    
+  rw[]
   >> qsuff_tac ‘FINITE {(n, m) | n ∈ nodes fg.underlying_graph ∧
                                  m ∈ nodes fg.underlying_graph}’
   >- (rw[]
@@ -810,7 +810,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Definition rpt_val_map_assignments_sum_def:
   rpt_val_map_assignments_sum fg f [] val_map = f val_map : extreal ∧
-  rpt_val_map_assignments_sum fg f (l::ls) val_map =  
+  rpt_val_map_assignments_sum fg f (l::ls) val_map =
   ∑ (λval_map_new. rpt_val_map_assignments_sum fg f ls val_map_new)
     (val_map_assignments fg (l ∪ FDOM val_map) val_map)
 End
@@ -1103,7 +1103,7 @@ Proof
   >> simp[DELETE_INSERT]
   >> last_x_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> conj_tac
-  >- (gvs[] >> rw[] >> gvs[] >> Cases_on ‘S’ >> gvs[]) 
+  >- (gvs[] >> rw[] >> gvs[] >> Cases_on ‘S’ >> gvs[])
   (* Use COMMUTING_ITSET_INSERT_GEN again to move x back into the set from the
      accumulator *)
   >> PURE_ONCE_REWRITE_TAC[DELETE_COMM]
@@ -1871,7 +1871,7 @@ Proof
       >> simp[]
       >> simp[GSYM val_map_assignments_drestrict_excl_val_map]
      )
-  >> qexists ‘λval_map. (DRESTRICT val_map ns1, DRESTRICT val_map ns2)’ 
+  >> qexists ‘λval_map. (DRESTRICT val_map ns1, DRESTRICT val_map ns2)’
   >> conj_tac
   >- (qx_gen_tac ‘val_map’
       >> disch_tac >> gnvs[]
@@ -2050,7 +2050,7 @@ QED
 Theorem funion_excl_val_map_in_val_map_assignments:
   ∀fg ns excl_val_map1 excl_val_map2 val_map.
     val_map ∈ val_map_assignments fg ns excl_val_map2 ∧
-    ns ⊆ var_nodes fg ∧ 
+    ns ⊆ var_nodes fg ∧
     FDOM excl_val_map1 ⊆ ns ∧
     (∀n. n ∈ FDOM excl_val_map1 ∩ ns ∩ var_nodes fg ⇒
          LENGTH (excl_val_map1 ' n) = get_variable_length_map fg ' n) ⇒
@@ -2157,7 +2157,7 @@ Theorem extreal_sum_image_change_excl_val_map:
     ∑ f (val_map_assignments fg ns excl_val_map1) =
     ∑ (λx. f (excl_val_map1 ⊌ x))
       (val_map_assignments fg ns excl_val_map2) : extreal
-Proof  
+Proof
   rpt gen_tac >> simp[GSYM AND_IMP_INTRO] >> rpt disch_tac
   (* The function on the RHS can be written as a composition of the function
          on the LHS with another function. Furthermore, the function being
@@ -2308,7 +2308,7 @@ Proof
       >> simp[]
       >> irule funion_excl_val_map_in_val_map_assignments
       >> simp[]
-      >> metis_tac[]         
+      >> metis_tac[]
      )
   >> simp[]
 QED
@@ -2616,7 +2616,7 @@ Proof
       >> simp[]
       >> qx_gen_tac ‘k’ >> disch_tac
       >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
-      >> last_x_assum irule       
+      >> last_x_assum irule
       >> irule drestrict_in_val_map_assignments
       >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments fg ns1 excl_val_map1’
       >> qexistsl [‘excl_val_map1’, ‘ns1’] >> simp[Abbr ‘excl_val_map1’, Abbr ‘ns1’]
@@ -2812,7 +2812,7 @@ Proof
      )
   (* Rewrite union to be consistent on LHS and RHS*)
   >> simp[UNION_COMM, Excl "IMAGE_INSERT"]
-  (* Prove equivalence of these sets of assignments to the variable nodes. *)     
+  (* Prove equivalence of these sets of assignments to the variable nodes. *)
   >> irule val_map_assignments_cong
   >> rpt strip_tac >> simp[UNION_COMM, Excl "IMAGE_INSERT"]
   >- (simp[FUNION_DEF, Excl "IMAGE_INSERT"]
@@ -2985,7 +2985,7 @@ Theorem generalised_distributive_law:
            (FBIGUNION (IMAGE (λk. DRESTRICT (excl_val_mapf k) (nsf k)) S))
           ) : extreal
 Proof
-  rpt strip_tac      
+  rpt strip_tac
   (* First, show that we only need to prove this theorem in the case where each
      nsf has at least one variable node.
 .
@@ -3003,7 +3003,7 @@ Proof
    *)
   >> qabbrev_tac ‘num_with_no_var_nodes =
                   ∑ (λns. if ns ∩ var_nodes fg = ∅ then 1 else 0) (IMAGE nsf S)’
-  >> gs[Abbrev_def]      
+  >> gs[Abbrev_def]
   >> rpt (pop_assum mp_tac)
   >> SPEC_ALL_TAC
   >> REVERSE $ Induct_on ‘num_with_no_var_nodes’
@@ -3076,7 +3076,7 @@ Proof
       >> unabbrev_all_tac
       (* ff k ((DRESTRICT val_map (nsf k)) reduces to ff k FEMPTY, because
          val_map's domain is in var_nodes but nsf k is disjoint from var_nodes *)
-      >> qmatch_abbrev_tac ‘LHS = ∑ _ assigns : extreal’      
+      >> qmatch_abbrev_tac ‘LHS = ∑ _ assigns : extreal’
       >> sg ‘∀val_map. val_map ∈ assigns ⇒ DRESTRICT val_map (nsf k) = FEMPTY’
       >- (rpt strip_tac
           >> simp[GSYM FDOM_EQ_EMPTY]
@@ -3197,7 +3197,7 @@ Proof
       >> pop_assum mp_tac
       >> simp[]
       (* Prove the preconditions of the specific case. *)
-      >> impl_keep_tac         
+      >> impl_keep_tac
       >- (rpt conj_tac
           >- (rpt strip_tac
               >> qpat_x_assum ‘∀k. k ∈ S ⇒ ∃n. n ∈ var_nodes fg ∧ n ∈ nsf k’ drule
@@ -3211,11 +3211,11 @@ Proof
              the original nsf were injective, this requires that the original
              nsf were disjoint. *)
           >> simp[inj_inter_var_nodes]
-         )         
+         )
       >> simp[GSYM val_map_assignments_restrict_nodes]
       (* We have now applied the special case of our theorem, and we no longer
          need it. *)
-      >> disch_then kall_tac                   
+      >> disch_then kall_tac
       (* *)
       >> qmatch_abbrev_tac ‘∑ _ assigns1 = ∑ _ assigns2 : extreal’
       (* Simplify the functions we are summing over. Since our val_map has a
@@ -3360,7 +3360,7 @@ Proof
   >> simp[SUBSET_DEF]
   >> rpt strip_tac
   >> metis_tac[adjacent_get_function_nodes]
-QED        
+QED
 
 Theorem IN_FDOM_FBIGUNION:
   ∀x S.
@@ -3493,7 +3493,7 @@ Theorem drestrict_fdom_val_map_assignments:
     DRESTRICT f (FDOM g) = DRESTRICT g ns
 Proof
   rpt strip_tac
-  >> ‘FDOM f = ns’ by metis_tac[in_val_map_assignments_fdom]     
+  >> ‘FDOM f = ns’ by metis_tac[in_val_map_assignments_fdom]
   >> simp[DRESTRICT_EQ_DRESTRICT]
   >> simp[INTER_COMM]
   >> simp[SUBMAP_DEF]
@@ -3525,7 +3525,7 @@ QED
 +      (* This isn't strictly true, but in the context in which it is being
 +         used, our map z is summing over maps that are restricted to the
 +         variable nodes, and under this further restriction it is true: *)
-+      >> Q.SUBGOAL_THEN ‘ns1 DELETE dst ∪ ns2 ∩ var_nodes fg = ns2 ∩ var_nodes 
++      >> Q.SUBGOAL_THEN ‘ns1 DELETE dst ∪ ns2 ∩ var_nodes fg = ns2 ∩ var_nodes
 fg’
 +          (fn th => PURE_ONCE_REWRITE_TAC[th])
 +      >- cheat
@@ -3614,7 +3614,7 @@ Theorem sp_message_sum_prod:
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
 
 Proof
-  
+
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -3629,7 +3629,7 @@ Proof
      fg, src, and dst need to be in the correct order for HO_MATCH_MP_TAC to
      recognise our theorem as an instance of sp_message_ind *)
   >> rpt $ pop_assum mp_tac
-  >> MAP_EVERY qid_spec_tac [‘dst’, ‘src’, ‘fg’] 
+  >> MAP_EVERY qid_spec_tac [‘dst’, ‘src’, ‘fg’]
   >> HO_MATCH_MP_TAC sp_message_ind
   >> rpt strip_tac
   (* Our assumptions are the inductive hypotheses that tell us what the value
@@ -3647,7 +3647,7 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-              
+
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -3714,7 +3714,7 @@ Proof
                                ((nodes
                                  (subtree (get_underlying_graph fg) src
                                           prev) ∪ {prev}) ∩ get_function_nodes fg)’
-      >> simp[]             
+      >> simp[]
       (* Now rewrite the set we are assigning over in the form "nsf prev" *)
       >> qabbrev_tac
          ‘nsf = λprev.
@@ -3725,7 +3725,7 @@ Proof
       >> qabbrev_tac
          ‘excl_val_mapf = λval_map : unit + num |-> bool list prev.
                             (DRESTRICT val_map {prev})’
-      >> simp[]             
+      >> simp[]
       (* Rewrite our inner function using the generalised distributive law. *)
       >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’
       >> Q.SUBGOAL_THEN
@@ -3777,7 +3777,7 @@ Proof
          the first sum is the second sum, and thus we can use
          extreal_sum_image_val_map_assignments_combine_dependent_inner_set
          to combine the two sums *)
-      >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’                           
+      >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’
       >> Q.SUBGOAL_THEN
           ‘func =
            λval_map.
@@ -3863,7 +3863,7 @@ Proof
 .
          From there, we can remove the DRESTRICT entirely because the choices of
          val_map we are summing over all have domain ns1
-       *)         
+       *)
       >> Q.SUBGOAL_THEN
           ‘∀val_map. val_map_assignments fg ns2
                                          (DRESTRICT val_map (ns1 DELETE dst))
@@ -3903,10 +3903,10 @@ Proof
           >- simp[]
           >> cheat
          )
-         
+
       (* At this point, we should be summing over the same values as we are
          expecting. Simplify out the sum. *)
-         
+
       >> simp[sum_prod_def]
       >> REVERSE $ cong_tac (SOME 1)
       >- (unabbrev_all_tac
@@ -3921,7 +3921,7 @@ Proof
            )
           >> simp[]
          )
-         
+
       (* The only node which is both adjacent to src and in nsf prev is prev.
          TODO: Unsure why I wrote this. It doesn't seem helpful.
          However, something similar to this will likely be helpful when simplifying
@@ -3929,7 +3929,7 @@ Proof
          restricted to nsf *)
       >> sg ‘∀prev.
                prev ∈ ns1 ⇒
-               ns1 ∩ nsf prev = {prev}’            
+               ns1 ∩ nsf prev = {prev}’
       >- (rpt strip_tac
           >> simp[Abbr ‘ns1’, Abbr ‘nsf’]
           >> simp[UNION_OVER_INTER]
@@ -3958,7 +3958,7 @@ Proof
           >> qpat_x_assum ‘prev ∈ adjacent_nodes fg src’ mp_tac
           >> rpt (pop_assum kall_tac)
           >> ASM_SET_TAC[]
-         )         
+         )
 
      )
   >> gvs[]
@@ -3977,8 +3977,8 @@ QED
             nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev} =
             nodes (subtree (get_underlying_graph fg) src prev)’
     (fn th => simp[Cong EXTREAL_PROD_IMAGE_CONG, th])
->- (gen_tac >> simp[UNION_EQ_FIRST])    
-   
+>- (gen_tac >> simp[UNION_EQ_FIRST])
+
 
 (* --------- *)
 
@@ -3989,7 +3989,7 @@ QED
          prev ∈ ns1 DELETE dst ⇒
          DRESTRICT val_map' (nsf prev) = DRESTRICT val_map' {prev}’
 >- (rpt strip_tac
-        
+
     >> sg ‘val_map' = DRESTRICT val_map' ns1’
     >- (SYM_TAC
         >> irule FDOM_SUBSET_DRESTRICT
@@ -4042,7 +4042,7 @@ QED
                                       adjacent (get_underlying_graph fg) prev src) ∧
                                      prev ≠ dst}’
       >> simp[]
- *)             
+ *)
 
 
 
@@ -4165,7 +4165,7 @@ QED
         ‘DRESTRICT excl_val_map (FDOM x_choice) =
          DRESTRICT x_choice (FDOM excl_val_map)’
         (fn th => PURE_ONCE_REWRITE_TAC[th])
-    >- metis_tac[drestrict_fdom_val_map_assignments]          
+    >- metis_tac[drestrict_fdom_val_map_assignments]
     >> simp[DRESTRICT_FUNION]
     >> cong_tac (SOME 2)
     >> simp[INTER_OVER_UNION]
@@ -4195,9 +4195,9 @@ QED
 >> ‘ns1 ∩ var_nodes fg = ns1’ by simp[Abbr ‘ns1’]
 >> simp[]
 (* Useful fact *)
->> ‘dst ∈ ns1’ by simp[Abbr ‘ns1’]                            
+>> ‘dst ∈ ns1’ by simp[Abbr ‘ns1’]
 (* *)
->> simp[FDOM_SUBSET_DRESTRICT]             
+>> simp[FDOM_SUBSET_DRESTRICT]
 (* *)
 >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
 >> ‘(ns1 ∪ ns2 ∩ var_nodes fg) ∩ var_nodes fg =
@@ -4229,7 +4229,7 @@ QED
 >> simp[]
 
 
-       
+
 
 >> PURE_ONCE_REWRITE_TAC[sp_message_def]
 >> gvs[]
@@ -4244,7 +4244,7 @@ QED
     >> conj_tac >- metis_tac[adjacent_members]
     >> metis_tac[adjacent_in_function_nodes_not_in_function_nodes]
    )
-   
+
 >- (gvs[]
     >> gvs[sum_prod_def]
     >> gvs[FUN_FMAP_EQ_THM]
@@ -4299,11 +4299,11 @@ QED
     >> gvs[cj 2 FUN_FMAP_DEF, Cong EXTREAL_SUM_IMAGE_CONG,
            Cong EXTREAL_PROD_IMAGE_CONG,
            length_n_codes_finite]
-          
+
    )
 (* Now consider the case where the source is a variable node rather than a
      function node *)
-   
+
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm gives us the same result as summing over the *)
 (* product of the terms in the factor graph                                   *)
