@@ -2,7 +2,7 @@ Theory tree
 
 Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set prim_rec product_order relation rich_list
 
-Libs dep_rewrite ConseqConv donotexpandLib;
+Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 
 (* -------------------------------------------------------------------------- *)
 (* Definitions:                                                               *)
@@ -118,7 +118,7 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (* -------------------------------------------------------------------------- *)
 Definition is_tree_def:
   is_tree g ⇔ (connected g ∧
-               (∀ns. ¬cycle g ns))
+               (∀ns. ¬cycle g ns))              
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -2427,7 +2427,9 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem bigunion_image_subtree_subtree:
   ∀g src prev.
-    is_tree g ⇒
+    is_tree g ∧
+    ¬selfloops_ok g ∧
+    prev ∈ adjacent_nodes g src ⇒
     BIGUNION (IMAGE
               (λdst. nodes (subtree g src dst))
               ((adjacent_nodes g src) DELETE prev)
@@ -2444,15 +2446,15 @@ Proof
       >> Cases_on ‘x = src’
       >- (gvs[]
           >> qpat_x_assum ‘src ∈ nodes (subtree g src dst)’ mp_tac >> simp[]
-          >> irule src_not_in_subtree
-          >> simp[]
-          >> CCONTR_TAC >> gvs[]
+          >> REVERSE $ Cases_on ‘src = dst’
+          >- simp[src_not_in_subtree]
+          >> gvs[]
+          >> gvs[subtree_id, iffLR is_tree_def]
+          >> gvs[GCONTRAPOS adjacent_REFL_E]
          )
+      >> simp[]
+      >>
       
-      >> ‘x ≠ src’ by metis_tac[src_not_in_subtree]
-      >> sg ‘x ∈ nodes (subtree g prev src)’
-      >- cheat
-      >> cheat
      )
   (* If x is in the larger subtree, then x is in the union of subtrees. *)
   >> rpt strip_tac
