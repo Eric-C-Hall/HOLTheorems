@@ -2364,23 +2364,6 @@ Proof
   ASM_SET_TAC[]
 QED
 
-Theorem drestrict_funion_in_val_map_assignments:
-  ∀fg ns x y.
-    ns ⊆ var_nodes fg ∧
-    ns ⊆ FDOM (x ⊌ y) ⇒
-    DRESTRICT (x ⊌ y) ns ∈ val_map_assignments fg ns x
-Proof
-  rpt strip_tac
-  >> simp[val_map_assignments_def]
-  >> simp[FDOM_DRESTRICT, Excl "FDOM_FUNION", SUBSET_INTER1, SUBSET_INTER2]
-  >> rpt strip_tac
-  >- (simp[DRESTRICT_DEF, FUNION_DEF]
-      >> rw[]
-     )
-
-     DOESNT SEEM REQAOSNABLE
-QED
-
 (* -------------------------------------------------------------------------- *)
 (* Combine two sums when the excluded values in the inner sum are the values  *)
 (* chosen in the outer sum.                                                   *)
@@ -3664,7 +3647,7 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-
+              
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -3731,7 +3714,7 @@ Proof
                                ((nodes
                                  (subtree (get_underlying_graph fg) src
                                           prev) ∪ {prev}) ∩ get_function_nodes fg)’
-      >> simp[]
+      >> simp[]             
       (* Now rewrite the set we are assigning over in the form "nsf prev" *)
       >> qabbrev_tac
          ‘nsf = λprev.
@@ -3742,7 +3725,7 @@ Proof
       >> qabbrev_tac
          ‘excl_val_mapf = λval_map : unit + num |-> bool list prev.
                             (DRESTRICT val_map {prev})’
-      >> simp[]
+      >> simp[]             
       (* Rewrite our inner function using the generalised distributive law. *)
       >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’
       >> Q.SUBGOAL_THEN
@@ -3845,13 +3828,14 @@ Proof
            prev ≠ dst} =
            adjacent_nodes fg src DELETE dst’
           (fn th => PURE_REWRITE_TAC[th])
-      >- simp[EXTENSION]      
+      >- simp[EXTENSION]
       (* Expanding out excl_val_mapf allows us to simplify,
          because we are restricting our map to {prev}, which combines with the
          restriction of our map to nsf prev. *)
       >> simp[Abbr ‘excl_val_mapf’, DRESTRICT_DRESTRICT]
-      >> ‘∀prev. {prev} ∩ nsf prev = {prev}’ by simp[Abbr ‘nsf’]
-      >> simp[FBIGUNION_IMAGE_DRESTRICT_SING]
+      >> Q.SUBGOAL_THEN ‘∀prev. {prev} ∩ nsf prev = {prev}’
+          (fn th => simp[th, FBIGUNION_IMAGE_DRESTRICT_SING])
+      >- simp[Abbr ‘nsf’]
       (* Prove some helpful, reusable assumptions *)
       >> ‘{dst} ⊆ var_nodes fg’ by ASM_SET_TAC[]
       >> ‘FDOM excl_val_map = {dst}’ by metis_tac[in_val_map_assignments_fdom]
@@ -3863,6 +3847,7 @@ Proof
       >> simp[Abbr ‘temp’]
       (* *)
       >> ‘ns1 ⊆ var_nodes fg’ by ASM_SET_TAC[]
+
       (* *)
       >> sg ‘ns1 DELETE dst ⊆ ns2’
       >- (simp[Abbr ‘ns1’, Abbr ‘ns2’, Abbr ‘nsf’]
@@ -3908,10 +3893,34 @@ Proof
           (fn th => simp[Cong EXTREAL_SUM_IMAGE_CONG, th])
       >- metis_tac[in_val_map_assignments_fdom, FDOM_SUBSET_DRESTRICT,
                    SUBSET_REFL]
-
-      (* *)
-      >> 
-      
+      (* To combine the sums, we need to restrict ns2 to only include variable
+         nodes *)
+      >> simp[Once val_map_assignments_restrict_nodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_fixed]
+      >> conj_tac
+      >- (rpt conj_tac
+          >- simp[]
+          >- simp[]
+          >> cheat
+         )         
+      (* At this point, we should be summing over the same values as we are
+         expecting. Simplify out the sum. *)
+         
+      >> simp[sum_prod_def]
+      >> REVERSE $ cong_tac (SOME 1)
+      >- (unabbrev_all_tac
+          >> ‘DRESTRICT excl_val_map (adjacent_nodes fg src) = excl_val_map’
+            by (irule FDOM_SUBSET_DRESTRICT >> simp[])
+          >> simp[]
+          >> irule val_map_assignments_cong
+          >> rpt conj_tac
+          >- simp[]
+          >- simp[]
+          >- (
+           )
+          >> simp[]
+         )
+         
       (* The only node which is both adjacent to src and in nsf prev is prev.
          TODO: Unsure why I wrote this. It doesn't seem helpful.
          However, something similar to this will likely be helpful when simplifying
@@ -3949,39 +3958,27 @@ Proof
           >> rpt (pop_assum kall_tac)
           >> ASM_SET_TAC[]
          )
-
          
-      >> gvs[]
-
-            
-      (* *)
-      >> 
-
-      (* *)
-      >> 
-      (* *)
-      >> 
-      cheat
-
-      
-
-
-      (* At this point, we should be summing over the same values as we are
-         expecting. Simplify out the sum. *)
-           >> simp[sum_prod_def]
-                      >> simp[Abbr ‘excl_val_mapf’]
-
-                      >> irule EXTREAL_SUM_IMAGE_CONG
-                      >> REVERSE conj_tac
-                      (* The sets we are summing over are the same *)
-                      >- (
-                       )
-                         
+         
      )
   >> gvs[]
 
 QED
 
+(* This is useful to know here and later. In particular, it allows us to
+         simplify away a "∪ {prev}" here. *)
+>> ‘∀prev.
+      prev ∈ nodes (get_underlying_graph fg) ⇒
+      prev ∈ nodes (subtree (get_underlying_graph fg) src prev)’
+  by (gen_tac >> disch_tac >> simp[subtree_def])
+(* Simplify away the "∪ {prev}" *)
+>> Q.SUBGOAL_THEN
+    ‘∀prev. prev ∈ nodes (get_underlying_graph fg) ⇒
+            nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev} =
+            nodes (subtree (get_underlying_graph fg) src prev)’
+    (fn th => simp[Cong EXTREAL_PROD_IMAGE_CONG, th])
+>- (gen_tac >> simp[UNION_EQ_FIRST])    
+   
 
 (* --------- *)
 
@@ -4047,9 +4044,6 @@ QED
       >> simp[]
  *)             
 
-(* To combine the sums, we need to restrict ns2 to only include variable
-         nodes *)
->> simp[Once val_map_assignments_restrict_nodes]
 
 
 (* When combining sums where the inner set of fixed nodes depends on the
