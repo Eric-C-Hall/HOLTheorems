@@ -2136,11 +2136,14 @@ QED
 (* values so that it has another choice of excluded values on the same choice *)
 (* of excluded nodes                                                          *)
 (*                                                                            *)
+(* We need the choices of excluded values to have the same domain so that we  *)
+(* are still summing over the same number of values.                          *)
+(*                                                                            *)
 (* Helper lemma for                                                           *)
 (* extreal_sum_image_val_map_assignments_combine_dependent_inner_set          *)
 (* -------------------------------------------------------------------------- *)
 Theorem extreal_sum_image_change_excl_val_map:
-  ∀fg ns excl_val_map1 excl_val_map2 f x.
+  ∀fg ns excl_val_map1 excl_val_map2 f.
     FDOM excl_val_map1 = FDOM excl_val_map2 ∧
     ns ⊆ var_nodes fg ∧
     FDOM excl_val_map1 ⊆ ns ∧
@@ -2192,6 +2195,13 @@ Proof
   >> simp[val_map_assignments_change_excl_val_map]
 QED
 
+Theorem INTER_DIFF_UNION:
+  ∀a b c.
+    (a DIFF b) ∩ (a DIFF c) = a DIFF (b ∪ c)
+Proof
+  ASM_SET_TAC[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Extend the theorem which combines consecutive sums over variable           *)
 (* assignements, so that it works even when the inner choice of fixed values  *)
@@ -2214,6 +2224,8 @@ QED
 (* usually want to use this theorem, the variables in the inner sum would be  *)
 (* fixed in the outer sum, so they would be present in both the inner sum and *)
 (* the outer sum, and thus ns1 and ns2 would not be disjoint.                 *)
+(*                                                                            *)
+(* Perhaps this can be generalised to work even if they aren't disjoint?      *)
 (* -------------------------------------------------------------------------- *)
 Theorem extreal_sum_image_val_map_assignments_combine_dependent_inner_set:
   ∀fg ns1 ns2 excl_val_map1 excl_val_map2 f x_choice.
@@ -2298,6 +2310,235 @@ Proof
       >> simp[]
       >> metis_tac[]         
      )
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If I have a map with a submap of fixed values, then restricting it to the  *)
+(* domain of the submap will be equivalent to the submap                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem drestrict_excl_val_map:
+  ∀fg ns excl_val_map val_map.
+    ns ⊆ var_nodes fg ∧
+    val_map ∈ val_map_assignments fg ns excl_val_map ⇒
+    DRESTRICT excl_val_map ns = DRESTRICT val_map (FDOM excl_val_map)
+Proof
+  rpt strip_tac
+  >> ‘FDOM val_map = ns’ by metis_tac[in_val_map_assignments_fdom]
+  >> simp[DRESTRICT_EQ_DRESTRICT]
+  >> simp[INTER_COMM]
+  >> simp[SUBMAP_DEF]
+  >> gvs[FDOM_DRESTRICT]
+  >> simp[DRESTRICT_DEF]
+  >> gvs[val_map_assignments_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* When used as a congruence rule, this restricts us to only simplify the     *)
+(* left of a funion                                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem FUNION_L_CONG:
+  ∀f1 f2 g.
+    f1 = f2 ⇒
+    FUNION f1 g = FUNION f2 g
+Proof
+  simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* When used as a congruence rule, this restricts us to only simplify the     *)
+(* right of a funion                                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem FUNION_R_CONG:
+  ∀f g1 g2.
+    g1 = g2 ⇒
+    FUNION f g1 = FUNION f g2
+Proof
+  simp[]
+QED
+
+Theorem UNION_INTER_AUTOSIMP[simp]:
+  ∀a b.
+    a ∪ a ∩ b = a
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem drestrict_funion_in_val_map_assignments:
+  ∀fg ns x y.
+    ns ⊆ var_nodes fg ∧
+    ns ⊆ FDOM (x ⊌ y) ⇒
+    DRESTRICT (x ⊌ y) ns ∈ val_map_assignments fg ns x
+Proof
+  rpt strip_tac
+  >> simp[val_map_assignments_def]
+  >> simp[FDOM_DRESTRICT, Excl "FDOM_FUNION", SUBSET_INTER1, SUBSET_INTER2]
+  >> rpt strip_tac
+  >- (simp[DRESTRICT_DEF, FUNION_DEF]
+      >> rw[]
+     )
+
+     DOESNT SEEM REQAOSNABLE
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Combine two sums when the excluded values in the inner sum are the values  *)
+(* chosen in the outer sum.                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem extreal_sum_image_val_map_assignments_combine_fixed:
+  ∀fg ns1 ns2 excl_val_map f.
+    ns1 ⊆ var_nodes fg ∧
+    ns2 ⊆ var_nodes fg ∧
+    ((∀x y.
+        x ∈ val_map_assignments fg ns1 excl_val_map ∧
+        y ∈ val_map_assignments fg ns2 x ⇒
+        f x y ≠ +∞) ∨
+     ∀x y.
+       x ∈ val_map_assignments fg ns1 excl_val_map ∧
+       y ∈ val_map_assignments fg ns2 x ⇒
+       f x y ≠ −∞) ⇒
+    ∑ (λx.
+         ∑ (λy. f x y)
+           (val_map_assignments fg ns2 x)
+      ) (val_map_assignments fg ns1 excl_val_map) =
+    ∑ (λz. f (DRESTRICT z ns1) (DRESTRICT z ns2))
+      (val_map_assignments fg (ns1 ∪ ns2) (DRESTRICT excl_val_map ns1)) : extreal
+Proof
+  rpt gen_tac >> simp[GSYM AND_IMP_INTRO] >> rpt disch_tac
+  >> qmatch_abbrev_tac ‘LHS = RHS’
+  >> Q.SUBGOAL_THEN
+      ‘LHS = ∑ (λx.
+                  ∑ (λy. f x (DRESTRICT (FUNION x y) ns2))
+                    (val_map_assignments fg (ns2 DIFF ns1) FEMPTY)
+               ) (val_map_assignments fg ns1 excl_val_map)’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (simp[Abbr ‘LHS’]
+      >> cong_tac (SOME 1)
+      >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
+      >> simp[]
+      >> conj_tac
+      >- metis_tac[]
+      >> qpat_x_assum ‘_ ∨ _’ kall_tac (* We no longer need this *)
+      >> qexists ‘λval_map. DRESTRICT val_map (ns2 DIFF ns1)’
+      >> simp[]
+      >> ‘FDOM x = ns1’ by metis_tac[in_val_map_assignments_fdom]
+      >> conj_tac
+      >- (rpt strip_tac
+          >> ‘FDOM x' = ns2’ by metis_tac[in_val_map_assignments_fdom]
+          >> cong_tac (SOME 1)
+          >> simp[DRESTRICTED_FUNION]
+          >> simp[INTER_DIFF_UNION]
+          >> Q.SUBGOAL_THEN
+              ‘DRESTRICT x ns2 = DRESTRICT x' ns1’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- metis_tac[drestrict_excl_val_map]
+          >> simp[DRESTRICT_FUNION]
+          >> simp[FDOM_SUBSET_DRESTRICT]
+         )
+      >> simp[BIJ_THM, EXISTS_UNIQUE_ALT']
+      >> rpt strip_tac
+      >- (‘FDOM val_map = ns2’ by metis_tac[in_val_map_assignments_fdom]
+          >> simp[val_map_assignments_def, FDOM_DRESTRICT]
+          >> conj_tac
+          >- (SYM_TAC
+              >> irule SUBSET_INTER1
+              >> irule SUBSET_TRANS
+              >> qexists ‘ns2’
+              >> simp[]
+             )
+          >> rpt strip_tac
+          >> simp[DRESTRICT_DEF]
+          >> gvs[val_map_assignments_def]
+         )
+      >> qexists ‘FUNION (DRESTRICT x ns2) (DRESTRICT y (ns2 DIFF FDOM x))’
+      >> rpt strip_tac
+      >> EQ_TAC
+      >- (rpt strip_tac >> gvs[]
+          >> ‘FDOM val_map' = ns2’ by metis_tac[in_val_map_assignments_fdom]
+          >> Q.SUBGOAL_THEN
+              ‘DRESTRICT x ns2 = DRESTRICT val_map' (FDOM x)’
+              (fn th => simp[Cong FUNION_L_CONG, Once th])
+          >- metis_tac[drestrict_excl_val_map]
+          >> simp[DRESTRICT_FUNION]
+          >> SYM_TAC
+          >> irule FDOM_SUBSET_DRESTRICT
+          >> simp[]
+         )
+      >> ‘FDOM y = ns2 DIFF FDOM x’ by metis_tac[in_val_map_assignments_fdom,
+                                                 DIFF_SUBSET, SUBSET_TRANS]
+      >> rpt strip_tac
+      >- (gvs[]
+          >> simp[GSYM DRESTRICTED_FUNION]
+          >> simp[val_map_assignments_def]
+          >> rpt conj_tac
+          >- (simp[FDOM_DRESTRICT]
+              >> simp[SUBSET_INTER1]
+              >> irule SUBSET_INTER2
+              >> simp[]
+             )
+          >- (rpt strip_tac
+              >> simp[DRESTRICT_DEF]
+              >> simp[FUNION_DEF]
+              >> rw[]
+              >- gvs[val_map_assignments_def]
+              >- gvs[val_map_assignments_def]
+              >- gvs[val_map_assignments_def]
+              >> gvs[FDOM_DRESTRICT]
+             )
+          >> rpt strip_tac
+          >> simp[DRESTRICT_DEF]
+          >> simp[FUNION_DEF]
+          >> rw[]
+          >> gvs[FDOM_DRESTRICT]
+         )
+      >> gvs[]
+      >> simp[DRESTRICTED_FUNION]
+      >> simp[GSYM DIFF_UNION]
+      >> simp[FDOM_DRESTRICT]
+      >> simp[UNION_INTER_AUTOSIMP]
+      >> ‘DISJOINT (FDOM x) (ns2 DIFF FDOM x)’ by simp[DISJOINT_DIFF]
+      >> simp[iffLR DRESTRICT_EQ_FEMPTY, DISJOINT_SYM]
+      >> irule FDOM_SUBSET_DRESTRICT
+      >> simp[]
+     )
+  >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- simp[]
+      >- simp[sigma_algebraTheory.SUBSET_DIFF_SUBSET]
+      >- simp[DISJOINT_DIFF]
+      >> gvs[]
+      >- (disj1_tac
+          >> rpt gen_tac >> strip_tac
+          >> ‘FDOM x = ns1’ by metis_tac[in_val_map_assignments_fdom]
+          >> ‘FDOM y = ns2 DIFF ns1’ by metis_tac [in_val_map_assignments_fdom,
+                                                   DIFF_SUBSET, SUBSET_TRANS]
+          >> last_x_assum irule
+          >> simp[]
+          >> simp[val_map_assignments_def, FDOM_DRESTRICT, SUBSET_INTER1, SUBSET_INTER2]
+          >> conj_tac
+          >> (gen_tac >> disch_tac
+              >> simp[DRESTRICT_DEF, FUNION_DEF]
+              >> rw[] >> gvs[val_map_assignments_def]
+             )
+         )
+      (* Copy/pasted from recent working, with disj1_tac changed to disj2_tac *)
+      >> disj2_tac
+      >> rpt gen_tac >> strip_tac
+      >> ‘FDOM x = ns1’ by metis_tac[in_val_map_assignments_fdom]
+      >> ‘FDOM y = ns2 DIFF ns1’ by metis_tac [in_val_map_assignments_fdom,
+                                               DIFF_SUBSET, SUBSET_TRANS]
+      >> last_x_assum irule
+      >> simp[]
+      >> simp[val_map_assignments_def, FDOM_DRESTRICT, SUBSET_INTER1, SUBSET_INTER2]
+      >> conj_tac
+      >> (gen_tac >> disch_tac
+          >> simp[DRESTRICT_DEF, FUNION_DEF]
+          >> rw[] >> gvs[val_map_assignments_def]
+         )
+     )
+  >> simp[DRESTRICT_DRESTRICT, DRESTRICT_FUNION]
+  >> ‘(ns1 ∪ ns2) ∩ ns2 = ns2’ by (rpt (pop_assum kall_tac) >> ASM_SET_TAC[])
   >> simp[]
 QED
 
