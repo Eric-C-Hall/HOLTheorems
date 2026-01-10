@@ -3903,22 +3903,38 @@ Proof
           >- simp[]
           >> cheat
          )
-
+      (* Simplify *)
+      >> simp[DRESTRICT_DRESTRICT]
       (* At this point, we should be summing over the same values as we are
          expecting. Simplify out the sum. *)
-
       >> simp[sum_prod_def]
       >> REVERSE $ cong_tac (SOME 1)
-      >- (unabbrev_all_tac
-          >> ‘DRESTRICT excl_val_map (adjacent_nodes fg src) = excl_val_map’
-            by (irule FDOM_SUBSET_DRESTRICT >> simp[])
+                 
+      >- (simp[Cong RHS_CONG, Once val_map_assignments_restrict_nodes]
+          >> ‘DRESTRICT excl_val_map ns1 = excl_val_map’
+            by (unabbrev_all_tac >> irule FDOM_SUBSET_DRESTRICT >> simp[])
           >> simp[]
           >> irule val_map_assignments_cong
           >> rpt conj_tac
           >- simp[]
           >- simp[]
-          >- (
-           )
+                 
+          >- (simp[Abbr ‘nsf’, Abbr ‘ns2’]
+              >> Q.SUBGOAL_THEN
+                  ‘∀prev. prev ∈ ns1 DELETE dst ⇒
+                          nodes (subtree (get_underlying_graph fg) src prev)
+                                ∪ {prev}
+                          = nodes (subtree (get_underlying_graph fg) src prev)’
+                  (fn th => simp[Cong IMAGE_CONG, th])
+              >- (rpt strip_tac
+                  >> simp[UNION_EQ_FIRST]
+                  >> irule dst_in_subtree
+                  >> simp[Abbr ‘ns1’]
+                  >> pop_assum mp_tac >> rpt (pop_assum kall_tac)
+                  >> ASM_SET_TAC[]
+                 )
+              >> 
+             )
           >> simp[]
          )
 

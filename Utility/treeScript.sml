@@ -83,6 +83,8 @@ Libs dep_rewrite ConseqConv donotexpandLib;
 (*   (adjacent_el_get_path)                                                   *)
 (* - An expression for the intersection between adjacent nodes and the nodes  *)
 (*   in a subtree (tr) (adjacent_nodes_inter_nodes_subtree)                   *)
+(* - The union of subtrees one level down will get you the tree minus the     *)
+(*   root node (tr) (bigunion_image_subtree_subtree)                          *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -232,6 +234,10 @@ End
 Definition eccentricity_def:
   eccentricity (g : fsgraph) n = MAX_SET (IMAGE (distance g n) (nodes g))
 End
+
+Overload adjacent_nodes = “λg cur_node.
+                             {adj_node | adj_node ∈ nodes g ∧
+                                         adjacent g adj_node cur_node }”;
 
 Theorem exists_path_same[simp]:
   ∀g a.
@@ -2358,7 +2364,7 @@ Theorem adjacent_nodes_inter_nodes_subtree:
     a ∈ nodes g ∧
     b ∈ nodes g ∧
     is_tree g ⇒
-    ({adj_node | adj_node ∈ nodes g ∧ adjacent g adj_node a})
+    (adjacent_nodes g a)
     ∩ nodes (subtree g a b) = if a ≠ b
                               then
                                 if adjacent g a b then
@@ -2392,6 +2398,70 @@ Proof
   >> ‘EL 1 (get_path g a b) = b’ suffices_by simp[]
   >> irule adjacent_mem_get_path_alt
   >> simp[]
+QED
+
+Theorem dst_in_subtree:
+  ∀g src dst.
+    is_tree g ∧
+    src ∈ nodes g ∧
+    dst ∈ nodes g ⇒
+    dst ∈ nodes (subtree g src dst)
+Proof
+  rpt strip_tac
+  >> simp[subtree_def]
+QED
+
+Theorem src_not_in_subtree:
+  ∀g src dst.
+    is_tree g ∧
+    src ≠ dst ⇒
+    src ∉ nodes (subtree g src dst)
+Proof
+  rpt strip_tac
+  >> gvs[subtree_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we take the union of trees one level down, we get back the tree at the  *)
+(* current level, minus the root node.                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem bigunion_image_subtree_subtree:
+  ∀g src prev.
+    is_tree g ⇒
+    BIGUNION (IMAGE
+              (λdst. nodes (subtree g src dst))
+              ((adjacent_nodes g src) DELETE prev)
+             ) = (nodes (subtree g prev src)) DELETE src
+Proof
+  rpt strip_tac
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> EQ_TAC
+  (* If x is in the union of subtrees, then x is in the larger subtree *)
+  >- (strip_tac
+      >> gvs[]
+      >> qpat_x_assum ‘∀x. x ∈ s ⇔ _’ kall_tac
+      >> Cases_on ‘x = src’
+      >- (gvs[]
+          >> qpat_x_assum ‘src ∈ nodes (subtree g src dst)’ mp_tac >> simp[]
+          >> irule src_not_in_subtree
+          >> simp[]
+          >> CCONTR_TAC >> gvs[]
+         )
+      
+      >> ‘x ≠ src’ by metis_tac[src_not_in_subtree]
+      >> sg ‘x ∈ nodes (subtree g prev src)’
+      >- cheat
+      >> cheat
+     )
+  (* If x is in the larger subtree, then x is in the union of subtrees. *)
+  >> rpt strip_tac
+  >> qexists ‘nodes (subtree g src (EL 1 (get_path g src x)))’
+  >> conj_tac
+  >- cheat
+  >- qexists ‘EL 1 (get_path g src x)’
+  >> simp[]
+  >> simp[adjacent_el_get_path]
 QED
 
 (* -------------------------------------------------------------------------- *)
