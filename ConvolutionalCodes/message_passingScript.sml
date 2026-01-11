@@ -3599,6 +3599,68 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Combine two products when the set that the inner product is taken over is  *)
+(* dependent on the current iteration in the outer product                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem extreal_prod_image_combine_dependent:
+  ∀f S1 S2.
+    FINITE S1 ∧
+    (∀x. FINITE (S2 x)) ⇒
+    ∏ (λx. ∏ (λy. f x y) (S2 x)) S1 =
+    ∏ (λz. f (FST z) (SND z)) (BIGUNION (IMAGE (λx. {x} × S2 x) S1)) : extreal
+Proof
+  (* We use similar working to that used in extreal_prod_image_combine *)
+  rpt strip_tac
+  (* Induct on the outer set *)
+  >> Induct_on ‘S1’
+  >> gvs[]
+  >> rpt strip_tac
+  (* Simplify according to the inductive step on the LHS *)
+  >> simp[cj 2 EXTREAL_PROD_IMAGE_THM]
+  (* Simplify according to the inductive step on the RHS *)
+  >> simp[CROSS_EQNS]
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_PROD_IMAGE_DISJOINT_UNION]
+  >> conj_tac
+  >- (simp[]
+      >> rpt strip_tac >> simp[]
+      >> simp[DISJOINT_ALT]
+      >> rpt strip_tac
+      >> gvs[])
+  (* Use the inductive hypothesis to change the LHS to be more like the RHS *)
+  >> simp[DELETE_NON_ELEMENT_RWT]
+  (* Prove equivalence of the inductive part and the step part separately *)
+  >> cong_tac (SOME 1)
+  >- (DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_PROD_IMAGE_IMAGE]
+      >> conj_tac
+      >- simp[INJ_DEF]
+      >> simp[o_DEF]
+     )
+  (* Prove in a relatively mechanical method without aiming for readibility. *)
+  >> cong_tac NONE
+  >> simp[FUN_EQ_THM] >> rpt strip_tac >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >> Cases_on ‘x''’ >> gvs[]
+QED
+
+Theorem extreal_prod_image_combine_dependent_alt:
+  ∀f S1 S2.
+    FINITE S1 ∧
+    (∀x. FINITE (S2 x)) ⇒
+    ∏ (λx. ∏ (λy. f x y) (S2 x)) S1 =
+    ∏ (λz. f (FST z) (SND z)) {(x, y) | x ∈ S1 ∧ y ∈ S2 x} : extreal
+Proof
+  rpt strip_tac
+  >> simp[extreal_prod_image_combine_dependent]
+  >> irule EXTREAL_PROD_IMAGE_CONG
+  >> rpt strip_tac >> simp[]
+  >> simp[EXTENSION] >> rpt strip_tac >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >- (Cases_on ‘x’ >> gvs[])
+  >> qexists ‘{x'} × S2 x'’
+  >- (gvs[]
+      >> qexists ‘x'’
+      >> gvs[])
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
 (* nodes in that branch of the tree, where the variable node which is an      *)
@@ -3653,7 +3715,7 @@ Theorem sp_message_sum_prod:
         sum_prod_map fg sum_prod_ns {msg_var_node}
     else
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
-
+               
 Proof
 
   (* Simplify special case of invalid input to sp_message *)
@@ -3988,12 +4050,29 @@ Proof
              )             
           >> simp[]
          )
-
+      (* Rewrite so that we are in an appropriate format to combine the
+         products *)
       >> simp[Abbr ‘ff’]
+      >> qabbrev_tac
+         ‘f = λprev func_node.
+                get_function_map fg ' func_node '
+                                 (DRESTRICT x
+                                            (ns2 ∩ var_nodes fg ∩ nsf prev ∩
+                                                 adjacent_nodes fg func_node))’
+      >> simp[]
+
       >> simp[Abbr ‘nsf’]
-      >> simp[Abbr ‘ns1’]
-          
-      (* The only node which is both adjacent to src and in nsf prev is prev.
+      
+      
+      >> 
+      (* Combine the products *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_combine]
+      >> conj_tac
+      >- (simp[Abbr ‘ns1’, Abbr ‘nsf’])
+      >>
+              
+              
+              (* The only node which is both adjacent to src and in nsf prev is prev.
          TODO: Unsure why I wrote this. It doesn't seem helpful.
          However, something similar to this will likely be helpful when simplifying
          out the adjacent_nodes within ff in the context where val_map is
