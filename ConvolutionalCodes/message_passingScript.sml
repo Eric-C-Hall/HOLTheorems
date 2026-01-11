@@ -567,7 +567,7 @@ Proof
 QED
 
 Theorem FINITE_adjacent_nodes[simp]:
-  ∀fg src.
+  ∀fg : α factor_graph src.
     FINITE (adjacent_nodes fg src)
 Proof
   rpt strip_tac
@@ -3908,8 +3908,7 @@ Proof
       (* At this point, we should be summing over the same values as we are
          expecting. Simplify out the sum. *)
       >> simp[sum_prod_def]
-      >> REVERSE $ cong_tac (SOME 1)
-                 
+      >> REVERSE $ cong_tac (SOME 1)                 
       >- (simp[Cong RHS_CONG, Once val_map_assignments_restrict_nodes]
           >> ‘DRESTRICT excl_val_map ns1 = excl_val_map’
             by (unabbrev_all_tac >> irule FDOM_SUBSET_DRESTRICT >> simp[])
@@ -3917,8 +3916,7 @@ Proof
           >> irule val_map_assignments_cong
           >> rpt conj_tac
           >- simp[]
-          >- simp[]
-                 
+          >- simp[]                 
           >- (simp[Abbr ‘nsf’, Abbr ‘ns2’]
               >> Q.SUBGOAL_THEN
                   ‘∀prev. prev ∈ ns1 DELETE dst ⇒
@@ -3933,8 +3931,20 @@ Proof
                   >> pop_assum mp_tac >> rpt (pop_assum kall_tac)
                   >> ASM_SET_TAC[]
                  )
-              >> 
-             )
+              >> simp[Abbr ‘ns1’]
+              >> simp[bigunion_image_subtree]
+              >> ‘adjacent_nodes fg src ⊆ nodes (subtree (get_underlying_graph fg) dst src) ∪ {dst}’ suffices_by ASM_SET_TAC[]
+              >> simp[SUBSET_DEF]
+              >> gen_tac >> strip_tac
+              >> Cases_on ‘x = dst’ >> simp[]
+              >> simp[subtree_def]
+              >> qspecl_then [‘g’, ‘dst’, ‘src’, ‘x’]
+                             (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+                             adjacent_get_path_2_steps
+              >> simp[]
+              >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+              >> CCONTR_TAC >> gvs[]
+             )             
           >> simp[]
          )
 

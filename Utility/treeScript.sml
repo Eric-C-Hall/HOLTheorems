@@ -2476,7 +2476,7 @@ QED
 (* If we take the union of trees one level down, we get back the tree at the  *)
 (* current level, minus the root node.                                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem bigunion_image_subtree_subtree:
+Theorem bigunion_image_subtree:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph src prev.
     is_tree g ∧
     ¬selfloops_ok g ∧
