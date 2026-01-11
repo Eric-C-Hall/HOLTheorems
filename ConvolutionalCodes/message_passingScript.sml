@@ -3558,6 +3558,47 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Combine two products                                                       *)
+(*                                                                            *)
+(* Similar to EXTREAL_SUM_IMAGE_SUM_IMAGE, but there doesn't appear to be a   *)
+(* version of this theorem for EXTREAL_PROD_IMAGE                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem extreal_prod_image_combine:
+  ∀S1 S2 f.
+    FINITE S1 ∧
+    FINITE S2 ⇒
+    ∏ (λx. ∏ (λy. f x y) S2) S1 =
+    ∏ (λz. f (FST z) (SND z)) (S1 × S2) : extreal
+Proof
+  rpt strip_tac
+  (* Induct on the outer set being producted over *)
+  >> Induct_on ‘S1’
+  >> gvs[]
+  >> rpt strip_tac
+  (* Simplify according to the inductive step on the LHS *)
+  >> simp[cj 2 EXTREAL_PROD_IMAGE_THM]
+  (* Simplify according to the inductive step on the RHS *)
+  >> simp[CROSS_EQNS]
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_PROD_IMAGE_DISJOINT_UNION]
+  >> conj_tac
+  >- (simp[]
+      >> simp[DISJOINT_ALT]
+      >> rpt strip_tac
+      >> simp[])
+  (* Use the inductive hypothesis to change the RHS to be more like the LHS *)
+  >> qpat_x_assum ‘∏ _ _ = _’ (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  >> simp[DELETE_NON_ELEMENT_RWT]
+  (* Cancel out the inductive part *)
+  >> cong_tac (SOME 1)
+  (* Rewrite the RHS product to be over the same set as the LHS *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_PROD_IMAGE_IMAGE]
+  >> conj_tac
+  >- simp[INJ_DEF]
+  (* The proof finishes automatically at this point. *)
+  >> simp[o_DEF]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
 (* nodes in that branch of the tree, where the variable node which is an      *)
@@ -3948,43 +3989,47 @@ Proof
           >> simp[]
          )
 
+      >> simp[Abbr ‘ff’]
+      >> simp[Abbr ‘nsf’]
+      >> simp[Abbr ‘ns1’]
+          
       (* The only node which is both adjacent to src and in nsf prev is prev.
          TODO: Unsure why I wrote this. It doesn't seem helpful.
          However, something similar to this will likely be helpful when simplifying
          out the adjacent_nodes within ff in the context where val_map is
          restricted to nsf *)
-      >> sg ‘∀prev.
-               prev ∈ ns1 ⇒
-               ns1 ∩ nsf prev = {prev}’
-      >- (rpt strip_tac
-          >> simp[Abbr ‘ns1’, Abbr ‘nsf’]
-          >> simp[UNION_OVER_INTER]
-          >> Q.SUBGOAL_THEN ‘adjacent_nodes fg src ∩ {prev} = {prev}’
-              (fn th => PURE_ONCE_REWRITE_TAC[th])
-          >- (simp[EXTENSION] >> rpt strip_tac >> EQ_TAC >> gvs[])
-          >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_nodes_inter_nodes_subtree_with_overload]
-          >> conj_tac
-          >- (simp[] >> ASM_SET_TAC[])
-          >> Cases_on ‘src = prev’ >> simp[]
-          >- gvs[]
-          >> ‘adjacent (get_underlying_graph fg) src prev’ by gvs[adjacent_SYM]
-          >> simp[]
-          >> ‘EL 1 (get_path (get_underlying_graph fg) src prev) = prev’
-            suffices_by simp[]
-          >> irule adjacent_mem_get_path_alt
-          >> simp[]
-          >> conj_tac
-          >- (irule (cj 2 adjacent_members)
-              >> qexists ‘src’
-              >> simp[]
-             )
-          >> irule MEM_get_path_last
-          >> irule is_tree_exists_path
-          >> simp[]
-          >> qpat_x_assum ‘prev ∈ adjacent_nodes fg src’ mp_tac
-          >> rpt (pop_assum kall_tac)
-          >> ASM_SET_TAC[]
-         )
+              >> sg ‘∀prev.
+                       prev ∈ ns1 ⇒
+                       ns1 ∩ nsf prev = {prev}’
+              >- (rpt strip_tac
+                  >> simp[Abbr ‘ns1’, Abbr ‘nsf’]
+                  >> simp[UNION_OVER_INTER]
+                  >> Q.SUBGOAL_THEN ‘adjacent_nodes fg src ∩ {prev} = {prev}’
+                      (fn th => PURE_ONCE_REWRITE_TAC[th])
+                  >- (simp[EXTENSION] >> rpt strip_tac >> EQ_TAC >> gvs[])
+                  >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_nodes_inter_nodes_subtree_with_overload]
+                  >> conj_tac
+                  >- (simp[] >> ASM_SET_TAC[])
+                  >> Cases_on ‘src = prev’ >> simp[]
+                  >- gvs[]
+                  >> ‘adjacent (get_underlying_graph fg) src prev’ by gvs[adjacent_SYM]
+                  >> simp[]
+                  >> ‘EL 1 (get_path (get_underlying_graph fg) src prev) = prev’
+                    suffices_by simp[]
+                  >> irule adjacent_mem_get_path_alt
+                  >> simp[]
+                  >> conj_tac
+                  >- (irule (cj 2 adjacent_members)
+                      >> qexists ‘src’
+                      >> simp[]
+                     )
+                  >> irule MEM_get_path_last
+                  >> irule is_tree_exists_path
+                  >> simp[]
+                  >> qpat_x_assum ‘prev ∈ adjacent_nodes fg src’ mp_tac
+                  >> rpt (pop_assum kall_tac)
+                  >> ASM_SET_TAC[]
+                 )
 
      )
   >> gvs[]
