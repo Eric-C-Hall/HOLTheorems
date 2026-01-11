@@ -3717,7 +3717,7 @@ Theorem sp_message_sum_prod:
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
                
 Proof
-
+  
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -3787,7 +3787,7 @@ Proof
       >> gvs[Cong extreal_sum_image_val_map_assignments_cong,
              Cong EXTREAL_PROD_IMAGE_CONG, adjacent_SYM]
       (* Simplify FUN_FMAP followed by FAPPLY. In order to do this, we need to
-         know that the argument is in the domain. *)
+         know that the argument is in the domain. *)            
       >> sg ‘∀prev val_map.
                prev ∈ nodes (get_underlying_graph fg) ∧
                adjacent (get_underlying_graph fg) prev src ∧
@@ -4060,61 +4060,161 @@ Proof
                                             (ns2 ∩ var_nodes fg ∩ nsf prev ∩
                                                  adjacent_nodes fg func_node))’
       >> simp[]
+      (* Combine the products *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_combine_dependent]
+      >> conj_tac
+      >- simp[Abbr ‘ns1’, Abbr ‘nsf’]
+      >> simp[Abbr ‘f’]
+      (* If we can remove all instances of FST from the function on the LHS, we
+         can simplify the set on the LHS to not produce the first elements,
+         allowing us to use bigunion_image_subtree to simplify and bring us
+         closer to the RHS. *)             
+      >> qmatch_abbrev_tac ‘_ * ∏ _ S1 = _’
+      >> sg ‘∀z. z ∈ S1 ⇒
+                 ns2 ∩ var_nodes fg ∩ nsf (FST z) ∩ adjacent_nodes fg (SND z) =
+              adjacent_nodes fg (SND z)’
 
+      >- (rpt strip_tac
+          >> simp[Abbr ‘S1’]
+          >> gvs[IN_BIGUNION_IMAGE]
+          >> namedCases_on ‘z’ ["prev func_node"]
+          >> ‘prev ∈ nodes (get_underlying_graph fg)’ by gvs[Abbr ‘ns1’]
+          >> gvs[]
+          >> irule SUBSET_INTER2
+          >> simp[]
+          >> sg ‘adjacent_nodes fg func_node ⊆ nsf prev’
+                
+          >- (simp[Abbr ‘nsf’]
+              >> gnvs[]
+              >> Cases_on ‘func_node = prev’
+              >- (‘F’ suffices_by simp[]
+                  >> simp[Abbr ‘ns1’]
+                  >> qpat_x_assum ‘prev ∈ adjacent_nodes fg src’ mp_tac
+                  >> qpat_x_assum ‘src ∈ get_function_nodes fg’ mp_tac
+                  >> qpat_x_assum ‘function_nodes ∈ get_function_nodes fg’ mp_tac
+                  >> qpat_x_assum ‘function_nodes = prev’ mp_tac
+                  >> rpt (pop_assum kall_tac)
+                  >> rpt disch_tac
+                  >> gvs[]
+                  >> drule adjacent_get_function_nodes
+                  >> disch_tac
+                  >> gvs[]
+                 )
+              >> DEP_PURE_ONCE_REWRITE_TAC[iffRL UNION_EQ_FIRST]
+              >> conj_tac
+              >- (simp[SUBSET_DEF] >> rpt strip_tac
+                  >> irule dst_in_subtree
+                  >> simp[]
+                 )
+              >> simp[SUBSET_DEF]
+              >> qx_gen_tac ‘adj_node’
+              >> strip_tac
+              >> gvs[subtree_def]
+              (* We have:
+                 src - prev - func_node
+                 adjacent adj_node func_node
+                 We want:
+                 src - prev - adj_node
+                 Either adj_node is the first step backwards towards src, or
+                 it can be added on to the end. If it is added on to the end,
+                 then clearly the path still has prev. If we have stepped
+                 backwards by one, then the only node that has been removed from
+                 our path is func_nodes, which was not prev, and thus our path
+                 still has prev.
+               *)
+              (* Case where src - adj_node is equal to
+                 src - func_node ++ func_node - adj_node *)
+              >> Cases_on
+                 ‘EL 1 (get_path (get_underlying_graph fg) func_node src) ≠
+                  EL 1 (get_path (get_underlying_graph fg) func_node adj_node)’
+              >- (qspecl_then
+                  [‘get_underlying_graph fg’, ‘src’, ‘func_node’, ‘adj_node’]
+                  assume_tac path_continuation
+                  >> gvs[]
+                 )
+              (* Case where adj_node is traveling backwards towards src from
+                 func_node. *)
+              >> pop_assum mp_tac >> simp[] >> disch_tac
+              >> Q.SUBGOAL_THEN
+                  ‘get_path (get_underlying_graph fg) func_node adj_node =
+                   [func_node; adj_node]’
+                  (fn th => gvs[th])
+              >- (irule adjacent_get_path
+                  >> simp[adjacent_SYM]
+                  >> CCONTR_TAC >> gvs[]
+                 )
+                 
+              (* *)                 
+              >> pop_assum (fn th => gvs[th])
+                           
+             )
+          >> simp[]
+          >> REVERSE conj_tac
+          >- (simp[SUBSET_DEF] >> gen_tac >> strip_tac
+              >> metis_tac[adjacent_get_function_nodes])
+          >> simp[Abbr ‘ns2’]
+          >> ASM_SET_TAC[]
+         )
+      >> simp[Cong EXTREAL_PROD_IMAGE_CONG]
+      >> simp[Abbr ‘S1’]
+
+             
       >> simp[Abbr ‘nsf’]
-      
-      
+
+             
       >> 
       (* Combine the products *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_combine]
-      >> conj_tac
-      >- (simp[Abbr ‘ns1’, Abbr ‘nsf’])
-      >>
+              >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_combine]
+              >> conj_tac
+              >- (simp[Abbr ‘ns1’, Abbr ‘nsf’])
+              >>
               
-              
-              (* The only node which is both adjacent to src and in nsf prev is prev.
-         TODO: Unsure why I wrote this. It doesn't seem helpful.
-         However, something similar to this will likely be helpful when simplifying
-         out the adjacent_nodes within ff in the context where val_map is
-         restricted to nsf *)
-              >> sg ‘∀prev.
-                       prev ∈ ns1 ⇒
-                       ns1 ∩ nsf prev = {prev}’
-              >- (rpt strip_tac
-                  >> simp[Abbr ‘ns1’, Abbr ‘nsf’]
-                  >> simp[UNION_OVER_INTER]
-                  >> Q.SUBGOAL_THEN ‘adjacent_nodes fg src ∩ {prev} = {prev}’
-                      (fn th => PURE_ONCE_REWRITE_TAC[th])
-                  >- (simp[EXTENSION] >> rpt strip_tac >> EQ_TAC >> gvs[])
-                  >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_nodes_inter_nodes_subtree_with_overload]
-                  >> conj_tac
-                  >- (simp[] >> ASM_SET_TAC[])
-                  >> Cases_on ‘src = prev’ >> simp[]
-                  >- gvs[]
-                  >> ‘adjacent (get_underlying_graph fg) src prev’ by gvs[adjacent_SYM]
-                  >> simp[]
-                  >> ‘EL 1 (get_path (get_underlying_graph fg) src prev) = prev’
-                    suffices_by simp[]
-                  >> irule adjacent_mem_get_path_alt
-                  >> simp[]
-                  >> conj_tac
-                  >- (irule (cj 2 adjacent_members)
-                      >> qexists ‘src’
-                      >> simp[]
-                     )
-                  >> irule MEM_get_path_last
-                  >> irule is_tree_exists_path
-                  >> simp[]
-                  >> qpat_x_assum ‘prev ∈ adjacent_nodes fg src’ mp_tac
-                  >> rpt (pop_assum kall_tac)
-                  >> ASM_SET_TAC[]
-                 )
 
      )
   >> gvs[]
 
 QED
 
+
+(* The only node which is both adjacent to src and in nsf prev is prev.
+         TODO: Unsure why I wrote this. It doesn't seem helpful.
+         However, something similar to this will likely be helpful when simplifying
+         out the adjacent_nodes within ff in the context where val_map is
+         restricted to nsf *)
+>> sg ‘∀prev.
+         prev ∈ ns1 ⇒
+         ns1 ∩ nsf prev = {prev}’
+>- (rpt strip_tac
+    >> simp[Abbr ‘ns1’, Abbr ‘nsf’]
+    >> simp[UNION_OVER_INTER]
+    >> Q.SUBGOAL_THEN ‘adjacent_nodes fg src ∩ {prev} = {prev}’
+        (fn th => PURE_ONCE_REWRITE_TAC[th])
+    >- (simp[EXTENSION] >> rpt strip_tac >> EQ_TAC >> gvs[])
+    >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_nodes_inter_nodes_subtree_with_overload]
+    >> conj_tac
+    >- (simp[] >> ASM_SET_TAC[])
+    >> Cases_on ‘src = prev’ >> simp[]
+    >- gvs[]
+    >> ‘adjacent (get_underlying_graph fg) src prev’ by gvs[adjacent_SYM]
+    >> simp[]
+    >> ‘EL 1 (get_path (get_underlying_graph fg) src prev) = prev’
+      suffices_by simp[]
+    >> irule adjacent_mem_get_path_alt
+    >> simp[]
+    >> conj_tac
+    >- (irule (cj 2 adjacent_members)
+        >> qexists ‘src’
+        >> simp[]
+       )
+    >> irule MEM_get_path_last
+    >> irule is_tree_exists_path
+    >> simp[]
+    >> qpat_x_assum ‘prev ∈ adjacent_nodes fg src’ mp_tac
+    >> rpt (pop_assum kall_tac)
+    >> ASM_SET_TAC[]
+   )
+
+   
 (* This is useful to know here and later. In particular, it allows us to
          simplify away a "∪ {prev}" here. *)
 >> ‘∀prev.

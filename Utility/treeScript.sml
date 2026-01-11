@@ -2567,6 +2567,66 @@ Proof
     >> simp[mem_first_step_subpath]
 QED
 
+Theorem get_path_before_last:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    a ≠ b ⇒
+    get_path g a (EL 1 (get_path g b a)) = FRONT (get_path g a b)
+Proof
+  rpt strip_tac
+  >> qspecl_then [‘g’, ‘a’, ‘EL 1 (get_path g b a)’, ‘b’] assume_tac get_path_append
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> conj_tac
+  >- (simp[]
+      >> cheat
+     )
+  >> simp[]
+
+
+     
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> gvs[]
+  >> sg ‘MEM (EL 1 (get_path g b a)) (get_path g a b)’
+  >- (pop_assum kall_tac
+      >> 
+     )
+     
+QED
+
+Theorem mem_front_get_path:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b x.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    a ≠ b ⇒
+    MEM x (FRONT (get_path g a b)) ⇔ MEM x (get_path g a b) ∧ x ≠ b
+Proof
+QED
+
+Theorem mem_get_path_before_last:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b x.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    a ≠ b ⇒
+    MEM x (get_path g a (EL 1 (get_path g b a))) ⇔
+      MEM x (get_path g a b) ∧ x ≠ b
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> disch_tac
+  >- (
+
+  Cases_on ‘x = b’ >> gvs[]
+  >- (
+    )
+  >> E
+     
+     )
+  >- gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
 (* input as a tree, which might make it easier to use induction?              *)
