@@ -79,12 +79,17 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (* - A node n is in the subtree defined by a - b if and only if we have       *)
 (*   a - b - n, that is, b is on a - n (definition of subtree)                *)
 (* - If a and b are adjacent, then a - b = [a; b] (tr) (adjacent_get_path)    *)
+(* - If we have a and c adjacent to b, and a is not equal to c, then a - c    *)
+(*   is equal to [a; b; c] (tr) (adjacent_get_path_2_steps)                   *)
 (* - The first step on a path is adjacent to the origin.                      *)
 (*   (adjacent_el_get_path)                                                   *)
 (* - An expression for the intersection between adjacent nodes and the nodes  *)
 (*   in a subtree (tr) (adjacent_nodes_inter_nodes_subtree)                   *)
 (* - The union of subtrees one level down will get you the tree minus the     *)
 (*   root node (tr) (bigunion_image_subtree_subtree)                          *)
+(* - If we have a - b - c, then we cannot have b - a - c, this won't be a     *)
+(*   valid path at the same time as a - b - c being a valid path (tr)         *)
+(*   (mem_not_swap_first)                                                     *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -1702,6 +1707,28 @@ Proof
   >> metis_tac[adjacent_members]
 QED
 
+Theorem adjacent_get_path_2_steps:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    adjacent g a b ∧
+    adjacent g b c ∧
+    a ≠ c ∧
+    a ≠ b ∧
+    b ≠ c ⇒
+    get_path g a c = [a; b; c]
+Proof
+  rpt strip_tac
+  >> irule is_tree_get_path_unique
+  >> simp[]
+  >> simp[path_def]
+  >> simp[walk_def]
+  >> rpt strip_tac
+  >- metis_tac[adjacent_members]
+  >- metis_tac[adjacent_members]
+  >- metis_tac[adjacent_members]
+  >> gvs[adjacent_iff]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* If we have a path from a to b, and x is on this path and x is adjacent to  *)
 (* a, then x must be the second node on the path.                             *)
@@ -2360,7 +2387,7 @@ Proof
 QED
 
 Theorem adjacent_nodes_inter_nodes_subtree:
-  ∀g: ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
     a ∈ nodes g ∧
     b ∈ nodes g ∧
     is_tree g ⇒
@@ -2421,12 +2448,36 @@ Proof
   >> gvs[subtree_def]
 QED
 
+Theorem mem_not_swap_first:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    c ∈ nodes g ∧
+    a ≠ b ∧
+    MEM b (get_path g a c) ⇒
+    ¬(MEM a (get_path g b c))
+Proof
+  rpt strip_tac
+  >> ‘b ∈ nodes g’ by metis_tac[mem_get_path_in_nodes, is_tree_exists_path]
+  >> qspecl_then [‘g’, ‘a’, ‘b’, ‘c’] assume_tac get_path_append
+  >> gvs[]
+  (* We have a - c = a - b ++ TL (b - c), and a occurs on a - b and also on
+     TL (b - c), thus it occurs twice in a - c, contradiction. *)
+  >> ‘path g (get_path g a c)’ by metis_tac[path_get_path]
+  >> gvs[path_def, ALL_DISTINCT_APPEND,
+         Excl "exists_path_path_get_path", Excl "get_path_all_distinct"]
+  >> qpat_x_assum ‘MEM a (get_path g b c)’ mp_tac >> simp[]
+  >> gvs[MEM_TL_get_path]
+  >> pop_assum $ qspecl_then [‘a’] assume_tac
+  >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* If we take the union of trees one level down, we get back the tree at the  *)
 (* current level, minus the root node.                                        *)
 (* -------------------------------------------------------------------------- *)
 Theorem bigunion_image_subtree_subtree:
-  ∀g src prev.
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph src prev.
     is_tree g ∧
     ¬selfloops_ok g ∧
     prev ∈ adjacent_nodes g src ⇒
@@ -2453,17 +2504,67 @@ Proof
           >> gvs[GCONTRAPOS adjacent_REFL_E]
          )
       >> simp[]
-      >>
-      
-     )
+      >> gvs[subtree_def]
+      (* We have:
+           src - dst - x
+           adjacent prev src
+           adjacent dst src
+           prev ≠ dst
+         We want to prove:
+           prev - src - x    (i.e. src is on prev - x)
+         We can do this by joining together (join_overlapping_paths_mem):
+           prev - src - dst and src - dst - x
+         Thus it suffices to show:
+           prev - src - dst, which is clear from adjacent_get_path_2_steps or
+                             alternatively path_continuation_mem
+       *)
+      >> irule join_overlapping_paths_mem
+      >> simp[]
+      >> conj_tac
+      >- metis_tac[adjacent_members]
+      >> qexists ‘dst’
+      >> simp[]
+      >> Cases_on ‘src = dst’ >> simp[]
+      >- gvs[GCONTRAPOS adjacent_REFL_E]
+      >> qspecl_then [‘g’, ‘prev’, ‘src’, ‘dst’]
+                     (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+                     adjacent_get_path_2_steps
+      >> conj_tac
+      >- (simp[]
+          >> simp[adjacent_SYM]
+          >> CCONTR_TAC >> gvs[GCONTRAPOS adjacent_REFL_E]
+         )
+      >> simp[]
+     )     
   (* If x is in the larger subtree, then x is in the union of subtrees. *)
   >> rpt strip_tac
+  (* It's generally helpful to know that the things we are working with are
+     valid nodes *)
+  >> ‘adjacent g prev src’ by gvs[IN_DEF]
+  >> ‘src ∈ nodes g’ by metis_tac[adjacent_members]
+  >> ‘prev ∈ nodes g’ by metis_tac[adjacent_members]
+  >> ‘x ∈ nodes g’ by gvs[subtree_def]
   >> qexists ‘nodes (subtree g src (EL 1 (get_path g src x)))’
   >> conj_tac
-  >- cheat
-  >- qexists ‘EL 1 (get_path g src x)’
+  >- (gvs[subtree_def]
+      >> irule EL_MEM
+      >> Cases_on ‘get_path g src x’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+     )     
+  >> qexists ‘EL 1 (get_path g src x)’
   >> simp[]
-  >> simp[adjacent_el_get_path]
+  >> rpt conj_tac
+  >- simp[first_step_in_nodes]
+  >- simp[adjacent_SYM]
+  (* This choice of prev contradicts x ∈ nodes (subtree g prev src) *)
+    >> gvs[subtree_def]
+    >> CCONTR_TAC >> gvs[]
+    (* We have src - FST - x, and we have src is in FST - x, which is a
+     contradiction. *)
+    >> qpat_x_assum ‘MEM _ _’ mp_tac >> simp[]
+    >> irule mem_not_swap_first
+    >> simp[]
+    >> simp[mem_first_step_subpath]
 QED
 
 (* -------------------------------------------------------------------------- *)
