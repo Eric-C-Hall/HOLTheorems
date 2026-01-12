@@ -57,7 +57,7 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   distinct, then the paths as a whole will be completely distinct (tr)     *)
 (*   (first_step_distinct_path_distinct)                                      *)
 (* - Choosing a different first step from a given point will result in a      *)
-(*   disjoint subtree. (tr) (subtrees_distinct)                               *)
+(*   disjoint subtree. (tr) (subtrees_distinct) (subtrees_disjoint)           *)
 (* - We can join together a - b and b - c, as long as the first step on       *)
 (*   b - a is not the first step on b - c, i.e. we don't immediately start    *)
 (*   heading backwards upon reaching b. We don't require that b is on a - c.  *)
@@ -1801,6 +1801,22 @@ Proof
   >> ‘EL 1 (get_path g root' x) = n’ by metis_tac[adjacent_mem_get_path]
   >> ‘EL 1 (get_path g root' x) = m’ by metis_tac[adjacent_mem_get_path]
   >> metis_tac[]
+QED
+
+Theorem subtrees_disjoint:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph root n m.
+    is_tree g ∧
+    adjacent g root n ∧
+    adjacent g root m ∧
+    n ≠ m ∧
+    root ≠ n ∧
+    root ≠ m ⇒
+    DISJOINT (nodes (subtree g root n)) (nodes (subtree g root m))
+Proof
+  rpt strip_tac
+  >> PURE_ONCE_REWRITE_TAC[DISJOINT_DEF]
+  >> irule subtrees_distinct
+  >> simp[]
 QED
 
 Theorem adjacent_el_get_path[simp]:

@@ -4196,25 +4196,112 @@ Proof
               >> metis_tac[adjacent_get_function_nodes])
           >> simp[Abbr ‘ns2’]
           >> ASM_SET_TAC[]
+         )         
+      (* Now, our function doesn't depend on the first elements of the pairs
+         in S1. Thus, we can simplify S1 so that it doesn't produce the first
+         elements of these pairs, while simultaneously updating the function to
+         work on the second elements only, rather than pairs. *)         
+      >> qmatch_abbrev_tac ‘_ * LHS = _ : extreal’
+      >> Q.SUBGOAL_THEN
+          ‘LHS = ∏ (λfunc_node.
+                      (get_function_map fg)
+                      ' func_node
+                      ' (DRESTRICT x (adjacent_nodes fg func_node))
+                   ) (BIGUNION
+                      (IMAGE (λprev. nsf prev ∩ get_function_nodes fg)
+                             (ns1 DELETE dst)
+                      )
+                     )’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (simp[Abbr ‘LHS’]
+          >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
+          >> REVERSE conj_tac
+          >- (simp[Abbr ‘S1’, Abbr ‘ns1’] >> rpt strip_tac >> simp[Abbr ‘nsf’])
+          >> qexists ‘SND’ >> simp[]
+          >> PURE_ONCE_REWRITE_TAC[BIJ_THM]
+          >> conj_tac
+          >- (gen_tac >> disch_tac
+              >> namedCases_on ‘x'’ ["prev func_node"]
+              >> simp[Abbr ‘S1’, Excl "IN_BIGUNION"]
+              >> pop_assum mp_tac >> rpt (pop_assum kall_tac) >> rpt disch_tac
+              >> gvs[]
+              >> qexists ‘nsf prev ∩ get_function_nodes fg’
+              >> simp[]
+              >> qexists ‘prev’
+              >> simp[]
+             )
+          >> rpt strip_tac
+          >> simp[Abbr ‘S1’, Excl "IN_BIGUNION"]
+          (* We have y ∈ BIGUNION ... and want to find the pair (..., y) such
+             that (..., y) is the unique choice in BIGUNION ...
+.
+             If we expand out y ∈ BIGUNION ..., we will find the relevant
+             choice of prev, then (prev, y) will be the appropriate choice of
+             pair *)
+          >> gvs[]
+          >> simp[EXISTS_UNIQUE_THM]
+          >> conj_tac
+          >- (qexists ‘(prev, y)’ >> simp[]
+              >> qexists ‘{prev} × (nsf prev ∩ get_function_nodes fg)’
+              >> simp[]
+              >> qexists ‘prev’ >> simp[]
+             )             
+          >> rpt strip_tac
+          >> namedCases_on ‘x'’ ["prev1 func_node1"]
+          >> namedCases_on ‘x''’ ["prev2 func_node2"]
+          >> gvs[]
+          >> simp[Abbr ‘nsf’]
+          >> gnvs[]
+          (* Perhaps this can be done more efficiently by simplifying nsf
+             earlier to remove the union with {prev} *)
+          >> ‘prev ∈ nodes (get_underlying_graph fg)’ by gvs[Abbr ‘ns1’]
+          >> ‘prev' ∈ nodes (get_underlying_graph fg)’ by gvs[Abbr ‘ns1’]
+          >> ‘prev'' ∈ nodes (get_underlying_graph fg)’ by gvs[Abbr ‘ns1’]
+          >> ‘func_node1 ∈ nodes (subtree (get_underlying_graph fg) src prev)’
+            by metis_tac[dst_in_subtree]
+          >> ‘func_node1 ∈ nodes (subtree (get_underlying_graph fg) src prev')’
+            by metis_tac[dst_in_subtree]
+          >> ‘func_node1 ∈ nodes (subtree (get_underlying_graph fg) src prev'')’
+            by metis_tac[dst_in_subtree]                        
+          >> gnvs[]
+          >> CCONTR_TAC
+          >> ‘DISJOINT (nodes (subtree (get_underlying_graph fg) src prev'))
+              (nodes (subtree (get_underlying_graph fg) src prev''))’
+            suffices_by (simp[DISJOINT_ALT] >> qexists ‘func_node1’ >> simp[])
+          >> irule subtrees_disjoint
+          >> simp[Abbr ‘ns1’]
+          >> gvs[]
+          >> simp[adjacent_SYM]
+          >> conj_tac >> CCONTR_TAC >> gvs[]
          )
-      (* Now that we have removed the instances of FST, we can simplify S1 to
-         not produce any of the first elements of the pairs *)
-      >> 
-      
-      >> simp[Cong EXTREAL_PROD_IMAGE_CONG]
-      >> simp[Abbr ‘S1’]
-
-             
+      >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
+      >> qpat_x_assum ‘Abbrev (S1 = _)’ kall_tac
+      (* Take the intersection with get_function_nodes out of the BIGUNION,
+         so that we are in an appropriate form to apply bigunion_image_subtree *)
+      >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+      >> simp[BIGUNION_IMAGE_INTER]
+      (* Expand out nsf and ns2, and simplify nsf, to head towards the
+         appropriate form to apply bigunion_image_subtree *)
       >> simp[Abbr ‘nsf’]
-
-             
-      >> 
-                           (* Combine the products *)
-              >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_combine]
-              >> conj_tac
-              >- (simp[Abbr ‘ns1’, Abbr ‘nsf’])
-              >>
-              
+      >> simp[Abbr ‘ns2’]
+      >> Q.SUBGOAL_THEN
+          ‘∀prev. prev ∈ ns1 DELETE dst ⇒
+                  nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}
+                  = nodes (subtree (get_underlying_graph fg) src prev)’
+          (fn th => gvs[Cong IMAGE_CONG, th])
+      >- (rpt strip_tac
+          >> simp[UNION_EQ_FIRST]
+          >> irule dst_in_subtree
+          >> simp[Abbr ‘ns1’]
+          >> pop_assum mp_tac >> rpt (pop_assum kall_tac)
+          >> ASM_SET_TAC[]
+         )
+      (* Apply bigunion_image_subtree *)
+      >> simp[Abbr ‘ns1’]
+      >> simp[bigunion_image_subtree]
+      (* Take src out of the RHS to match the LHS. *)
+      >> qmatch_abbrev_tac ‘_ = ∏ _ S2’
+      
 
      )
   >> gvs[]
