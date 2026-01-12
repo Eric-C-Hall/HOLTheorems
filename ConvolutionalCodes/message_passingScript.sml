@@ -4313,7 +4313,110 @@ Proof
       >> simp[Abbr ‘S2’]
       >> ASM_SET_TAC[]
      )
+  (* We have finished proving our theorem in the case where the source node for
+       our message is a function node.
+     Now we prove it in the case where the source node for our message is a
+       variable node.*)
   >> gvs[]
+  >> qmatch_asmsub_abbrev_tac ‘is_tree g’
+  (* To apply the inductive hypothesis, we need
+     - prev ∈ nodes g    (known from definition of set prev is contained in)
+     - adjacent g prev src   (known from definition of set prev is contained in)
+     - prev ≠ dst            (known from definition of set prev is contained in)
+     - prev ≠ src           (prev is a function node and src is not)
+     - *)
+  (* Rewrite goal using inductive hypothesis. For this purpose, we first prove
+     a subgoal which allows us to ensure that the preconditions are satisfied. *)
+  >> Q.SUBGOAL_THEN ‘∀prev. adjacent g prev src ⇒ prev ≠ src’
+      (fn th => gvs[Cong EXTREAL_PROD_IMAGE_CONG, th])
+  >- metis_tac[adjacent_get_function_nodes]
+  (* Now that we have applied the inductive hypothesis, we no longer need it *)
+  >> qpat_x_assum ‘∀src. _ ⇒ sp_message _ _ _ = _’ kall_tac
+  (* *)
+  >> simp[sum_prod_map_def]
+  >> simp[FUN_FMAP_EQ_THM]
+  >> gen_tac >> disch_tac
+  (* Simplify condition in if-statements *)
+  >> Q.SUBGOAL_THEN ‘∀prev. adjacent g prev src ⇒ prev ∈ get_function_nodes fg’
+      (fn th =>  simp[Cong EXTREAL_PROD_IMAGE_CONG, adjacent_get_function_nodes, th])
+  >- metis_tac[adjacent_get_function_nodes]
+  (* Expand out the sum-prod on the left so that we can swap the order of the
+     product and sum. *)
+  >> simp[Cong LHS_CONG, Once sum_prod_def]        
+  (* Write in format to match the expression of the generalised distributive
+     law *)
+  >> qmatch_abbrev_tac ‘∏ _ S = RHS : extreal’
+  >> qabbrev_tac ‘ff = λprev val_map.
+                         ∏ (λfunc_node.
+                            (get_function_map fg)
+                            ' func_node '
+                            (DRESTRICT val_map (adjacent_nodes g func_node))
+                         ) ((nodes (subtree g src prev) ∪ {src})
+                            ∩ get_function_nodes fg)’
+  >> simp[]
+
+  >> 
+  
+  >> qabbrev_tac ‘nsf = λprev. nodes (subtree g src prev) ∪ {src}’
+  >> simp[]
+         
+  (* Apply the generalised distributive law *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
+  >> conj_tac
+
+  >- (rpt conj_tac
+      >- (unabbrev_all_tac >> irule FINITE_SUBSET
+          >> qexists ‘nodes (get_underlying_graph fg)’ >> simp[SUBSET_DEF])
+      >- (unabbrev_all_tac
+          >> simp[INJ_DEF]
+          >> rpt strip_tac
+          >> CCONTR_TAC
+          (* The subtrees defined by prev and prev' are supposed to be disjoint
+             for prev ≠ prev', but our assumptions say they equal each other. *)
+          >> qspecl_then [‘get_underlying_graph fg’, ‘src’, ‘prev’, ‘prev'’]
+                         assume_tac subtrees_disjoint
+          >> gvs[adjacent_SYM]
+          >> Cases_on ‘src = prev’ >> gvs[]
+          >> Cases_on ‘src = prev'’ >> gvs[]
+          (* In particular, prev is in one subtree. Disjointness implies it is
+             not in the other. This contradicts the equality of these subtrees.*)
+          >> ‘prev ∈ nodes (subtree (get_underlying_graph fg) src prev)’
+            by metis_tac[dst_in_subtree]
+          >> gvs[DISJOINT_ALT]
+          >> ‘prev ∉ nodes (subtree (get_underlying_graph fg) src prev') ∪ {src}’
+            suffices_by ASM_SET_TAC[]
+          >> simp[]
+         )
+         
+      >- (unabbrev_all_tac
+          >> simp[disjoint_def]
+          >> rpt strip_tac
+          >> qpat_assum ‘a = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >> qpat_assum ‘b = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+          (* Not disjoint due to shared union *)
+          >> 
+          
+          >> unabbrev_all_tac
+          >> gvs[]
+          >> Cases_on ‘x = x'’ >> gvs[]
+         )
+      >> 
+      >> 
+      (* *)
+      DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
+
+                               
+      (* *)
+      (* >> ‘∀x. x ∈ S ⇒ x ∈ nodes (get_underlying_graph fg)’ by gvs[Abbr ‘S’]*)
+                               
+                                   >> qmatch_goalsub_abbrev_tac ‘∏ _ S’
+                                >> ‘∀prev. prev ∈ S ⇒ adjacent (get_underlying_graph fg) prev src’
+                                  by gvs[Abbr ‘S’]
+                                >- (gvs[Abbr ‘S’]
+                                   )
+                                >> 
+                                
+                                >> gvs[]
 
 QED
 
