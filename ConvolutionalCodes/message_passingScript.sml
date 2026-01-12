@@ -3787,7 +3787,6 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -4300,9 +4299,19 @@ Proof
       >> simp[Abbr ‘ns1’]
       >> simp[bigunion_image_subtree]
       (* Take src out of the RHS to match the LHS. *)
-      >> qmatch_abbrev_tac ‘_ = ∏ _ S2’
-      
-
+      >> qmatch_abbrev_tac ‘_ = ∏ _ S2 : extreal’
+      >> Q.SUBGOAL_THEN
+          ‘S2 = src INSERT S2 DELETE src’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (SYM_TAC >> irule INSERT_DELETE >> simp[Abbr ‘S2’, dst_in_subtree])
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 EXTREAL_PROD_IMAGE_THM]
+      >> conj_tac >- simp[Abbr ‘S2’, FINITE_INTER]
+      >> cong_tac (SOME 1)
+      >> simp[DELETE_DELETE]
+      >> irule EXTREAL_PROD_IMAGE_CONG
+      >> simp[]
+      >> simp[Abbr ‘S2’]
+      >> ASM_SET_TAC[]
      )
   >> gvs[]
 
