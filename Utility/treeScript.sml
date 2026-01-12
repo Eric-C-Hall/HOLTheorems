@@ -230,7 +230,7 @@ Definition diameter_def:
   diameter g = MAX_SET (IMAGE (UNCURRY (distance g))
                               {(v1,v2) | v1 ∈ nodes g ∧
                                          v2 ∈ nodes g}
-                           )
+                       )
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -1146,7 +1146,7 @@ Proof
   >> Cases_on ‘l’ >> simp[]
   >> Cases_on ‘t’ >> gvs[TL_DEF]
 QED
-        
+
 Theorem path_append:
   ∀g vs1 vs2.
     vs1 ≠ [] ∧
@@ -1855,9 +1855,9 @@ Proof
 QED
 
 Theorem HD_TL:
-        ∀ls.
-          ls ≠ [] ⇒
-          HD (TL ls) = EL 1 ls
+  ∀ls.
+    ls ≠ [] ⇒
+    HD (TL ls) = EL 1 ls
 Proof
   rpt strip_tac
   >> Cases_on ‘ls’ >> gvs[]
@@ -2557,14 +2557,14 @@ Proof
   >- simp[first_step_in_nodes]
   >- simp[adjacent_SYM]
   (* This choice of prev contradicts x ∈ nodes (subtree g prev src) *)
-    >> gvs[subtree_def]
-    >> CCONTR_TAC >> gvs[]
-    (* We have src - FST - x, and we have src is in FST - x, which is a
+  >> gvs[subtree_def]
+  >> CCONTR_TAC >> gvs[]
+  (* We have src - FST - x, and we have src is in FST - x, which is a
      contradiction. *)
-    >> qpat_x_assum ‘MEM _ _’ mp_tac >> simp[]
-    >> irule mem_not_swap_first
-    >> simp[]
-    >> simp[mem_first_step_subpath]
+  >> qpat_x_assum ‘MEM _ _’ mp_tac >> simp[]
+  >> irule mem_not_swap_first
+  >> simp[]
+  >> simp[mem_first_step_subpath]
 QED
 
 Theorem get_path_before_last:
@@ -2580,19 +2580,38 @@ Proof
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
   >> conj_tac
   >- (simp[]
-      >> cheat
+      >> Q.SUBGOAL_THEN ‘get_path g b a = REVERSE (get_path g a b)’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- simp[get_path_reverse]
+      >> simp[EL_REVERSE]
+      >> irule EL_MEM
+      >> Cases_on ‘LENGTH (get_path g a b)’ >> gvs[]
      )
+  >> qmatch_abbrev_tac ‘ls = _’
+  >> qsuff_tac ‘TL (get_path g (EL 1 (get_path g b a)) b) =
+                [b]’
+  >- (disch_then (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[FRONT_APPEND])
+  >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_get_path]
+  >> conj_tac
+  >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+      >> simp[adjacent_el_get_path])
   >> simp[]
+QED
 
-
-     
-  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
-  >> gvs[]
-  >> sg ‘MEM (EL 1 (get_path g b a)) (get_path g a b)’
-  >- (pop_assum kall_tac
-      >> 
-     )
-     
+(* Based on MEM_LAST_FRONT. Note that MEM_LAST_FRONT unnecessarily requries
+   the stronger assumption MEM e l rather than MEM e (h::l) *)
+Theorem MEM_LAST_FRONT_ALT:
+  ∀x ls.
+    MEM x ls ∧
+    x ≠ LAST ls ⇒
+    MEM x (FRONT ls)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘ls’ >> gvs[]
+  >- (simp[FRONT_DEF] >> rw[] >> gvs[LAST_DEF])
+  >> irule MEM_LAST_FRONT
+  >> simp[]
 QED
 
 Theorem mem_front_get_path:
@@ -2601,8 +2620,23 @@ Theorem mem_front_get_path:
     a ∈ nodes g ∧
     b ∈ nodes g ∧
     a ≠ b ⇒
-    MEM x (FRONT (get_path g a b)) ⇔ MEM x (get_path g a b) ∧ x ≠ b
+    (MEM x (FRONT (get_path g a b)) ⇔ MEM x (get_path g a b) ∧ x ≠ b)
 Proof
+  rpt strip_tac
+  >> EQ_TAC >> disch_tac
+  >- (Cases_on ‘x = b’
+      >- (gvs[]
+          >> pop_assum mp_tac >> simp[]
+          >> irule MEM_FRONT_NOT_LAST_GEN
+          >> simp[get_path_all_distinct]
+         )
+      >> simp[]
+      >> irule MEM_FRONT_NOT_NIL
+      >> simp[]
+     )
+  >> gvs[]
+  >> irule MEM_LAST_FRONT_ALT
+  >> simp[]
 QED
 
 Theorem mem_get_path_before_last:
@@ -2611,20 +2645,11 @@ Theorem mem_get_path_before_last:
     a ∈ nodes g ∧
     b ∈ nodes g ∧
     a ≠ b ⇒
-    MEM x (get_path g a (EL 1 (get_path g b a))) ⇔
-      MEM x (get_path g a b) ∧ x ≠ b
+    (MEM x (get_path g a (EL 1 (get_path g b a))) ⇔
+       MEM x (get_path g a b) ∧ x ≠ b)
 Proof
-  rpt strip_tac
-  >> EQ_TAC >> disch_tac
-  >- (
-
-  Cases_on ‘x = b’ >> gvs[]
-  >- (
-    )
-  >> E
-     
-     )
-  >- gvs[]
+  rpt gen_tac >> strip_tac
+  >> simp[get_path_before_last, mem_front_get_path]
 QED
 
 (* -------------------------------------------------------------------------- *)
