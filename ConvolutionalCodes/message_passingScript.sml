@@ -3661,6 +3661,43 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* If we have two products where there is a one-to-one correspondance between *)
+(* the sets, and the functions on corresponding elements are equal, then the  *)
+(* products are equal.                                                        *)
+(* -------------------------------------------------------------------------- *)
+Theorem EXTREAL_PROD_IMAGE_CONG_DIFF_SETS:
+  ∀f g S1 S2.
+    FINITE S1 ∧
+    (∃bij. BIJ bij S1 S2 ∧
+           (∀x. x ∈ S1 ⇒ f x = g (bij x))
+    ) ⇒
+    ∏ f S1 = ∏ g S2 : extreal
+Proof
+  rpt strip_tac
+  (* Prepare for induction on S1 *)
+  >> rpt (pop_assum mp_tac) >> disch_tac >> SPEC_ALL_TAC
+  (* Induct on S1 *)
+  >> Induct_on ‘S1’ >> rpt strip_tac >> gvs[]
+  (* It's helpful to know that S2 is also finite *)
+  >> ‘FINITE S2’ by (irule (iffLR BIJ_FINITE_IFF)
+                     >> qexistsl [‘bij’, ‘e INSERT S1’] >> simp[])
+  (* Break down S1 to one smaller on the LHS *)
+  >> simp[EXTREAL_PROD_IMAGE_THM, DELETE_NON_ELEMENT_RWT]
+  (* Break down S2 in the corresponding way on the RHS *)
+  >> Q.SUBGOAL_THEN ‘S2 = (bij e) INSERT (S2 DELETE (bij e))’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (DEP_PURE_ONCE_REWRITE_TAC[INSERT_DELETE] >> simp[]
+      >> gvs[BIJ_THM])
+  >> simp[EXTREAL_PROD_IMAGE_THM]
+  (* Prove equivalence of the inductive and step components individually *)
+  >> cong_tac (SOME 1)
+  (* Use inductive hypothesis to finish the proof *)
+  >> last_x_assum irule
+  >> qexists ‘bij’
+  >> gvs[BIJ_INSERT]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
 (* nodes in that branch of the tree, where the variable node which is an      *)
@@ -4069,11 +4106,12 @@ Proof
          can simplify the set on the LHS to not produce the first elements,
          allowing us to use bigunion_image_subtree to simplify and bring us
          closer to the RHS. *)             
-      >> qmatch_abbrev_tac ‘_ * ∏ _ S1 = _’
-      >> sg ‘∀z. z ∈ S1 ⇒
-                 ns2 ∩ var_nodes fg ∩ nsf (FST z) ∩ adjacent_nodes fg (SND z) =
-              adjacent_nodes fg (SND z)’
-
+      >> qmatch_abbrev_tac ‘_ * ∏ _ S1 = _’                           
+      >> Q.SUBGOAL_THEN
+          ‘∀z. z ∈ S1 ⇒
+               ns2 ∩ var_nodes fg ∩ nsf (FST z) ∩ adjacent_nodes fg (SND z) =
+               adjacent_nodes fg (SND z)’
+          (fn th => simp[Cong EXTREAL_PROD_IMAGE_CONG, th])
       >- (rpt strip_tac
           >> simp[Abbr ‘S1’]
           >> gvs[IN_BIGUNION_IMAGE]
@@ -4083,7 +4121,6 @@ Proof
           >> irule SUBSET_INTER2
           >> simp[]
           >> sg ‘adjacent_nodes fg func_node ⊆ nsf prev’
-                
           >- (simp[Abbr ‘nsf’]
               >> gnvs[]
               >> Cases_on ‘func_node = prev’
@@ -4132,6 +4169,9 @@ Proof
                   assume_tac path_continuation
                   >> gvs[]
                  )
+              (* Useful reusable properties *)
+              >> ‘func_node ≠ adj_node’ by (CCONTR_TAC >> gvs[])
+              >> ‘src ≠ func_node’ by (CCONTR_TAC >> gvs[])
               (* Case where adj_node is traveling backwards towards src from
                  func_node. *)
               >> pop_assum mp_tac >> simp[] >> disch_tac
@@ -4143,11 +4183,13 @@ Proof
                   >> simp[adjacent_SYM]
                   >> CCONTR_TAC >> gvs[]
                  )
-                 
-              (* *)                 
-              >> pop_assum (fn th => gvs[th])
-                           
-             )
+              (* *)
+              >> DEP_PURE_ONCE_REWRITE_TAC[mem_get_path_before_last]
+              >> conj_tac
+              >- (simp[]
+                  >> CCONTR_TAC >> gvs[])
+              >> simp[]    
+             )             
           >> simp[]
           >> REVERSE conj_tac
           >- (simp[SUBSET_DEF] >> gen_tac >> strip_tac
@@ -4155,6 +4197,10 @@ Proof
           >> simp[Abbr ‘ns2’]
           >> ASM_SET_TAC[]
          )
+      (* Now that we have removed the instances of FST, we can simplify S1 to
+         not produce any of the first elements of the pairs *)
+      >> 
+      
       >> simp[Cong EXTREAL_PROD_IMAGE_CONG]
       >> simp[Abbr ‘S1’]
 
@@ -4163,7 +4209,7 @@ Proof
 
              
       >> 
-      (* Combine the products *)
+                           (* Combine the products *)
               >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_combine]
               >> conj_tac
               >- (simp[Abbr ‘ns1’, Abbr ‘nsf’])
