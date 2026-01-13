@@ -4706,12 +4706,72 @@ Proof
   >> simp[Abbr ‘nsf’]
   >> DEP_PURE_ONCE_REWRITE_TAC[bigunion_image_subtree]
   >> conj_tac
-  >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
-     
+  >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])     
+  (* Now the sum part is on the outside, so we can cancel the sums on the LHS
+     and the RHS. *)
+  >> simp[Abbr ‘RHS’]
+  >> simp[sum_prod_def]         
+  (* First, we need to slightly massage the val_map_assignments on the RHS to
+     make sure that it matches the val_map_assignments on the LHS. This is
+     similar to the same working which was earlier done on the LHS. *)
+  >> qmatch_abbrev_tac ‘LHS = _’
+  >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+  >> DEP_PURE_ONCE_REWRITE_TAC[val_map_assignments_remove_excl_val_map]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- simp[SUBSET_DEF, subtree_def]
+      >- simp[]
+      >> rpt strip_tac
+      >> gvs[val_map_assignments_def]
+     )
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- simp[]
+      >- (simp[INJ_DEF] >> rpt strip_tac
+          >> pop_assum mp_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[FUNION_EQ]
+          >> simp[]
+          >> gvs[val_map_assignments_def]
+         )
+      >> cheat
+     )
+  >> Q.SUBGOAL_THEN ‘nodes (subtree g dst src) ∪ {src} = nodes (subtree g dst src)’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (simp[UNION_EQ_FIRST]
+      >> simp[dst_in_subtree])
   (* *)
-  >>
+  >> PURE_ONCE_REWRITE_TAC[GSYM DIFF_INTER]
+  >> simp[GSYM val_map_assignments_restrict_nodes]
+  (* Cancel out the sum that is being taken on the LHS and RHS *)
+  >> simp[Abbr ‘g’, Abbr ‘LHS’]
+  >> irule EXTREAL_SUM_IMAGE_CONG
+  >> REVERSE conj_tac
+  >- simp[DELETE_DEF]
+  >> qx_gen_tac ‘val_map’ >> disch_tac
+  >> simp[o_DEF]
+  (* Now we are aiming to combine the products. Simplify to head towards that
+     goal. *)
+  >> simp[Abbr ‘ff_2’]
+  >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+  >> simp[UNION_OVER_INTER]
+  >> ‘get_function_nodes fg ∩ {src} = ∅’ by simp[EXTENSION]
+  >> simp[]
+  (* Rewrite to form appropriate for combining the products *)
+  >> qabbrev_tac ‘S2 = λprev.
+                         (get_function_nodes fg)
+                         ∩ nodes (subtree (get_underlying_graph fg) src prev)’
+  >> simp[]
+  (* Combine the products *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_combine_dependent]
+  >> conj_tac
+  >- (simp[Abbr ‘S2’, FINITE_INTER])
+  (* *)
+  >> 
   
 QED
+
+
 
 
 (* The only node which is both adjacent to src and in nsf prev is prev.
