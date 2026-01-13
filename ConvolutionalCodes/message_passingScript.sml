@@ -1977,7 +1977,7 @@ Proof
   >> simp[]
 QED
 
-Theorem val_map_assignments_empty:
+Theorem val_map_assignments_eq_empty:
   ∀fg ns excl_val_map.
     val_map_assignments fg ns excl_val_map = ∅ ⇔
       ¬(∀n. n ∈ FDOM excl_val_map ∩ ns ∩ var_nodes fg ⇒
@@ -3796,6 +3796,36 @@ Proof
   >> simp[]
 QED
 
+Theorem sum_prod_empty[simp]:
+  ∀fg excl_val_map.
+    sum_prod fg ∅ excl_val_map = 1
+Proof
+  rpt strip_tac
+  >> simp[sum_prod_def]
+QED
+
+Theorem sum_prod_effectively_empty:
+  ∀fg ns excl_val_map.
+    ns ∩ get_function_nodes fg = ∅ ⇒
+    sum_prod fg ns excl_val_map = 1
+Proof
+  rpt strip_tac
+  >> simp[sum_prod_def]
+  >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+  >> simp[]
+QED
+
+Theorem sum_prod_effectively_empty:
+  ∀fg ns excl_val_map.
+    ns ∩ var_nodes fg = ∅ ⇒
+    sum_prod fg ns excl_val_map = 1
+Proof
+  gfdkljdlfg
+  rpt strip_tac
+        >> simp[sum_prod_def]
+        >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+        >> simp[]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
@@ -4454,16 +4484,91 @@ Proof
                          ) ((nodes (subtree g src prev) ∪ {src})
                             ∩ get_function_nodes fg)’
   >> simp[]
-
-  
-  
-  >> qabbrev_tac ‘nsf = λprev. nodes (subtree g src prev) ∪ {src}’
-  >> simp[]
-         
+  (* Useful reusable properties *)
+  >> sg ‘FDOM excl_val_map = {src}’
+  >- (‘{src} ⊆ var_nodes fg’ by simp[SUBSET_DEF]
+      >> metis_tac[in_val_map_assignments_fdom])
+  (* To apply the generalised distributive law, we need to know that the
+     choices of nodes we are summing over are disjoint from each other.
+     The only place on which they are not disjoint from each other right now
+     is at src, which is fixed by excl_val_map. Thus, we rewrite
+     val_map_assignments in order to exclude the nodes that are fixed. *)     
+  >> Q.SUBGOAL_THEN
+      ‘∀prev.
+         prev ∈ S ⇒
+         val_map_assignments fg (nodes (subtree g src prev) ∪ {src})
+                             excl_val_map =
+         IMAGE (FUNION excl_val_map)
+               (val_map_assignments fg (nodes (subtree g src prev)) FEMPTY)
+      ’
+      (fn th => simp[Cong EXTREAL_PROD_IMAGE_CONG, th])
+  >- (rpt strip_tac
+      >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[val_map_assignments_remove_excl_val_map]
+      >> conj_tac
+      >- (rpt conj_tac
+          >- simp[]
+          >- simp[]
+          >> rpt strip_tac
+          >> gvs[val_map_assignments_def]
+         )
+      >> PURE_ONCE_REWRITE_TAC[GSYM DIFF_INTER]
+      >> simp[DIFF_SAME_UNION]
+      >> cong_tac NONE
+      >> simp[DIFF_NO_EFFECT]
+      >> simp[EXTENSION]
+      >> irule src_not_in_subtree
+      >> simp[]
+      >> pop_assum mp_tac >> simp[Abbr ‘S’] >> strip_tac >> CCONTR_TAC >> gvs[]
+     )
+  (* Move the newly created image into the function of the sum, so that it
+     doesn't interfere with applying the generalised distributive law. We
+     apply EXTREAL_SUM_IMAGE_IMAGE to do this. *)
+  >> qmatch_abbrev_tac ‘LHS = RHS’
+  >> Q.SUBGOAL_THEN
+      ‘LHS = ∏ (λprev.
+                  ∑ (λx. ff prev (excl_val_map ⊌ x))
+                      (val_map_assignments fg (nodes (subtree g src prev)) FEMPTY)
+               ) S’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (simp[Abbr ‘LHS’]
+      >> irule EXTREAL_PROD_IMAGE_EQ
+      >> qx_gen_tac ‘prev’ >> disch_tac
+      >> simp[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
+      >> conj_tac
+      >- (rpt conj_tac
+          >- simp[]
+          >- (simp[INJ_DEF] >> rpt strip_tac
+              >> pop_assum mp_tac
+              >> DEP_PURE_ONCE_REWRITE_TAC[FUNION_EQ]
+              >> simp[]
+              >> gvs[val_map_assignments_def]
+              >> ‘FDOM x = nodes (subtree g src prev) ∩ var_nodes fg’ by
+                metis_tac[in_val_map_assignments_fdom_inter]
+              >> ‘FDOM y = nodes (subtree g src prev) ∩ var_nodes fg’ by
+                metis_tac[in_val_map_assignments_fdom_inter]
+              >> simp[]
+              >> irule src_not_in_subtree
+              >> simp[]
+              >> CCONTR_TAC >> gvs[Abbr ‘S’]
+             )
+          >> cheat
+         )
+      >> simp[o_DEF]
+     )
+  >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
+  (* Rewrite ff to get into the right form to apply the generalised
+     distributive law. *)
+  >> qabbrev_tac ‘ff_2 = λprev x. ff prev (excl_val_map ⊌ x)’
+  >> simp[] >> simp[Abbr ‘ff’]
+  (* Abbreviate set to nsf, so that our expression is in the right form to
+     apply the generalised distributive law *)
+  >> qabbrev_tac ‘nsf = λprev. nodes (subtree g src prev)’
+  >> simp[]         
   (* Apply the generalised distributive law *)
   >> DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
-  >> conj_tac
-
+  >> conj_tac     
   >- (rpt conj_tac
       >- (unabbrev_all_tac >> irule FINITE_SUBSET
           >> qexists ‘nodes (get_underlying_graph fg)’ >> simp[SUBSET_DEF])
@@ -4487,36 +4592,48 @@ Proof
             suffices_by ASM_SET_TAC[]
           >> simp[]
          )
-         
       >- (unabbrev_all_tac
           >> simp[disjoint_def]
           >> rpt strip_tac
           >> qpat_assum ‘a = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
           >> qpat_assum ‘b = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
-          (* Not disjoint due to shared union *)
-          >> 
-          
-          >> unabbrev_all_tac
-          >> gvs[]
-          >> Cases_on ‘x = x'’ >> gvs[]
+          >> irule subtrees_disjoint
+          >> simp[]
+          >> ‘prev ≠ prev'’ by (CCONTR_TAC >> gvs[])
+          >> ‘src ≠ prev'’ by (CCONTR_TAC >> gvs[])
+          >> ‘src ≠ prev’ by (CCONTR_TAC >> gvs[])
+          >> simp[]
+          >> simp[adjacent_SYM]
          )
+      >> rpt gen_tac >> disch_tac
+      >> cheat
+     )
+     
+  (* Now that we've applied the generaliesd distributive law, there's a few
+     things we can simplify. *)
+  >> simp[IMAGE_CONST]
+  >> Cases_on ‘S = ∅’
+  >- (simp[] >> simp[Abbr ‘S’]
+      >> simp[Abbr ‘RHS’]
+      >> ‘nodes (subtree g dst src) ∪ {src} = ∅’ suffices_by simp[]
       >> 
-      >> 
-      (* *)
-      DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
 
-                               
-      (* *)
-      (* >> ‘∀x. x ∈ S ⇒ x ∈ nodes (get_underlying_graph fg)’ by gvs[Abbr ‘S’]*)
-                               
-                                   >> qmatch_goalsub_abbrev_tac ‘∏ _ S’
-                                >> ‘∀prev. prev ∈ S ⇒ adjacent (get_underlying_graph fg) prev src’
-                                  by gvs[Abbr ‘S’]
-                                >- (gvs[Abbr ‘S’]
-                                   )
-                                >> 
-                                
-                                >> gvs[]
+             
+      >> simp[EXTENSION]
+      >> metis_tac[]
+     )
+  >> Cases_on ‘S = ∅’
+  >- (simp[]
+     )
+     
+  >> rw[]
+  >- unabbrev_all_tac >> simp[sum_prod_def]
+  >> simp[Abbr ‘nsf’]
+  >> simp[Abbr ‘S’]
+  >> simp[bigunion_image_subtree]
+  >> unabbrev_all_tac
+     
+  >> gvs[]
 
 QED
 
@@ -4646,7 +4763,7 @@ QED
          corresponding set of fixed nodes. Do this here. *)
 >> sg ‘∃x_choice. x_choice ∈ val_map_assignments fg ns1 excl_val_map1’
 >- (simp[MEMBER_NOT_EMPTY]
-    >> PURE_REWRITE_TAC[val_map_assignments_empty, NOT_CLAUSES]
+    >> PURE_REWRITE_TAC[val_map_assignments_eq_empty, NOT_CLAUSES]
     >> rpt strip_tac
     >> simp[Abbr ‘excl_val_map1’]
     >> irule in_val_map_assignments_length_valid
