@@ -2081,6 +2081,30 @@ Proof
   >> rw[]
 QED
 
+Theorem funion_excl_val_map_in_val_map_assignments_diff:
+  ∀fg ns excl_val_map val_map.
+    val_map ∈ val_map_assignments fg (ns DIFF (FDOM excl_val_map)) FEMPTY ∧
+    ns ⊆ var_nodes fg ∧
+    FDOM excl_val_map ⊆ ns ∧
+    (∀n. n ∈ FDOM excl_val_map ⇒
+         LENGTH (excl_val_map ' n) = get_variable_length_map fg ' n) ⇒
+    excl_val_map ⊌ val_map ∈ val_map_assignments fg ns excl_val_map
+Proof
+  rpt strip_tac
+  >> sg ‘FDOM val_map = ns DIFF FDOM excl_val_map’
+  >- (irule in_val_map_assignments_fdom
+      >> qexistsl [‘FEMPTY’, ‘fg’] >> simp[]
+      >> gvs[SUBSET_DEF])
+  >> simp[val_map_assignments_def]
+  >> rpt conj_tac
+  >- simp[SUBSET_INTER1, GSYM SUBSET_UNION_ABSORPTION]
+  >- (gen_tac >> disch_tac
+      >> simp[FUNION_DEF] >> rw[]
+      >> gvs[val_map_assignments_def])
+  >> gen_tac >> disch_tac
+  >> simp[FUNION_DEF]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Write the set of assignments to values with one choice of fixed values in  *)
 (* terms of an image over the same set with another choice of fixed values.   *)
@@ -2088,6 +2112,10 @@ QED
 (* We require that the domain of fixed values doesn't change and that one set *)
 (* of fixed values has valid lengths if and only if the other set of fixed    *)
 (* values has vlaid lengths.                                                  *)
+(*                                                                            *)
+(* Possible improvement: if the excl_val_map has a different domain of fixed  *)
+(* values, perhaps we can still work with this by changing ns? See            *)
+(* val_map_assignments_remove_excl_val_map                                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem val_map_assignments_change_excl_val_map:
   ∀fg ns excl_val_map1 excl_val_map2.
@@ -3486,6 +3514,14 @@ Proof
   >> ASM_SET_TAC[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* I didn't notice this when I wrote it, but it turns out this is just a      *)
+(* slightly different form of drestrict_excl_val_map with poorer variable     *)
+(* naming. I keep it because perhaps the slight difference in the order of    *)
+(* the equality will make it easier to search for this theorem in             *)
+(* circumstances where this order makes more sense, after all, there's a      *)
+(* reason I didn't notice the other theorem when writing this.                *)
+(* -------------------------------------------------------------------------- *)
 Theorem drestrict_fdom_val_map_assignments:
   ∀fg ns f g.
     ns ⊆ var_nodes fg ∧
@@ -3698,6 +3734,70 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Alternate form of drestrict_excl_val_map. Typically, we work with the      *)
+(* assumption that FDOM excl_val_map is a subset of ns, as all sensible       *)
+(* choices of excl_val_map satisfy this. This allows us to simplify our final *)
+(* expression.                                                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem drestrict_excl_val_map_alt:
+  ∀fg ns excl_val_map val_map.
+    ns ⊆ var_nodes fg ∧
+    FDOM excl_val_map ⊆ ns ∧
+    val_map ∈ val_map_assignments fg ns excl_val_map ⇒
+    excl_val_map = DRESTRICT val_map (FDOM excl_val_map)
+Proof
+  metis_tac[drestrict_excl_val_map, FDOM_SUBSET_DRESTRICT]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Like val_map_assignments_chagnge_excl_val_map, but removes the map         *)
+(* completely and instead includes it in an image over the set.               *)
+(* -------------------------------------------------------------------------- *)
+Theorem val_map_assignments_remove_excl_val_map:
+  ∀fg ns excl_val_map.
+    ns ⊆ var_nodes fg ∧
+    FDOM excl_val_map ⊆ ns ∧
+    (∀n. n ∈ FDOM excl_val_map ⇒ LENGTH (excl_val_map ' n) =
+                                 get_variable_length_map fg ' n) ⇒
+    val_map_assignments fg ns excl_val_map =
+    IMAGE (FUNION excl_val_map)
+          (val_map_assignments fg (ns DIFF (FDOM excl_val_map)) FEMPTY)          
+Proof
+  rpt strip_tac
+  >> simp[EXTENSION]
+  >> qx_gen_tac ‘val_map’
+  >> EQ_TAC >> disch_tac                    
+  >- (‘FDOM val_map = ns’ by metis_tac[in_val_map_assignments_fdom]
+      (* We want x' to have the domain of all variable nodes other than the
+         domain of excl_val_map. It must also match val_map on its domain. *)
+      >> qexists ‘DRESTRICT val_map (ns DIFF (FDOM excl_val_map))’
+      >> rpt conj_tac
+      >- (Q.SUBGOAL_THEN
+           ‘excl_val_map = DRESTRICT val_map (FDOM excl_val_map)’
+           (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- metis_tac[drestrict_excl_val_map_alt]
+          >> simp[DRESTRICT_FUNION]
+          >> SYM_TAC
+          >> irule FDOM_SUBSET_DRESTRICT
+          >> simp[FDOM_DRESTRICT]
+          >> simp[SUBSET_DEF]
+         )
+      >> simp[val_map_assignments_def]
+      >> simp[FDOM_DRESTRICT]
+      >> conj_tac
+      >- (SYM_TAC >> irule SUBSET_INTER1 >> gvs[SUBSET_DEF])
+      >> gen_tac >> strip_tac
+      >> simp[DRESTRICT_DEF]
+      >> gvs[val_map_assignments_def]
+     )
+  >> gvs[]
+  >> rename1 ‘_ ⊌ val_map ∈ _’
+  >> irule funion_excl_val_map_in_val_map_assignments_diff
+  >> simp[]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
 (* nodes in that branch of the tree, where the variable node which is an      *)
@@ -3752,7 +3852,7 @@ Theorem sp_message_sum_prod:
         sum_prod_map fg sum_prod_ns {msg_var_node}
     else
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
-               
+                              
 Proof
   
   (* Simplify special case of invalid input to sp_message *)
@@ -4355,7 +4455,7 @@ Proof
                             ∩ get_function_nodes fg)’
   >> simp[]
 
-  >> 
+  
   
   >> qabbrev_tac ‘nsf = λprev. nodes (subtree g src prev) ∪ {src}’
   >> simp[]
