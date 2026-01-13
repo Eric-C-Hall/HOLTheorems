@@ -4698,22 +4698,19 @@ Proof
          )
       >> simp[]
      )
-  (**)
-     
-     
-  >> Cases_on ‘S = ∅’
-  >- (simp[]
-     )
-     
-  >> rw[]
-  >- unabbrev_all_tac >> simp[sum_prod_def]
-  >> simp[Abbr ‘nsf’]
-  >> simp[Abbr ‘S’]
-  >> simp[bigunion_image_subtree]
-  >> unabbrev_all_tac
-     
+  >> simp[]
+  (* Simplify S to a nicer expression *)
+  >> ‘S = adjacent_nodes g src DELETE dst’ by ASM_SET_TAC[]
   >> gvs[]
-
+  (* Simplify BIGUNION IMAGE subtree to a nicer expression *)
+  >> simp[Abbr ‘nsf’]
+  >> DEP_PURE_ONCE_REWRITE_TAC[bigunion_image_subtree]
+  >> conj_tac
+  >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+     
+  (* *)
+  >>
+  
 QED
 
 
