@@ -3804,27 +3804,59 @@ Proof
   >> simp[sum_prod_def]
 QED
 
-Theorem sum_prod_effectively_empty:
-  ∀fg ns excl_val_map.
-    ns ∩ get_function_nodes fg = ∅ ⇒
-    sum_prod fg ns excl_val_map = 1
+Theorem val_map_assignments_fdom_excl_val_map_general:
+  ∀fg excl_val_map.
+    (∀n. n ∈ FDOM excl_val_map ∧ n ∈ var_nodes fg ⇒
+         LENGTH (excl_val_map ' n) = get_variable_length_map fg ' n) ⇒
+    val_map_assignments fg (FDOM excl_val_map) excl_val_map =
+    { DRESTRICT excl_val_map (var_nodes fg) }
 Proof
   rpt strip_tac
-  >> simp[sum_prod_def]
-  >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+  >> simp[EXTENSION]
+  >> qx_gen_tac ‘val_map’
+  >> EQ_TAC >> disch_tac
+  >- (simp[GSYM fmap_EQ_THM]
+      >> conj_tac
+      >- (irule in_val_map_assignments_fdom >> simp[FDOM_DRESTRICT]
+          >> qexistsl [‘excl_val_map’, ‘fg’]
+          >> simp[GSYM val_map_assignments_restrict_nodes]
+         )
+      >> rpt strip_tac
+      >> gvs[val_map_assignments_def, DRESTRICT_DEF])
+  >> simp[val_map_assignments_def]
+  >> simp[FDOM_DRESTRICT]
+  >> rpt strip_tac
+  >- simp[DRESTRICT_DEF]
+  >> simp[DRESTRICT_DEF]
+QED
+
+Theorem val_map_assignments_fdom_excl_val_map:
+  ∀fg excl_val_map.
+    FDOM excl_val_map ⊆ var_nodes fg ∧
+    (∀n. n ∈ FDOM excl_val_map ⇒
+         LENGTH (excl_val_map ' n) = get_variable_length_map fg ' n) ⇒
+    val_map_assignments fg (FDOM excl_val_map) excl_val_map =
+    { excl_val_map }
+Proof
+  rpt strip_tac
+  >> Q.SUBGOAL_THEN ‘excl_val_map = DRESTRICT excl_val_map (var_nodes fg)’
+      (fn th => simp[Cong RHS_CONG, Once th])
+  >- simp[FDOM_SUBSET_DRESTRICT]
+  >> irule val_map_assignments_fdom_excl_val_map_general
+  >> rpt strip_tac
   >> simp[]
 QED
 
-Theorem sum_prod_effectively_empty:
-  ∀fg ns excl_val_map.
-    ns ∩ var_nodes fg = ∅ ⇒
-    sum_prod fg ns excl_val_map = 1
+Theorem length_get_path_1:
+  ∀g a b.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ⇒
+    (LENGTH (get_path g a b) = 1 ⇔ a = b)
 Proof
-  gfdkljdlfg
   rpt strip_tac
-        >> simp[sum_prod_def]
-        >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
-        >> simp[]
+  >> EQ_TAC >> disch_tac >> gvs[]
+  >> Cases_on ‘get_path g a b’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -3882,9 +3914,9 @@ Theorem sp_message_sum_prod:
         sum_prod_map fg sum_prod_ns {msg_var_node}
     else
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
-                              
+               
 Proof
-  
+
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -4478,11 +4510,11 @@ Proof
   >> qmatch_abbrev_tac ‘∏ _ S = RHS : extreal’
   >> qabbrev_tac ‘ff = λprev val_map.
                          ∏ (λfunc_node.
-                            (get_function_map fg)
-                            ' func_node '
-                            (DRESTRICT val_map (adjacent_nodes g func_node))
-                         ) ((nodes (subtree g src prev) ∪ {src})
-                            ∩ get_function_nodes fg)’
+                              (get_function_map fg)
+                              ' func_node '
+                              (DRESTRICT val_map (adjacent_nodes g func_node))
+                           ) ((nodes (subtree g src prev) ∪ {src})
+                              ∩ get_function_nodes fg)’
   >> simp[]
   (* Useful reusable properties *)
   >> sg ‘FDOM excl_val_map = {src}’
@@ -4528,7 +4560,7 @@ Proof
   >> Q.SUBGOAL_THEN
       ‘LHS = ∏ (λprev.
                   ∑ (λx. ff prev (excl_val_map ⊌ x))
-                      (val_map_assignments fg (nodes (subtree g src prev)) FEMPTY)
+                    (val_map_assignments fg (nodes (subtree g src prev)) FEMPTY)
                ) S’
       (fn th => PURE_ONCE_REWRITE_TAC[th])
   >- (simp[Abbr ‘LHS’]
@@ -4608,20 +4640,67 @@ Proof
       >> rpt gen_tac >> disch_tac
       >> cheat
      )
-     
-  (* Now that we've applied the generaliesd distributive law, there's a few
+  (* Now that we've applied the generalised distributive law, there's a few
      things we can simplify. *)
   >> simp[IMAGE_CONST]
   >> Cases_on ‘S = ∅’
   >- (simp[] >> simp[Abbr ‘S’]
       >> simp[Abbr ‘RHS’]
-      >> ‘nodes (subtree g dst src) ∪ {src} = ∅’ suffices_by simp[]
-      >> 
-
-             
-      >> simp[EXTENSION]
-      >> metis_tac[]
+      >> sg ‘nodes (subtree g dst src) ∪ {src} = {src}’
+      >- (simp[EXTENSION]
+          >> gen_tac >> EQ_TAC >> disch_tac >> simp[]
+          >> gvs[]
+          >> CCONTR_TAC
+          (* Since x is strictly beyond dst - src, the first step on src - x
+             will exist, contradicting the fact that there are no nodes adjacent
+             to src other than dst. *)
+          >> qpat_x_assum ‘_ = ∅’ mp_tac
+          >> simp[EXTENSION]
+          >> qexists ‘EL 1 (get_path g src x)’
+          (* x is beyond dst - src *)
+          >> qpat_x_assum ‘x ∈ nodes (subtree g dst src)’ mp_tac
+          >> simp[subtree_def]
+          >> strip_tac
+          >> sg ‘2 ≤ LENGTH (get_path g src x)’
+          >- (Cases_on ‘LENGTH (get_path g src x)’ >> gvs[]
+              >> Cases_on ‘n’ >> gvs[]
+              >> gvs[length_get_path_1]
+             )
+          >> sg ‘EL 1 (get_path g src x) ∈ nodes g’
+          >- (irule mem_get_path_in_nodes
+              >> qexistsl [‘src’, ‘x’]
+              >> simp[EL_MEM]
+             )
+          >> simp[]
+          >> conj_tac
+          >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+              >> simp[adjacent_el_get_path])
+          >> CCONTR_TAC >> gvs[]
+          >> qpat_x_assum ‘MEM _ _’ mp_tac >> PURE_ONCE_REWRITE_TAC[IMP_CLAUSES]
+          >> irule mem_not_swap_first
+          >> simp[EL_MEM]
+         )
+      >> simp[]
+      >> simp[sum_prod_def]
+      >> ‘{src} ∩ get_function_nodes fg = ∅’ by ASM_SET_TAC[]
+      >> simp[]
+      >> qpat_assum ‘FDOM excl_val_map = {src}’
+                    (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> DEP_PURE_ONCE_REWRITE_TAC[val_map_assignments_fdom_excl_val_map]
+      >> conj_tac
+      >- (conj_tac
+          >- (gvs[]
+              >> simp[SUBSET_DEF]
+              >> rpt strip_tac
+              >> gvs[])
+          >> rpt strip_tac
+          >> gvs[val_map_assignments_def]
+         )
+      >> simp[]
      )
+  (**)
+     
+     
   >> Cases_on ‘S = ∅’
   >- (simp[]
      )
