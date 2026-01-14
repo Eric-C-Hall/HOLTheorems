@@ -96,7 +96,7 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (* - If we have b - c - d, with adjacent b c, and also we have adjacent a b,  *)
 (*   and a ≠ c, then we have a - b - d. That is, we can extend a path at the  *)
 (*   front by one if the new adjacent node is different to the adjacent node  *)
-(*   that is already on the path.                                             *)
+(*   that is already on the path. (extend_front_adjacent)                     *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -2674,6 +2674,36 @@ Theorem mem_get_path_before_last:
 Proof
   rpt gen_tac >> strip_tac
   >> simp[get_path_before_last, mem_front_get_path]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we have b - c - d, with adjacent b c, and also we have adjacent a b,    *)
+(* and a ≠ c, then we have a - b - d. That is, we can extend a path at the    *)
+(* front by one if the new adjacent node is different to the adjacent node    *)
+(* that is already on the path.                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem extend_front_adjacent:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
+    is_tree g ∧
+    d ∈ nodes g ∧
+    adjacent g b c ∧
+    adjacent g a b ∧
+    a ≠ c ∧
+    a ≠ b ∧ (* In most circumstances, follows from adjacent g a b *)
+    b ≠ c ∧ (* In most circumstances, follows from adjacent g b c *)
+    MEM c (get_path g b d) ⇒
+    MEM b (get_path g a d)
+Proof
+  rpt strip_tac
+  >> ‘a ∈ nodes g ∧ b ∈ nodes g ∧ c ∈ nodes g’ by metis_tac[adjacent_members]
+  >> irule join_overlapping_paths_mem
+  >> simp[]
+  >> qexists ‘c’
+  >> simp[]
+  >> sg ‘get_path g a c = [a; b; c]’
+  >- (irule adjacent_get_path_2_steps
+      >> simp[])
+  >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
