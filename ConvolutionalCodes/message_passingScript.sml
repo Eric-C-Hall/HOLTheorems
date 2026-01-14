@@ -3859,6 +3859,61 @@ Proof
   >> Cases_on ‘get_path g a b’ >> gvs[]
 QED
 
+Theorem var_nodes_subset_nodes:
+  ∀fg.
+    var_nodes fg ⊆ nodes (get_underlying_graph fg)
+Proof
+  simp[SUBSET_DEF]
+QED
+
+Theorem in_var_nodes_in_nodes:
+  ∀x fg.
+    x ∈ var_nodes fg ⇒ x ∈ nodes (get_underlying_graph fg)
+Proof
+  simp[]
+QED
+
+Theorem get_function_nodes_subset_nodes:
+  ∀fg.
+    get_function_nodes fg ⊆ nodes (get_underlying_graph fg)
+Proof
+  gen_tac
+  >> simp[get_underlying_graph_def, get_function_nodes_def]
+  >> ‘wffactor_graph (factor_graph_REP fg)’ by simp[]
+  >> ‘gen_bipartite_ea (factor_graph_REP fg).underlying_graph
+      (factor_graph_REP fg).function_nodes’ by metis_tac[wffactor_graph_def]
+  >> gvs[gen_bipartite_ea_def]
+QED
+
+Theorem in_get_function_nodes_in_nodes:
+  ∀x fg.
+    x ∈ get_function_nodes fg ⇒ x ∈ nodes (get_underlying_graph fg)
+Proof
+  rpt strip_tac
+  >> assume_tac get_function_nodes_subset_nodes
+  >> gvs[SUBSET_DEF]
+QED
+
+Theorem nodes_diff_var_nodes:
+  ∀fg.
+    nodes (get_underlying_graph fg) DIFF var_nodes fg = get_function_nodes fg
+Proof
+  gen_tac
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> EQ_TAC >> simp[in_get_function_nodes_in_nodes]
+  >> strip_tac
+QED
+
+Theorem finite_get_function_nodes[simp]:
+  ∀fg.
+    FINITE (get_function_nodes fg)
+Proof
+  gen_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
+  >> simp[]
+QED
+        
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
@@ -4767,8 +4822,19 @@ Proof
   >> conj_tac
   >- (simp[Abbr ‘S2’, FINITE_INTER])
   (* *)
-  >> 
-  
+  >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
+  >> REVERSE conj_tac
+             
+  >- (simp[]
+      >> rpt strip_tac
+      >> simp[Abbr ‘S2’]
+      >> disj2_tac
+      >> irule INTER_FINITE
+      >> simp[]
+     )
+
+
+     
 QED
 
 
