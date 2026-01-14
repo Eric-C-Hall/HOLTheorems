@@ -24,6 +24,7 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*                                                                            *)
 (* - "a - b" denotes the path from a to b                                     *)
 (* - "a - b - c" denotes that b is on a - c                                   *)
+(* - "a ~ b" denotes that a is adjacent to b                                  *)
 (* - "a ++ b" denotes appending two paths                                     *)
 (* -------------------------------------------------------------------------- *)
 
@@ -47,8 +48,8 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   value, there's a point at which they converge                            *)
 (*   (exists_point_of_convergence)                                            *)
 (*                                                                            *)
-(* - If x is on a-b and x is adjacent to a, then it is the first step on a-b. *)
-(*        (adjacent_mem_get_path)                                             *)
+(* - If a ~ x - b then x = EL 1 (a - b) (adjacent_mem_get_path_first_step)    *)
+(*   (adjacent_mem_get_path_first_step_alt)                                   *)
 (*                                                                            *)
 (* - A tree has no cycles (from definition)                                   *)
 (*                                                                            *)
@@ -67,11 +68,11 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   a - c (path_continuation_mem)                                            *)
 (* - The reverse of a - b is b - a (get_path_reverse)                         *)
 (* - a - b - c iff c - b - a (mem_get_path_reverse)                           *)
-(* - If b is on a - c, then the first step towards b is the first step        *)
-(*   towards c. (first_step_on_path_same)                                     *)
-(* - If b is on a - c, then the first step from b - a is not equal to the     *)
-(*   first step from b - c (so we don't immediately start heading backwards   *)
-(*   upon reaching b) (el_one_not_equal_path)                                 *)
+(* - If a - b - c, then the first step towards b is the first step towards c. *)
+(*   (first_step_on_path_same)                                                *)
+(* - If a - b - c, then the first step from b - a is not equal to the first   *)
+(*   step from b - c (so we don't immediately start heading backwards         *)
+(*   upon reaching b) (first_step_not_equal_path)                             *)
 (* - If c is in the subtree defined by a - b, then the subtree defined by     *)
 (*   b - c is a subset of the subtree defined by a - b.                       *)
 (*   (subtree_subset)                                                         *)
@@ -80,11 +81,11 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   defined by a - b. (order_subtree_lt_adjacent)                            *)
 (* - A node n is in the subtree defined by a - b if and only if we have       *)
 (*   a - b - n, that is, b is on a - n (definition of subtree)                *)
-(* - If a and b are adjacent, then a - b = [a; b] (adjacent_get_path)         *)
-(* - If we have a and c adjacent to b, and a is not equal to c, then a - c    *)
-(*   is equal to [a; b; c] (adjacent_get_path_2_steps)                        *)
-(* - The first step on a path is adjacent to the origin.                      *)
-(*   (adjacent_el_get_path)                                                   *)
+(* - a ~ b = [a; b] (adjacent_get_path)                                       *)
+(* - If a ~ b and b ~ c and a ≠ c, then a - c = [a; b; c]                     *)
+(*   (adjacent_get_path_2_steps)                                              *)
+(* - a ~ EL 1 (a - b) (adjacent_first_step)                                   *)
+(* - If a ~ b and b ~ c then ¬(a ~ c) (is_tree_no_triangle)                   *)
 (* - An expression for the intersection between adjacent nodes and the nodes  *)
 (*   in a subtree (adjacent_nodes_inter_nodes_subtree)                        *)
 (* - The union of subtrees one level down will get you the tree minus the     *)
@@ -92,16 +93,23 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (* - If we have a - b - c, then we cannot have b - a - c, this won't be a     *)
 (*   valid path at the same time as a - b - c being a valid path              *)
 (*   (mem_not_swap_first)                                                     *)
-(* - If we have b - c - d, with adjacent b c, and also we have adjacent a b,  *)
-(*   and a ≠ c, then we have a - b - d. That is, we can extend a path at the  *)
-(*   front by one if the new adjacent node is different to the adjacent node  *)
-(*   that is already on the path. (extend_front_adjacent)                     *)
+(* - If we have b ~ c - d and a ~ b and a ≠ c, then we have a ~ b - d. That   *)
+(*   is, we can extend a path at the front by one if the new adjacent node is *)
+(*   different to the adjacent node that is already on the path.              *)
+(*   (extend_front_adjacent)                                                  *)
 (* - If a - b - d and b - c - d, then a - c - d (midpoint_push)               *)
 (* - If a - c - d and a - b - c, then a - b - d (midpoint_pull)               *)
 (* - If we have a - b - d and b - c - d, then a - b - c                       *)
 (*   (restrict_overlapping_paths_pull)                                        *)
 (* - If we have a - b - c and b - c - d, then b - c - d                       *)
 (*   (restrict_overlapping_paths_push)                                        *)
+(* - If a - b - c and we move c to an adjacent node d, then a - b - d unless  *)
+(*   d is the first on b - a. (move_end_to_adjacent)                          *)
+(* - If a - b - c and adjacent a b and adjacent c d, then a - b - d unless    *)
+(*   d = a. (move_end_to_adjacent_adjacent)                                   *)
+(*                                                                            *)
+(* - If a ~ b then either b = EL 1 (a - c) or a = EL 1 (b - c)                *)
+(*   (adjacent_is_first_step)                                                 *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -284,7 +292,7 @@ Proof
      If this walk had a repeated vertex in it, then we could find a shorter
      walk by skipping from the first index of the vertex to the second instance
      of the vertex.
-   *)
+                                                                                                   *)
   (* Prove well-formedness of the relation which compares two walks and returns
      true if one is shorter than the other *)
   >> sg ‘WF (inv_image $< (λvs : (α + num) list. LENGTH vs))’
@@ -1748,7 +1756,7 @@ QED
 (* This follows from uniqueness of paths: otherwise, we could choose either   *)
 (* go directly to x or we could choose to take the long way via the path.     *)
 (* -------------------------------------------------------------------------- *)
-Theorem adjacent_mem_get_path:
+Theorem adjacent_mem_get_path_first_step:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b x.
     is_tree g ∧
     b ∈ nodes g ∧
@@ -1777,7 +1785,7 @@ Proof
   >> Cases_on ‘n'’ >> gvs[]
 QED
 
-Theorem adjacent_mem_get_path_alt:
+Theorem adjacent_mem_get_path_first_step_alt:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b x.
     is_tree g ∧
     b ∈ nodes g ∧
@@ -1786,7 +1794,7 @@ Theorem adjacent_mem_get_path_alt:
     x ≠ a ⇒
     EL 1 (get_path g a b) = x
 Proof
-  metis_tac[adjacent_mem_get_path]
+  metis_tac[adjacent_mem_get_path_first_step]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1810,8 +1818,8 @@ Proof
   >> gvs[EXTENSION]
   >> rpt strip_tac
   >> CCONTR_TAC >> gvs[]
-  >> ‘EL 1 (get_path g root' x) = n’ by metis_tac[adjacent_mem_get_path]
-  >> ‘EL 1 (get_path g root' x) = m’ by metis_tac[adjacent_mem_get_path]
+  >> ‘EL 1 (get_path g root' x) = n’ by metis_tac[adjacent_mem_get_path_first_step]
+  >> ‘EL 1 (get_path g root' x) = m’ by metis_tac[adjacent_mem_get_path_first_step]
   >> metis_tac[]
 QED
 
@@ -1831,7 +1839,7 @@ Proof
   >> simp[]
 QED
 
-Theorem adjacent_el_get_path[simp]:
+Theorem adjacent_first_step[simp]:
   ∀g a b.
     a ≠ b ∧
     exists_path g a b ⇒
@@ -1848,7 +1856,7 @@ Proof
   >> gvs[path_def, walk_def]
 QED
 
-Theorem hd_not_el_one_get_path[simp]:
+Theorem hd_not_first_step[simp]:
   ∀g a b.
     a ≠ b ∧
     exists_path g a b ⇒
@@ -2027,7 +2035,7 @@ Proof
   >> gvs[path_append]
   (* Basic simplifications *)
   >> conj_tac >- (irule path_tl >> gvs[])
-  >> conj_tac >- (gvs[HD_TL, adjacent_el_get_path])
+  >> conj_tac >- (gvs[HD_TL, adjacent_first_step])
   >> rpt strip_tac
   (* Now we need to show that the two subpaths are distinct with respect to
      each other. We do this by using subtrees_distinct to show that the
@@ -2083,7 +2091,7 @@ Proof
   >> gvs[]
 QED
 
-Theorem el_one_not_equal_path:
+Theorem first_step_not_equal_path:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
     is_tree g ∧
     a ∈ nodes g ∧
@@ -2181,7 +2189,7 @@ Proof
   (* Since a-c is a path with b on it, the first element back from b is
      different to the first element forward from b. *)
   >> irule NEQ_SYM
-  >> irule el_one_not_equal_path
+  >> irule first_step_not_equal_path
   >> gvs[]
 QED
 
@@ -2454,7 +2462,7 @@ Proof
   >> gvs[]
   >> simp[subtree_def, first_step_in_nodes]
   >> ‘EL 1 (get_path g a b) = b’ suffices_by simp[]
-  >> irule adjacent_mem_get_path_alt
+  >> irule adjacent_mem_get_path_first_step_alt
   >> simp[]
 QED
 
@@ -2596,7 +2604,7 @@ Proof
   >> simp[mem_first_step_subpath]
 QED
 
-Theorem get_path_before_last:
+Theorem get_path_last_step:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
     is_tree g ∧
     a ∈ nodes g ∧
@@ -2624,7 +2632,7 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_get_path]
   >> conj_tac
   >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM]
-      >> simp[adjacent_el_get_path])
+      >> simp[adjacent_first_step])
   >> simp[]
 QED
 
@@ -2668,7 +2676,7 @@ Proof
   >> simp[]
 QED
 
-Theorem mem_get_path_before_last:
+Theorem mem_get_path_last_step:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b x.
     is_tree g ∧
     a ∈ nodes g ∧
@@ -2678,7 +2686,7 @@ Theorem mem_get_path_before_last:
        MEM x (get_path g a b) ∧ x ≠ b)
 Proof
   rpt gen_tac >> strip_tac
-  >> simp[get_path_before_last, mem_front_get_path]
+  >> simp[get_path_last_step, mem_front_get_path]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -2812,6 +2820,91 @@ Theorem restrict_overlapping_paths_push:
 Proof
   metis_tac[restrict_overlapping_paths_pull, mem_get_path_reverse]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* If a ~ b then either b = EL 1 (a - c) or a = EL 1 (b - c)                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_is_first_step:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    c ∈ nodes g ∧
+    adjacent g a b ∧
+    a ≠ b ⇒
+    b = EL 1 (get_path g a c) ∨ a = EL 1 (get_path g b c)
+Proof
+  rpt strip_tac
+  >> ‘a ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘b’ >> simp[])
+  >> ‘b ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘a’ >> simp[])
+  >> Cases_on ‘b = c’
+  >- (gvs[]
+      >> ‘get_path g a b = [a;b]’ by (irule adjacent_get_path >> simp[])
+      >> simp[])
+  (* We have a ~ b
+     We have b ~ EL 1 (b - c)
+     In case where EL 1 (b - c) = a we are done
+     Otherwise, we get a ~ b ~ EL 1 (b - c)
+     We also have b ~ EL 1 (b - c) - c
+     We can join these together to get a ~ b - c
+     Now our adjacent first step is a member of the path, so we can use
+     adjacent_mem_get_path_first_step_alt to solve.
+   *)
+  >> ‘adjacent g b (EL 1 (get_path g b c))’
+    by (irule adjacent_first_step >> simp[])
+  >> Cases_on ‘a = EL 1 (get_path g b c)’ >> simp[]
+  >> qmatch_asmsub_abbrev_tac ‘adjacent _ _ first_step’
+  >> ‘first_step ∈ nodes g’
+    by (unabbrev_all_tac >> irule first_step_in_nodes >> simp[])
+  >> ‘get_path g a first_step = [a;b;first_step]’
+    by (irule adjacent_get_path_2_steps >> simp[]
+        >> disch_tac
+        >> qpat_x_assum ‘Abbrev (first_step = _)’ mp_tac
+        >> simp[Abbrev_def]
+        >> DEP_PURE_ONCE_REWRITE_TAC[hd_not_first_step]
+        >> simp[]
+        >> disch_tac
+        >> gvs[])
+  >> ‘MEM b (get_path g a first_step)’ by simp[]
+  >> ‘MEM first_step (get_path g b c)’
+    by (simp[Abbr ‘first_step’] >> simp[MEM_EL] >> qexists ‘1’ >> simp[])
+  >> ‘MEM b (get_path g a c)’
+    by (irule join_overlapping_paths_mem
+        >> simp[]
+        >> qexists ‘first_step’
+        >> simp[]
+        >> disch_tac >> gvs[Abbrev_def])
+  >> SYM_TAC
+  >> irule adjacent_mem_get_path_first_step_alt
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If a - b - c and adjacent c d, then a - b - d unless d is the first on     *)
+(* b - a.                                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem move_end_to_adjacent:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    MEM b (get_path g a c) ∧
+    adjacent g c d ∧
+    EL 1 (get_path g b a) ≠ d ⇒
+    MEM b (get_path g a d)
+Proof
+  
+  rpt strip_tac
+  >> ‘c ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘d’ >> simp[])
+  >> ‘b ∈ nodes g’ by (irule mem_get_path_in_nodes >> qexistsl [‘a’, ‘c’]
+                       >> simp[])
+  >> 
+QED
+
+(* - If a - b - c and adjacent a b and adjacent c d, then a - b - d unless    *)
+(*   d = a.                                                                   *)
+Theorem move_end_to_adjacent_adjacent:
+
+Proof
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)

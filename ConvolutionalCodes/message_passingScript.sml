@@ -4832,8 +4832,7 @@ Proof
   (* The appropriate bijection between elements being iterated over on the LHS
      and elements being iterated over on the RHS. *)
   >> qexists ‘SND’
-  >> conj_tac
-     
+  >> conj_tac     
   >- (simp[BIJ_THM]
       >> conj_tac
       >- (gen_tac >> strip_tac
@@ -4856,8 +4855,7 @@ Proof
       >> rpt strip_tac
       >> simp[EXISTS_UNIQUE_THM]
       >> conj_tac
-      (* Existance *)
-         
+      (* Existance *)         
       >- (simp[Abbr ‘S2’]
           >> gvs[subtree_def]
           (* dst - src - prev - y
@@ -4870,11 +4868,18 @@ Proof
                        ∩ nodes (get_underlying_graph fg)
                        ∩ {v | MEM prev (get_path (get_underlying_graph fg) src v)})’
           >> simp[]
-          >> conj_tac
-          >- cheat (* ! *)
+          (* Prove src - prev - y *)
+          >> sg ‘MEM prev (get_path (get_underlying_graph fg) src y)’
+          >- (simp[Abbr ‘prev’] >> irule EL_MEM >> simp[]
+              >> disch_tac
+              >> qpat_x_assum ‘src ∉ get_function_nodes fg’ mp_tac
+              >> qpat_x_assum ‘y ∈ get_function_nodes fg’ mp_tac
+              >> simp[]
+             )
+          >> simp[]
+          (* *)
           >> qexists ‘prev’
-          >> simp[INTER_ASSOC]
-             
+          >> simp[INTER_ASSOC]             
           >> sg ‘adjacent (get_underlying_graph fg) prev src’
           >- (simp[Abbr ‘prev’]
               >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
@@ -4892,22 +4897,32 @@ Proof
              We have dst - src - y.
              We have prev = EL 1 (src - y).
              Thus src - prev - y
-
-                
-             
+             Thus dst - src - prev by restrict_overlapping_paths_pull
+             Thus prev ≠ dst, because otherwise dst - prev would be [dst]
            *)
-          >> simp[Abbr ‘prev’]
-          >> cheat
-         )
-          (* Uniqueness*)
+          >> ‘MEM src (get_path (get_underlying_graph fg) dst prev)’
+            by (irule restrict_overlapping_paths_pull >> simp[]
+                >> qexists ‘y’ >> simp[])
+          >> disch_tac
+          >> qpat_x_assum ‘MEM src (get_path _ dst prev)’ mp_tac
+          >> simp[]
+         )         
+      (* Uniqueness*)
       >> rpt strip_tac
       >> Cases_on ‘x’ >> Cases_on ‘x'’ >> gvs[Abbr ‘S2’]
       >> CCONTR_TAC
       (* r is beyond both prev and prev'. This contradicts the fact that
-         prev and prev' are two distinct, adjacent , because if you pick one
-         path, you shouldn't ever be able to reach the same node as if you
-         pick another path in a tree. *)
-      >> cheat
+         prev and prev' are two distinct, nodes adjacent to src, because if you
+         pick one path from a given origin, you shouldn't ever be able to reach
+         the same node as if you pick another path from that origin, assuming
+         that we are working in a tree. *)
+      >> qspecl_then [‘get_underlying_graph fg’, ‘src’, ‘prev’, ‘prev'’]
+                     mp_tac subtrees_disjoint
+      >> simp[adjacent_SYM]
+      >> conj_tac
+      >- metis_tac[]
+      >> simp[DISJOINT_ALT]
+      >> qexists ‘r’ >> simp[]
      )
   >> gen_tac >> disch_tac
   >> Cases_on ‘x’ >> gvs[]
@@ -4917,10 +4932,16 @@ Proof
   >> simp[SUBSET_DEF]
   >> gen_tac >> strip_tac
   >> simp[Abbr ‘S2’]
-
+  >> gvs[subtree_def]
+  (* We have src - prev - r
+     We have adjacent x r
+     We have x ≠ src
+     We want src - prev - x *)
+  >>
+  (* *)
   
 
-      
+  
 QED
 
 
