@@ -25,8 +25,6 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (* - "a - b" denotes the path from a to b                                     *)
 (* - "a - b - c" denotes that b is on a - c                                   *)
 (* - "a ++ b" denotes appending two paths                                     *)
-(* - We use (tr) to denote that the given theorem holds only for trees        *)
-(* - TODO: Replace with a tag to denote theorems that hold even if not a tree *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -34,14 +32,14 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*                                                                            *)
 (* - Paths in a connected graph exist between any two points                  *)
 (*   (connected_exists_path)                                                  *)
-(* - Paths in a tree are unique (tr) (is_tree_path_unique)                    *)
+(* - Paths in a tree are unique (is_tree_path_unique)                         *)
 (* - A walk may be restricted to a path (restrict_walk_to_path)               *)
-(* - If c and d are on a - b, then c - d is a subpath of a - b (tr)           *)
+(* - If c and d are on a - b, then c - d is a subpath of a - b                *)
 (*   (get_path_drop_take)                                                     *)
-(* - We have a - c = (a - b) ++ (b - c), so long as b is on a - c (tr).       *)
+(* - We have a - c = (a - b) ++ (b - c), so long as b is on a - c     .       *)
 (*   (get_path_append)                                                        *)
 (* - If we have a - b - c and b - c - d, then we have a - b - d. In other     *)
-(*   words, we may join together two overlapping paths. (tr)                  *)
+(*   words, we may join together two overlapping paths.                       *)
 (*   (join_overlapping_paths_mem)                                             *)
 (* - If we have two nonequal paths that start with the same value, there is   *)
 (*   a point at which they diverge (exists_point_of_divergence)               *)
@@ -50,53 +48,60 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   (exists_point_of_convergence)                                            *)
 (*                                                                            *)
 (* - If x is on a-b and x is adjacent to a, then it is the first step on a-b. *)
-(*   (tr) (adjacent_mem_get_path)                                             *)
+(*        (adjacent_mem_get_path)                                             *)
 (*                                                                            *)
-(* - A tree has no cycles (from definition) (tr)                              *)
+(* - A tree has no cycles (from definition)                                   *)
 (*                                                                            *)
 (* TODO: clean up the following documentation. I think it can be made simpler *)
 (*                                                                            *)
 (* - If we have two paths starting at the same point and the first step is    *)
-(*   distinct, then the paths as a whole will be completely distinct (tr)     *)
+(*   distinct, then the paths as a whole will be completely distinct          *)
 (*   (first_step_distinct_path_distinct)                                      *)
 (* - Choosing a different first step from a given point will result in a      *)
-(*   disjoint subtree. (tr) (subtrees_distinct) (subtrees_disjoint)           *)
+(*   disjoint subtree.  (subtrees_distinct) (subtrees_disjoint)               *)
 (* - We can join together a - b and b - c, as long as the first step on       *)
 (*   b - a is not the first step on b - c, i.e. we don't immediately start    *)
 (*   heading backwards upon reaching b. We don't require that b is on a - c.  *)
-(*   (tr) (path_continuation)                                                 *)
+(*   (path_continuation)                                                      *)
 (* - If the first step on b - c is not the first step on b - a, then b is on  *)
-(*   a - c (tr) (path_continuation_mem)                                       *)
-(* - The reverse of a - b is b - a (tr) (get_path_reverse)                    *)
+(*   a - c (path_continuation_mem)                                            *)
+(* - The reverse of a - b is b - a (get_path_reverse)                         *)
+(* - a - b - c iff c - b - a (mem_get_path_reverse)                           *)
 (* - If b is on a - c, then the first step towards b is the first step        *)
-(*   towards c. (tr) (first_step_on_path_same)                                *)
+(*   towards c. (first_step_on_path_same)                                     *)
 (* - If b is on a - c, then the first step from b - a is not equal to the     *)
 (*   first step from b - c (so we don't immediately start heading backwards   *)
-(*   upon reaching b) (tr) (el_one_not_equal_path)                            *)
+(*   upon reaching b) (el_one_not_equal_path)                                 *)
 (* - If c is in the subtree defined by a - b, then the subtree defined by     *)
-(*   b - c is a subset of the subtree defined by a - b. (tr)                  *)
+(*   b - c is a subset of the subtree defined by a - b.                       *)
 (*   (subtree_subset)                                                         *)
 (* - If we have a - b - c adjacent to each other, then the order of the       *)
 (*   subtree defined by b - c is strictly less than the order of the subtree  *)
-(*   defined by a - b. (tr) (order_subtree_lt_adjacent)                       *)
+(*   defined by a - b. (order_subtree_lt_adjacent)                            *)
 (* - A node n is in the subtree defined by a - b if and only if we have       *)
 (*   a - b - n, that is, b is on a - n (definition of subtree)                *)
-(* - If a and b are adjacent, then a - b = [a; b] (tr) (adjacent_get_path)    *)
+(* - If a and b are adjacent, then a - b = [a; b] (adjacent_get_path)         *)
 (* - If we have a and c adjacent to b, and a is not equal to c, then a - c    *)
-(*   is equal to [a; b; c] (tr) (adjacent_get_path_2_steps)                   *)
+(*   is equal to [a; b; c] (adjacent_get_path_2_steps)                        *)
 (* - The first step on a path is adjacent to the origin.                      *)
 (*   (adjacent_el_get_path)                                                   *)
 (* - An expression for the intersection between adjacent nodes and the nodes  *)
-(*   in a subtree (tr) (adjacent_nodes_inter_nodes_subtree)                   *)
+(*   in a subtree (adjacent_nodes_inter_nodes_subtree)                        *)
 (* - The union of subtrees one level down will get you the tree minus the     *)
-(*   root node (tr) (bigunion_image_subtree_subtree)                          *)
+(*   root node (bigunion_image_subtree_subtree)                               *)
 (* - If we have a - b - c, then we cannot have b - a - c, this won't be a     *)
-(*   valid path at the same time as a - b - c being a valid path (tr)         *)
+(*   valid path at the same time as a - b - c being a valid path              *)
 (*   (mem_not_swap_first)                                                     *)
 (* - If we have b - c - d, with adjacent b c, and also we have adjacent a b,  *)
 (*   and a ≠ c, then we have a - b - d. That is, we can extend a path at the  *)
 (*   front by one if the new adjacent node is different to the adjacent node  *)
 (*   that is already on the path. (extend_front_adjacent)                     *)
+(* - If a - b - d and b - c - d, then a - c - d (midpoint_push)               *)
+(* - If a - c - d and a - b - c, then a - b - d (midpoint_pull)               *)
+(* - If we have a - b - d and b - c - d, then a - b - c                       *)
+(*   (restrict_overlapping_paths_pull)                                        *)
+(* - If we have a - b - c and b - c - d, then b - c - d                       *)
+(*   (restrict_overlapping_paths_push)                                        *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -2704,6 +2709,108 @@ Proof
   >- (irule adjacent_get_path_2_steps
       >> simp[])
   >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* a - b - c iff c - b - a                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem mem_get_path_reverse:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    c ∈ nodes g ⇒
+    (MEM b (get_path g a c) ⇔ MEM b (get_path g c a))
+Proof
+  rpt strip_tac
+  >> metis_tac[get_path_reverse, MEM_REVERSE]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If a - b - d and b - c - d, then a - c - d                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem midpoint_push:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    d ∈ nodes g ∧
+    MEM b (get_path g a d) ∧
+    MEM c (get_path g b d) ⇒
+    MEM c (get_path g a d)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘c = b’ >> simp[]
+  >> ‘b ∈ nodes g’ by metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
+  >> ‘c ∈ nodes g’ by metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
+  >> qspecl_then [‘g’, ‘a’, ‘b’, ‘d’] assume_tac get_path_append
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> simp[]
+  >> disj2_tac
+  >> simp[MEM_TL_get_path]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If a - c - d and a - b - c, then a - b - d                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem midpoint_pull:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    d ∈ nodes g ∧
+    MEM c (get_path g a d) ∧
+    MEM b (get_path g a c) ⇒
+    MEM b (get_path g a d)
+Proof
+  rpt strip_tac
+  >> Cases_on ‘b = c’ >> simp[]
+  >> ‘b ∈ nodes g’ by metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
+  >> ‘c ∈ nodes g’ by metis_tac[is_tree_exists_path, mem_get_path_in_nodes]
+  >> qspecl_then [‘g’, ‘a’, ‘c’, ‘d’] assume_tac get_path_append
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we have a - b - d and b - c - d, then a - b - c                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem restrict_overlapping_paths_pull:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    d ∈ nodes g ∧
+    MEM b (get_path g a d) ∧
+    MEM c (get_path g b d) ⇒
+    MEM b (get_path g a c)
+Proof
+  rpt strip_tac
+  >> ‘b ∈ nodes g’ by (irule mem_get_path_in_nodes >> qexistsl [‘a’, ‘d’]
+                       >> simp[])
+  >> ‘c ∈ nodes g’ by (irule mem_get_path_in_nodes >> qexistsl [‘b’, ‘d’]
+                       >> simp[])
+  (* a - c - d by midpoint_push.
+     Thus we can split up a - d into a - c ++ c - d
+     So either a - b - d or c - b - d
+     But the latter contradicts b - c - d *)
+  >> ‘MEM c (get_path g a d)’ by metis_tac[midpoint_push]
+  >> ‘get_path g a d = get_path g a c ++ TL (get_path g c d)’
+    by (irule get_path_append >> simp[])
+  >> gvs[]
+  >> gvs[MEM_TL_get_path]
+  >> metis_tac[mem_not_swap_first]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we have a - b - c and b - c - d, then b - c - d                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem restrict_overlapping_paths_push:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    d ∈ nodes g ∧
+    MEM b (get_path g a d) ∧
+    MEM c (get_path g b d) ⇒
+    MEM b (get_path g a c)
+Proof
+  metis_tac[restrict_overlapping_paths_pull, mem_get_path_reverse]
 QED
 
 (* -------------------------------------------------------------------------- *)

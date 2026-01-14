@@ -4828,33 +4828,99 @@ Proof
   >> REVERSE conj_tac
   >- (simp[]
       >> rpt strip_tac
-      >> simp[Abbr ‘S2’])
-     
+      >> simp[Abbr ‘S2’])     
   (* The appropriate bijection between elements being iterated over on the LHS
      and elements being iterated over on the RHS. *)
   >> qexists ‘SND’
   >> conj_tac
+     
   >- (simp[BIJ_THM]
       >> conj_tac
       >- (gen_tac >> strip_tac
           >> Cases_on ‘x’ >> gvs[Abbr ‘S2’]
           >> gvs[subtree_def]
+          >> Cases_on ‘prev = src’
+          >- gvs[]
           (* We have src - prev - r
              We want dst - src - r
              We know adjacent src prev
              We know adjacent src dst
              We know prev ≠ dst.
-             
-            
            *)
-          >> 
-          >> 
+          >> irule extend_front_adjacent
+          >> simp[]
+          >> conj_tac >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+          >> qexists ‘prev’
+          >> simp[adjacent_SYM]
          )
+      >> rpt strip_tac
+      >> simp[EXISTS_UNIQUE_THM]
+      >> conj_tac
+      (* Existance *)
          
+      >- (simp[Abbr ‘S2’]
+          >> gvs[subtree_def]
+          (* dst - src - prev - y
+             prev = EL 1 (src - y) *)
+          >> qabbrev_tac ‘prev = EL 1 (get_path (get_underlying_graph fg) src y)’
+          >> qexists ‘(prev, y)’
+          >> simp[]
+          >> qexists ‘{prev} ×
+                      ((get_function_nodes fg)
+                       ∩ nodes (get_underlying_graph fg)
+                       ∩ {v | MEM prev (get_path (get_underlying_graph fg) src v)})’
+          >> simp[]
+          >> conj_tac
+          >- cheat (* ! *)
+          >> qexists ‘prev’
+          >> simp[INTER_ASSOC]
+             
+          >> sg ‘adjacent (get_underlying_graph fg) prev src’
+          >- (simp[Abbr ‘prev’]
+              >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+              >> irule adjacent_el_get_path
+              >> simp[]
+              >> disch_tac
+              (* These two contradict each other now *)
+              >> qpat_x_assum ‘y ∈ get_function_nodes fg’ mp_tac
+              >> qpat_x_assum ‘src ∉ get_function_nodes fg’ mp_tac
+              >> simp[])
+          >> simp[]
+          >> conj_tac
+          >- metis_tac[adjacent_members]
+          (* dst - src - prev - y. Want to know prev ≠ dst.
+             We have dst - src - y.
+             We have prev = EL 1 (src - y).
+             Thus src - prev - y
+
+                
+             
+           *)
+          >> simp[Abbr ‘prev’]
+          >> cheat
+         )
+          (* Uniqueness*)
+      >> rpt strip_tac
+      >> Cases_on ‘x’ >> Cases_on ‘x'’ >> gvs[Abbr ‘S2’]
+      >> CCONTR_TAC
+      (* r is beyond both prev and prev'. This contradicts the fact that
+         prev and prev' are two distinct, adjacent , because if you pick one
+         path, you shouldn't ever be able to reach the same node as if you
+         pick another path in a tree. *)
+      >> cheat
      )
-     
+  >> gen_tac >> disch_tac
+  >> Cases_on ‘x’ >> gvs[]
+  >> simp[DRESTRICTED_FUNION]
+  >> cong_tac (SOME 3)
+  >> irule SUBSET_INTER2
+  >> simp[SUBSET_DEF]
+  >> gen_tac >> strip_tac
+  >> simp[Abbr ‘S2’]
 
   
+
+      
 QED
 
 
