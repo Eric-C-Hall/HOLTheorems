@@ -4820,21 +4820,41 @@ Proof
   (* Combine the products *)
   >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_combine_dependent]
   >> conj_tac
-  >- (simp[Abbr ‘S2’, FINITE_INTER])
-  (* *)
+  >- (simp[Abbr ‘S2’, FINITE_INTER])     
+  (* Now we can cancel the product on the LHS with the product on the RHS.
+     The sets being iterated over are different on the LHS and RHS, but they
+     are in bijection with each other. *)
   >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
   >> REVERSE conj_tac
-             
   >- (simp[]
       >> rpt strip_tac
-      >> simp[Abbr ‘S2’]
-      >> disj2_tac
-      >> irule INTER_FINITE
-      >> simp[]
-     )
-
-
+      >> simp[Abbr ‘S2’])
      
+  (* The appropriate bijection between elements being iterated over on the LHS
+     and elements being iterated over on the RHS. *)
+  >> qexists ‘SND’
+  >> conj_tac
+  >- (simp[BIJ_THM]
+      >> conj_tac
+      >- (gen_tac >> strip_tac
+          >> Cases_on ‘x’ >> gvs[Abbr ‘S2’]
+          >> gvs[subtree_def]
+          (* We have src - prev - r
+             We want dst - src - r
+             We know adjacent src prev
+             We know adjacent src dst
+             We know prev ≠ dst.
+             
+            
+           *)
+          >> 
+          >> 
+         )
+         
+     )
+     
+
+  
 QED
 
 

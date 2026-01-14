@@ -23,10 +23,13 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (* Notation:                                                                  *)
 (*                                                                            *)
 (* - "a - b" denotes the path from a to b                                     *)
+(* - "a - b - c" denotes that b is on a - c                                   *)
 (* - "a ++ b" denotes appending two paths                                     *)
 (* - We use (tr) to denote that the given theorem holds only for trees        *)
 (* - TODO: Replace with a tag to denote theorems that hold even if not a tree *)
-(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* Most important theorems:                                                   *)
 (*                                                                            *)
 (* - Paths in a connected graph exist between any two points                  *)
@@ -37,9 +40,9 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   (get_path_drop_take)                                                     *)
 (* - We have a - c = (a - b) ++ (b - c), so long as b is on a - c (tr).       *)
 (*   (get_path_append)                                                        *)
-(* - We may join together two overlapping paths: if we have a - c and b - d,  *)
-(*   and c is in b - d and b is in a - c, then (tr)                           *)
-(*     (join_overlapping_paths_mem)                                           *)
+(* - If we have a - b - c and b - c - d, then we have a - b - d. In other     *)
+(*   words, we may join together two overlapping paths. (tr)                  *)
+(*   (join_overlapping_paths_mem)                                             *)
 (* - If we have two nonequal paths that start with the same value, there is   *)
 (*   a point at which they diverge (exists_point_of_divergence)               *)
 (* - If we have two paths that start at different values but end in the same  *)
@@ -90,6 +93,10 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (* - If we have a - b - c, then we cannot have b - a - c, this won't be a     *)
 (*   valid path at the same time as a - b - c being a valid path (tr)         *)
 (*   (mem_not_swap_first)                                                     *)
+(* - If we have b - c - d, with adjacent b c, and also we have adjacent a b,  *)
+(*   and a ≠ c, then we have a - b - d. That is, we can extend a path at the  *)
+(*   front by one if the new adjacent node is different to the adjacent node  *)
+(*   that is already on the path.                                             *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -2144,21 +2151,24 @@ Theorem join_overlapping_paths_mem:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
     is_tree g ∧
     a ∈ nodes g ∧
-    b ∈ nodes g ∧
-    c ∈ nodes g ∧
+    (b ∈ nodes g ∨ c ∈ nodes g) ∧
     d ∈ nodes g ∧
     MEM b (get_path g a c) ∧
     MEM c (get_path g b d) ∧
     b ≠ c ⇒
     MEM b (get_path g a d)
 Proof
-  rpt strip_tac
+  rpt gen_tac >> simp[GSYM AND_IMP_INTRO] >> rpt disch_tac
+  >> sg ‘b ∈ nodes g ∧ c ∈ nodes g’
+  >- (gvs[]
+      >- (irule mem_get_path_in_nodes >> qexistsl [‘b’, ‘d’] >> simp[])
+      >> irule mem_get_path_in_nodes >> qexistsl [‘a’, ‘c’] >> simp[])
   (* Special case of a = b *)
-  >> Cases_on ‘a = b’ >> gvs[]
+  >> Cases_on ‘a = b’ >> gnvs[]
   (* We can prove this by showing that the edge into b is distinct from the
      edge out of b, using path_continuation_mem *)
   >> irule path_continuation_mem
-  >> gvs[]
+  >> gnvs[]
   (* Since c is on b-d, the first step on b-d is the same as the first step
      on  b-c by first_step_on_path_same *)
   >> qspecl_then [‘g’, ‘b’, ‘c’, ‘d’] assume_tac first_step_on_path_same
@@ -2536,8 +2546,6 @@ Proof
        *)
       >> irule join_overlapping_paths_mem
       >> simp[]
-      >> conj_tac
-      >- metis_tac[adjacent_members]
       >> qexists ‘dst’
       >> simp[]
       >> Cases_on ‘src = dst’ >> simp[]
