@@ -3913,7 +3913,33 @@ Proof
   >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
   >> simp[]
 QED
-        
+
+Theorem nodes_subtree_absorb_union:
+  ∀fg src x.
+    is_tree (get_underlying_graph fg) ∧
+    src ∈ nodes (get_underlying_graph fg) ∧
+    x ∈ nodes (get_underlying_graph fg) ⇒
+    nodes (subtree (get_underlying_graph fg) src x) ∪ {x} =
+    nodes (subtree (get_underlying_graph fg) src x)
+Proof
+  rpt strip_tac
+  >> simp[UNION_EQ_FIRST]
+  >> simp[subtree_def]
+  >> irule MEM_get_path_last
+  >> simp[]
+QED
+
+Theorem adjacent_nodes_delete_comprehension:
+  ∀fg src dst.
+    {prev |
+    (prev ∈ nodes (get_underlying_graph fg) ∧
+     adjacent (get_underlying_graph fg) prev src) ∧
+    prev ≠ dst} = adjacent_nodes fg src DELETE dst
+Proof
+  rpt strip_tac
+  >> simp[EXTENSION]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
 (* nodes in that branch of the tree, with respect to all choices of variable  *)
@@ -4004,6 +4030,7 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
+              
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -4110,6 +4137,7 @@ Proof
                                     prev ≠ dst})))
           ’
           (fn th => PURE_ONCE_REWRITE_TAC[th])
+          
       >- (simp[Abbr ‘func’]
           >> simp[FUN_EQ_THM]
           >> gen_tac
@@ -4119,11 +4147,41 @@ Proof
               >- (irule FINITE_SUBSET
                   >> qexists ‘adjacent_nodes fg src’
                   >> simp[SUBSET_DEF])
-              >- (cheat
+              >- (simp[INJ_DEF]
+                  >> rpt strip_tac
+                  >> simp[Abbr ‘nsf’]
+                  >> pop_assum mp_tac >> simp[nodes_subtree_absorb_union] >> disch_tac
+                  >> CCONTR_TAC
+                  (* Subtrees obtained by taking a different first step are
+                     disjoint *)
+                  >> qspecl_then [‘get_underlying_graph fg’, ‘src’, ‘x’, ‘y’]
+                                 mp_tac subtrees_disjoint
+                  >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+                  >> Cases_on ‘src = x’
+                  >- gvs[]
+                  >> Cases_on ‘src = y’
+                  >- gvs[]
+                  >> simp[]
+                  >> PURE_ONCE_REWRITE_TAC[GSYM nodes_EQ_EMPTY]
+                  >> PURE_ONCE_REWRITE_TAC[EXTENSION]
+                  >> simp[]
+                  (* *)
+                  >> qexists ‘y’
+                  >> simp[subtree_def]
                  )
-              >- (cheat
-                 )
-              >> rpt gen_tac >> rpt disch_tac
+              >- (simp[Abbr ‘nsf’]
+                  >> simp[disjoint_def]
+                  >> rpt strip_tac
+                  >> qpat_assum ‘a = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+                  >> qpat_assum ‘b = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+                  >> DEP_PURE_REWRITE_TAC[nodes_subtree_absorb_union]
+                  >> simp[]
+                  >> irule subtrees_disjoint
+                  >> simp[]
+                  >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+                  >> simp[]
+                  >> CCONTR_TAC >> gvs[])
+              >> rpt gen_tac >> rpt disch_tac                                    
               >> cheat
              )
           >> simp[]
@@ -4160,6 +4218,7 @@ Proof
                                     prev ≠ dst})))
              : extreal’
           (fn th => PURE_ONCE_REWRITE_TAC[th])
+          
       >- (simp[Abbr ‘func’]
           >> simp[FUN_EQ_THM]
           >> gen_tac
@@ -4252,8 +4311,9 @@ Proof
          nodes *)
       >> simp[Once val_map_assignments_restrict_nodes]
       (* Combine the sums *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_fixed]
+      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_fixed]                                  
       >> conj_tac
+         
       >- (rpt conj_tac
           >- simp[]
           >- simp[]
@@ -4618,6 +4678,7 @@ Proof
                     (val_map_assignments fg (nodes (subtree g src prev)) FEMPTY)
                ) S’
       (fn th => PURE_ONCE_REWRITE_TAC[th])
+      
   >- (simp[Abbr ‘LHS’]
       >> irule EXTREAL_PROD_IMAGE_EQ
       >> qx_gen_tac ‘prev’ >> disch_tac
