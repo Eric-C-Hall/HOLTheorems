@@ -109,6 +109,9 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   d is the first on b - a. (move_end_to_adjacent)                          *)
 (* - If a - b - c and adjacent a b and adjacent c d, then a - b - d unless    *)
 (*   d = a. (move_end_to_adjacent_adjacent)                                   *)
+(* - If x ~ x' and x is in the subtree defined by a - b then x' is also in    *)
+(*   this subtree, unless it is the first step on (b - a).                    *)
+(*   (in_subtree_adjacent)                                                    *)
 (*                                                                            *)
 (* - If a ~ b then either b = EL 1 (a - c) or a = EL 1 (b - c)                *)
 (*   (adjacent_is_first_step)                                                 *)
@@ -2983,6 +2986,29 @@ Proof
         >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
   >> simp[]
   >> qexists ‘c’ >> simp[]
+QED
+
+Theorem in_subtree_adjacent:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph x x' a b.
+    is_tree g ∧
+    adjacent g x x' ∧
+    x ∈ nodes (subtree g a b) ∧
+    (x' ≠ (EL 1 (get_path g b a)) ∨ x ≠ b) ⇒
+    x' ∈ nodes (subtree g a b)
+Proof
+  rpt gen_tac >> PURE_REWRITE_TAC[GSYM AND_IMP_INTRO]  >> rpt disch_tac
+  >> ‘x ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘x'’ >> simp[])
+  >> ‘x' ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘x’ >> simp[])
+  >> qpat_x_assum ‘x ∈ nodes (subtree _ _ _)’ mp_tac
+  >> simp[subtree_def] >> disch_tac
+  (* If x ≠ b, then x' ≠ EL 1 (get_path g b a) because b is the only place on
+     the subtree which could be adjacent to the point just off the subtree. *)
+  >> sg ‘x' ≠ EL 1 (get_path g b a)’
+  >- (disch_tac >> gvs[]
+      >> cheat
+     )
+  >> qpat_x_assum ‘x' ≠ EL 1 (get_path g b a) ∨ x ≠ b’ kall_tac
+  >> 
 QED
 
 (* -------------------------------------------------------------------------- *)

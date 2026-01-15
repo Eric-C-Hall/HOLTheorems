@@ -2596,6 +2596,7 @@ Theorem generalised_distributive_law_lemma:
     (∀k. k ∈ S ⇒ nsf k ⊆ var_nodes fg) ∧
     disjoint (IMAGE nsf S) ∧
     (∀k x.
+       k ∈ S ∧
        x ∈ val_map_assignments fg (nsf k) (excl_val_mapf k) ⇒
        ff k x ≠ +∞ ∧ ff k x ≠ −∞) ⇒
     ∏ (λk. ∑ (ff k) (val_map_assignments fg (nsf k) (excl_val_mapf k))) S
@@ -2629,7 +2630,7 @@ Proof
   >> qpat_x_assum ‘∏ _ _ = ∑ (λval_map. ∏ _ _) _’ kall_tac
   (* Move one sum into the other, as a constant *)
   >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_L_ALT]
-  >> conj_tac
+  >> conj_tac     
   >- (rpt conj_tac
       >- gvs[]
       >- (gvs[]
@@ -2645,6 +2646,7 @@ Proof
       >> qx_gen_tac ‘k’ >> disch_tac
       >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
       >> last_x_assum irule
+      >> REVERSE conj_tac >- simp[]
       >> irule drestrict_in_val_map_assignments
       >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments fg ns1 excl_val_map1’
       >> qexistsl [‘excl_val_map1’, ‘ns1’] >> simp[Abbr ‘excl_val_map1’, Abbr ‘ns1’]
@@ -2709,6 +2711,7 @@ Proof
       >> disch_tac >> simp[]
       >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
       >> last_x_assum irule
+      >> REVERSE conj_tac >- simp[]
       >> irule drestrict_in_val_map_assignments
       >> simp[Abbr ‘assignments’]
       >> qmatch_asmsub_abbrev_tac ‘val_map_assignments fg ns1 excl_val_map1’
@@ -3000,6 +3003,7 @@ Theorem generalised_distributive_law:
     INJ nsf S 𝕌(:unit + num -> bool) ∧
     disjoint (IMAGE nsf S) ∧
     (∀k x.
+       k ∈ S ∧
        x ∈ val_map_assignments fg (nsf k) (excl_val_mapf k) ⇒
        ff k x ≠ +∞ ∧ ff k x ≠ −∞) ⇒
     ∏ (λk. ∑ (ff k) (val_map_assignments fg (nsf k) (excl_val_mapf k))) S
@@ -3034,7 +3038,7 @@ Proof
   >> gs[Abbrev_def]
   >> rpt (pop_assum mp_tac)
   >> SPEC_ALL_TAC
-  >> REVERSE $ Induct_on ‘num_with_no_var_nodes’
+  >> REVERSE $ Induct_on ‘num_with_no_var_nodes’             
   >- (rpt strip_tac
       (* Choose a k where nsf k has no variable nodes *)
       >> sg ‘∃k. k ∈ S ∧ nsf k ∩ var_nodes fg = ∅’
@@ -3137,6 +3141,7 @@ Proof
           >> gen_tac >> disch_tac
           >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
           >> last_x_assum irule
+          >> conj_tac >- simp[]
           >> irule drestrict_in_val_map_assignments
           >> simp[Abbr ‘assigns’]
           >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments _ ns excl_val_map’
@@ -3172,7 +3177,7 @@ Proof
       >> rpt conj_tac
       >- (rpt gen_tac >> disch_tac
           >> last_x_assum irule
-          >> pop_assum irule)
+          >> pop_assum mp_tac >> simp[])
       >- simp[]
       >- metis_tac[disjoint_subset, DELETE_SUBSET, IMAGE_SUBSET]
       >- (qpat_x_assum ‘SUC _ = _’ mp_tac
@@ -3208,7 +3213,7 @@ Proof
       >> simp[EXTENSION]
       >> gvs[]
       >> metis_tac[]
-     )
+     )     
   (* Without loss of generality, prove that the nsf may be considered to be
      subsets of the variable nodes, because the parts of nsf that are not a
      subset of the variable nodes are ignored. *)
@@ -4108,17 +4113,25 @@ Proof
                                  (subtree (get_underlying_graph fg) src
                                           prev) ∪ {prev}) ∩ get_function_nodes fg)’
       >> simp[]
+      (* Now rewrite the set we are assigning over in the form "nsf prev" *)
+      >> qabbrev_tac
+         ‘nsf = λprev.
+                  nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}’
+      >> simp[]
+             
       (* ff isn't infinite *)
       >> sg ‘∀prev val_map excl_val_map.
                prev ∈ nodes (get_underlying_graph fg) ∧
                val_map ∈ val_map_assignments
-                       fg (var_nodes fg) excl_val_map ⇒
+                       fg (nsf prev) excl_val_map ⇒
                ff prev val_map ≠ +∞ ∧ ff prev val_map ≠ −∞’
       >- (rpt gen_tac >> strip_tac
           >> simp[Abbr ‘ff’]
           >> simp[nodes_subtree_absorb_union]
           >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
           >> irule EXTREAL_PROD_IMAGE_NOT_INFTY
+          >> REVERSE conj_tac
+          >- simp[FINITE_INTER]
           >> simp[]
           >> gen_tac >> strip_tac
           >> gvs[functions_noninfinite_def]
@@ -4127,17 +4140,16 @@ Proof
           >> simp[]
           >> qexists ‘excl_val_map'’
           >> irule drestrict_in_val_map_assignments
-          >> qexistsl [‘excl_val_map'’, ‘var_nodes fg’]
+          >> qexistsl [‘excl_val_map'’, ‘nsf prev’]
           >> simp[]
           >> simp[SUBSET_DEF]
           >> gen_tac >> strip_tac
+          >> unabbrev_all_tac
+          >> gvs[nodes_subtree_absorb_union, Excl "IN_UNION"]
+                
           >> qspecl_then [‘fg’, ‘x'’, ‘x’] mp_tac adjacent_get_function_nodes
           >> simp[])
-      (* Now rewrite the set we are assigning over in the form "nsf prev" *)
-      >> qabbrev_tac
-         ‘nsf = λprev.
-                  nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}’
-      >> simp[]
+         
       (* Now rewrite the map of nodes to chosen values in the form
          "excl_val_map val_map prev" *)
       >> qabbrev_tac
@@ -4219,7 +4231,11 @@ Proof
                   >> CCONTR_TAC >> gvs[])
               >> rpt gen_tac >> rpt disch_tac
 
-              >> rpt strip_tac
+              >> last_x_assum irule
+              >> pop_assum mp_tac >> simp[] >> strip_tac
+              >> qexists ‘excl_val_mapf val_map prev’
+              >> pop_assum mp_tac >> simp[val_map_assignments_def] >> strip_tac
+              >> 
               >> cheat
              )
           >> simp[]
