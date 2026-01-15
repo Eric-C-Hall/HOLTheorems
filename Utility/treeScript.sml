@@ -99,10 +99,12 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   (extend_front_adjacent)                                                  *)
 (* - If a - b - d and b - c - d, then a - c - d (midpoint_push)               *)
 (* - If a - c - d and a - b - c, then a - b - d (midpoint_pull)               *)
-(* - If we have a - b - d and b - c - d, then a - b - c                       *)
-(*   (restrict_overlapping_paths_pull)                                        *)
-(* - If we have a - b - c and b - c - d, then b - c - d                       *)
-(*   (restrict_overlapping_paths_push)                                        *)
+(* - If a - b - d and b - c - d, then a - b - c (restrict_overlapping_pull)   *)
+(* - If a - b - c and b - c - d, then b - c - d (restrict_overlapping_push)   *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
 (* - If a - b - c and we move c to an adjacent node d, then a - b - d unless  *)
 (*   d is the first on b - a. (move_end_to_adjacent)                          *)
 (* - If a - b - c and adjacent a b and adjacent c d, then a - b - d unless    *)
@@ -2780,7 +2782,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* If we have a - b - d and b - c - d, then a - b - c                         *)
 (* -------------------------------------------------------------------------- *)
-Theorem restrict_overlapping_paths_pull:
+Theorem restrict_overlapping_pull:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
     is_tree g ∧
     a ∈ nodes g ∧
@@ -2809,7 +2811,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* If we have a - b - c and b - c - d, then b - c - d                         *)
 (* -------------------------------------------------------------------------- *)
-Theorem restrict_overlapping_paths_push:
+Theorem restrict_overlapping_push:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
     is_tree g ∧
     a ∈ nodes g ∧
@@ -2818,7 +2820,7 @@ Theorem restrict_overlapping_paths_push:
     MEM c (get_path g b d) ⇒
     MEM b (get_path g a c)
 Proof
-  metis_tac[restrict_overlapping_paths_pull, mem_get_path_reverse]
+  metis_tac[restrict_overlapping_pull, mem_get_path_reverse]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -2877,6 +2879,25 @@ Proof
   >> simp[]
 QED
 
+Theorem first_step_is_last:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    b ∈ nodes g ∧
+    a ≠ b ∧
+    b = EL 1 (get_path g a b) ⇒
+    adjacent g a b ∧ get_path g a b = [a; b]
+Proof
+  rpt gen_tac >> strip_tac
+  >> ‘adjacent g a b’ suffices_by
+    (disch_tac
+     >> simp[]
+     >> irule adjacent_get_path >> simp[])
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> irule adjacent_first_step
+  >> simp[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* If a - b - c and adjacent c d, then a - b - d unless d is the first on     *)
 (* b - a.                                                                     *)
@@ -2890,21 +2911,79 @@ Theorem move_end_to_adjacent:
     EL 1 (get_path g b a) ≠ d ⇒
     MEM b (get_path g a d)
 Proof
-  
   rpt strip_tac
   >> ‘c ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘d’ >> simp[])
   >> ‘b ∈ nodes g’ by (irule mem_get_path_in_nodes >> qexistsl [‘a’, ‘c’]
                        >> simp[])
-  >> 
+  >> ‘d ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘c’ >> simp[])
+  (* Special case of b = d *)
+  >> Cases_on ‘b = d’
+  >- simp[]
+  (* Special case of c = d *)
+  >> Cases_on ‘c = d’
+  >- gvs[]
+  (* Special case of a = d *)
+  >> Cases_on ‘a = d’
+  >- (gvs[]
+      >> ‘get_path g a c = [a;c]’ by
+        (irule adjacent_get_path
+         >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+      >> gvs[]
+      >> ‘get_path g b a = [b;a]’ by
+        (irule adjacent_get_path >> simp[])
+      >> gvs[])
+  (* We have a - b - c and c ~ d
+     d is either just before c or just after. *)
+  >> qspecl_then [‘g’, ‘c’, ‘d’, ‘a’]  mp_tac adjacent_is_first_step
+  >> simp[]
+  >> REVERSE strip_tac             
+  (* We have a - b - c and c = EL 1 (d - a).
+     Therefore a - c - d
+     Therefore a - b - d *)
+  >- (sg ‘MEM c (get_path g a d)’
+      >- (simp[]
+          >> irule (iffLR mem_get_path_reverse)
+          >> simp[]
+          >> irule EL_MEM
+          >> simp[])
+      >> irule midpoint_pull >> simp[] >> qexists ‘c’ >> simp[])
+  (* We have a - b - c and d = EL 1 (c - a) *)
+  >> Cases_on ‘b = c’
+  >- (qpat_x_assum ‘EL 1 _ ≠ d’ mp_tac >> simp[])
+  >> Cases_on ‘a = c’ 
+  >- (qpat_x_assum ‘MEM b (get_path g a c)’ mp_tac >> simp[])
+  >> simp[]
+  >> simp[mem_get_path_last_step]
 QED
 
-(* - If a - b - c and adjacent a b and adjacent c d, then a - b - d unless    *)
-(*   d = a.                                                                   *)
+(* -------------------------------------------------------------------------- *)
+(* If a - b - c and adjacent a b and adjacent c d, then a - b - d unless      *)
+(* d = a.                                                                     *)
+(* -------------------------------------------------------------------------- *)
 Theorem move_end_to_adjacent_adjacent:
-
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph a b c d.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    MEM b (get_path g a c) ∧
+    adjacent g c d ∧
+    adjacent g a b ∧
+    a ≠ d ⇒
+    MEM b (get_path g a d)
 Proof
+  rpt strip_tac
+  >> ‘b ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘a’ >> simp[])
+  >> ‘c ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘d’ >> simp[])
+  >> ‘d ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘c’ >> simp[])
+  >> Cases_on ‘a = b’
+  >- (simp[] >> irule MEM_get_path_first >> simp[])
+  >> irule move_end_to_adjacent
+  >> simp[]
+  >> ‘get_path g b a = [b;a]’
+    by (irule adjacent_get_path
+        >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+  >> simp[]
+  >> qexists ‘c’ >> simp[]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
