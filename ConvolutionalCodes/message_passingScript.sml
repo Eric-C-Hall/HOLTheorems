@@ -4933,15 +4933,17 @@ Proof
   >> gen_tac >> strip_tac
   >> simp[Abbr ‘S2’]
   >> gvs[subtree_def]
-  (* We have src - prev - r
-     We have adjacent x r
+  (* We have src ~ prev - r
+     We have x ~ r
      We have x ≠ src
-     We want src - prev - x *)
-  >>
-  (* *)
-  
-
-  
+     We want src - prev - x
+.
+     I wrote a theorem to help in this situation, where r is being moved to
+     an adjacent position, x.
+   *)
+  >> irule move_end_to_adjacent_adjacent
+  >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+  >> qexists ‘r’ >> simp[]
 QED
 
 
