@@ -4400,7 +4400,7 @@ Proof
                   >> CCONTR_TAC >> gvs[]
                  )
               (* *)
-              >> DEP_PURE_ONCE_REWRITE_TAC[mem_get_path_before_last]
+              >> DEP_PURE_ONCE_REWRITE_TAC[mem_get_path_last_step]
               >> conj_tac
               >- (simp[]
                   >> CCONTR_TAC >> gvs[])
@@ -4729,7 +4729,7 @@ Proof
           >> simp[]
           >> conj_tac
           >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM]
-              >> simp[adjacent_el_get_path])
+              >> simp[adjacent_first_step])
           >> CCONTR_TAC >> gvs[]
           >> qpat_x_assum ‘MEM _ _’ mp_tac >> PURE_ONCE_REWRITE_TAC[IMP_CLAUSES]
           >> irule mem_not_swap_first
@@ -4883,7 +4883,7 @@ Proof
           >> sg ‘adjacent (get_underlying_graph fg) prev src’
           >- (simp[Abbr ‘prev’]
               >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
-              >> irule adjacent_el_get_path
+              >> irule adjacent_first_step
               >> simp[]
               >> disch_tac
               (* These two contradict each other now *)
@@ -4897,11 +4897,11 @@ Proof
              We have dst - src - y.
              We have prev = EL 1 (src - y).
              Thus src - prev - y
-             Thus dst - src - prev by restrict_overlapping_paths_pull
+             Thus dst - src - prev by restrict_overlapping_pull
              Thus prev ≠ dst, because otherwise dst - prev would be [dst]
            *)
           >> ‘MEM src (get_path (get_underlying_graph fg) dst prev)’
-            by (irule restrict_overlapping_paths_pull >> simp[]
+            by (irule restrict_overlapping_pull >> simp[]
                 >> qexists ‘y’ >> simp[])
           >> disch_tac
           >> qpat_x_assum ‘MEM src (get_path _ dst prev)’ mp_tac
