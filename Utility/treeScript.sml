@@ -2991,24 +2991,20 @@ QED
 Theorem in_subtree_adjacent:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph x x' a b.
     is_tree g ∧
+    a ∈ nodes g ∧
     adjacent g x x' ∧
     x ∈ nodes (subtree g a b) ∧
-    (x' ≠ (EL 1 (get_path g b a)) ∨ x ≠ b) ⇒
+    x' ≠ EL 1 (get_path g b a) ⇒
     x' ∈ nodes (subtree g a b)
-Proof
+Proof 
   rpt gen_tac >> PURE_REWRITE_TAC[GSYM AND_IMP_INTRO]  >> rpt disch_tac
   >> ‘x ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘x'’ >> simp[])
   >> ‘x' ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘x’ >> simp[])
   >> qpat_x_assum ‘x ∈ nodes (subtree _ _ _)’ mp_tac
   >> simp[subtree_def] >> disch_tac
-  (* If x ≠ b, then x' ≠ EL 1 (get_path g b a) because b is the only place on
-     the subtree which could be adjacent to the point just off the subtree. *)
-  >> sg ‘x' ≠ EL 1 (get_path g b a)’
-  >- (disch_tac >> gvs[]
-      >> cheat
-     )
-  >> qpat_x_assum ‘x' ≠ EL 1 (get_path g b a) ∨ x ≠ b’ kall_tac
-  >> 
+  >> irule move_end_to_adjacent
+  >> simp[]
+  >> qexists ‘x’ >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
