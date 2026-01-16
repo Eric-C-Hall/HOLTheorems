@@ -772,6 +772,42 @@ Proof
   >> gvs[val_map_assignments_def]
 QED
 
+Theorem INTER_SUBSET_ALT:
+  ∀a b c.
+    a ⊆ c ∨ b ⊆ c ⇒ a ∩ b ⊆ c
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[SUBSET_DEF]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A more general version of drestrict_in_val_map_assignments which restricts *)
+(* a precondition to only care about variable nodes                           *)
+(*                                                                            *)
+(* However, most of the time, ns2 already is a subset of the variable nodes,  *)
+(* and in this case, it's more convenient to use the more specific theorem,   *)
+(* since we then don't have to do the additional step of proving              *)
+(* ns2 ∩ var_nodes fg ⊆ ns1 from ns2 ⊆ ns1.                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem drestrict_in_val_map_assignments_general:
+  ∀val_map ns1 ns2 fg excl_val_map1 excl_val_map2.
+    val_map ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+    ns2 ∩ var_nodes fg ⊆ ns1 ∧
+    DRESTRICT excl_val_map2 ns2 ⊑ DRESTRICT excl_val_map1 ns2 ⇒
+    DRESTRICT val_map ns2 ∈ val_map_assignments fg ns2 excl_val_map2
+Proof
+  rpt strip_tac
+  >> simp[val_map_assignments_def]
+  >> rpt conj_tac >> gvs[DRESTRICT_DEF]
+  >- (gvs[val_map_assignments_def]
+      >> ASM_SET_TAC[]
+     )
+  >- gvs[val_map_assignments_def]
+  >> rpt strip_tac
+  >> gvs[SUBMAP_DEF, DRESTRICT_DEF]
+  >> gvs[val_map_assignments_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* This expression occurs naturally when sp_message is applied to something,  *)
 (* so simplify it.                                                            *)
@@ -4433,21 +4469,21 @@ Proof
           >> ‘FINITE ns1’ by simp[Abbr ‘ns1’]
           >> simp[]
           >> gen_tac >> strip_tac
-          >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
-          (* TODO: nsf prev is not acceptable with *)
-                                  
+          >> ‘x' ∈ nodes (get_underlying_graph fg)’ by
+            (qpat_x_assum ‘x' ∈ ns1’ mp_tac >> Q.UNABBREV_TAC ‘ns1’ >> simp[])
+          >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]                                  
           >> first_x_assum irule
           >> simp[]
           >> qexists ‘FEMPTY’
-          >> irule drestrict_in_val_map_assignments
+          >> irule drestrict_in_val_map_assignments_general
           >> qexistsl [‘x’, ‘ns2 ∩ var_nodes fg’]
           >> simp[]
-          >> REVERSE conj_tac
-          >- (Q.UNABBREV_TAC ‘nsf’
-              >> simp[]
-              >> simp[subtree_def]
-             )
-             
+          >> Q.UNABBREV_TAC ‘nsf’
+          >> ASM_SIMP_TAC bool_ss [SF ETA_ss, nodes_subtree_absorb_union]
+          >> Q.UNABBREV_TAC ‘ns2’
+              (*>> simp[Cong IMAGE_CONG, nodes_subtree_absorb_union]*)
+          >> cheat
+          
          )
       (* Simplify *)
       >> simp[DRESTRICT_DRESTRICT]
