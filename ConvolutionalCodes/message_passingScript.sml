@@ -4337,7 +4337,6 @@ Proof
              )
           >> simp[]
          )
-         
       >> qpat_x_assum ‘Abbrev (func = _)’ kall_tac
       (* Simplify a set to a nicer definition*)
       >> Q.SUBGOAL_THEN
@@ -4421,7 +4420,34 @@ Proof
       >- (rpt conj_tac
           >- simp[]
           >- simp[]
-          >> cheat
+          >> disj1_tac
+          >> rpt gen_tac >> strip_tac
+          >> irule (cj 2 mul_not_infty2)
+          >> PURE_ONCE_REWRITE_TAC[CONJ_ASSOC]
+          >> conj_tac
+          >- (PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+              >> drule_then irule (iffLR functions_noninfinite_def)
+              >> simp[]
+              >> qexists ‘excl_val_map’ >> simp[])
+          >> irule EXTREAL_PROD_IMAGE_NOT_INFTY
+          >> ‘FINITE ns1’ by simp[Abbr ‘ns1’]
+          >> simp[]
+          >> gen_tac >> strip_tac
+          >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+          (* TODO: nsf prev is not acceptable with *)
+                                  
+          >> first_x_assum irule
+          >> simp[]
+          >> qexists ‘FEMPTY’
+          >> irule drestrict_in_val_map_assignments
+          >> qexistsl [‘x’, ‘ns2 ∩ var_nodes fg’]
+          >> simp[]
+          >> REVERSE conj_tac
+          >- (Q.UNABBREV_TAC ‘nsf’
+              >> simp[]
+              >> simp[subtree_def]
+             )
+             
          )
       (* Simplify *)
       >> simp[DRESTRICT_DRESTRICT]
