@@ -3368,7 +3368,7 @@ QED
 Theorem adjacent_get_function_nodes:
   ∀fg n1 n2.
     adjacent (get_underlying_graph fg) n1 n2 ⇒
-    (n1 ∈ get_function_nodes fg ⇎ n2 ∈ get_function_nodes fg)
+    (n1 ∈ get_function_nodes fg ⇔ n2 ∉ get_function_nodes fg)
 Proof
   rpt strip_tac
   >> qspec_then ‘fg’ assume_tac gen_bipartite_ea_get_underlying_graph
@@ -4118,38 +4118,62 @@ Proof
          ‘nsf = λprev.
                   nodes (subtree (get_underlying_graph fg) src prev) ∪ {prev}’
       >> simp[]
-             
       (* ff isn't infinite *)
       >> sg ‘∀prev val_map excl_val_map.
-               prev ∈ nodes (get_underlying_graph fg) ∧
+               prev ∈ adjacent_nodes fg src ∧
                val_map ∈ val_map_assignments
                        fg (nsf prev) excl_val_map ⇒
-               ff prev val_map ≠ +∞ ∧ ff prev val_map ≠ −∞’
+               ff prev val_map ≠ +∞ ∧ ff prev val_map ≠ −∞’            
       >- (rpt gen_tac >> strip_tac
           >> simp[Abbr ‘ff’]
-          >> simp[nodes_subtree_absorb_union]
           >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
+          (* Product is not infinity if each individual term is not infinity *)
           >> irule EXTREAL_PROD_IMAGE_NOT_INFTY
           >> REVERSE conj_tac
           >- simp[FINITE_INTER]
           >> simp[]
           >> gen_tac >> strip_tac
-          >> gvs[functions_noninfinite_def]
+          (* Use assumption that assumptions in factor graph are not infinite *)
+          >> drule_then assume_tac (iffLR functions_noninfinite_def)
           >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
-          >> last_x_assum irule
+          >> first_x_assum irule
           >> simp[]
           >> qexists ‘excl_val_map'’
+          (* Since val_map has a domain in a subtree, restricting it to only
+             adjacent nodes will be sensible, because the adjacent nodes are all
+             in the same subtree, because the edge of the subtree is a variable
+             node while the point we are finding the adjacent nodes for is a
+             function node. *)
           >> irule drestrict_in_val_map_assignments
           >> qexistsl [‘excl_val_map'’, ‘nsf prev’]
           >> simp[]
           >> simp[SUBSET_DEF]
           >> gen_tac >> strip_tac
-          >> unabbrev_all_tac
+          >> Q.UNABBREV_TAC ‘nsf’
           >> gvs[nodes_subtree_absorb_union, Excl "IN_UNION"]
-                
-          >> qspecl_then [‘fg’, ‘x'’, ‘x’] mp_tac adjacent_get_function_nodes
-          >> simp[])
-         
+          (* The only way in which we could have left the subtree by moving
+             from x to the adjacent x' is if x was on the edge of the subtree
+             and x' is no longer on the subtree. But x is a function node and
+             the edge of the subtree is prev, which is a variable node since it
+             is next to src, which is a function node. So this is not possible. *)
+          >> irule in_subtree_adjacent
+          >> simp[]
+          >> REVERSE conj_tac
+          >- (qexists ‘x’ >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+          (* Since prev and src are adjacent, we can simplify prev - src *)
+          >> ‘get_path (get_underlying_graph fg) prev src = [prev;src]’
+            by (irule adjacent_get_path
+                >> simp[]
+                >> disch_tac >> gvs[])
+          >> simp[]
+          (* x' is a variable node *)
+          >> ‘x' ∉ get_function_nodes fg’ by
+            (irule (iffLR adjacent_get_function_nodes)
+             >> qexists ‘x’ >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+          >> disch_tac
+          >> qpat_x_assum ‘x' ∉ get_function_nodes _’ mp_tac
+          >> simp[]
+         )         
       (* Now rewrite the map of nodes to chosen values in the form
          "excl_val_map val_map prev" *)
       >> qabbrev_tac
@@ -4183,14 +4207,12 @@ Proof
                                      adjacent (get_underlying_graph fg) prev src) ∧
                                     prev ≠ dst})))
           ’
-          (fn th => PURE_ONCE_REWRITE_TAC[th])
-          
+          (fn th => PURE_ONCE_REWRITE_TAC[th])          
       >- (simp[Abbr ‘func’]
           >> simp[FUN_EQ_THM]
           >> gen_tac
           >> DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
-          >> conj_tac
-             
+          >> conj_tac             
           >- (rpt conj_tac
               >- (irule FINITE_SUBSET
                   >> qexists ‘adjacent_nodes fg src’
@@ -4230,13 +4252,10 @@ Proof
                   >> simp[]
                   >> CCONTR_TAC >> gvs[])
               >> rpt gen_tac >> rpt disch_tac
-
               >> last_x_assum irule
               >> pop_assum mp_tac >> simp[] >> strip_tac
               >> qexists ‘excl_val_mapf val_map prev’
               >> pop_assum mp_tac >> simp[val_map_assignments_def] >> strip_tac
-              >> 
-              >> cheat
              )
           >> simp[]
          )
@@ -4245,49 +4264,80 @@ Proof
          the first sum is the second sum, and thus we can use
          extreal_sum_image_val_map_assignments_combine_dependent_inner_set
          to combine the two sums *)
-      >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’
+      >> qmatch_abbrev_tac ‘∑ func _ = _ : extreal’                           
       >> Q.SUBGOAL_THEN
-          ‘func =
-           λval_map.
-             ∑
-             (λval_map'.
-                get_function_map fg ' src ' val_map *
-                ∏ (λprev. ff prev (DRESTRICT val_map' (nsf prev)))
-                  {prev |
-                (prev ∈ nodes (get_underlying_graph fg) ∧
-                 adjacent (get_underlying_graph fg) prev src) ∧ prev ≠ dst})
-             (val_map_assignments fg
-                                  (BIGUNION
-                                   (IMAGE nsf
-                                          {prev |
-                                    (prev ∈ nodes (get_underlying_graph fg) ∧
-                                     adjacent (get_underlying_graph fg) prev src) ∧
-                                    prev ≠ dst}))
-                                  (FBIGUNION
-                                   (IMAGE
-                                    (λprev. DRESTRICT (excl_val_mapf val_map prev) (nsf prev))
-                                    {prev |
-                                    (prev ∈ nodes (get_underlying_graph fg) ∧
-                                     adjacent (get_underlying_graph fg) prev src) ∧
-                                    prev ≠ dst})))
-             : extreal’
-          (fn th => PURE_ONCE_REWRITE_TAC[th])
-          
-      >- (simp[Abbr ‘func’]
+          ‘∀val_map.
+             val_map ∈ val_map_assignments fg (adjacent_nodes fg src)
+                     excl_val_map ⇒
+             func val_map =
+             (λval_map.
+                ∑
+                (λval_map'.
+                   get_function_map fg ' src ' val_map *
+                   ∏ (λprev. ff prev (DRESTRICT val_map' (nsf prev)))
+                     {prev |
+                   (prev ∈ nodes (get_underlying_graph fg) ∧
+                    adjacent (get_underlying_graph fg) prev src) ∧ prev ≠ dst})
+                (val_map_assignments fg
+                                     (BIGUNION
+                                      (IMAGE nsf
+                                             {prev |
+                                       (prev ∈ nodes (get_underlying_graph fg) ∧
+                                        adjacent (get_underlying_graph fg) prev src) ∧
+                                       prev ≠ dst}))
+                                     (FBIGUNION
+                                      (IMAGE
+                                       (λprev. DRESTRICT (excl_val_mapf val_map prev) (nsf prev))
+                                       {prev |
+                                       (prev ∈ nodes (get_underlying_graph fg) ∧
+                                        adjacent (get_underlying_graph fg) prev src) ∧
+                                       prev ≠ dst}))) : extreal
+             ) val_map’
+          (fn th => simp[Cong EXTREAL_SUM_IMAGE_CONG, th])          
+      >- (gen_tac >> disch_tac
+          >> simp[Abbr ‘func’]
           >> simp[FUN_EQ_THM]
-          >> gen_tac
           >> DEP_PURE_ONCE_REWRITE_TAC[GSYM EXTREAL_SUM_IMAGE_CMUL_L_ALT]
-          >> conj_tac
+          >> conj_tac             
           >- (rpt conj_tac
-              >- simp[]
-              >- cheat
-              >- cheat
+              >- simp[]                     
+              >- (PURE_ONCE_REWRITE_TAC[EQ_SYM_EQ]
+                  >> drule_then (fn th => irule (cj 1 th))
+                                (iffLR functions_noninfinite_def)
+                  >> simp[]
+                  >> qexists ‘excl_val_map’ >> simp[])
+              >- (PURE_ONCE_REWRITE_TAC[EQ_SYM_EQ]
+                  >> drule_then (fn th => irule (cj 2 th))
+                                (iffLR functions_noninfinite_def)
+                  >> simp[]
+                  >> qexists ‘excl_val_map’ >> simp[])
               >> disj1_tac
               >> gen_tac >> disch_tac
-              >> cheat
+              >> PURE_ONCE_REWRITE_TAC[EQ_SYM_EQ]
+              >> irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
+              >> simp[adjacent_nodes_delete_comprehension]
+              >> gen_tac >> strip_tac
+              >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+              >> first_x_assum irule
+              >> simp[]
+              >> qexists ‘FEMPTY’
+              >> irule drestrict_in_val_map_assignments
+              >> qmatch_asmsub_abbrev_tac ‘val_map' ∈ val_map_assignments fg ns' excl_val_map'’
+              >> qexistsl [‘excl_val_map'’, ‘ns'’]
+              >> simp[]
+              >> unabbrev_all_tac
+              >> ASM_SIMP_TAC bool_ss [SF ETA_ss, nodes_subtree_absorb_union]
+              >> simp[Cong IMAGE_CONG, nodes_subtree_absorb_union]
+              >> simp[SUBSET_DEF]
+              >> gen_tac >> disch_tac
+              >> qexists ‘nodes (subtree (get_underlying_graph fg) src x)’
+              >> simp[]
+              >> qexists ‘x’
+              >> simp[]
              )
           >> simp[]
          )
+         
       >> qpat_x_assum ‘Abbrev (func = _)’ kall_tac
       (* Simplify a set to a nicer definition*)
       >> Q.SUBGOAL_THEN
