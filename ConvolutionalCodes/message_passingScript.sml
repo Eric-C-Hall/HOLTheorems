@@ -3591,24 +3591,6 @@ Proof
   >> gvs[SUBSET_INTER_ABSORPTION]
 QED
 
-(* TODO: Evaluate this:
-
-      (* Simplify further *)
-+      >> PURE_ONCE_REWRITE_TAC[GSYM DRESTRICT_DRESTRICT]
-+      >> simp[FDOM_SUBSET_DRESTRICT]
-+      (* More simplification *)
-+      >> simp[DRESTRICT_FUNION]
-+      >> simp[SUBSET_UNION_ABSORPTION]
-+      (* This isn't strictly true, but in the context in which it is being
-+         used, our map z is summing over maps that are restricted to the
-+         variable nodes, and under this further restriction it is true: *)
-+      >> Q.SUBGOAL_THEN ‘ns1 DELETE dst ∪ ns2 ∩ var_nodes fg = ns2 ∩ var_nodes
-fg’
-+          (fn th => PURE_ONCE_REWRITE_TAC[th])
-+      >- cheat
-
- *)
-
 (* -------------------------------------------------------------------------- *)
 (* adjacent_nodes_inter_nodes_subtree already exists, but it is more general  *)
 (* and doesn't use the overload for adjacent_nodes, which may make it harder  *)
@@ -3956,12 +3938,12 @@ Proof
 QED
 
 Theorem nodes_subtree_absorb_union:
-  ∀fg src x.
-    is_tree (get_underlying_graph fg) ∧
-    src ∈ nodes (get_underlying_graph fg) ∧
-    x ∈ nodes (get_underlying_graph fg) ⇒
-    nodes (subtree (get_underlying_graph fg) src x) ∪ {x} =
-    nodes (subtree (get_underlying_graph fg) src x)
+  ∀g src x.
+    is_tree g ∧
+    src ∈ nodes g ∧
+    x ∈ nodes g ⇒
+    nodes (subtree g src x) ∪ {x} =
+    nodes (subtree g src x)
 Proof
   rpt strip_tac
   >> simp[UNION_EQ_FIRST]
@@ -3989,6 +3971,22 @@ Definition functions_noninfinite_def:
     get_function_map fg ' n ' val_map ≠ +∞ ∧
     get_function_map fg ' n ' val_map ≠ −∞  
 End
+
+Theorem premise_cong:
+  ∀premise1 premise2 conclusion.
+    premise1 = premise2 ⇒
+    (premise1 ⇒ conclusion ⇔ premise2 ⇒ conclusion)
+Proof
+  metis_tac[]
+QED
+
+Theorem conclusion_cong:
+  ∀premise conclusion1 conclusion2.
+    conclusion1 = conclusion2 ⇒
+    (premise ⇒ conclusion1 ⇔ premise ⇒ conclusion2)
+Proof
+  metis_tac[]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* A message sent on the factor graph is the sum of products of all function  *)
@@ -4048,7 +4046,7 @@ Theorem sp_message_sum_prod:
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
                
 Proof
-  
+
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -4081,7 +4079,6 @@ Proof
                  adjacent_in_function_nodes_not_in_function_nodes
   (* Case split on whether or not our source node is a function node *)
   >> Cases_on ‘src ∈ get_function_nodes fg’
-              
   >- (gvs[]
       (* For some reason, our inductive hypothesis requires that we  know that
          there exists a possible mapping from variables to values, so we
@@ -4451,8 +4448,7 @@ Proof
       >> simp[Once val_map_assignments_restrict_nodes]
       (* Combine the sums *)
       >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_fixed]                                  
-      >> conj_tac
-         
+      >> conj_tac         
       >- (rpt conj_tac
           >- simp[]
           >- simp[]
@@ -4481,9 +4477,13 @@ Proof
           >> Q.UNABBREV_TAC ‘nsf’
           >> ASM_SIMP_TAC bool_ss [SF ETA_ss, nodes_subtree_absorb_union]
           >> Q.UNABBREV_TAC ‘ns2’
-              (*>> simp[Cong IMAGE_CONG, nodes_subtree_absorb_union]*)
-          >> cheat
-          
+          >> simp[Abbr ‘ns1’]
+          >> simp[Cong IMAGE_CONG, nodes_subtree_absorb_union]
+          >> simp[SUBSET_DEF]
+          >> rpt strip_tac
+          >> qexists ‘nodes (subtree (get_underlying_graph fg) src x')’ >> simp[]
+          >> qexists ‘x'’ >> simp[]
+          >> qpat_x_assum ‘x' ∈ adjacent_nodes fg src’ mp_tac >> simp[]
          )
       (* Simplify *)
       >> simp[DRESTRICT_DRESTRICT]
@@ -4638,7 +4638,7 @@ Proof
               >> metis_tac[adjacent_get_function_nodes])
           >> simp[Abbr ‘ns2’]
           >> ASM_SET_TAC[]
-         )         
+         )
       (* Now, our function doesn't depend on the first elements of the pairs
          in S1. Thus, we can simplify S1 so that it doesn't produce the first
          elements of these pairs, while simultaneously updating the function to
@@ -4755,7 +4755,7 @@ Proof
       >> simp[]
       >> simp[Abbr ‘S2’]
       >> ASM_SET_TAC[]
-     )
+     )     
   (* We have finished proving our theorem in the case where the source node for
        our message is a function node.
      Now we prove it in the case where the source node for our message is a
@@ -4796,7 +4796,43 @@ Proof
                               (DRESTRICT val_map (adjacent_nodes g func_node))
                            ) ((nodes (subtree g src prev) ∪ {src})
                               ∩ get_function_nodes fg)’
-  >> simp[]
+  >> simp[]         
+  (* ff does not return an infinite value *)
+  >> sg ‘∀prev val_map.
+           prev ∈ adjacent_nodes fg src ∧
+           val_map ∈ val_map_assignments fg (nodes (subtree g src prev) ∪ {src})
+                   excl_val_map ⇒
+           ff prev val_map ≠ −∞ ∧ ff prev val_map ≠ +∞’        
+  >- (rpt gen_tac >> strip_tac
+      >> Q.UNABBREV_TAC ‘ff’
+      >> simp[]
+      >> irule EXTREAL_PROD_IMAGE_NOT_INFTY
+      >> simp[]
+      >> gen_tac
+      (* src is not a function node
+         prev is a function node
+         x is a function node
+         x' is not a function node.
+         Therefore x ≠ src *)
+      >> Cases_on ‘x = src’
+      >- simp[]             
+      >> strip_tac
+      >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+      >> drule_then irule (iffLR functions_noninfinite_def)
+      >> simp[]
+      >> qexists ‘excl_val_map’
+      >> irule drestrict_in_val_map_assignments
+      >> qexistsl [‘excl_val_map’, ‘nodes (subtree g src prev) ∪ {src}’]
+      >> simp[]
+      >> simp[SUBSET_DEF]
+      >> gen_tac >> strip_tac
+      >> Cases_on ‘x' = src’ >> simp[]
+      >> irule in_subtree_adjacent_adjacent
+      >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+      >> qpat_x_assum ‘prev ∈ adjacent_nodes fg src’ mp_tac >> simp[] >> strip_tac
+      >> qexists ‘x’ >> simp[]
+     )         
   (* Useful reusable properties *)
   >> sg ‘FDOM excl_val_map = {src}’
   >- (‘{src} ⊆ var_nodes fg’ by simp[SUBSET_DEF]
@@ -4844,7 +4880,6 @@ Proof
                     (val_map_assignments fg (nodes (subtree g src prev)) FEMPTY)
                ) S’
       (fn th => PURE_ONCE_REWRITE_TAC[th])
-      
   >- (simp[Abbr ‘LHS’]
       >> irule EXTREAL_PROD_IMAGE_EQ
       >> qx_gen_tac ‘prev’ >> disch_tac
@@ -4867,10 +4902,35 @@ Proof
               >> simp[]
               >> CCONTR_TAC >> gvs[Abbr ‘S’]
              )
-          >> cheat
+          >> disj1_tac
+          >> gen_tac >> strip_tac
+          >> qpat_x_assum ‘prev ∈ S’ mp_tac >> Q.UNABBREV_TAC ‘S’ >> simp[]
+          >> strip_tac
+          >> qpat_x_assum ‘val_map ∈ IMAGE _ _’ mp_tac >> simp[] >> strip_tac
+          >> last_x_assum (fn th => irule (cj 1 th))
+          >> simp[]
+          >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+          >> irule funion_excl_val_map_in_val_map_assignments_diff
+          >> simp[]
+          >> conj_tac             
+          >- (qpat_x_assum ‘excl_val_map ∈ val_map_assignments _ _ _’ mp_tac
+              >> simp[val_map_assignments_def])
+          >> pop_assum mp_tac
+          >> simp[Cong premise_cong, Once val_map_assignments_restrict_nodes]
+          (* label: simplify_out_src_set *)
+          >> simp[GSYM DIFF_INTER]
+          >> simp[DIFF_SAME_UNION]
+          >> DEP_PURE_ONCE_REWRITE_TAC [iffRL DIFF_NO_EFFECT]
+          >> conj_tac
+          >- (simp[EXTENSION]
+              >> irule src_not_in_subtree
+              >> simp[]
+              >> disch_tac
+              >> gvs[])
+          >> simp[]
          )
       >> simp[o_DEF]
-     )
+     )     
   >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
   (* Rewrite ff to get into the right form to apply the generalised
      distributive law. *)
@@ -4921,7 +4981,7 @@ Proof
          )
       >> rpt gen_tac >> disch_tac
       >> cheat
-     )
+     )     
   (* Now that we've applied the generalised distributive law, there's a few
      things we can simplify. *)
   >> simp[IMAGE_CONST]
@@ -5005,9 +5065,10 @@ Proof
       >- simp[]
       >> rpt strip_tac
       >> gvs[val_map_assignments_def]
-     )
+     )     
   >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
   >> conj_tac
+     
   >- (rpt conj_tac
       >- simp[]
       >- (simp[INJ_DEF] >> rpt strip_tac
@@ -5016,7 +5077,26 @@ Proof
           >> simp[]
           >> gvs[val_map_assignments_def]
          )
-      >> cheat
+      >> disj1_tac
+      >> gen_tac >> strip_tac
+      >> irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
+      >> simp[]
+      >> gen_tac >> disch_tac
+      >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+      >> drule_then irule (iffLR functions_noninfinite_def)
+      >> simp[]
+      >> qexists ‘FEMPTY’
+      >> qpat_x_assum ‘val_map ∈ _’ mp_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[iffRL UNION_EQ_FIRST]
+      >> conj_tac
+      >- (simp[SUBSET_DEF]
+          >> irule dst_in_subtree
+          >> simp[])
+      >> simp[]
+      >> 
+      
+               
+             
      )
   >> Q.SUBGOAL_THEN ‘nodes (subtree g dst src) ∪ {src} = nodes (subtree g dst src)’
       (fn th => PURE_ONCE_REWRITE_TAC[th])

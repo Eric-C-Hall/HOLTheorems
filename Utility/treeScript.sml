@@ -3007,6 +3007,26 @@ Proof
   >> qexists ‘x’ >> simp[]
 QED
 
+Theorem in_subtree_adjacent_adjacent:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph x x' a b.
+    is_tree g ∧
+    a ∈ nodes g ∧
+    adjacent g x x' ∧
+    adjacent g a b ∧
+    x ∈ nodes (subtree g a b) ∧
+    x' ≠ a ⇒
+    x' ∈ nodes (subtree g a b)
+Proof
+  rpt gen_tac >> PURE_REWRITE_TAC[GSYM AND_IMP_INTRO]  >> rpt disch_tac
+  >> ‘x ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘x'’ >> simp[])
+  >> ‘x' ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘x’ >> simp[])
+  >> qpat_x_assum ‘x ∈ nodes (subtree _ _ _)’ mp_tac
+  >> simp[subtree_def] >> disch_tac
+  >> irule move_end_to_adjacent_adjacent
+  >> simp[]
+  >> qexists ‘x’ >> simp[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
 (* input as a tree, which might make it easier to use induction?              *)
