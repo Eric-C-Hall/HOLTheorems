@@ -4046,7 +4046,6 @@ Theorem sp_message_sum_prod:
       FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
                
 Proof
-
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
   >> REVERSE $ Cases_on ‘is_tree (get_underlying_graph fg) ∧
@@ -4936,13 +4935,16 @@ Proof
      distributive law. *)
   >> qabbrev_tac ‘ff_2 = λprev x. ff prev (excl_val_map ⊌ x)’
   >> simp[] >> simp[Abbr ‘ff’]
+  (* Now that we no longer have ff, delete the old expression for proving that
+     ff does not have an infinite value. *)
+  >> qpat_x_assum ‘∀prev val_map. _ ⇒ _’ kall_tac
   (* Abbreviate set to nsf, so that our expression is in the right form to
      apply the generalised distributive law *)
   >> qabbrev_tac ‘nsf = λprev. nodes (subtree g src prev)’
   >> simp[]         
   (* Apply the generalised distributive law *)
   >> DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
-  >> conj_tac     
+  >> conj_tac               
   >- (rpt conj_tac
       >- (unabbrev_all_tac >> irule FINITE_SUBSET
           >> qexists ‘nodes (get_underlying_graph fg)’ >> simp[SUBSET_DEF])
@@ -4979,8 +4981,65 @@ Proof
           >> simp[]
           >> simp[adjacent_SYM]
          )
-      >> rpt gen_tac >> disch_tac
-      >> cheat
+      >> rpt gen_tac >> strip_tac                        
+      >> Q.UNABBREV_TAC ‘ff_2’
+      >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+      >> irule EXTREAL_PROD_IMAGE_NOT_INFTY
+      >> simp[]
+      >> REVERSE conj_tac
+      >- (PURE_ONCE_REWRITE_TAC[INTER_COMM] >> simp[INTER_FINITE])
+      >> gen_tac
+      (* In the case where x' = src, we have a contradiction because x' is
+         a function node whereas src is a variable node *)
+      >> REVERSE strip_tac
+      >- (qpat_x_assum ‘x' ∈ get_function_nodes _’ mp_tac >> simp[])
+      >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+      >> drule_then irule (iffLR functions_noninfinite_def)
+      >> simp[]
+      >> qexists ‘excl_val_map’
+      >> irule drestrict_in_val_map_assignments
+      >> qexistsl [‘excl_val_map’, ‘nsf prev ∪ {src}’]
+      >> simp[]
+      >> conj_tac         
+      >- (PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+          >> irule funion_excl_val_map_in_val_map_assignments_diff
+          >> rpt conj_tac
+          >- (gen_tac >> disch_tac
+              >> qpat_x_assum ‘excl_val_map ∈ _’ mp_tac
+              >> qpat_x_assum ‘n ∈ FDOM excl_val_map’ mp_tac
+              >> simp[val_map_assignments_def])             
+          >- (PURE_ONCE_REWRITE_TAC[GSYM DIFF_INTER]
+              >> simp[DIFF_SAME_UNION]
+              >> DEP_PURE_ONCE_REWRITE_TAC[iffRL DIFF_NO_EFFECT]
+              >> conj_tac                 
+              >- (Q.UNABBREV_TAC ‘nsf’
+                  >> simp[EXTENSION]
+                  >> irule src_not_in_subtree
+                  >> simp[]
+                  >> disch_tac
+                  >> Q.UNABBREV_TAC ‘S’
+                  >> qpat_x_assum ‘prev ∈ _’ mp_tac
+                  >> simp[])
+              >> Q.UNABBREV_TAC ‘nsf’
+              >> Q.UNABBREV_TAC ‘g’
+              >> qpat_x_assum ‘x ∈ val_map_assignments _ _ _’ mp_tac
+              >> simp[GSYM val_map_assignments_restrict_nodes])
+          >- (Q.UNABBREV_TAC ‘nsf’
+              >> irule (cj 2 INTER_SUBSET))             
+          >> simp[])
+      >> simp[SUBSET_DEF]
+      >> gen_tac >> strip_tac
+      >> Cases_on ‘x'' = src’ >> simp[]
+      >> Q.UNABBREV_TAC ‘nsf’          
+      >> simp[]
+      >> qpat_x_assum ‘x' ∈ _ prev’ mp_tac >> simp[] >> disch_tac
+      >> irule in_subtree_adjacent_adjacent
+      >> Q.UNABBREV_TAC ‘S’
+      >> qpat_x_assum ‘prev ∈ _’ mp_tac >> simp[] >> strip_tac
+      >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+      >> qexists ‘x'’
+      >> simp[]
      )     
   (* Now that we've applied the generalised distributive law, there's a few
      things we can simplify. *)
@@ -5067,8 +5126,7 @@ Proof
       >> gvs[val_map_assignments_def]
      )     
   >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
-  >> conj_tac
-     
+  >> conj_tac     
   >- (rpt conj_tac
       >- simp[]
       >- (simp[INJ_DEF] >> rpt strip_tac
@@ -5080,8 +5138,8 @@ Proof
       >> disj1_tac
       >> gen_tac >> strip_tac
       >> irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
-      >> simp[]
-      >> gen_tac >> disch_tac
+      >> simp[]             
+      >> gen_tac >> PURE_ONCE_REWRITE_TAC[GSYM AND_IMP_INTRO] >> rpt disch_tac
       >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
       >> drule_then irule (iffLR functions_noninfinite_def)
       >> simp[]
@@ -5093,10 +5151,46 @@ Proof
           >> irule dst_in_subtree
           >> simp[])
       >> simp[]
-      >> 
-      
-               
-             
+      >> strip_tac
+      >> irule drestrict_in_val_map_assignments
+      >> qexistsl [‘excl_val_map’, ‘nodes (subtree g dst src) ∩ var_nodes fg’]
+      >> rpt conj_tac
+      >- (simp[]
+          >> irule (INST_TYPE [“:α” |-> “:extreal”]
+                              funion_excl_val_map_in_val_map_assignments_diff)
+          >> simp[]
+          >> conj_tac
+          >- (qpat_x_assum ‘excl_val_map ∈ _’ mp_tac
+              >> simp[val_map_assignments_def])
+          >> irule dst_in_subtree
+          >> simp[])
+      >- simp[]             
+      >> simp[SUBSET_DEF]
+      >> REVERSE conj_tac >> gen_tac >> strip_tac
+      >- (irule (iffLR adjacent_get_function_nodes)
+          >> qexists ‘x’ >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+      >> irule in_subtree_adjacent_adjacent
+      >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+      >> conj_tac         
+      >- (disch_tac
+          (* Contradiction because x'' = dst and dst is a function node whereas
+             x'' is not a function node*)
+          >> ‘dst ∈ get_function_nodes fg ∧ x'' ∉ get_function_nodes fg’
+            suffices_by simp[]
+          >> conj_tac
+          >- (irule (iffRL adjacent_get_function_nodes)
+              >> qexists ‘src’
+              >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+          >> irule (iffLR adjacent_get_function_nodes)
+          >> qexists ‘x’
+          >> qpat_x_assum ‘x'' = dst’ kall_tac
+          >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+      >> qexists ‘x’ >> simp[]
+      >> qpat_x_assum ‘x ∈ nodes (subtree g dst src) ∨ _’ mp_tac
+      >> strip_tac >> simp[]
+      (* Contradiction because src = x and src is not a function node whereas
+         x is a function node *)
+      >> qpat_x_assum ‘x ∈ get_function_nodes _’ mp_tac >> simp[]
      )
   >> Q.SUBGOAL_THEN ‘nodes (subtree g dst src) ∪ {src} = nodes (subtree g dst src)’
       (fn th => PURE_ONCE_REWRITE_TAC[th])
@@ -5257,11 +5351,11 @@ QED
 (* The message passing algorithm gives us the same result as summing over the *)
 (* product of the terms in the factor graph                                   *)
 (* -------------------------------------------------------------------------- *)
-Theorem sp_message_final_result:
+(*Theorem sp_message_final_result:
   TODO_FINAL_RESULT = TODO_FINAL_RESULT
 Proof
   cheat
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* This overload is useful for my purposes, but it may overlap with the more  *)
@@ -5270,3 +5364,6 @@ QED
 (* before exporting the theory.                                               *)
 (* -------------------------------------------------------------------------- *)
 val _ = hide "message_domain"
+
+
+
