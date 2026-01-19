@@ -39,6 +39,16 @@ val _ = hide "S";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
+(* Most important theorems proven in this file:                               *)
+(* - generalised_distributive_law                                             *)
+(* - sp_message_sum_prod                                                      *)
+(*                                                                            *)
+(*                                                                            *)
+(* - val_map_assignments_remove_excl_val_map                                  *)
+(* - val_map_assignments_remove_excl_val_map_generalised                      *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* TODO: Consider moving generalised distributive law into its own file?      *)
 (* -------------------------------------------------------------------------- *)
 
@@ -505,6 +515,10 @@ End
 (* are associated with function nodes in the set. We may use                  *)
 (* contains_all_assoc_var_nodes to check whether this is the case when using  *)
 (* sum_prod                                                                   *)
+(*                                                                            *)
+(* - fg: the factor graph                                                     *)
+(* - ns: the nodes to take the sum of products over                           *)
+(* - excl_val_map: a map from nodes to fixed values that these nodes take.    *)
 (* -------------------------------------------------------------------------- *)
 Definition sum_prod_def:
   sum_prod fg ns excl_val_map =
@@ -529,6 +543,23 @@ Definition sum_prod_map_def:
   ) (val_map_assignments fg excl_nodes FEMPTY)
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Returns the final output of the message passing algorithm at a given       *)
+(* variable node.                                                             *)
+(*                                                                            *)
+(* This will be the product of the incoming messages                          *)
+(*                                                                            *)
+(* - fg: the factor graph to apply the message passing algorithm to           *)
+(* - dst: the node to take the output at. Must be a variable node.            *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_output_def:
+  sp_output fg dst =
+  FUN_FMAP
+  (λval_map.
+     ∏ (λsrc. sp_message fg src dst ' val_map) (adjacent_nodes fg dst)
+  ) (val_map_assignments fg {dst} FEMPTY)
+End
+           
 (* It's kinda interesting how this can be proven simply by applying
    gvs[factor_graph_ABSREP]. The second conjunct rewrites wffactor_graph as
    REP (ABS ...), and then the first conjunct simplifies the inner ABS (REP) *)
@@ -3819,6 +3850,43 @@ Proof
   >> simp[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* A version of val_map_assignments_remove_excl_val_map which has been        *)
+(* generalised to work with choices of ns and excl_val_map that are outside   *)
+(* the usual range of expected values for these                               *)
+(*                                                                            *)
+(* Advantage: more general.                                                   *)
+(*                                                                            *)
+(* Disadvantage: less simplification is possible, making it messier to use    *)
+(* in circumstances where we know that ns and excl_val_map have typical       *)
+(* domains. In particular, the RHS has                                        *)
+(*    DRESTRICT excl_val_map (ns ∩ var_nodes fg) instead of excl_val_map,     *)
+(* and ns ∩ var_nodes fg instead of ns.                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem val_map_assignments_remove_excl_val_map_generalised:
+  ∀fg ns excl_val_map.
+    (∀n. n ∈ FDOM excl_val_map ∩ ns ∩ var_nodes fg ⇒
+         LENGTH (excl_val_map ' n) = get_variable_length_map fg ' n) ⇒
+    val_map_assignments fg ns excl_val_map =
+    IMAGE (FUNION (DRESTRICT excl_val_map (ns ∩ var_nodes fg)))
+          (val_map_assignments fg ((ns ∩ var_nodes fg) DIFF (FDOM excl_val_map)) FEMPTY)
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+  >> PURE_ONCE_REWRITE_TAC[val_map_assignments_drestrict_excl_val_map]  
+  >> DEP_PURE_ONCE_REWRITE_TAC[val_map_assignments_remove_excl_val_map]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- simp[]
+      >- simp[FDOM_DRESTRICT]
+      >> gen_tac >> strip_tac
+      >> simp[DRESTRICT_DEF]
+      >> gvs[FDOM_DRESTRICT])
+  >> simp[FDOM_DRESTRICT]
+  >> cong_tac (SOME 2)
+  >> ASM_SET_TAC[]
+QED
+
 Theorem sum_prod_empty[simp]:
   ∀fg excl_val_map.
     sum_prod fg ∅ excl_val_map = 1
@@ -4043,8 +4111,7 @@ Theorem sp_message_sum_prod:
       in
         sum_prod_map fg sum_prod_ns {msg_var_node}
     else
-      FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)
-               
+      FUN_FMAP (λdst_val_map. 0) (val_map_assignments fg ∅ FEMPTY)               
 Proof
   (* Simplify special case of invalid input to sp_message *)
   rpt strip_tac
@@ -5347,14 +5414,208 @@ Proof
   >> qexists ‘r’ >> simp[]
 QED
 
+Theorem adjacent_nonequal:
+  ∀fg a b.
+    adjacent (get_underlying_graph fg) a b ⇒
+    a ≠ b
+Proof
+  metis_tac[adjacent_get_function_nodes]
+QED
+        
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm gives us the same result as summing over the *)
 (* product of the terms in the factor graph                                   *)
 (* -------------------------------------------------------------------------- *)
-(*Theorem sp_message_final_result:
-  TODO_FINAL_RESULT = TODO_FINAL_RESULT
+Theorem sp_message_final_result:
+  ∀fg dst.
+    functions_noninfinite fg ∧
+    is_tree (get_underlying_graph fg) ∧
+    dst ∈ var_nodes fg ⇒
+    sp_output fg dst =
+    FUN_FMAP
+    (λval_map.
+       sum_prod fg (nodes (get_underlying_graph fg)) val_map
+    ) (val_map_assignments fg {dst} FEMPTY)
+        
 Proof
-  cheat
+  
+  rpt gen_tac >> strip_tac
+  >> simp[sp_output_def]
+  >> simp[FUN_FMAP_EQ_THM]
+  >> gen_tac >> strip_tac
+  >> simp[sp_message_sum_prod]
+  (* Simplify out outer condition for if statement *)
+  >> Q.SUBGOAL_THEN
+      ‘∀src. src ∈ adjacent_nodes fg dst ⇒
+             adjacent (get_underlying_graph fg) src dst ∧
+             src ≠ dst’
+      (fn th => simp[Cong EXTREAL_PROD_IMAGE_CONG, th])
+  >- (simp[] >> strip_tac >> drule adjacent_nonequal >> simp[])
+  (* *)
+  >> qpat_x_assum ‘dst ∈ var_nodes fg’ mp_tac >> simp[] >> strip_tac
+  (* Simplify out inner conditions for if statement *)
+  >> Q.SUBGOAL_THEN
+      ‘∀src. src ∈ adjacent_nodes fg dst ⇒
+             src ∈ get_function_nodes fg’
+      (fn th => simp[Cong EXTREAL_PROD_IMAGE_CONG, th])
+  >- (gen_tac >> strip_tac
+      >> irule (iffRL adjacent_get_function_nodes)
+      >> qexists ‘dst’ >> pop_assum mp_tac >> simp[])     
+  (* Expand out so that we are in a position to swap the outer product with the
+     inner sum. *)
+  >> simp[sum_prod_map_def]
+  >> simp[Cong LHS_CONG, sum_prod_def]         
+  (* Simplify out the union with {dst} in the inner product *)
+  >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+  >> PURE_ONCE_REWRITE_TAC[UNION_OVER_INTER]
+  >> Q.SUBGOAL_THEN
+      ‘get_function_nodes fg ∩ {dst} = ∅’
+      (fn th => simp[th])
+  >- simp[EXTENSION]
+  (* Rewrite the inner function ff into the form appropriate to apply the
+     generalised distributive law *)
+  >> qabbrev_tac
+     ‘ff = λsrc val_map'.
+             ∏
+             (λfunc_node.
+                get_function_map fg ' func_node '
+                                 (DRESTRICT val_map'
+                                            (adjacent_nodes fg func_node)))
+             (get_function_nodes fg ∩
+                                 nodes (subtree (get_underlying_graph fg) dst src))’
+  >> simp[]         
+  (* An expression for FDOM val_map *)
+  >> ‘FDOM val_map = {dst}’
+    by (irule (INST_TYPE [“:α” |-> “:extreal”] in_val_map_assignments_fdom)
+        >> qexistsl [‘FEMPTY’, ‘fg’] >> simp[])
+  (* Ensure that the sets we are summing over are disjoint, so that we may
+     apply the generalised distributive law. *)
+  >> qmatch_abbrev_tac ‘LHS = RHS’
+
+                       
+  >> Q.SUBGOAL_THEN
+      ‘LHS = ∏
+             (λsrc.
+                ∑ (λval_map'.
+                     ff src
+                        (DRESTRICT
+                         val_map
+                         ((nodes (subtree (get_underlying_graph fg) dst src) ∪ {dst}) ∩ var_nodes fg) ⊌ val_map'))
+                  (val_map_assignments fg ((nodes (subtree (get_underlying_graph fg) dst src) ∪ {dst}) ∩ var_nodes fg DIFF {dst}) FEMPTY)
+             ) (adjacent_nodes fg dst)’
+      (fn th => simp[th])
+      
+  >- (Q.UNABBREV_TAC ‘LHS’
+      >> irule EXTREAL_PROD_IMAGE_EQ
+      >> qx_gen_tac ‘src’ >> strip_tac
+      >> simp[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[val_map_assignments_remove_excl_val_map_generalised]
+      >> conj_tac
+      >- (gen_tac >> simp[] >> strip_tac
+          >> qpat_x_assum ‘val_map ∈ val_map_assignments _ _ _’ mp_tac
+          >> simp[val_map_assignments_def])
+      >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
+      >> conj_tac
+      >- (rpt conj_tac
+          >- simp[]
+          >- (simp[INJ_DEF]
+              >> cheat)
+          >- cheat
+         )
+      >> simp[o_DEF]
+     )
+  >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
+  (* *)
+  >> 
+  
+  (* Rewrite nsf into the form appropriate to apply the generalised distributive
+     law *)
+  >> qabbrev_tac ‘nsf = λsrc. (nodes (subtree (get_underlying_graph fg) dst src)
+                                     ∪ {dst})’
+  >> simp[]
+         
+  >> 
+
+  (* Swap the outer product with the inner sum using the generalised
+     distributive law *)         
+
+  >> DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
+  >> conj_tac
+     
+  >- (rpt conj_tac
+      >- simp[]             
+      >- (simp[INJ_DEF]
+          >> rpt gen_tac >> strip_tac
+          >> Q.UNABBREV_TAC ‘nsf’ >> simp[] >> strip_tac
+          >> ‘dst ∉ nodes (subtree (get_underlying_graph fg) dst x)’
+            by (irule src_not_in_subtree >> simp[] >> disch_tac >> gvs[])
+          >> ‘dst ∉ nodes (subtree (get_underlying_graph fg) dst y)’
+            by (irule src_not_in_subtree >> simp[] >> disch_tac >> gvs[])
+          >> Cases_on ‘x = y’ >- pop_assum irule >> simp[]
+          >> qpat_x_assum ‘_ ∪ _ = _ ∪ _’ mp_tac
+          >> PURE_ONCE_REWRITE_TAC[IMP_CLAUSES]
+          >> qspecl_then [‘get_underlying_graph fg’, ‘dst’, ‘x’, ‘y’] mp_tac
+                         subtrees_disjoint
+          >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+          >> impl_tac             
+          >- (conj_tac >> irule (INST_TYPE [“:α” |-> “:extreal”] adjacent_nonequal)
+              >> qexists ‘fg’ >> simp[]
+              >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])             
+          >> simp[DISJOINT_ALT]
+          >> disch_then (fn th => qspec_then ‘x’ mp_tac th)
+          >> impl_keep_tac
+          >- (irule dst_in_subtree
+              >> simp[])
+          >> disch_tac
+          >> simp[EXTENSION]
+          >> qexists ‘x’ >> simp[]
+          >> disch_tac >> gvs[]
+         )
+         
+      >- (Q.UNABBREV_TAC ‘nsf’
+          >> simp[disjoint_def]
+          >> gen_tac >> gen_tac >> strip_tac
+          >> simp[]
+         )
+      >> rpt gen_tac >> strip_tac
+      >> Q.UNABBREV_TAC ‘ff’ >> Q.UNABBREV_TAC ‘nsf’
+      >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+      >> irule EXTREAL_PROD_IMAGE_NOT_INFTY
+      >> REVERSE conj_tac
+      >- simp[]
+      >> gen_tac >> strip_tac
+      >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+      >> drule_then irule (iffLR functions_noninfinite_def)
+      >> gvs[]
+      >> qexists ‘val_map’
+      >> irule drestrict_in_val_map_assignments
+      >> qexistsl [‘val_map’, ‘(nodes (subtree (get_underlying_graph fg) dst src) ∪ {dst})’]
+      >> simp[]
+      >> simp[SUBSET_DEF]
+      >> gen_tac >> strip_tac
+      >> Cases_on ‘x' = dst’ >> simp[]
+      >> irule in_subtree_adjacent_adjacent
+      >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+      >> qexists ‘x’ >> simp[]
+     )
+  >> 
+  >>          
+  >> 
+  
+  
+  >> simp[Cong EXTREAL_PROD_IMAGE_CONG, nodes_subtree_absorb_union]
+  >> 
+
+  
+  >> simp[sum_prod_def]
+QED
+
+(*Theorem kljfgd:
+  sp_message fg src dst =
+  map_decoder_bitwise (encode_recursive_parity_equation_with_systematic (ps,qs) ts) n m p ds 
+Proof
 QED*)
 
 (* -------------------------------------------------------------------------- *)
