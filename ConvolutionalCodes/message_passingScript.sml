@@ -48,6 +48,10 @@ val _ = hide "S";
 (* - extreal_prod_image_combine_dependent                                     *)
 (* - extreal_prod_image_combine                                               *)
 (*                                                                            *)
+(* Combining subtrees together gets you a larger tree:                        *)
+(* - bigunion_image_subtree_delete                                            *)
+(* - bigunion_image_subtree                                                   *)
+(*                                                                            *)
 (* Rewrite val_map_assignments to remove excl_val_map:                        *)
 (* - val_map_assignments_remove_excl_val_map                                  *)
 (* - val_map_assignments_remove_excl_val_map_generalised                      *)
@@ -83,6 +87,7 @@ val _ = hide "S";
 (*                                                                            *)
 (* Basic properties that hold in general for well-formed factor graphs:       *)
 (* - adjacent_in_function_nodes_not_in_function_nodes                         *)
+(* - adjacent_nonequal                                                        *)
 (* - wffactor_graph_factor_graph_REP                                          *)
 (*                                                                            *)
 (* Congruences for simplifying functions being summed/producted over:         *)
@@ -101,7 +106,6 @@ val _ = hide "S";
 (* Useful in very specific situations:                                        *)
 (* - nodes_subtree_absorb_union                                               *)
 (* - adjacent_nodes_delete_comprehension                                      *)
-(* - bigunion_image_subtree                                                   *)
 (* -------------------------------------------------------------------------- *)
 
 
@@ -4656,7 +4660,7 @@ Proof
                   >> ASM_SET_TAC[]
                  )
               >> simp[Abbr ‘ns1’]
-              >> simp[bigunion_image_subtree]
+              >> simp[bigunion_image_subtree_delete]
               >> ‘adjacent_nodes fg src ⊆ nodes (subtree (get_underlying_graph fg) dst src) ∪ {dst}’ suffices_by ASM_SET_TAC[]
               >> simp[SUBSET_DEF]
               >> gen_tac >> strip_tac
@@ -4688,8 +4692,8 @@ Proof
       >> simp[Abbr ‘f’]
       (* If we can remove all instances of FST from the function on the LHS, we
          can simplify the set on the LHS to not produce the first elements,
-         allowing us to use bigunion_image_subtree to simplify and bring us
-         closer to the RHS. *)             
+         allowing us to use bigunion_image_subtree_delete to simplify and bring
+         us closer to the RHS. *)             
       >> qmatch_abbrev_tac ‘_ * ∏ _ S1 = _’                           
       >> Q.SUBGOAL_THEN
           ‘∀z. z ∈ S1 ⇒
@@ -4861,11 +4865,12 @@ Proof
       >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
       >> qpat_x_assum ‘Abbrev (S1 = _)’ kall_tac
       (* Take the intersection with get_function_nodes out of the BIGUNION,
-         so that we are in an appropriate form to apply bigunion_image_subtree *)
+         so that we are in an appropriate form to apply
+         bigunion_image_subtree_delete *)
       >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
       >> simp[BIGUNION_IMAGE_INTER]
       (* Expand out nsf and ns2, and simplify nsf, to head towards the
-         appropriate form to apply bigunion_image_subtree *)
+         appropriate form to apply bigunion_image_subtree_delete *)
       >> simp[Abbr ‘nsf’]
       >> simp[Abbr ‘ns2’]
       >> Q.SUBGOAL_THEN
@@ -4880,9 +4885,9 @@ Proof
           >> pop_assum mp_tac >> rpt (pop_assum kall_tac)
           >> ASM_SET_TAC[]
          )
-      (* Apply bigunion_image_subtree *)
+      (* Apply bigunion_image_subtree_delete *)
       >> simp[Abbr ‘ns1’]
-      >> simp[bigunion_image_subtree]
+      >> simp[bigunion_image_subtree_delete]
       (* Take src out of the RHS to match the LHS. *)
       >> qmatch_abbrev_tac ‘_ = ∏ _ S2 : extreal’
       >> Q.SUBGOAL_THEN
@@ -5248,7 +5253,7 @@ Proof
   >> gvs[]
   (* Simplify BIGUNION IMAGE subtree to a nicer expression *)
   >> simp[Abbr ‘nsf’]
-  >> DEP_PURE_ONCE_REWRITE_TAC[bigunion_image_subtree]
+  >> DEP_PURE_ONCE_REWRITE_TAC[bigunion_image_subtree_delete]
   >> conj_tac
   >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])     
   (* Now the sum part is on the outside, so we can cancel the sums on the LHS
@@ -5498,7 +5503,6 @@ Proof
   metis_tac[adjacent_get_function_nodes]
 QED
 
-
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm gives us the same result as summing over the *)
 (* product of the terms in the factor graph                                   *)
@@ -5579,8 +5583,7 @@ Proof
                          ((nodes (subtree (get_underlying_graph fg) dst src) ∪ {dst}) ∩ var_nodes fg) ⊌ val_map'))
                   (val_map_assignments fg ((nodes (subtree (get_underlying_graph fg) dst src) ∪ {dst}) ∩ var_nodes fg DIFF {dst}) FEMPTY)
              ) (adjacent_nodes fg dst)’
-      (fn th => simp[th])
-      
+      (fn th => simp[th])      
   >- (Q.UNABBREV_TAC ‘LHS’
       >> irule EXTREAL_PROD_IMAGE_EQ
       >> qx_gen_tac ‘src’ >> strip_tac
@@ -5592,7 +5595,6 @@ Proof
           >> simp[val_map_assignments_def])
       >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
       >> conj_tac
-         
       >- (rpt conj_tac
           >- simp[]
           >- (simp[INJ_DEF]
@@ -5648,65 +5650,91 @@ Proof
           >> simp[SUBSET_DEF]
           >> gen_tac >> strip_tac
           >> Cases_on ‘x'' = dst’ >> simp[]
-          >> 
+          >> irule in_subtree_adjacent_adjacent
+          >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+          >> qexists ‘x’ >> simp[]
          )
       >> simp[o_DEF]
      )
-  >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac
+  >> qpat_x_assum ‘Abbrev (LHS = _)’ kall_tac                  
+  >> Q.UNABBREV_TAC ‘RHS’
+  (* Simplify set being summed over *)
+  >> Q.SUBGOAL_THEN
+      ‘∀src.
+         src ∈ adjacent_nodes fg dst ⇒
+         (nodes (subtree (get_underlying_graph fg) dst src) ∪
+                {dst}) ∩ var_nodes fg DIFF {dst} =
+         nodes (subtree (get_underlying_graph fg) dst src) ∩ var_nodes fg’
+      (fn th => simp[Cong EXTREAL_PROD_IMAGE_CONG, th])
+  >- (rpt strip_tac
+      >> PURE_ONCE_REWRITE_TAC[GSYM DIFF_INTER]
+      >> PURE_ONCE_REWRITE_TAC[DIFF_SAME_UNION]
+      >> DEP_PURE_ONCE_REWRITE_TAC[iffRL DIFF_NO_EFFECT]
+      >> REVERSE conj_tac >- irule EQ_REFL
+      >> simp[EXTENSION]
+      >> irule src_not_in_subtree
+      >> simp[]
+      >> gvs[]
+      >> irule (INST_TYPE [“:α” |-> “:extreal”] adjacent_nonequal)
+      >> qexists ‘fg’ >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+      >> pop_assum mp_tac >> simp[])     
+  (* Simplify input to ff *)
+  >> Q.SUBGOAL_THEN
+      ‘∀src.
+         src ∈ adjacent_nodes fg dst ⇒
+         DRESTRICT val_map
+                   ((nodes
+                     (subtree (get_underlying_graph fg) dst src) ∪
+                     {dst}) ∩ var_nodes fg) = val_map’
+      (fn th => simp[Cong EXTREAL_PROD_IMAGE_CONG, th])
+  >- (rpt strip_tac
+      >> irule FDOM_SUBSET_DRESTRICT
+      >> simp[])             
+  (* We now need to update ff, because it has changed *)
+  >> qabbrev_tac ‘ff_2 = λsrc val_map'. ff src (val_map ⊌ val_map')’
+  >> simp[]
+  >> Q.UNABBREV_TAC ‘ff’
   (* *)
-  >> 
-  
+  >> simp[GSYM val_map_assignments_restrict_nodes]
   (* Rewrite nsf into the form appropriate to apply the generalised distributive
      law *)
-  >> qabbrev_tac ‘nsf = λsrc. (nodes (subtree (get_underlying_graph fg) dst src)
-                                     ∪ {dst})’
+  >> qabbrev_tac ‘nsf = λsrc. nodes (subtree (get_underlying_graph fg) dst src)’
   >> simp[]
-         
-  >> 
-
   (* Swap the outer product with the inner sum using the generalised
      distributive law *)         
-
   >> DEP_PURE_ONCE_REWRITE_TAC[generalised_distributive_law]
-  >> conj_tac
-     
+  >> conj_tac     
   >- (rpt conj_tac
-      >- simp[]             
+      >- simp[]
       >- (simp[INJ_DEF]
           >> rpt gen_tac >> strip_tac
           >> Q.UNABBREV_TAC ‘nsf’ >> simp[] >> strip_tac
-          >> ‘dst ∉ nodes (subtree (get_underlying_graph fg) dst x)’
-            by (irule src_not_in_subtree >> simp[] >> disch_tac >> gvs[])
-          >> ‘dst ∉ nodes (subtree (get_underlying_graph fg) dst y)’
-            by (irule src_not_in_subtree >> simp[] >> disch_tac >> gvs[])
-          >> Cases_on ‘x = y’ >- pop_assum irule >> simp[]
-          >> qpat_x_assum ‘_ ∪ _ = _ ∪ _’ mp_tac
-          >> PURE_ONCE_REWRITE_TAC[IMP_CLAUSES]
-          >> qspecl_then [‘get_underlying_graph fg’, ‘dst’, ‘x’, ‘y’] mp_tac
-                         subtrees_disjoint
+          >> CCONTR_TAC
+          >> qspecl_then [‘get_underlying_graph fg’, ‘dst’, ‘x’, ‘y’]
+                         mp_tac subtrees_disjoint
           >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
-          >> impl_tac             
-          >- (conj_tac >> irule (INST_TYPE [“:α” |-> “:extreal”] adjacent_nonequal)
-              >> qexists ‘fg’ >> simp[]
-              >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])             
-          >> simp[DISJOINT_ALT]
-          >> disch_then (fn th => qspec_then ‘x’ mp_tac th)
-          >> impl_keep_tac
-          >- (irule dst_in_subtree
-              >> simp[])
-          >> disch_tac
-          >> simp[EXTENSION]
-          >> qexists ‘x’ >> simp[]
-          >> disch_tac >> gvs[]
-         )
-         
+          >> conj_tac
+          >- (conj_tac >> disch_tac >> gvs[])
+          >> PURE_ONCE_REWRITE_TAC[GSYM nodes_EQ_EMPTY]
+          >> PURE_ONCE_REWRITE_TAC[EXTENSION]
+          >> simp[]
+          >> ‘y ∈ nodes (subtree (get_underlying_graph fg) dst y)’
+            by (irule dst_in_subtree >> simp[])
+          >> PURE_ONCE_REWRITE_TAC[GSYM nodes_EQ_EMPTY]
+          >> PURE_ONCE_REWRITE_TAC[EXTENSION]
+          >> simp[]
+          >> qexists ‘y’ >> simp[]
+         )         
       >- (Q.UNABBREV_TAC ‘nsf’
           >> simp[disjoint_def]
           >> gen_tac >> gen_tac >> strip_tac
           >> simp[]
+          >> irule subtrees_disjoint
+          >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+          >> rpt conj_tac >> disch_tac >> gvs[]
          )
-      >> rpt gen_tac >> strip_tac
-      >> Q.UNABBREV_TAC ‘ff’ >> Q.UNABBREV_TAC ‘nsf’
+      >> rpt gen_tac >> simp[] >> strip_tac
+      >> Q.UNABBREV_TAC ‘ff_2’ >> Q.UNABBREV_TAC ‘nsf’
       >> simp[]
       >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
       >> irule EXTREAL_PROD_IMAGE_NOT_INFTY
@@ -5716,11 +5744,31 @@ Proof
       >> simp[]
       >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
       >> drule_then irule (iffLR functions_noninfinite_def)
-      >> gvs[]
+      >> pop_assum mp_tac >> simp[] >> strip_tac
       >> qexists ‘val_map’
       >> irule drestrict_in_val_map_assignments
       >> qexistsl [‘val_map’, ‘(nodes (subtree (get_underlying_graph fg) dst src) ∪ {dst})’]
-      >> simp[]
+      >> rpt conj_tac             
+      >- (PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+          >> irule funion_excl_val_map_in_val_map_assignments_diff
+          >> rpt conj_tac
+          >- (gen_tac >> strip_tac >> gvs[val_map_assignments_def])
+          >- (qpat_x_assum ‘val_map' ∈ _’ mp_tac
+              >> PURE_ONCE_REWRITE_TAC[GSYM DIFF_INTER]
+              >> simp[DIFF_SAME_UNION]
+              >> DEP_PURE_ONCE_REWRITE_TAC[iffRL DIFF_NO_EFFECT]
+              >> conj_tac
+              >- (simp[EXTENSION]
+                  >> irule src_not_in_subtree
+                  >> simp[]
+                  >> disch_tac >> gvs[])
+              >> PURE_ONCE_REWRITE_TAC[GSYM val_map_assignments_restrict_nodes]
+              >> disch_then irule
+             )
+          >- simp[SUBSET_DEF, subtree_def]
+          >> simp[]
+         )
+      >- simp[]
       >> simp[SUBSET_DEF]
       >> gen_tac >> strip_tac
       >> Cases_on ‘x' = dst’ >> simp[]
@@ -5728,16 +5776,52 @@ Proof
       >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
       >> qexists ‘x’ >> simp[]
      )
-  >> 
-  >>          
-  >> 
-  
-  
-  >> simp[Cong EXTREAL_PROD_IMAGE_CONG, nodes_subtree_absorb_union]
+  (* Simplify *)
+  >> simp[IMAGE_CONST]
+  (* Handle the special case where there are no adjacent nodes to dst *)
+  >> Cases_on ‘adjacent_nodes fg dst = ∅’              
+  >- (simp[]
+      >> simp[sum_prod_def]
+      >> sg ‘nodes (get_underlying_graph fg) = {dst}’
+      >- (simp[EXTENSION]
+          >> gen_tac
+          >> REVERSE EQ_TAC >- simp[]
+          >> strip_tac
+          >> CCONTR_TAC
+          >> qpat_x_assum ‘adjacent_nodes _ _ = ∅’ mp_tac
+          >> simp[EXTENSION]
+          >> qexists ‘EL 1 (get_path (get_underlying_graph fg) dst x)’
+          >> ‘EL 1 (get_path (get_underlying_graph fg) dst x)
+              ∈ nodes (get_underlying_graph fg)’
+            by (irule first_step_in_nodes >> simp[])
+          >> simp[]
+          >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+          >> irule adjacent_first_step
+          >> simp[])
+      >> simp[]
+      >> ‘{dst} ∩ get_function_nodes fg = ∅’ by simp[EXTENSION]
+      >> simp[]             
+      >> qpat_x_assum ‘FDOM val_map = {dst}’
+                      (fn th => PURE_ONCE_REWRITE_TAC[GSYM th]
+                       >> assume_tac (GSYM th))
+      >> DEP_PURE_ONCE_REWRITE_TAC[val_map_assignments_fdom_excl_val_map]
+      >> conj_tac
+      >- (conj_tac
+          >- (pop_assum (fn th => assume_tac (GSYM th))
+              >> simp[SUBSET_DEF])
+          >> gen_tac >> strip_tac
+          >> gvs[val_map_assignments_def])
+      >> simp[]
+     )
+  (* *)
+  >> Q.UNABBREV_TAC ‘nsf’
+  >> simp[]
+         
+  >> DEP_PURE_ONCE_REWRITE_TAC[bigunion_image_subtree_delete]
+
   >> 
 
   
-  >> simp[sum_prod_def]
 QED
 
 (*Theorem kljfgd:

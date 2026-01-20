@@ -88,8 +88,11 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (* - If a ~ b and b ~ c then ¬(a ~ c) (is_tree_no_triangle)                   *)
 (* - An expression for the intersection between adjacent nodes and the nodes  *)
 (*   in a subtree (adjacent_nodes_inter_nodes_subtree)                        *)
-(* - The union of subtrees one level down will get you the tree minus the     *)
-(*   root node (bigunion_image_subtree_subtree)                               *)
+(* - The union of subtrees one level down, excluding a particular subtree,    *)
+(*   will get you a new subtree one level higher, minus the root node.        *)
+(*   (bigunion_image_subtree_delete)                                          *)
+(* - The union of all subtrees one level down will get you the entire tree,   *)
+(*   minus the root node (bigunion_image_subtree)                             *)
 (* - If we have a - b - c, then we cannot have b - a - c, this won't be a     *)
 (*   valid path at the same time as a - b - c being a valid path              *)
 (*   (mem_not_swap_first)                                                     *)
@@ -2517,10 +2520,10 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* If we take the union of trees one level down, we get back the tree at the  *)
-(* current level, minus the root node.                                        *)
+(* If we take the union of subtrees one level down, excluding a particular    *)
+(* subtree, we get back a subtree one level higher, minus the root node.      *)
 (* -------------------------------------------------------------------------- *)
-Theorem bigunion_image_subtree:
+Theorem bigunion_image_subtree_delete:
   ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph src prev.
     is_tree g ∧
     ¬selfloops_ok g ∧
@@ -2607,6 +2610,56 @@ Proof
   >> irule mem_not_swap_first
   >> simp[]
   >> simp[mem_first_step_subpath]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we take the union of all trees one level down, we get the entire tree   *)
+(* except the root node.                                                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem bigunion_image_subtree:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f) udgraph src.
+    is_tree g ∧
+    src ∈ nodes g ∧
+    ¬selfloops_ok g ⇒
+    BIGUNION (IMAGE (λdst. nodes (subtree g src dst))
+                    (adjacent_nodes g src)
+             ) = nodes g DELETE src
+Proof  
+  rpt gen_tac >> strip_tac
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> EQ_TAC >> strip_tac
+  >- (qpat_x_assum ‘x ∈ s’ mp_tac >> simp[] >> strip_tac
+      >> ‘x ∈ nodes g’ by
+        (qpat_x_assum ‘x ∈ nodes (subtree _ _ _)’ mp_tac >> simp[subtree_def])
+      >> conj_tac >- pop_assum irule
+      >> disch_tac
+      >> qpat_x_assum ‘x ∈ nodes (subtree _ _ _)’ mp_tac
+      >> simp[]
+      >> irule src_not_in_subtree
+      >> simp[]
+      >> disch_tac
+      >> qpat_x_assum ‘¬selfloops_ok g’ mp_tac
+      >> PURE_ONCE_REWRITE_TAC[IMP_CLAUSES]
+      >> PURE_ONCE_REWRITE_TAC[NOT_CLAUSES]
+      >> irule adjacent_REFL_E
+      >> qexists ‘dst’
+      >> qpat_x_assum ‘adjacent g dst src’ mp_tac >> simp[])
+  >> qabbrev_tac ‘dst = EL 1 (get_path g src x)’
+  >> qexists ‘nodes (subtree g src dst)’             
+  >> conj_tac
+  >- (Q.UNABBREV_TAC ‘dst’
+      >> simp[subtree_def]
+      >> irule EL_MEM
+      >> simp[])
+  >> qexists ‘dst’
+  >> simp[]
+  >> Q.UNABBREV_TAC ‘dst’
+  >> conj_tac
+  >- (irule first_step_in_nodes >> simp[])
+  >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+  >> irule adjacent_first_step
+  >> simp[]
 QED
 
 Theorem get_path_last_step:
