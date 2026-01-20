@@ -103,6 +103,9 @@ val _ = hide "S";
 (* Rewrite sum to change the set as well as the function.                     *)
 (* - EXTREAL_SUM_IMAGE_CHANGE_SET                                             *)
 (*                                                                            *)
+(* More convenient theorem to prove the equality of two extreal sums.         *)
+(* - EXTREAL_SUM_IMAGE_EQ3                                                    *)
+(*                                                                            *)
 (* Useful in very specific situations:                                        *)
 (* - nodes_subtree_absorb_union                                               *)
 (* - adjacent_nodes_delete_comprehension                                      *)
@@ -5813,12 +5816,81 @@ Proof
           >> gvs[val_map_assignments_def])
       >> simp[]
      )
-  (* *)
-  >> Q.UNABBREV_TAC ‘nsf’
+  (* Simplify out bigunion of tress *)
   >> simp[]
+  >> Q.UNABBREV_TAC ‘nsf’      
+  >> simp[bigunion_image_subtree]
+  (* We need to remove the fixed values from the RHS in order to make it match
+     the LHS. *)
+  >> qmatch_abbrev_tac ‘LHS = _’
+  >> simp[sum_prod_def]
+  >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+  >> DEP_PURE_ONCE_REWRITE_TAC[val_map_assignments_remove_excl_val_map]
+  >> conj_tac
+  >- (simp[] >> gvs[val_map_assignments_def])
+  >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- simp[]
+      >- (simp[INJ_DEF]
+          >> rpt gen_tac
+          >> strip_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[FUNION_EQ]
+          >> conj_tac
+          >- (simp[]
+              >> ‘FDOM x = (nodes (get_underlying_graph fg) ∩ var_nodes fg DIFF {dst})’
+                by (irule (INST_TYPE [“:α” |-> “:extreal”] in_val_map_assignments_fdom)
+                    >> qexistsl [‘FEMPTY’, ‘fg’]
+                    >> simp[] >> simp[SUBSET_DEF])
+              >> ‘FDOM y = (nodes (get_underlying_graph fg) ∩ var_nodes fg DIFF {dst})’
+                by (irule (INST_TYPE [“:α” |-> “:extreal”] in_val_map_assignments_fdom)
+                    >> qexistsl [‘FEMPTY’, ‘fg’]
+                    >> simp[] >> simp[SUBSET_DEF])
+              >> simp[])
+          >> disch_then irule
+         )
+      >> disj1_tac
+      >> gen_tac
+      >> strip_tac
+      >> irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
+      >> REVERSE conj_tac >- simp[]
+      >> gen_tac >> simp[] >> strip_tac
+      >> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
+      >> drule_then irule (iffLR functions_noninfinite_def)
+      >> REVERSE conj_tac >- pop_assum irule
+      >> qexists ‘val_map’
+      >> gvs[]
+      >> irule drestrict_in_val_map_assignments
+      >> qexistsl [‘val_map’, ‘nodes (get_underlying_graph fg) ∩ var_nodes fg’]
+      >> rpt conj_tac
+      >- (irule funion_excl_val_map_in_val_map_assignments_diff
+          >> simp[] >> gvs[val_map_assignments_def])
+      >- simp[]
+      >> simp[SUBSET_DEF]
+      >> gen_tac >> strip_tac
+      >> irule (iffLR adjacent_get_function_nodes)
+      >> qexists ‘x’
+      >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+  >> Q.UNABBREV_TAC ‘LHS’      
+  (* Rewrite the set being summed over on the RHS to match the LHS *)
+  >> simp[]         
+  >> PURE_ONCE_REWRITE_TAC[GSYM DELETE_DEF]
+  >> PURE_ONCE_REWRITE_TAC[GSYM DELETE_INTER]
+  >> PURE_ONCE_REWRITE_TAC[GSYM val_map_assignments_restrict_nodes]
+  (* Now that the sums on the LHS and RHS match, we can simplify them out *)
+  >> irule EXTREAL_SUM_IMAGE_EQ3
+  >> gen_tac >> strip_tac
+  >> simp[]
+  (* Simplify the LHS to try to go towards a point where we have combined the
+     products and can cancel it with the product on the RHS *)
+  >> qmatch_abbrev_tac ‘_ = RHS’
+  >> Q.UNABBREV_TAC ‘ff_2’
+  >> simp[]
+  (* *)
+  >> PURE_ONCE_REWRITE_TAC[DRESTRICTED_FUNION]
+  >> PURE_ONCE_REWRITE_TAC[DRESTRICT_DRESTRICT]
+  >> 
          
-  >> DEP_PURE_ONCE_REWRITE_TAC[bigunion_image_subtree_delete]
-
   >> 
 
   
