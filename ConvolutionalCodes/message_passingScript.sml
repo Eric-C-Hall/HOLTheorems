@@ -34,19 +34,76 @@ val _ = hide "S";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* EXTREAL_SUM_IMAGE_CONG, EXTREAL_PROD_IMAGE_CONG, and                       *)
-(* extreal_sum_image_val_map_assignments_cong are particularly useful tools   *)
-(* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
-(* Most important theorems proven in this file:                               *)
-(* - generalised_distributive_law                                             *)
+(* Main results:                                                              *)
+(* - sp_message_final_result                                                  *)
 (* - sp_message_sum_prod                                                      *)
+(* - generalised_distributive_law                                             *)
 (*                                                                            *)
+(* For combining sums and products:                                           *)
+(* - extreal_sum_image_val_map_assignments_combine_fixed                      *)
+(* - extreal_sum_image_val_map_assignments_combine_dependent_inner_set        *)
+(* - extreal_sum_image_val_map_assignments_combine                            *)
+(* - extreal_sum_image_val_map_assignments_cross                              *)
+(* - extreal_prod_image_combine_dependent_alt                                 *)
+(* - extreal_prod_image_combine_dependent                                     *)
+(* - extreal_prod_image_combine                                               *)
 (*                                                                            *)
+(* Rewrite val_map_assignments to remove excl_val_map:                        *)
 (* - val_map_assignments_remove_excl_val_map                                  *)
 (* - val_map_assignments_remove_excl_val_map_generalised                      *)
+(*                                                                            *)
+(* If we are in a subtree, then moving by one usually stays in the subtree:   *)
+(* - in_subtree_adjacent_adjacent                                             *)
+(* - in_subtree_adjacent                                                      *)
+(*                                                                            *)
+(* The FUNION is in val_map_assignments:                                      *)
+(* - funion_excl_val_map_in_val_map_assignments_diff                          *)
+(* - funion_in_val_map_assignments_alt                                        *)
+(* - funion_in_val_map_assignments                                            *)
+(* - funion_excl_val_map_in_val_map_assignments                               *)
+(*                                                                            *)
+(* Simplify set of assignments with only fixed values:                        *)
+(* - val_map_assignments_fdom_excl_val_map                                    *)
+(* - val_map_assignments_fdom_excl_val_map_general                            *)
+(*                                                                            *)
+(* Calculate domain of an assignment:                                         *)
+(* - in_val_map_assignments_fdom                                              *)
+(* - in_val_map_assignments_fdom_inter                                        *)
+(*                                                                            *)
+(* When is restricting a map in the set of assignments?                       *)
+(* - drestrict_in_val_map_assignments                                         *)
+(* - drestrict_in_val_map_assignments_general                                 *)
+(*                                                                            *)
+(* Rewrite val_map_assignments to ignore irrelevant nodes:                    *)
+(* - val_map_assignments_restrict_nodes                                       *)
+(* - val_map_assignments_drestrict_excl_val_map                               *)
+(*                                                                            *)
+(* Rewrite val_map_assignments to remove excl_val_map:                        *)
+(* - val_map_assignments_remove_excl_val_map                                  *)
+(*                                                                            *)
+(* Basic properties that hold in general for well-formed factor graphs:       *)
+(* - adjacent_in_function_nodes_not_in_function_nodes                         *)
+(* - wffactor_graph_factor_graph_REP                                          *)
+(*                                                                            *)
+(* Congruences for simplifying functions being summed/producted over:         *)
+(* - EXTREAL_SUM_IMAGE_CONG                                                   *)
+(* - EXTREAL_PROD_IMAGE_CONG                                                  *)
+(*                                                                            *)
+(* Congruences for proving equivalences:                                      *)
+(* - val_map_assignments_cong                                                 *)
+(* - val_map_assignments_cong_alt                                             *)
+(* - val_map_assignments_cong_alt2                                            *)
+(* - extreal_sum_image_val_map_assignments_cong                               *)
+(*                                                                            *)
+(* Rewrite sum to change the set as well as the function.                     *)
+(* - EXTREAL_SUM_IMAGE_CHANGE_SET                                             *)
+(*                                                                            *)
+(* Useful in very specific situations:                                        *)
+(* - nodes_subtree_absorb_union                                               *)
+(* - adjacent_nodes_delete_comprehension                                      *)
+(* - bigunion_image_subtree                                                   *)
 (* -------------------------------------------------------------------------- *)
+
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: Consider moving generalised distributive law into its own file?      *)
@@ -1817,6 +1874,25 @@ Proof
   >- gvs[val_map_assignments_def]
   >- metis_tac[SUBSET_DEF]
   >> gvs[val_map_assignments_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This version of funion_in_val_map_assignments is applicable by irule when  *)
+(* the goal does not explicitly include the union and FUNION in the           *)
+(* val_map_assignments of the conclusion.                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem funion_in_val_map_assignments_alt:
+  ∀q r fg ns1 excl_val_map1 ns2 excl_val_map2 ns3 excl_val_map3.
+    DISJOINT ns1 ns2 ∧
+    FDOM excl_val_map1 ⊆ ns1 ∧
+    FDOM excl_val_map2 ⊆ ns2 ∧
+    q ∈ val_map_assignments fg ns1 excl_val_map1 ∧
+    r ∈ val_map_assignments fg ns2 excl_val_map2 ∧
+    ns3 = ns1 ∪ ns2 ∧
+    excl_val_map3 = excl_val_map1 ⊌ excl_val_map2 ⇒
+    q ⊌ r ∈ val_map_assignments fg ns3 excl_val_map3
+Proof
+  metis_tac[funion_in_val_map_assignments]
 QED
 
 Theorem val_map_assignments_drestrict_excl_val_map:
@@ -4513,7 +4589,7 @@ Proof
          nodes *)
       >> simp[Once val_map_assignments_restrict_nodes]
       (* Combine the sums *)
-      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_fixed]                                  
+      >> DEP_PURE_ONCE_REWRITE_TAC[extreal_sum_image_val_map_assignments_combine_fixed]
       >> conj_tac         
       >- (rpt conj_tac
           >- simp[]
@@ -5421,10 +5497,12 @@ Theorem adjacent_nonequal:
 Proof
   metis_tac[adjacent_get_function_nodes]
 QED
-        
+
+
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm gives us the same result as summing over the *)
 (* product of the terms in the factor graph                                   *)
+(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem sp_message_final_result:
   ∀fg dst.
@@ -5490,9 +5568,7 @@ Proof
         >> qexistsl [‘FEMPTY’, ‘fg’] >> simp[])
   (* Ensure that the sets we are summing over are disjoint, so that we may
      apply the generalised distributive law. *)
-  >> qmatch_abbrev_tac ‘LHS = RHS’
-
-                       
+  >> qmatch_abbrev_tac ‘LHS = RHS’                       
   >> Q.SUBGOAL_THEN
       ‘LHS = ∏
              (λsrc.
@@ -5516,11 +5592,63 @@ Proof
           >> simp[val_map_assignments_def])
       >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_IMAGE]
       >> conj_tac
+         
       >- (rpt conj_tac
           >- simp[]
           >- (simp[INJ_DEF]
-              >> cheat)
-          >- cheat
+              >> gen_tac >> gen_tac >> strip_tac
+              >> simp[FDOM_SUBSET_DRESTRICT]
+              >> DEP_PURE_ONCE_REWRITE_TAC[FUNION_EQ]
+              >> conj_tac
+              >- (simp[]
+                  >> qmatch_asmsub_abbrev_tac ‘x ∈ val_map_assignments _ ns_x _’
+                  >> ‘FDOM x = ns_x ∩ var_nodes fg ∧ FDOM y = ns_x ∩ var_nodes fg’
+                    by (conj_tac >> irule in_val_map_assignments_fdom_inter
+                        >> qexists ‘FEMPTY’ >> simp[])
+                  >> simp[]
+                  >> Q.UNABBREV_TAC ‘ns_x’
+                  >> simp[])
+              >> disch_then irule
+             )             
+          >> disj1_tac
+          >> gen_tac
+          >> strip_tac
+          >> Q.UNABBREV_TAC ‘ff’
+          >> simp[]
+          >> irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
+          >> REVERSE conj_tac >- simp[]
+          >> gen_tac >> strip_tac
+          >> simp[]
+          >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+          >> drule_then irule (iffLR functions_noninfinite_def)
+          >> qpat_x_assum ‘x ∈ _ ∩ _’ mp_tac >> simp[] >> strip_tac
+          >> qexists ‘FEMPTY’
+          >> irule drestrict_in_val_map_assignments
+          (* We introduced this IMAGE expression earlier using this theorem,
+             because it was helpful at that point, but it's no longer helpful,
+             so we unintroduce it. *)
+          >> gvs[GSYM val_map_assignments_remove_excl_val_map_generalised]
+          >> qexistsl [‘FEMPTY’, ‘nodes (subtree (get_underlying_graph fg)
+                                                 dst src) ∪ {dst}’]
+          >> conj_tac
+          >- (DEP_PURE_ONCE_REWRITE_TAC[FDOM_SUBSET_DRESTRICT]
+              >> conj_tac
+              >- simp[]
+              >> PURE_ONCE_REWRITE_TAC[val_map_assignments_restrict_nodes]
+              >> irule funion_in_val_map_assignments_alt
+              >> qexistsl [‘FEMPTY’, ‘FEMPTY’, ‘{dst}’,
+                           ‘((nodes (subtree (get_underlying_graph fg) dst src)
+                                    ∪ {dst}) ∩ var_nodes fg DIFF {dst}) ’]
+              >> simp[]
+              >> qmatch_goalsub_abbrev_tac ‘S = {dst} ∪ S’
+              >> simp[GSYM SUBSET_UNION_ABSORPTION]
+              >> Q.UNABBREV_TAC ‘S’
+              >> simp[]
+             )             
+          >> simp[SUBSET_DEF]
+          >> gen_tac >> strip_tac
+          >> Cases_on ‘x'' = dst’ >> simp[]
+          >> 
          )
       >> simp[o_DEF]
      )
