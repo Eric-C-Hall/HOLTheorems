@@ -151,7 +151,7 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (* -------------------------------------------------------------------------- *)
 Definition is_tree_def:
   is_tree g ⇔ (connected g ∧
-               (∀ns. ¬cycle g ns))              
+               (∀ns. ¬cycle g ns))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -324,7 +324,7 @@ Proof
   (* By way of contradiction, if two elements are not distinct, then we have a
      loop and thus this isn't the shortest walk *)
   >> CCONTR_TAC
-  >> gvs[EL_ALL_DISTINCT_EL_EQ]        
+  >> gvs[EL_ALL_DISTINCT_EL_EQ]
   (* Without loss of generality, n1 is earlier than n2 *)
   >> Cases_on ‘n1 = n2’ >> gvs[]
   >> wlog_tac ‘n1 < n2’ [‘n1’, ‘n2’]
@@ -472,7 +472,7 @@ Theorem connected_exists_path:
                      b ∈ nodes g ⇒
                      exists_path g a b)
 Proof
-  rpt strip_tac     
+  rpt strip_tac
   >> gvs[connected_def]
   >> gvs[exists_path_adjacent_tc]
   >> metis_tac[]
@@ -738,7 +738,7 @@ Proof
                   l ≤ j - 1 ∧
                   m ≤ k - 1 ⇒
                   EL l vs1 ≠ EL m vs2) ∧
-               EL j vs1 = EL k vs2’        
+               EL j vs1 = EL k vs2’
   >- (‘∃l. LENGTH vs2 = l’ by simp[]
       >> rpt (pop_assum mp_tac) >> SPEC_ALL_TAC
       >> completeInduct_on ‘l’
@@ -1101,7 +1101,7 @@ QED
 
 Theorem MEM_get_path_first[simp]:
   ∀g a b.
-    exists_path g a b ⇒ 
+    exists_path g a b ⇒
     MEM a (get_path g a b)
 Proof
   rpt strip_tac
@@ -1113,7 +1113,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* The existing relationship between LAST and EL uses PRE, but I think it's   *)
 (* more common to use minus one instead of pre                                *)
-(* -------------------------------------------------------------------------- *) 
+(* -------------------------------------------------------------------------- *)
 Theorem LAST_EL_LEN_MINUS_ONE:
   ∀l.
     l ≠ [] ⇒
@@ -1599,7 +1599,7 @@ Proof
   >> Cases_on ‘i’ >> gvs[LESS_MONO_EQ, GSYM ADD1]
   >> gvs[ADD1]
   (* In the base case where the second element is nonequal, our point of
-     divergence must be at the very start *)       
+     divergence must be at the very start *)
   >> REVERSE (Cases_on ‘v' = v''’) >> gvs[]
   >- (qexists ‘0’ >> gvs[])
   (* We have proven all preconditions for the inductive hypothesis. Thus, we
@@ -1608,7 +1608,7 @@ Proof
   >> qexists ‘SUC j’
   >> gvs[]
   >> rpt strip_tac
-  >> Cases_on ‘k’ >> gvs[]      
+  >> Cases_on ‘k’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -2016,7 +2016,7 @@ Proof
   (* It's helpful to know and easy to prove that b ≠ c ∧ a ≠ c*)
   >> Cases_on ‘b = c’ >> gvs[]
   >> Cases_on ‘a = c’ >> gvs[]
-  (* It's also helpful to know a ≠ b*)                      
+  (* It's also helpful to know a ≠ b*)
   >> Cases_on ‘a = b’ >> gvs[]
   >- (qmatch_goalsub_abbrev_tac ‘avoidrewrite1 = _::avoidrewrite2’
       >> ‘a = HD (get_path g a c)’ by gvs[]
@@ -2238,7 +2238,7 @@ Proof
   >> qspecl_then [‘g’, ‘a’, ‘b’, ‘c’] assume_tac first_step_on_path_same
   >> gvs[]
   >> gvs[MEM_EL]
-  >> qexists ‘1’ >> gvs[] 
+  >> qexists ‘1’ >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -2345,7 +2345,7 @@ Theorem order_subtree_lt_adjacent:
     a ≠ b ∧
     b ≠ c ∧
     a ≠ c ⇒
-    order (subtree g b c) < order (subtree g a b) 
+    order (subtree g b c) < order (subtree g a b)
 Proof
   rpt strip_tac
   >> ‘a ∈ nodes g ∧ b ∈ nodes g ∧ c ∈ nodes g’ by metis_tac[adjacent_members]
@@ -2580,7 +2580,7 @@ Proof
           >> CCONTR_TAC >> gvs[GCONTRAPOS adjacent_REFL_E]
          )
       >> simp[]
-     )     
+     )
   (* If x is in the larger subtree, then x is in the union of subtrees. *)
   >> rpt strip_tac
   (* It's generally helpful to know that the things we are working with are
@@ -2595,7 +2595,7 @@ Proof
       >> irule EL_MEM
       >> Cases_on ‘get_path g src x’ >> gvs[]
       >> Cases_on ‘t’ >> gvs[]
-     )     
+     )
   >> qexists ‘EL 1 (get_path g src x)’
   >> simp[]
   >> rpt conj_tac
@@ -2624,7 +2624,7 @@ Theorem bigunion_image_subtree:
     BIGUNION (IMAGE (λdst. nodes (subtree g src dst))
                     (adjacent_nodes g src)
              ) = nodes g DELETE src
-Proof  
+Proof
   rpt gen_tac >> strip_tac
   >> simp[EXTENSION]
   >> gen_tac
@@ -2646,7 +2646,7 @@ Proof
       >> qexists ‘dst’
       >> qpat_x_assum ‘adjacent g dst src’ mp_tac >> simp[])
   >> qabbrev_tac ‘dst = EL 1 (get_path g src x)’
-  >> qexists ‘nodes (subtree g src dst)’             
+  >> qexists ‘nodes (subtree g src dst)’
   >> conj_tac
   >- (Q.UNABBREV_TAC ‘dst’
       >> simp[subtree_def]
@@ -2992,7 +2992,7 @@ Proof
      d is either just before c or just after. *)
   >> qspecl_then [‘g’, ‘c’, ‘d’, ‘a’]  mp_tac adjacent_is_first_step
   >> simp[]
-  >> REVERSE strip_tac             
+  >> REVERSE strip_tac
   (* We have a - b - c and c = EL 1 (d - a).
      Therefore a - c - d
      Therefore a - b - d *)
@@ -3006,7 +3006,7 @@ Proof
   (* We have a - b - c and d = EL 1 (c - a) *)
   >> Cases_on ‘b = c’
   >- (qpat_x_assum ‘EL 1 _ ≠ d’ mp_tac >> simp[])
-  >> Cases_on ‘a = c’ 
+  >> Cases_on ‘a = c’
   >- (qpat_x_assum ‘MEM b (get_path g a c)’ mp_tac >> simp[])
   >> simp[]
   >> simp[mem_get_path_last_step]
@@ -3049,7 +3049,7 @@ Theorem in_subtree_adjacent:
     x ∈ nodes (subtree g a b) ∧
     x' ≠ EL 1 (get_path g b a) ⇒
     x' ∈ nodes (subtree g a b)
-Proof 
+Proof
   rpt gen_tac >> PURE_REWRITE_TAC[GSYM AND_IMP_INTRO]  >> rpt disch_tac
   >> ‘x ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘x'’ >> simp[])
   >> ‘x' ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘x’ >> simp[])
@@ -3091,5 +3091,3 @@ QED
 (* fsgraph type, good for general graphs, and the tree type, good for         *)
 (* induction and tree-specific operations?                                    *)
 (* -------------------------------------------------------------------------- *)
-
-

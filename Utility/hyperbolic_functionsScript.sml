@@ -83,6 +83,6 @@ Definition extarctanh_def:
   extarctanh (x : extreal) = case x of
                                +∞ => ARB (* TODO: how should I handle
                                             undefined cases? *)
-                             | −∞ => ARB 
+                             | −∞ => ARB
                              | Normal r => Normal (arctanh r)
 End

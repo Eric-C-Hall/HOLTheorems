@@ -521,11 +521,11 @@ QED
 
 (*
     Proving the equivalence of the parity equations and state machine versions:
-    
+
 .
     If we let % denote junk values and - correspond to meaningful values, we
     essentially want to prove:
-.  
+.
     - - - - - - - % % % %   corresponds to   % % % % - - - - - - -
 .
     i.e. on the left hand side, we are taking the first few meaningful values,
@@ -697,7 +697,7 @@ Theorem drop_vd_encode[simp]:
   ∀i bs ps s.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     s < (parity_equations_to_state_machine ps).num_states ∧
-    i = LENGTH bs ⇒ 
+    i = LENGTH bs ⇒
     DROP (i * LENGTH ps) (vd_encode (parity_equations_to_state_machine ps) bs s) = []
 Proof
   rpt strip_tac
@@ -708,7 +708,7 @@ Theorem drop_vd_encode_append[simp]:
   ∀i bs cs ps s.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ∧
     s < (parity_equations_to_state_machine ps).num_states ∧
-    i = LENGTH bs ⇒ 
+    i = LENGTH bs ⇒
     DROP (i * LENGTH ps)
          (vd_encode (parity_equations_to_state_machine ps) bs s ⧺ cs) = cs
 Proof
@@ -723,7 +723,7 @@ Theorem vd_encode_state_parity_equations_to_state_machine_maxdeg_0[simp]:
     vd_encode_state (parity_equations_to_state_machine ps) bs s = 0
 Proof
   Induct_on ‘bs’ >> gvs[vd_encode_state_def]
-QED                                                                                         
+QED
 (* -------------------------------------------------------------------------- *)
 (* Goal: to show that each window of parity equations is equivalent to the    *)
 (* corresponding window of state machines.                                    *)
@@ -1083,7 +1083,7 @@ QED
 
 Theorem LASTN_APPEND1b:
   ∀l1 l2 n.
-    (LASTN n l1) ++ l2 = LASTN (n + LENGTH l2) (l1 ++ l2) 
+    (LASTN n l1) ++ l2 = LASTN (n + LENGTH l2) (l1 ++ l2)
 Proof
   rw[]
   >> qspecl_then [‘l2’, ‘n + LENGTH l2’] assume_tac LASTN_APPEND1
@@ -1249,7 +1249,7 @@ Proof
   >> gvs[ith_output_window_vd_encode_vd_encode_state]
   >> gvs[vd_encode_state_parity_equations_to_state_machine]
   >> gvs[parity_equations_to_state_machine_def]
-  >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]                     
+  >> PURE_REWRITE_TAC[GSYM SNOC_APPEND]
   >> Cases_on ‘MAX_LIST (MAP LENGTH ps) - 1 ≤ i’
   >- (gvs[SNOC_APPEND]
       >> gvs[LASTN_TAKE]
@@ -1491,7 +1491,7 @@ Proof
      )
   >> gvs[NOT_LESS_EQUAL]
   (* This theorem is essentially an instance of LIST_TRANSLATE, so
-     apply that theorem. *)      
+     apply that theorem. *)
   >> qspecl_then [‘TAKE ((LENGTH ps) * (LENGTH bs) -
                          (LENGTH ps) * (MAX_LIST (MAP LENGTH ps) - 1))
                    (convolve_parity_equations ps bs)’,
@@ -1544,7 +1544,7 @@ End
 
 Theorem APPEND_DONOTEXPAND_APPEND_ASSOC:
   ∀bs cs ds.
-    APPEND_DONOTEXPAND (bs ⧺ cs) ds = bs ⧺ APPEND_DONOTEXPAND cs ds 
+    APPEND_DONOTEXPAND (bs ⧺ cs) ds = bs ⧺ APPEND_DONOTEXPAND cs ds
 Proof
   gvs[APPEND_DONOTEXPAND_DEF]
 QED
@@ -1562,14 +1562,14 @@ Proof
   >> rpt strip_tac
   >> gvs[convolve_parity_equations_def]
   >> PURE_ONCE_REWRITE_TAC[MULT_COMM]
-  >> gvs[MULT]        
+  >> gvs[MULT]
   >> gvs[TAKE_SUM]
   >> gvs[TAKE_APPEND]
-  >> gvs[TAKE_LENGTH_TOO_LONG]                
+  >> gvs[TAKE_LENGTH_TOO_LONG]
 QED
 
 (* TODO: can this be generalized somehow to a more general state machine?
-         On the other hand, do we even want to bother? *) 
+         On the other hand, do we even want to bother? *)
 Theorem vd_encode_state_replicate_f[simp]:
   ∀ps n.
     vd_encode_state (parity_equations_to_state_machine ps) (REPLICATE n F) 0 = 0

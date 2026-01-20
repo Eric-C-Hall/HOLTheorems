@@ -11,7 +11,7 @@ Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite Conseq
 (* Urbanke.                                                                   *)
 (* -------------------------------------------------------------------------- *)
 
-(* ------------------------------------------------------3-------------------- *)
+(* -------------------------------------------------------------------------- *)
 (* The factor graph corresponding to a state machine.                         *)
 (*                                                                            *)
 (* P(x_i | y) = Σ P(x,σ|y)                                                    *)
@@ -86,7 +86,7 @@ End*)
 (* -------------------------------------------------------------------------- *)
 (*Definition BCJR_decode_def:
   BCJR_decode m cs p = ARB
-                       (* TODO_message_passing applied to factor graph *)                
+                       (* TODO_message_passing applied to factor graph *)
 End*)
 
 (* -------------------------------------------------------------------------- *)
@@ -307,7 +307,7 @@ Proof
   >>
   (* Rewrite the terms in the sum of products to match the terms in the other
      sum of products *)
-  >> 
+  >>
   (* Reorder the terms in the sum of products to match the other sum
             of products *)
   >> gvs[AC mul_comm mul_assoc]
@@ -318,5 +318,3 @@ QED
 (*                                                                            *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-
-

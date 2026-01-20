@@ -1,4 +1,4 @@
-structure useful_tacticsLib = struct 
+structure useful_tacticsLib = struct
 
 open HolKernel Parse boolLib bossLib;
 

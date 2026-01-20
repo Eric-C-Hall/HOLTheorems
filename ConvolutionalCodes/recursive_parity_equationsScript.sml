@@ -216,7 +216,7 @@ QED*)
 (* TODO: implement this                                                       *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem decode_recursive_parity_equation_a_posteriori:
-  (decode_recursive_parity_equation rs) = 
+  (decode_recursive_parity_equation rs) =
 Proof
 QED*)
 

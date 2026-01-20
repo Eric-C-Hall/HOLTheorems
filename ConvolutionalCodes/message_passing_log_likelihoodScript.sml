@@ -50,7 +50,7 @@ Definition calculate_variable_leaf_messages_def:
   FUN_FMAP (λ_. Normal 0)
            {(l, k) | l ∈ leaves fg.underlying_graph ∧
                      l ∉ fg.function_nodes ∧
-                     adjacent fg.underlying_graph l k}          
+                     adjacent fg.underlying_graph l k}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -210,7 +210,7 @@ Theorem factor_graphs_FDOM_FMAP[simp] = FDOM_FMAP;
 
 Theorem calculate_messages_step_in_message_domain:
   ∀fg msg.
-    FDOM msg ⊆ message_domain fg ⇒ 
+    FDOM msg ⊆ message_domain fg ⇒
     FDOM (calculate_messages_step fg msg) ⊆ message_domain fg
 Proof
   rw[calculate_messages_step_def]
@@ -392,7 +392,7 @@ Termination
      We add 1 to the first CARD in order to ensure that it is strictly greater
      than the second CARD, and not simply greater than or equal to it. This
      simplifies the working.
-.     
+.
      We use prim_recTheory.measure to turn this natural number into a
      well-founded relation.
    *)
@@ -500,7 +500,7 @@ Termination
   >> simp[CARD_UNION_EQN, AC INTER_COMM INTER_ASSOC, inter_lemma,
           SF numSimps.ARITH_NORM_ss]
   >> qmatch_abbrev_tac ‘CARD (_ ∩ (_ ∩ FDOM XX)) < CARD (_ ∩ FDOM XX)’
-  >> simp[GSYM INTER_ASSOC, card_inter_lemma] 
+  >> simp[GSYM INTER_ASSOC, card_inter_lemma]
   >> simp[EXTENSION, PULL_EXISTS]
   >> drule FUNION_NEQ_lemma
   >> simp[FDOM_DRESTRICT, PULL_EXISTS]

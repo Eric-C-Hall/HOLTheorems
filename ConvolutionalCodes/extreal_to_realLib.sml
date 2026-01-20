@@ -1,6 +1,6 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-structure extreal_to_realLib = struct 
+structure extreal_to_realLib = struct
 
 open HolKernel Parse boolLib bossLib;
 
@@ -70,7 +70,7 @@ rewrs = List.concat
 (* This is a tactic which splits the current proof state according to all
    extreal terms.
 
-   Parse the conclusion, and 
+   Parse the conclusion, and
  *)
 (*val Cases_extreal = (fn (g : goal) =>
                         let

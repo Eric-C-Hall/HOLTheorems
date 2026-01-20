@@ -132,7 +132,7 @@ QED
 
 Theorem v2n_zero_extend[simp]:
   ∀l bs.
-    v2n (zero_extend l bs) = v2n bs 
+    v2n (zero_extend l bs) = v2n bs
 Proof
   rpt strip_tac
   >> Induct_on ‘l’
@@ -205,7 +205,7 @@ QED
    input in big-endian form. bitify reverses the order of its input in the
    process of performing the conversion. *)
 
-(* 
+(*
 Theorem v2n_lt_imp2:
   ∀v l.
     v ≠ [F] ∧
@@ -220,7 +220,7 @@ Proof
 
 
 
-  
+
                              Induct_on ‘v’ >> rpt strip_tac >> gvs[]
       >> gvs[v2n]
       >> sg ‘v2n v < 2 ** l’
@@ -236,13 +236,13 @@ Proof
       >> last_x_assum assume_tac
       >> qmatch_asmsub_abbrev_tac ‘donotexpand’
       >> gvs[]
-            
 
-            
+
+
       >> rw[]
       >> gvs[]
 
-            
+
       >> Cases_on ‘l’  >> gvs[]
       >- (gvs[v2n]
           >> Cases_on ‘h’ >> gvs[]
@@ -271,18 +271,18 @@ Proof
   >> Cases_on ‘v’ >> gvs[]
   >- (Cases_on ‘h’ >> EVAL_TAC)
   >> simp[Once zero_extend_suc]
-  >> 
+  >>
 
-  
+
   >> rw[]
   >- (Cases_on ‘h’ >> gvs[]
-                         
+
       >> simp[Once v2n]
       >> gvs[if_add_0_right]
       >> rw[]
       >> simp[zero_extend_def
 
-              
+
               >> Cases_on ‘h’ >> gvs[bitify_def]
 QED
               *)
@@ -386,7 +386,7 @@ Proof
   gvs[SNOC_APPEND]
   >> gvs[v2n_append]
   >> rpt strip_tac
-  >> rw[v2n]   
+  >> rw[v2n]
 QED
 
 Theorem v2n_front:

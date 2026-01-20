@@ -17,7 +17,7 @@ val _ = monadsyntax.enable_monad "option"
 (* https://web.archive.org/web/20241204202124/https://ocw.mit.edu/courses/6-02-introduction-to-eecs-ii-digital-communication-systems-fall-2012/pages/readings/*)
 (* 2012. MIT lecture notes.                                                   *)
 (* -------------------------------------------------------------------------- *)
-                  
+
 (* -------------------------------------------------------------------------- *)
 (* If you want to work on my code, I recommend using abbreviations, because   *)
 (* many of my variable names are quite long. for example, when I type the     *)
@@ -116,7 +116,7 @@ Proof
        taking the optimal path to the final origin on the right hand side. Thus,
        our right hand side becomes having an optimal path up until the final
        origin, then taking a final step.
-     - 
+     -
      - See get_num_errors_get_num_errors_after_step_slow: this is a useful
        property that we have already proven, which relates the number of
        errors of a decoded string to the number of errors calculated using

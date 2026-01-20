@@ -179,7 +179,7 @@ Definition bcjr_gamma_t_wfm_def:
           TAKE (wfm_output_length m)
                (DROP (t * wfm_output_length m) rs);
         in
-          bsc_probability p produced_bitstring expected_bitstring            
+          bsc_probability p produced_bitstring expected_bitstring
        ) *
        (EL t priors) *
        bcjr_backward_metric_wfm m p priors rs (SUC t) s2)

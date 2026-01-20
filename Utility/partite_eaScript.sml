@@ -171,4 +171,3 @@ Proof
   >- metis_tac[SUBSET_DEF, swap_edge]
   >- metis_tac[]
 QED
-

@@ -13,7 +13,7 @@ Libs dep_rewrite;
    state/input representation is the most flexible because we may not always
    have both a state and an input. There is little need for the state and the
    input to be bound together into a pair. *)
-   
+
 (* -------------------------------------------------------------------------- *)
 (* This theory contains the definition of the state machine used in my proofs *)
 (* of the correctness of convolutional codes.                                 *)
@@ -148,7 +148,7 @@ Definition vd_encode_state_def:
   vd_encode_state (m : state_machine) [] s = s ∧
   vd_encode_state m (b::bs) s =
   vd_encode_state m bs (FST (m.transition_fn (s, b)))
-End 
+End
 
 Definition all_transitions_helper_def:
   all_transitions_helper (m : state_machine) (b : bool) = GENLIST (λn. (n, b)) m.num_states
@@ -228,7 +228,7 @@ Theorem vd_encode_cons = cj 2 vd_encode_def2;
 Theorem vd_encode_append:
   ∀m bs cs s.
     vd_encode m (bs ⧺ cs) s =
-    vd_encode m bs s ⧺ vd_encode m cs (vd_encode_state m bs s)          
+    vd_encode m bs s ⧺ vd_encode m cs (vd_encode_state m bs s)
 Proof
   gen_tac
   >> Induct_on ‘bs’
@@ -441,7 +441,7 @@ QED
 
 Theorem vd_encode_state_is_valid[simp]:
   ∀m bs s.
-    wfmachine m ∧ 
+    wfmachine m ∧
     s < m.num_states ⇒
     vd_encode_state m bs s < m.num_states
 Proof
@@ -644,7 +644,7 @@ Proof
   >> gvs[is_reachable_def]
   >> qexists ‘bs’
   >> gvs[]
-QED                   
+QED
 
 Theorem exists_is_reachable:
   ∀m t.
@@ -745,7 +745,7 @@ Proof
       >> Cases_on ‘n’ >> gvs[]
      )
   >- gvs[example_state_machine_def]
-QED 
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* An example message which may have been recieved.                           *)
@@ -762,7 +762,7 @@ End
 (* I would expect if I manually did the computation myself                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_test1:
-  vd_encode example_state_machine [F; T; T; T; F] 0 = [F; F; T; T; F; F; T; F; F; T]  
+  vd_encode example_state_machine [F; T; T; T; F] 0 = [F; F; T; T; F; F; T; F; F; T]
 Proof
   EVAL_TAC
 QED

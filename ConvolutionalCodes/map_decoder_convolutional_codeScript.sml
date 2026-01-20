@@ -30,7 +30,7 @@ val _ = augment_srw_ss [rewrites[TAKE_TAKE,
 (* σ: The value that we expect that state to have                             *)
 (* -------------------------------------------------------------------------- *)
 Definition event_state_takes_value_def:
-  event_state_takes_value n m (ps,qs) ts i σ = 
+  event_state_takes_value n m (ps,qs) ts i σ =
   {(bs : bool list, ns : bool list) | LENGTH bs = n ∧
                                       LENGTH ns = m ∧
                                       encode_recursive_parity_equation_state
@@ -59,7 +59,7 @@ Overload valid_state_sequences = “λn. {σs : bool list list | ∀σ. MEM σ �
 
 Overload length_n_valid_state_sequences =
 “λn l. {σs : bool list list | LENGTH σs = n ∧ (∀σ. MEM σ σs ⇒ LENGTH σ = l)}”
-    
+
 (* I'm no longer sure that it's better to treat these components separately,
 v  because finiteness of the set only holds when both components are present. *)
 Theorem length_n_state_sequences_valid_state_sequences_inter:
@@ -124,14 +124,14 @@ Proof
          )
       >> gvs[]
      )
-  (* Inductive step *) 
+  (* Inductive step *)
   >> rw[length_n_valid_state_sequences_step]
   >> gvs[]
 QED
 
 Theorem length_n_state_sequences_card[simp]:
   ∀n l.
-    CARD (length_n_valid_state_sequences n l) = 2 ** (n * l) 
+    CARD (length_n_valid_state_sequences n l) = 2 ** (n * l)
 Proof
   rw[]
   >> Induct_on ‘n’ >> gvs[]
@@ -144,11 +144,11 @@ Proof
          )
       >> gvs[]
      )
-  (* Inductive step *) 
+  (* Inductive step *)
   >> rw[length_n_valid_state_sequences_step]
   (* Rewrite into form appropriate for CARD_BIGUNION_SAME_SIZED_SETS, so that
      we may use that theorem to calculate the cardinality *)
-  >> qmatch_goalsub_abbrev_tac ‘CARD (BIGUNION S) = _’                               
+  >> qmatch_goalsub_abbrev_tac ‘CARD (BIGUNION S) = _’
   >> qsuff_tac ‘CARD (BIGUNION S) = CARD S * (2 ** (l * n))’
   >- (rw[]
       >> qsuff_tac ‘CARD S = 2 ** l’
@@ -386,7 +386,7 @@ QED
 (* helpful to know the state sequence in order to calculate the probability   *)
 (* that the sent string takes a particular value.                             *)
 (* -------------------------------------------------------------------------- *)
-(* COMMENTED OUT BECAUSE WE ARE NO LONGER WORKING WITH THE SENT MAP DECODER 
+(* COMMENTED OUT BECAUSE WE ARE NO LONGER WORKING WITH THE SENT MAP DECODER
 Theorem ev_sent_law_total_prob_states:
   ∀n m p ps qs ts bs.
     0 ≤ p ∧ p ≤ 1 ⇒
@@ -480,7 +480,7 @@ QED
 Theorem COND_PROB_INTER_ID:
   ∀sp e1 e2.
     prob_space sp ∧
-    e1 INTER e2 IN events sp ∧ 
+    e1 INTER e2 IN events sp ∧
     e2 IN events sp ==>
     cond_prob sp (e1 INTER e2) e2 = cond_prob sp e1 e2
 Proof
@@ -509,7 +509,7 @@ Proof
   rw[]
   >> sg ‘e1 = BIGUNION (IMAGE (λx. e1 ∩ f x) s)’
   >- (rw[BIGUNION_IMAGE]
-      >> rw[EXTENSION] 
+      >> rw[EXTENSION]
       >> EQ_TAC >> rw[] >> gvs[]
       >> gvs[GSYM SUBSET_INTER_ABSORPTION, INTER_COMM]
       >> gvs[SUBSET_DEF]
@@ -559,7 +559,7 @@ Proof
   (* Consider the function f which has first been restricted to e1 ∩ e2, and
      then all the elements of the probability space which are not in e1 ∩ e2
      have been added to the choice of f x which was made before.
-.     
+.
      This maintains the fact that the e1 ∩ f x are events, maintains the
      disjointedness of the f x, maintains the value of the conditional
      probability of e1 ∩ f x, and strengthens from knowing that e1 ∩ e2 is in
@@ -808,7 +808,7 @@ Proof
   Induct_on ‘bs’ >> Cases_on ‘bs'’ >> rw[encode_recursive_parity_equation_def]
   >> EQ_TAC >- gvs[encode_recursive_parity_equation_prefix_mono]
   (* If enc bs ≼ enc bs', then bs ≼ bs' *)
-  >> disch_tac >> gvs[]                     
+  >> disch_tac >> gvs[]
   (* Inductive step: a single element at the front must be equal, because the
      front element of the output is equal, and since the last element of ps is
      true. This will also be helpful to know when proving that the tail is a
@@ -1104,7 +1104,7 @@ QED*)
 
 (* Possible improvement: remove assumption that LENGTH bs = n (also remove
    this assumption from theorems this depends on) *)
-(* TODO: Fix this 
+(* TODO: Fix this
 Theorem mdr_summed_out_values_event_input_state_parity_empty:
   ∀ps qs n m ts i x bs σs cs_p.
     LENGTH bs = n ⇒
@@ -1537,7 +1537,7 @@ Theorem split_mdr_events_prob:
 Proof
   rw[]
   (* It's more convenient for LENGTH bs*)
-  >> sg ‘LENGTH cs_p = LENGTH bs’ >> gvs[] 
+  >> sg ‘LENGTH cs_p = LENGTH bs’ >> gvs[]
   (* Step 1: Split P(bs) up *)
   >> kall_tac prob_event_input_string_starts_with_decompose
   (* Step 2: Split σs away from P(bs,σs) *)
@@ -1704,7 +1704,7 @@ Proof
       >> ‘LENGTH σs - 1 + 1 = LENGTH σs’ by (Cases_on ‘σs’ >> gvs[])
       >> gvs[]
       >> gvs[EL_SNOC, EL_LENGTH_SNOC]
-     )     
+     )
   (* Step 3: Split cs away from P(bs,σs,cs) *)
   >> sg ‘∀n m p ps qs ts bs σs cs_p.
            0 ≤ p ∧ p ≤ 1 ∧
@@ -1725,7 +1725,7 @@ Proof
                                                                (EL i cs_p))
                             ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
                              ∩ (event_input_bit_takes_value n m i (EL i bs)))
-               ) (count (LENGTH cs_p))’        
+               ) (count (LENGTH cs_p))’
   >- (rpt (pop_assum kall_tac)
       >> rw[]
       >> Induct_on ‘cs_p’ using SNOC_INDUCT
@@ -1745,7 +1745,7 @@ Proof
       >> Q.SUBGOAL_THEN ‘prob sp (e1 ∩ e2 ∩ e3_with_step) =
                          prob sp (e1 ∩ e2 ∩ e3_without_step) *
                          f (LENGTH cs_p)’
-          (fn th => PURE_REWRITE_TAC[th])          
+          (fn th => PURE_REWRITE_TAC[th])
       >- (gvs[Abbr ‘e3_with_step’]
           (* Break up the SNOC, to move towards the inductive hypothesis on the
              left hand side *)
@@ -1828,7 +1828,7 @@ Proof
           >- gvs[Abbr ‘sp’, Abbr ‘e4’, Abbr ‘e5’, prob_ecc_bsc_prob_space_zero]
           (* The probability is not infinite because no probability is *)
           >> gvs[Abbr ‘sp’, Abbr ‘e4’, Abbr ‘e5’]
-         )         
+         )
       (* Use the inductive hypothesis and drag the new factor into the
          product from the inductive step. In order to use the inductive
          hypothesis, we first handle the case where cs_p has grown too large
@@ -1847,7 +1847,7 @@ Proof
       >> rw[]
       >> gvs[Abbr ‘f’, Abbr ‘f2’]
       >> gvs[EL_SNOC]
-     )         
+     )
   (* Step 4: Combine the subtheorems to arrive at the final result *)
   >> gvs[event_input_state_parity_def]
   >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
@@ -2068,9 +2068,9 @@ Proof
       >- (gvs[sym_noise_mass_func_not_inf,
               sym_noise_mass_func_not_neginf]
          )
-      >> 
+      >>
 
-      
+
       >> Cases_on ‘cs’ >> gvs[TAKE]
       >> Cases_on ‘ds’ >> gvs[TAKE]
       >> Cases_on ‘k’ >> gvs[]
@@ -2460,7 +2460,7 @@ Proof
   >> conj_tac >- gvs[mdr_summed_out_values_2_def]
   >> DEP_PURE_ONCE_REWRITE_TAC[split_mdr_events_prob]
   >> conj_tac >- gvs[mdr_summed_out_values_2_def]
-  >> disch_tac                            
+  >> disch_tac
   (* ------------------------------------------------------------------------ *)
   (* The new version of val2 is contained in both val2 and f, so in the case  *)
   (* where our input/state/parity is invalid, the theorem holds.              *)
@@ -2530,4 +2530,3 @@ Proof
      are obviously equivalent. *)
   >> unabbrev_all_tac >> gvs[AC mul_assoc mul_comm]
 QED
-

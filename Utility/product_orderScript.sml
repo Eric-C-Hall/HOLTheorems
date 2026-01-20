@@ -113,5 +113,5 @@ End
 (*Theorem WF_to_strict_product_order:
   ARB
 Proof
-  
+
 QED*)

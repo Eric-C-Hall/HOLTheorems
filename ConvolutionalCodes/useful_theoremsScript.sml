@@ -14,7 +14,7 @@ Theorem FILTER_EXISTS:
   ∀f bs.
   FILTER f bs ≠ [] ⇔ EXISTS f bs
 Proof
-  rpt strip_tac 
+  rpt strip_tac
   >> Induct_on ‘bs’
   >- gvs[]
   >> rpt strip_tac
@@ -34,7 +34,7 @@ Theorem length_suc_nonempty[simp]:
   ∀ls n.
   LENGTH ls = SUC n ⇒ ls ≠ []
 Proof
-  Cases_on ‘ls’ >> gvs[]  
+  Cases_on ‘ls’ >> gvs[]
 QED
 
 Theorem HD_SNOC:

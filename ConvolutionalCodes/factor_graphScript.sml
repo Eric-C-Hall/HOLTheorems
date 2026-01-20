@@ -50,7 +50,7 @@ val _ = augment_srw_ss [rewrites[fsgedges_addNode,
 (* and outputs an α.                                                          *)
 (* -------------------------------------------------------------------------- *)
 Datatype:
-  factor_graph_rep = 
+  factor_graph_rep =
   <|
     underlying_graph : fsgraph;
     function_nodes : (unit + num) -> bool;
@@ -147,9 +147,9 @@ Proof
       >> irule IMAGE_FINITE
       >> gvs[]
      )
-  (* This is a union of intersections, where a given set in the union is S_ind 
+  (* This is a union of intersections, where a given set in the union is S_ind
      intersected with the maps that take the value val at e. Thus, we try to
-     go towards a form that can be simplified using INTER_BIGUNION *) 
+     go towards a form that can be simplified using INTER_BIGUNION *)
   >> qsuff_tac ‘∀val.
                   LENGTH val = assign_lengths ' e ⇒
                   IMAGE (λval_map. val_map |+ (e,val)) S_hyp =
@@ -621,7 +621,7 @@ Theorem inr_card_not_in_function_nodes_expanded_wffactor_graph[simp]:
   ∀fg n.
     gen_bipartite_ea fg.underlying_graph fg.function_nodes ∧
     (nodes fg.underlying_graph = {INR i | i < n}) ⇒
-    INR n ∉ fg.function_nodes                                    
+    INR n ∉ fg.function_nodes
 Proof
   rpt strip_tac
   >> gvs[gen_bipartite_ea_def]
@@ -643,7 +643,7 @@ Proof
        nodes fg.underlying_graph’ by gvs[]
       >> metis_tac[adjacent_members])
 QED
-        
+
 (* -------------------------------------------------------------------------- *)
 (* Adding a variable node maintains well-formedness                           *)
 (* -------------------------------------------------------------------------- *)
@@ -837,7 +837,7 @@ Proof
   >> ‘inEs ∪ inDs = inEsOrDs’ suffices_by gvs[]
   >> unabbrev_all_tac
   >> gvs[EXTENSION]
-  >> rw[]      
+  >> rw[]
   >> EQ_TAC >> rw[]
   >- (qexistsl[‘m’,‘n’] >> gvs[])
   >- (qexistsl[‘m’,‘n’] >> gvs[])
@@ -934,7 +934,7 @@ QED
 Theorem fg_add_function_node0_function_nodes:
   ∀fn inputs fg.
     (fg_add_function_node0 inputs fn fg).function_nodes =
-    if inputs ⊆ var_nodes fg 
+    if inputs ⊆ var_nodes fg
     then
       (INR (CARD (nodes fg.underlying_graph))) INSERT fg.function_nodes
     else
@@ -952,7 +952,7 @@ QED
 Theorem fg_add_function_node0_function_map:
   ∀inputs fn fg.
     (fg_add_function_node0 inputs fn fg).function_map =
-    if inputs ⊆ var_nodes fg 
+    if inputs ⊆ var_nodes fg
     then
       fg.function_map |+ (INR (CARD (nodes fg.underlying_graph)),FUN_FMAP fn (var_assignments inputs fg.variable_length_map))
     else
@@ -970,7 +970,7 @@ Theorem fsgedges_fg_add_function_node0_underlying_graph:
   ∀inputs fn fg.
     wffactor_graph fg ⇒
     fsgedges (fg_add_function_node0 inputs fn fg).underlying_graph =
-    if inputs ⊆ var_nodes fg 
+    if inputs ⊆ var_nodes fg
     then
       fsgedges fg.underlying_graph ∪
                IMAGE (λv. {v; INR (CARD (nodes fg.underlying_graph))}) inputs
@@ -1347,4 +1347,3 @@ Definition fg_example_factor_graph_def:
        ∘ (fg_add_function_node {INR 3n; INR 4n} (λbs. Normal (1 / 4))))
       fg_with_var_nodes
 End
-

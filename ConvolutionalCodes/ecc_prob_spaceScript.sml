@@ -943,7 +943,7 @@ Proof
   >> gvs[ecc_bsc_prob_space_def]
   >> gvs[prod_measure_space_def]
   >> gvs[length_n_codes_uniform_prob_space_def, sym_noise_prob_space_def]
-  >> gvs[prod_sigma_pow]        
+  >> gvs[prod_sigma_pow]
   >> gvs[events_def]
 QED
 
@@ -1311,7 +1311,7 @@ Proof
   >> PURE_REWRITE_TAC[extreal_add_eq, extreal_mul_eq]
   >> gvs[extreal_11]
   >> gvs[REAL_LDISTRIB]
-  >> metis_tac[REAL_ADD_COMM] 
+  >> metis_tac[REAL_ADD_COMM]
 QED
 
 Theorem extreal_of_num_exp:
@@ -2182,7 +2182,7 @@ QED
    value. Ideally it would use the limit definition of an infinite sum instead,
    so that it can handle negative values.
    -------------
-   
+
    We discussed this issue. It seems to not be such a big problem since
    a measure is always supposed to be nonnegative everywhere. Using the
    alternative definition, we would have to constantly check that the sum
@@ -2248,7 +2248,7 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘u1 ∪ u2’
   >>
 
-  
+
   >> sg ‘∑ f (u1 ∪ u2) = ∑ f u1 + ∑ f u2’
   >- (irule EXTREAL_SUM_IMAGE_DISJOINT_UNION
       >> conj_tac
@@ -2275,10 +2275,10 @@ Proof
       >> last_x_assum irule
       >> gvs[Abbr ‘u1’, Abbr ‘u2’, IMAGE_DEF, length_n_codes_def])
   >> pop_assum $ (fn th => PURE_REWRITE_TAC [th])
-  >> ∑ (λx. ∑ f x) 
+  >> ∑ (λx. ∑ f x)
 
        unabbrev_all_tac
-  >> 
+  >>
 
   ∑ (f : α -> extreal) _ + ∑ f _
 QED*)
@@ -2665,7 +2665,7 @@ End
 
 Definition n_repetition_bit_inverse_def:
   (n_repetition_bit_inverse (nT : num) (nF : num) ([] : bool list) = if nT ≤ nF then F else T) ∧
-  n_repetition_bit_inverse nT nF (T::bs) = n_repetition_bit_inverse (nT + 1) nF bs ∧ 
+  n_repetition_bit_inverse nT nF (T::bs) = n_repetition_bit_inverse (nT + 1) nF bs ∧
   n_repetition_bit_inverse nT nF (F::bs) = n_repetition_bit_inverse nT (nF + 1) bs
 End
 
@@ -2697,7 +2697,7 @@ Definition code_decodes_correctly_def:
 End
 
 Definition q2_sym_prob_correctly_decoded_def:
-  q2_sym_prob_correctly_decoded p = (measure (q2_sym_prob_space p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ ns ∈ length_n_codes 3 ∧ (code_decodes_correctly 1 bs ns (n_repetition_code 3))} 
+  q2_sym_prob_correctly_decoded p = (measure (q2_sym_prob_space p)) {(bs, ns) | bs ∈ length_n_codes 1 ∧ ns ∈ length_n_codes 3 ∧ (code_decodes_correctly 1 bs ns (n_repetition_code 3))}
 End
 
 (*Definition q2_asym_prob_space_def:
@@ -2715,7 +2715,7 @@ Proof
   >> pop_assum irule
   >> irule (iffRL SELECT_THM)
   >> qexists ‘x’
-  >> gvs[]      
+  >> gvs[]
 QED
 
 Theorem hamming_distance_append[simp]:
@@ -2964,7 +2964,7 @@ QED
     hamming_distance (n_repetition_code m cs) bs < m * LENGTH bs
 Proof
   rpt strip_tac
-  >> 
+  >>
 QED*)
 
 Theorem hamming_distance_length:
@@ -2977,7 +2977,7 @@ Proof
   >> strip_tac
   >> Cases_on ‘cs’ >> gvs[ZIP_def]
   >> pop_assum $ qspec_then ‘t’ assume_tac
-  >> Cases_on ‘h = h'’ >> gvs[]                            
+  >> Cases_on ‘h = h'’ >> gvs[]
 QED
 
 Theorem decode_nearest_neighbour_n_repetition_bit_unique:
@@ -3129,7 +3129,7 @@ Theorem is_decoded_nearest_neighbour_0[simp]:
 Proof
   rpt strip_tac
   >> EQ_TAC
-  >> gvs[is_decoded_nearest_neighbour_def] 
+  >> gvs[is_decoded_nearest_neighbour_def]
 QED
 
 
@@ -3214,7 +3214,7 @@ Theorem bitwise_comm_same_length[local]:
   ∀f bs cs.
     (∀x y. f x y = f y x) ∧
     LENGTH bs = LENGTH cs ⇒
-    bitwise f bs cs = bitwise f cs bs    
+    bitwise f bs cs = bitwise f cs bs
 Proof
   Induct_on ‘bs’ >> Cases_on ‘cs’ >> rw[]
   >> last_x_assum irule >> simp[]
@@ -3514,7 +3514,7 @@ QED
 (*Theorem decode_nearest_neighbour_n_repetition_code_3:
   ∀bs ns.
     bs ∈ length_n_codes 1 ∧
-    ns ∈ length_n_codes 3 ⇒ 
+    ns ∈ length_n_codes 3 ⇒
     (decode_nearest_neighbour 1 (n_repetition_code 3) (apply_noise ns (n_repetition_code 3 bs)) = bs ⇔ num_errors ns ≤ 1)
 Proof
   rpt strip_tac
@@ -3697,12 +3697,12 @@ let val {Thy, Name, ...} = dest_thy_const t in
        end handle HOL_ERR _ => NONE
 
 
-                               
+
 (*
 fun create_real_expression combinator term_list
                                 = case term_list of
                                     t::ts =>
-                                  | [] => 
+                                  | [] =>
                                       mk_comb combinator
 
 val input_term =  “Normal 3 = Normal 4”
@@ -3710,7 +3710,7 @@ val input_term = “Normal 3 - Normal 4”
 val input_term = “(Normal 1 * Normal 2) + (Normal 3 / Normal 4) + (- Normal 5) - Normal 6 = Normal 7”
 val input_term = “(Normal 1 * Normal 2) + (Normal 3 / Normal 4) + (- Normal 5) - Normal 6”
 
-        
+
                  mk_comb (mk_comb (“$+ : real -> real -> real”, “3 : real”), “4 : real”)
 
                  dest_comb “- 3 : real”
@@ -3746,7 +3746,7 @@ in
           end
 
 fun prove_extreal_to_real input_term =
-let 
+let
 val
 in
   end
@@ -3758,7 +3758,7 @@ in
    the same expression of arithmetic operations in the reals. *)
 fun Normal_CONV input_term =
 let
-  
+
 val (combinator, term_list) = strip_comb input_term
 val SOME (combinator_theory, combinator_name) = dtc' combinator
 val translated_term = case combinator_name of
@@ -3770,14 +3770,14 @@ val translated_term = case combinator_name of
                       | ""
 
                         strip_comb “Normal 2”
-                        
+
 in
-  
+
   (*case combinator_name of
      "!" => DECIDE “T”
   | "?" => DECIDE “T”
   | _ => DECIDE “T”*)
-                
+
   end
 *)
 
@@ -3794,7 +3794,7 @@ val Normal_CONV_test9 = “∃r : real. Normal r = 4”
 
 val input_term = “Normal 2 = Normal 3”
 
-                        
+
                  dest_comb Normal_CONV_test3
           dest_comb Normal_CONV_test2
           dest_comb Normal_CONV_test1
@@ -4050,7 +4050,7 @@ QED*)
 (* symmetric noise corrupts this *)
 (* decoded using nearest neighbour method. *)
 (* probability of the result being correct*)
-(*Theorem 
+(*Theorem
 
 Proof
 QED*)

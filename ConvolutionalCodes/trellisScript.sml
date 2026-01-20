@@ -17,7 +17,7 @@ Datatype:
   viterbi_node_datatype = <|
     num_errors : infnum;
     prev_transition : (num # bool) option;
-  |> 
+  |>
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -171,7 +171,7 @@ End
 Definition viterbi_trellis_slow:
   get_num_errors_after_step_slow m bs 0 r =
   (if (FST (m.transition_fn r) = 0) then N0 else INFINITY) ∧
-  get_num_errors_after_step_slow m bs (SUC t) r = 
+  get_num_errors_after_step_slow m bs (SUC t) r =
   (viterbi_trellis_node_slow m bs (FST r) t).num_errors +
   N (hamming_distance (SND (m.transition_fn r)) (nth_chunk m bs (SUC t))) ∧
   (best_origin_slow m bs t s = argmin (get_num_errors_after_step_slow m bs t) (transition_inverse m s)) ∧
@@ -182,7 +182,7 @@ Definition viterbi_trellis_slow:
     local_prev_transition = (if (t = 0 ∨ local_num_errors = INFINITY) then NONE else SOME local_best_origin);
   in
     <| num_errors := local_num_errors;
-       prev_transition := local_prev_transition; |>    
+       prev_transition := local_prev_transition; |>
 Termination
   (* Use a standard measure-based method for proving termination. (see the
      HOL System Description on proving termination). We have a circular
@@ -203,7 +203,7 @@ Termination
                          (* test if we're currently in the first function
                             call, and thus being provided with the arguments
                             to the first fucntion *)
-                         if ISL x 
+                         if ISL x
                          then
                            (* get the argument t given the arguments to the
                               first function *)
@@ -283,7 +283,7 @@ Proof
 QED
 
 Theorem viterbi_trellis_column_el_legacy:
-  ∀m bs s t. 
+  ∀m bs s t.
     s < m.num_states ⇒
     EL s (viterbi_trellis_column m bs (SUC t)) = viterbi_trellis_node m bs s (SUC t) (viterbi_trellis_column m bs t)
 Proof
@@ -498,7 +498,7 @@ Theorem is_reachable_get_num_errors_after_step_slow:
 Proof
   rpt strip_tac
   >> qspecl_then [‘m’, ‘bs’, ‘s’, ‘t’] assume_tac is_reachable_viterbi_trellis_node_slow_num_errors
-  >> gvs[viterbi_trellis_node_slow_def]        
+  >> gvs[viterbi_trellis_node_slow_def]
 QED
 
 (* TODO: rename get_num_errors to reflect the fact that now we are using hamming
@@ -526,7 +526,7 @@ Proof
   >> gvs[vd_decode_to_state_def]
 QED
 
-Theorem vd_decode_to_state_length[simp]: 
+Theorem vd_decode_to_state_length[simp]:
   ∀m bs s t.
     LENGTH (vd_decode_to_state m bs s t) = t
 Proof
@@ -774,7 +774,7 @@ Theorem nth_chunk_restrict_input:
     t * m.output_length ≤ n ⇒
     nth_chunk m (TAKE n bs) t = nth_chunk m bs t
 Proof
-  rpt strip_tac 
+  rpt strip_tac
   >> gvs[nth_chunk_def]
   >> gvs[DROP_TAKE]
   >> gvs[TAKE_TAKE_MIN]
@@ -812,7 +812,7 @@ Proof
   rpt strip_tac
   >> EXT_ALL_TAC
   >> gvs[best_origin_def]
-  >> gvs[get_num_errors_after_step_restrict_input]  
+  >> gvs[get_num_errors_after_step_restrict_input]
 QED
 
 Theorem viterbi_trellis_node_restrict_input:
@@ -1044,7 +1044,7 @@ Theorem get_num_errors_after_step_slow_get_num_errors:
     LENGTH bs = (t + 1) * m.output_length ⇒
     infnum_to_num
     (get_num_errors_after_step_slow m bs (t + 1) r) =
-    hamming_distance (TAKE (t * m.output_length) bs) (vd_encode m (vd_decode_to_state m bs (FST r) t) 0) + hamming_distance (SND (m.transition_fn r)) (nth_chunk m bs (SUC t)) 
+    hamming_distance (TAKE (t * m.output_length) bs) (vd_encode m (vd_decode_to_state m bs (FST r) t) 0) + hamming_distance (SND (m.transition_fn r)) (nth_chunk m bs (SUC t))
 Proof
   rpt strip_tac
   (* Split up into the current step and the previous part *)
@@ -1067,7 +1067,7 @@ QED
 
 Theorem vd_decode_to_state_def_nolet:
   ∀m bs s t.
-    vd_decode_to_state m bs s (SUC t) = 
+    vd_decode_to_state m bs s (SUC t) =
     vd_decode_to_state m bs (FST (best_origin m bs (viterbi_trellis_column m bs t) (SUC t) s)) t ⧺ [SND (best_origin m bs (viterbi_trellis_column m bs t) (SUC t) s)]
 Proof
   rpt strip_tac
@@ -1095,7 +1095,7 @@ QED
 
 Theorem viterbi_trellis_column_el_0[simp]:
   ∀m bs s.
-    s < m.num_states ⇒ 
+    s < m.num_states ⇒
     EL s (viterbi_trellis_column m bs 0) = <| num_errors := if (s = 0) then N0 else INFINITY; prev_transition := NONE |>
 Proof
   rpt strip_tac
@@ -1139,7 +1139,7 @@ Proof
   >> Cases_on ‘COUNT_LIST m.num_states’ >> gvs[]
   >> Cases_on ‘m.num_states’ >> gvs[]
   >> gvs[COUNT_LIST_def]
-  >> gvs[argmin_def]       
+  >> gvs[argmin_def]
   >> Cases_on ‘n = 0’ >> gvs[]
   >> PURE_REWRITE_TAC[argmin2_def]
   >> gvs[]
@@ -1511,7 +1511,7 @@ QED
     decoded_path = ARB ∧
     encoded_decoded_path = ARB ∧
     test_path = ARB ∧
-    hamming_distance encoded_decoded_path test_path = ARB                
+    hamming_distance encoded_decoded_path test_path = ARB
 Proof
   EVAL_TAC
 QED*)

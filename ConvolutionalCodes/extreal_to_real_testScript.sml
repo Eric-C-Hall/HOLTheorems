@@ -73,4 +73,3 @@ Theorem extreal_to_real_practical_test_case_3[local]:
 Proof
   gvs[SF EXTREAL_NORMFRAG_SS, practical_function_1_def]
 QED
-

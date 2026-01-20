@@ -23,7 +23,7 @@ Datatype:
   gen_transition_destination = <|
     destination : α;
     output : bool list;
-  |> 
+  |>
 End
 
 
@@ -118,7 +118,7 @@ Definition gen_example_state_machine_def:
                               );
     init := 0;
     output_length := 2;
-    state_ordering := $<    
+    state_ordering := $<
   |> : num gen_state_machine
 End
 
@@ -128,7 +128,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Theorem gen_vd_encode_test1:
   gen_wfmachine gen_example_state_machine ∧
-  gen_vd_encode gen_example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]  
+  gen_vd_encode gen_example_state_machine [F; T; T; T; F] = [F; F; T; T; F; F; T; F; F; T]
 Proof
   REVERSE CONJ_TAC
   >- EVAL_TAC

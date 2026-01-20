@@ -26,7 +26,7 @@ Definition bsc_apply_def:
   bsc_apply (p : extreal) qs =
   MAP (λq. (Normal 1 - p) * q + p * (Normal 1 - q)) qs
 End
-           
+
 (* -------------------------------------------------------------------------- *)
 (* Determines the probability of changing the bitstring bs to the bitstring   *)
 (* cs in a binary symmetric channel.                                          *)

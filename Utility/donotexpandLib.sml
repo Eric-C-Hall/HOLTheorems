@@ -1,4 +1,4 @@
-structure donotexpandLib = struct 
+structure donotexpandLib = struct
 
 open HolKernel Parse boolLib bossLib;
 

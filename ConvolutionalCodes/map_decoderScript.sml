@@ -308,7 +308,7 @@ Theorem input_string_starts_with_inter_received_string_starts_with:
     ∩ event_received_string_starts_with enc n m ds = {(bs, bxor (enc bs) ds)}
 Proof
   rw[EXTENSION, event_input_string_starts_with_def,
-     event_received_string_starts_with_def]  
+     event_received_string_starts_with_def]
   >> EQ_TAC >> rw[] >> gvs[bxor_length, bxor_inv]
   (* Because bs ≼ bs' and LENGTH bs' = LENGTH bs, we have bs = bs' *)
   >> ‘bs = bs'’ by metis_tac[IS_PREFIX_LENGTH_ANTI]
@@ -393,7 +393,7 @@ Proof
   (* Introduce the thing it contradicts with: hamming_distance bs1 t ≤ LENGTH t*)
   >> qspecl_then [‘bs1’, ‘t’] assume_tac hamming_distance_length
   (* It automatically solves from this point*)
-  >> gvs[] 
+  >> gvs[]
 QED
 
 Theorem pow_leq_plus_imp[simp]:
@@ -566,7 +566,7 @@ QED
 Theorem event_sent_string_starts_with_nonzero_prob:
   ∀enc n m cs p.
     0 < p ∧
-    p < 1 ∧ 
+    p < 1 ∧
     LENGTH cs = m ∧
     (∃bs. LENGTH bs = n ∧ enc bs = cs) ⇒
     prob (ecc_bsc_prob_space n m p)
@@ -577,7 +577,7 @@ Proof
   >> gvs[event_sent_string_starts_with_is_event]
   >> gvs[EXTENSION] >> rw[event_sent_string_starts_with_def]
   >> qexists ‘bs’
-  >> gvs[]   
+  >> gvs[]
   >> qexists ‘REPLICATE (LENGTH (enc bs)) F’
   >> gvs[]
 QED
@@ -1595,7 +1595,7 @@ Proof
       >> gvs[extreal_div_eq]
      )
   >> rw[]
-  >> 
+  >>
 QED
 *)
 
@@ -1816,7 +1816,7 @@ Proof
   rw[]
   >> gvs[cond_prob_def]
   >> DEP_PURE_ONCE_REWRITE_TAC[cj 1 event_input_string_starts_with_event_universal]
-  >> metis_tac[] 
+  >> metis_tac[]
 QED
 
 Theorem event_universal_is_event[simp]:
@@ -2349,7 +2349,7 @@ Proof
   (* Our theorem follows from a lemma about the probability of the event where
      a given bit takes a given value. *)
   >> gvs[prob_event_sent_bit_takes_value]
-  >> gvs[AC mul_comm mul_assoc] 
+  >> gvs[AC mul_comm mul_assoc]
 QED
 
 Theorem eventups_sent_is_event[simp]:
@@ -2624,7 +2624,7 @@ Proof
   >> gvs[map_decoder_bitwise_sum_bayes]
   (* The inner bit is the bit we need to prove equivalence of. We only need
      to prove equivalence for valid i, that is, i < n *)
-  >> gvs[MAP_EQ_f]        
+  >> gvs[MAP_EQ_f]
   >> rw[]
   (* In this case, the thing we are taking the argmax_bool over is exactly
      equivalent *)
@@ -2803,7 +2803,7 @@ Proof
 QED
 
 Theorem POS_REAL_LEQ_RMUL:
-  ∀a b : real. 
+  ∀a b : real.
     0 < a ⇒
     (a ≤ a * b ⇔ 1 ≤ b)
 Proof

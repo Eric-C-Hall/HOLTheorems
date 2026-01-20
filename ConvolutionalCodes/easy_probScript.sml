@@ -42,21 +42,21 @@ Libs extreal_to_realLib ConseqConv dep_rewrite simpLib realLib;
 (* We have                                                                    *)
 (* (α list -> bool, α list -> bool -> bool, α list -> bool -> extreal)        *)
 (*                                                                            *)
-(* All lists in the space have the same size.                                 *) 
-(*                                                                            *) 
-(* This is effectively the combination of two similar spaces which have all   *) 
-(* lists in those spaces                                                      *) 
-(*                                                                            *) 
-(* The resulting space is isomorphic to the product space of these two        *) 
-(* spaces, assuming that                                                      *) 
-(*                                                                            *) 
-(* They combine in the same way as                                            *) 
+(* All lists in the space have the same size.                                 *)
+(*                                                                            *)
+(* This is effectively the combination of two similar spaces which have all   *)
+(* lists in those spaces                                                      *)
+(*                                                                            *)
+(* The resulting space is isomorphic to the product space of these two        *)
+(* spaces, assuming that                                                      *)
+(*                                                                            *)
+(* They combine in the same way as                                            *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 (*Definition combine_prod_measure_space_def:
   combine_prod_measure_space (sp : (α list # α list) m_space) =
   (space
-  )  
+  )
 End
 
 Theorem sym_noise_prob_space_cross:
@@ -82,16 +82,16 @@ QED*)
    {ns | LENGTH ns = m ∧ TAKE k ns = ns_pre}
    = sym_noise_mass_func p ns_pre: proof
 
-There is a bijection between this set and    
+There is a bijection between this set and
 
 The sum of all these elements is equal to the sum of applying the function
-to the prefix multiplied by applying the function 
-   
-I want to be able to easily say that the sum of all these 
-   
+to the prefix multiplied by applying the function
+
+I want to be able to easily say that the sum of all these
+
 *)
 
-(* Proof ended up being based on the fact that sym_noise_mass_func (_ ++ _) = sym_noise_mass_func _ * sym_noise_mass_func _, and using the fact that the set we were summing over all had the same prefix prepended to it, thus we could use a theorem of extreals to move the IMAGE in the set to a concatenation in the function, and then it was straightforward from there. 
+(* Proof ended up being based on the fact that sym_noise_mass_func (_ ++ _) = sym_noise_mass_func _ * sym_noise_mass_func _, and using the fact that the set we were summing over all had the same prefix prepended to it, thus we could use a theorem of extreals to move the IMAGE in the set to a concatenation in the function, and then it was straightforward from there.
  *)
 
 (* -------------------------------------------------------------------------- *)

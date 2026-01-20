@@ -61,7 +61,7 @@ Theorem argmin_singleton[simp]:
   ∀f x.
   argmin f [x] = x
 Proof
-  simp[argmin_def] 
+  simp[argmin_def]
 QED
 
 Theorem argmin_cons_cons[simp]:
@@ -154,7 +154,7 @@ Theorem argmin_domain:
   ∀f g ls.
   ls ≠ [] ∧
   (∀l. MEM l ls ⇒ f l = g l) ⇒
-  argmin f ls = argmin g ls 
+  argmin f ls = argmin g ls
 Proof
   rpt strip_tac
   >> Induct_on ‘ls’
