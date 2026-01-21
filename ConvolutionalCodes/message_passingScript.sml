@@ -100,8 +100,9 @@ val _ = hide "S";
 (* - val_map_assignments_cong_alt2                                            *)
 (* - extreal_sum_image_val_map_assignments_cong                               *)
 (*                                                                            *)
-(* Rewrite sum to change the set as well as the function.                     *)
+(* Rewrite sum/product to change the set as well as the function.             *)
 (* - EXTREAL_SUM_IMAGE_CHANGE_SET                                             *)
+(* - EXTREAL_PROD_IMAGE_CONG_DIFF_SETS                                        *)
 (*                                                                            *)
 (* More convenient theorem to prove the equality of two extreal sums.         *)
 (* - EXTREAL_SUM_IMAGE_EQ3                                                    *)
@@ -5506,10 +5507,16 @@ Proof
   metis_tac[adjacent_get_function_nodes]
 QED
 
+Theorem DIFF_INTER_SWAP:
+  ∀A B C.
+    A ∩ (B DIFF C) = (A DIFF C) ∩ B
+Proof
+  ASM_SET_TAC[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The message passing algorithm gives us the same result as summing over the *)
 (* product of the terms in the factor graph                                   *)
-(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
 Theorem sp_message_final_result:
   ∀fg dst.
@@ -5521,9 +5528,7 @@ Theorem sp_message_final_result:
     (λval_map.
        sum_prod fg (nodes (get_underlying_graph fg)) val_map
     ) (val_map_assignments fg {dst} FEMPTY)
-
-Proof
-
+Proof  
   rpt gen_tac >> strip_tac
   >> simp[sp_output_def]
   >> simp[FUN_FMAP_EQ_THM]
@@ -5886,14 +5891,107 @@ Proof
   >> qmatch_abbrev_tac ‘_ = RHS’
   >> Q.UNABBREV_TAC ‘ff_2’
   >> simp[]
-  (* *)
+  (* Simplify *)
   >> PURE_ONCE_REWRITE_TAC[DRESTRICTED_FUNION]
   >> PURE_ONCE_REWRITE_TAC[DRESTRICT_DRESTRICT]
-  >>
-
-  >>
-
-
+  >> qpat_assum ‘FDOM val_map = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> PURE_ONCE_REWRITE_TAC[DIFF_INTER_SWAP]
+  >> Q.SUBGOAL_THEN ‘∀src.
+                       src ∈ adjacent_nodes fg dst ⇒
+                       nodes (subtree (get_underlying_graph fg) dst src) DIFF
+                             {dst} =
+                       nodes (subtree (get_underlying_graph fg) dst src)                    ’
+      (fn th => simp[Cong EXTREAL_PROD_IMAGE_CONG, iffRL DIFF_NO_EFFECT, th])
+  >- (gen_tac >> strip_tac
+      >> simp[DIFF_NO_EFFECT]
+      >> simp[EXTENSION]
+      >> irule src_not_in_subtree
+      >> simp[]
+      >> disch_tac >> qpat_x_assum ‘src ∈ adjacent_nodes _ _’ mp_tac >> simp[])
+  (* Combine the two products *)
+  >> simp[extreal_prod_image_combine_dependent]
+  (* Cancel out the products. As the sets are not trivially equivalent, we need
+     to explicitly show a bijection between them that preserves the value of the
+     function being producted. *)         
+  >> Q.UNABBREV_TAC ‘RHS’
+  >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
+  >> REVERSE conj_tac
+  >- (simp[] >> gen_tac >> strip_tac >> simp[])
+  (* Our bijection takes (adj_node, node_in_subtree_adj_node) to
+     node_in_subtree_adj_node. In particular, adj_node can be determined from
+     node_in_subtree_adj_node, since a given node is in only one branch of the
+     tree.
+   *)
+  >> qexists ‘λ(adj_node, n). n’
+  >> conj_tac     
+  >- (simp[BIJ_THM]
+      >> conj_tac
+      >- (gen_tac >> strip_tac
+          >> Cases_on ‘x'’ >> simp[]
+          >> gvs[]
+          >> qpat_x_assum ‘r ∈ nodes (subtree _ _ _)’ mp_tac >> simp[subtree_def])
+      >> gen_tac >> strip_tac
+      >> simp[EXISTS_UNIQUE_ALT']
+      >> qabbrev_tac ‘src = EL 1 (get_path (get_underlying_graph fg) dst y)’
+      >> qexists ‘(src, y)’
+      >> gen_tac         
+      >> REVERSE EQ_TAC                 
+      >- (Cases_on ‘x'’ >> simp[]
+          >> strip_tac
+          >> qexists ‘{src} ×
+                      ((get_function_nodes fg)
+                       ∩ nodes (subtree (get_underlying_graph fg) dst src))’
+          >> simp[]
+          >> ‘dst ≠ y’ by (disch_tac >> gvs[])
+          >> conj_tac
+          >- (gvs[]
+              >> Q.UNABBREV_TAC ‘q’
+              >> simp[subtree_def]
+              >> irule EL_MEM
+              >> simp[])
+          >> qexists ‘src’
+          >> simp[]
+          >> Q.UNABBREV_TAC ‘src’
+          >> conj_tac
+          >- (irule first_step_in_nodes >> simp[])
+          >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+          >> irule adjacent_first_step
+          >> simp[])
+      >> strip_tac
+      >> Cases_on ‘x'’ >> gvs[]
+      >> Q.UNABBREV_TAC ‘src’
+      >> gvs[subtree_def]
+      >> SYM_TAC
+      >> irule adjacent_mem_get_path_first_step_alt
+      >> simp[]
+      >> ‘q ≠ dst’ by (disch_tac >> gvs[])
+      >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+     )
+  >> gen_tac
+  >> strip_tac
+  >> simp[]
+  >> Cases_on ‘x'’ >> simp[]
+  >> cong_tac (SOME 1)
+  >> PURE_ONCE_REWRITE_TAC[DRESTRICTED_FUNION]
+  >> cong_tac (SOME 1)
+  >> simp[DRESTRICT_EQ_DRESTRICT]
+  >> ‘FDOM x = (nodes (get_underlying_graph fg) DELETE dst) ∩ var_nodes fg’
+    by (irule (INST_TYPE [“:α” |-> “:extreal”] in_val_map_assignments_fdom_inter)
+        >> qexistsl [‘FEMPTY’]
+        >> simp[])
+  >> simp[]
+  >> ‘adjacent_nodes fg r DIFF {dst} ⊆
+      nodes (subtree (get_underlying_graph fg) dst q)’
+    suffices_by ASM_SET_TAC[]
+  >> PURE_ONCE_REWRITE_TAC[SUBSET_DEF]
+  >> PURE_ONCE_REWRITE_TAC[IN_DIFF]
+  >> gen_tac >> strip_tac
+  >> simp[SUBSET_DEF]
+  >> gvs[]
+  >> irule in_subtree_adjacent_adjacent
+  >> PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[]
+  >> qexists ‘r’ >> simp[]
 QED
 
 (*Theorem kljfgd:
