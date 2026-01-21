@@ -5528,7 +5528,7 @@ Theorem sp_message_final_result:
     (λval_map.
        sum_prod fg (nodes (get_underlying_graph fg)) val_map
     ) (val_map_assignments fg {dst} FEMPTY)
-Proof  
+Proof
   rpt gen_tac >> strip_tac
   >> simp[sp_output_def]
   >> simp[FUN_FMAP_EQ_THM]
@@ -5912,7 +5912,7 @@ Proof
   >> simp[extreal_prod_image_combine_dependent]
   (* Cancel out the products. As the sets are not trivially equivalent, we need
      to explicitly show a bijection between them that preserves the value of the
-     function being producted. *)         
+     function being producted. *)
   >> Q.UNABBREV_TAC ‘RHS’
   >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
   >> REVERSE conj_tac
@@ -5923,7 +5923,7 @@ Proof
      tree.
    *)
   >> qexists ‘λ(adj_node, n). n’
-  >> conj_tac     
+  >> conj_tac
   >- (simp[BIJ_THM]
       >> conj_tac
       >- (gen_tac >> strip_tac
@@ -5934,8 +5934,8 @@ Proof
       >> simp[EXISTS_UNIQUE_ALT']
       >> qabbrev_tac ‘src = EL 1 (get_path (get_underlying_graph fg) dst y)’
       >> qexists ‘(src, y)’
-      >> gen_tac         
-      >> REVERSE EQ_TAC                 
+      >> gen_tac
+      >> REVERSE EQ_TAC
       >- (Cases_on ‘x'’ >> simp[]
           >> strip_tac
           >> qexists ‘{src} ×
