@@ -261,9 +261,10 @@ Definition rcc_bcjr_fg_decode_def:
     ds_p = DROP n ds;
     prior = REPLICATE n (1 / &n);
     fg = rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p);
-    result = sp_run_message_passing fg;
   in
-    MAP (λi. argmax_bool (λb. result ' (INR i) ' [b])) (COUNT_LIST n)
+    MAP
+    (λi. argmax_bool (λb. sp_output fg (INR i) ' (FUN_FMAP (λdst. [b]) {INR i}))
+    ) (COUNT_LIST n)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -280,6 +281,7 @@ Theorem rcc_factor_graph_compute:
     = map_decoder_bitwise
       (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
       n m p ds
+      
 Proof
   rpt strip_tac
   (* Definition of factor graph decode *)
