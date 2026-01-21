@@ -5518,7 +5518,7 @@ QED
 (* The message passing algorithm gives us the same result as summing over the *)
 (* product of the terms in the factor graph                                   *)
 (* -------------------------------------------------------------------------- *)
-Theorem sp_message_final_result:
+Theorem sp_output_final_result:
   ∀fg dst.
     functions_noninfinite fg ∧
     is_tree (get_underlying_graph fg) ∧

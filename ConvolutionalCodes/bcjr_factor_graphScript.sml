@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel extreal factor_graph map_decoder_convolutional_code message_passing list rich_list prim_rec probability recursive_parity_equations state_machine wf_state_machine
+Ancestors binary_symmetric_channel combin extreal factor_graph map_decoder_convolutional_code marker message_passing list rich_list pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -152,8 +152,8 @@ End
 (* ts: initial state of recursive convolutional code                          *)
 (* fg: factor graph                                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition rcc_factor_graph_add_func_nodes_state_initial_def:
-  rcc_factor_graph_add_func_nodes_state_initial n ts fg =
+Definition rcc_factor_graph_add_func_node_state_initial_def:
+  rcc_factor_graph_add_func_node_state_initial n ts fg =
   fg_add_function_node ({INR (2 * n)})
                        (λval_map.
                           if val_map ' (INR (2 * n)) = ts then 1 else 0
@@ -234,7 +234,7 @@ End
 Definition rcc_factor_graph_def:
   rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p) =
   ((rcc_factor_graph_add_func_nodes_state n (ps,qs) ts 0)
-   ∘ (rcc_factor_graph_add_func_nodes_state_initial n ts)
+   ∘ (rcc_factor_graph_add_func_node_state_initial n ts)
    ∘ (rcc_factor_graph_add_func_nodes_enc n p 0 ds_p)
    ∘ (rcc_factor_graph_add_func_nodes_input_sys n p 0 prior ds_s)
    ∘ (fg_add_n_variable_nodes (n + 1) (LENGTH ts))
@@ -267,6 +267,203 @@ Definition rcc_bcjr_fg_decode_def:
     ) (COUNT_LIST n)
 End
 
+Theorem is_tree_rcc_factor_graph:
+  ∀n p ps qs ts prior ds_s ds_p.
+    is_tree (get_underlying_graph
+             (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))
+            )
+Proof
+  rpt gen_tac
+  >> cheat
+QED
+
+Theorem var_nodes_fg_add_function_node0:
+  ∀inputs fn fg.
+    wffactor_graph fg ⇒
+    var_nodes (fg_add_function_node0 inputs fn fg) = var_nodes fg
+Proof  
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[fg_add_function_node0_def]
+  >> simp[]
+  >> rw[]
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> REVERSE EQ_TAC >> simp[]
+  >> strip_tac
+  >> simp[]
+QED
+
+Theorem var_nodes_fg_add_function_node[simp]:
+  ∀inputs fn fg.
+    var_nodes (fg_add_function_node inputs fn fg) = var_nodes fg
+Proof
+  rpt gen_tac
+  >> simp[fg_add_function_node_def, var_nodes_fg_add_function_node0]
+  >> simp[get_underlying_graph_def, get_function_nodes_def]
+QED
+
+Theorem var_nodes_rcc_factor_graph_add_func_nodes_state[simp]:
+  ∀n ps qs ts i fg.
+    var_nodes (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts i fg) =
+    var_nodes fg
+Proof
+  (* Our base case is when i gets to n + 1. We then want to induct downwards on
+     i. So we induct on n + 1 - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n + 1 - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC 
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> ‘n ≤ i - 1’ by decide_tac
+      >> simp[LESS_EQ]
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+      >> simp[]
+     )
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> qmatch_goalsub_abbrev_tac ‘rcc_factor_graph_add_func_nodes_state _ _ _ _ fg'’
+  >> last_x_assum (qspecl_then [‘fg'’, ‘i + 1’, ‘n’, ‘ps’, ‘qs’, ‘ts’] assume_tac)
+  >> simp[]
+  >> Q.UNABBREV_TAC ‘fg'’
+  >> simp[]
+QED
+
+Theorem var_nodes_rcc_factor_graph_add_func_node_state_initial[simp]:
+  ∀n ts fg.
+    var_nodes (rcc_factor_graph_add_func_node_state_initial n ts fg)
+    = var_nodes fg
+Proof
+  rpt gen_tac
+  >> simp[rcc_factor_graph_add_func_node_state_initial_def]
+QED
+
+Theorem var_nodes_rcc_factor_graph_add_func_nodes_enc[simp]:
+  ∀n p i ds_p fg.
+    var_nodes (rcc_factor_graph_add_func_nodes_enc n p i ds_p fg) = var_nodes fg
+Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> ‘n ≤ i’ by decide_tac
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+      >> simp[]
+     )
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+  >> rw[]
+QED
+
+Theorem var_nodes_rcc_factor_graph_add_func_nodes_input_sys[simp]:
+  ∀n p i prior ds_s fg.
+    var_nodes (rcc_factor_graph_add_func_nodes_input_sys n p i prior ds_s fg)
+    = var_nodes fg
+Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_input_sys_def]
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_input_sys_def]
+  >> simp[]
+QED
+
+Theorem var_nodes_fg_add_variable_node0:
+  ∀l fg.
+    wffactor_graph fg ⇒
+    var_nodes (fg_add_variable_node0 l fg) =
+    (INR (CARD (nodes fg.underlying_graph))) INSERT var_nodes fg
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[fg_add_variable_node0_def]
+  >> simp[]
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+QED
+
+Theorem var_nodes_factor_graph_ABS:
+  ∀fg.
+    wffactor_graph fg ⇒
+    var_nodes (factor_graph_ABS fg) = var_nodes fg
+Proof
+  gen_tac
+  >> simp[get_underlying_graph_def, get_function_nodes_def]
+QED
+
+Theorem var_nodes_factor_graph_REP[simp]:
+  ∀fg.
+    var_nodes (factor_graph_REP fg) = var_nodes fg
+Proof
+  gen_tac
+  >> simp[get_underlying_graph_def, get_function_nodes_def]
+QED
+
+Theorem var_nodes_fg_add_variable_node:
+  ∀l fg.
+    var_nodes (fg_add_variable_node l fg) =
+    (INR (CARD (nodes (get_underlying_graph fg)))) INSERT var_nodes fg
+Proof
+  rpt gen_tac
+  >> simp[fg_add_variable_node_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[var_nodes_factor_graph_ABS]
+  >> conj_tac
+  >- (irule fg_add_variable_node0_wf
+      >> irule wffactor_graph_factor_graph_REP)
+  >> simp[var_nodes_fg_add_variable_node0]
+  >> simp[get_underlying_graph_def]
+QED
+
+Theorem var_nodes_fg_add_n_variable_nodes:
+  var_nodes (fg_add_n_variable_nodes n l fg) =
+  {INR i | i } ∪ var_nodes fg
+Proof
+  Induct_on ‘n’
+  >- (PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+      >> cheat
+     )
+  >> PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+  >> simp[var_nodes_fg_add_variable_node]
+  >> 
+QED
+
+Theorem fg_add_n_variable_nodes_concat:
+  ∀n1 n2 l fg.
+    fg_add_n_variable_nodes n1 l (fg_add_n_variable_nodes n2 l fg)
+    = fg_add_n_variable_nodes (n1 + n2) l fg
+Proof
+  rpt gen_tac
+  >> 
+QED
+
+Theorem var_nodes_rcc_factor_graph:
+  ∀n p ps qs ts prior ds_s ds_p.
+    var_nodes (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p)) = ARB
+Proof
+  rpt gen_tac
+  >> PURE_REWRITE_TAC[rcc_factor_graph_def]
+  >> simp[o_DEF]
+
+         
+  >> simp[rcc_factor_graph_def]
+QED
+
+
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)
@@ -283,6 +480,7 @@ Theorem rcc_factor_graph_compute:
       n m p ds
       
 Proof
+  
   rpt strip_tac
   (* Definition of factor graph decode *)
   >> gvs[rcc_bcjr_fg_decode_def]
@@ -299,20 +497,17 @@ Proof
   >> qexists ‘1’ >> gvs[]
   (* Prove that the function we are argmaxing over is the same for each choice
      of boolean b. *)
-  >> gvs[FUN_EQ_THM] >> qx_gen_tac ‘b’
+  >> simp[FUN_EQ_THM] >> qx_gen_tac ‘b’
+                                    
   (* *)
-  >> gvs[rcc_factor_graph_def]
-  (* Use the fact that running the message passing algorithm on a factor
-     graph returns the sum of the product of the terms *)
-  >> gvs[sp_run_message_passing_def,
-         sp_run_message_passing0_def]
-  >>
-  (* Rewrite the terms in the sum of products to match the terms in the other
-     sum of products *)
-  >>
-  (* Reorder the terms in the sum of products to match the other sum
-            of products *)
-  >> gvs[AC mul_comm mul_assoc]
+  >> DEP_PURE_ONCE_REWRITE_TAC[sp_output_final_result]
+  >> conj_tac
+  >- (rpt conj_tac
+      >- (cheat
+         )
+      >- simp[is_tree_rcc_factor_graph]
+      >> 
+     )
 QED
 
 (* -------------------------------------------------------------------------- *)
