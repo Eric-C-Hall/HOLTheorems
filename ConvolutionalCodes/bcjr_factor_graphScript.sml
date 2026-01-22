@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin extreal factor_graph map_decoder_convolutional_code marker message_passing list rich_list pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
+Ancestors binary_symmetric_channel combin extreal factor_graph genericGraph map_decoder_convolutional_code marker message_passing list range rich_list pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -267,6 +267,7 @@ Definition rcc_bcjr_fg_decode_def:
     ) (COUNT_LIST n)
 End
 
+
 Theorem is_tree_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     is_tree (get_underlying_graph
@@ -281,7 +282,7 @@ Theorem var_nodes_fg_add_function_node0:
   ∀inputs fn fg.
     wffactor_graph fg ⇒
     var_nodes (fg_add_function_node0 inputs fn fg) = var_nodes fg
-Proof  
+Proof
   rpt gen_tac
   >> PURE_ONCE_REWRITE_TAC[fg_add_function_node0_def]
   >> simp[]
@@ -312,7 +313,7 @@ Proof
   rpt gen_tac
   >> qabbrev_tac ‘indterm = n + 1 - i’
   >> pop_assum mp_tac >> simp[Abbrev_def]
-  >> SPEC_ALL_TAC 
+  >> SPEC_ALL_TAC
   >> Induct_on ‘indterm’
   (* Base case *)
   >- (rpt gen_tac >> strip_tac
@@ -429,17 +430,191 @@ Proof
   >> simp[get_underlying_graph_def]
 QED
 
+Theorem nodes_factor_graph_ABS:
+  ∀fg.
+    wffactor_graph fg ⇒
+    nodes (get_underlying_graph (factor_graph_ABS fg)) = nodes fg.underlying_graph
+Proof
+  gen_tac >> simp[get_underlying_graph_def]
+QED
+
+Theorem nodes_factor_graph_REP:
+  ∀fg.
+    nodes ((factor_graph_REP fg).underlying_graph) = nodes (get_underlying_graph fg)
+Proof
+  gen_tac >> simp[get_underlying_graph_def]
+QED
+
+Theorem nodes_fg_add_variable_node0:
+  ∀l fg.
+    wffactor_graph fg ⇒
+    nodes (fg_add_variable_node0 l fg).underlying_graph =
+    (INR (CARD (nodes fg.underlying_graph))) INSERT nodes fg.underlying_graph
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[fg_add_variable_node0_def]
+  >> simp[]
+QED
+
+Theorem nodes_fg_add_variable_node:
+  ∀l fg.
+    nodes (get_underlying_graph (fg_add_variable_node l fg)) =
+    (INR (CARD (nodes (get_underlying_graph fg))))
+    INSERT (nodes (get_underlying_graph fg))
+Proof
+  rpt gen_tac
+  >> simp[fg_add_variable_node_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[nodes_factor_graph_ABS]
+  >> conj_tac
+  >- (irule fg_add_variable_node0_wf
+      >> irule wffactor_graph_factor_graph_REP)
+  >> simp[nodes_fg_add_variable_node0]
+  >> simp[get_underlying_graph_def]
+QED
+
+Theorem CARD_IMAGE_INR[simp]:
+  ∀S.
+    FINITE S ⇒
+    CARD (IMAGE INR S) = CARD S
+Proof
+  gen_tac >> strip_tac
+  >> irule INJ_CARD_IMAGE
+  >> simp[]
+  >> qexists ‘IMAGE INR S'’
+  >> simp[INJ_DEF]
+QED
+
+Theorem nodes_get_underlying_graph:
+  ∀fg.
+    nodes (get_underlying_graph fg) =
+    IMAGE INR (count (order (get_underlying_graph fg)))
+Proof
+  gen_tac
+  >> simp[get_underlying_graph_def]
+  >> ‘wffactor_graph (factor_graph_REP fg)’ by simp[]
+  >> drule (iffLR wffactor_graph_def) >> strip_tac
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> rpt (pop_assum kall_tac)
+  >> simp[EXTENSION]
+QED
+
+Theorem nodes_fg_add_n_variable_nodes:
+  ∀n l fg.
+    nodes (get_underlying_graph (fg_add_n_variable_nodes n l fg)) =
+    IMAGE INR (range
+               (CARD (nodes (get_underlying_graph fg)))
+               (CARD (nodes (get_underlying_graph fg)) + n)
+              ) ∪ nodes (get_underlying_graph fg)
+Proof
+  rpt gen_tac
+  >> Induct_on ‘n’
+  >- (PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+      >> simp[])
+  >> PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+  >> PURE_ONCE_REWRITE_TAC[nodes_fg_add_variable_node]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
+  >- (disj1_tac
+      >> simp[CARD_UNION_EQN]
+      >> qmatch_goalsub_abbrev_tac ‘S1 ∩ S2’
+      >> sg ‘S1 ∩ S2 = ∅’
+      >- (simp[EXTENSION]
+          >> gen_tac
+          >> unabbrev_all_tac
+          >> CCONTR_TAC >> gvs[]
+          >> gvs[range_def]
+          >> gvs[nodes_get_underlying_graph])
+      >> simp[]
+      >> simp[range_def])
+  >- gvs[range_def]
+  (* x' ∈ [val, val + SUC n).
+     First disjunct is x' = val + n
+     Second disjunct is x' ∈ [val, val + n).
+     The combination of these disjuncts clearly makes up the assumption.
+     We just need to case split on x' = val + n *)
+  >> Cases_on ‘x' = CARD (nodes (get_underlying_graph fg)) + n’
+  >- (disj1_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
+      >> conj_tac
+      >- (simp[DISJOINT_ALT]
+          >> gen_tac >> strip_tac
+          >> simp[nodes_get_underlying_graph]
+          >> gvs[range_def, gsize_def])
+      >> simp[]
+      >> gvs[range_def]
+     )
+  >> disj2_tac
+  >> disj1_tac
+  >> gvs[range_def]
+QED
+
+Theorem order_fg_add_n_variable_nodes:
+  ∀n l fg.
+    order (get_underlying_graph (fg_add_n_variable_nodes n l fg)) =
+    order (get_underlying_graph fg) + n
+Proof
+  rpt gen_tac
+  >> simp[gsize_def]
+  >> simp[nodes_fg_add_n_variable_nodes]
+  >> simp[nodes_get_underlying_graph]
+  >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
+  >> conj_tac
+  >- (simp[DISJOINT_ALT]
+      >> gen_tac >> strip_tac
+      >> gen_tac >> strip_tac >> disch_tac
+      >> gvs[range_def])
+  >> simp[]
+QED
+
 Theorem var_nodes_fg_add_n_variable_nodes:
-  var_nodes (fg_add_n_variable_nodes n l fg) =
-  {INR i | i } ∪ var_nodes fg
+  ∀n l fg.
+    var_nodes (fg_add_n_variable_nodes n l fg) =
+    IMAGE INR (range
+               (CARD (nodes (get_underlying_graph fg)))
+               (CARD (nodes (get_underlying_graph fg)) + n)
+              ) ∪ var_nodes fg
 Proof
   Induct_on ‘n’
   >- (PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
-      >> cheat
-     )
+      >> rpt gen_tac
+      >> simp[EXTENSION])
+  >> rpt gen_tac
   >> PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
-  >> simp[var_nodes_fg_add_variable_node]
-  >> 
+  >> PURE_ONCE_REWRITE_TAC[var_nodes_fg_add_variable_node]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
+  >- (disj1_tac
+      >> simp[nodes_get_underlying_graph]
+      >> simp[gsize_def]
+      >> simp[nodes_fg_add_n_variable_nodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
+      >> conj_tac
+      >- (simp[DISJOINT_ALT]
+          >> gen_tac >> strip_tac
+          >> gvs[range_def]
+          >> gvs[nodes_get_underlying_graph])
+      >> simp[range_def])
+  >- gvs[range_def]
+  (* x' ∈ [val, val + SUC n).
+     First disjunct is x' = val + n
+     Second disjunct is x' ∈ [val, val + n).
+     The combination of these disjuncts clearly makes up the assumption.
+     We just need to case split on x' = val + n *)
+  >> Cases_on ‘x' = CARD (nodes (get_underlying_graph fg)) + n’
+  >- (disj1_tac
+      >> simp[]
+      >> simp[nodes_fg_add_n_variable_nodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
+      >> conj_tac
+      >- (simp[DISJOINT_ALT]
+          >> gen_tac >> strip_tac
+          >> simp[nodes_get_underlying_graph]
+          >> gvs[range_def, gsize_def])
+      >> simp[]
+     )
+  >> disj2_tac
+  >> disj1_tac
+  >> gvs[range_def]
 QED
 
 Theorem fg_add_n_variable_nodes_concat:
@@ -448,7 +623,7 @@ Theorem fg_add_n_variable_nodes_concat:
     = fg_add_n_variable_nodes (n1 + n2) l fg
 Proof
   rpt gen_tac
-  >> 
+  >>
 QED
 
 Theorem var_nodes_rcc_factor_graph:
@@ -459,7 +634,7 @@ Proof
   >> PURE_REWRITE_TAC[rcc_factor_graph_def]
   >> simp[o_DEF]
 
-         
+
   >> simp[rcc_factor_graph_def]
 QED
 
@@ -478,9 +653,9 @@ Theorem rcc_factor_graph_compute:
     = map_decoder_bitwise
       (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
       n m p ds
-      
+
 Proof
-  
+
   rpt strip_tac
   (* Definition of factor graph decode *)
   >> gvs[rcc_bcjr_fg_decode_def]
@@ -498,7 +673,7 @@ Proof
   (* Prove that the function we are argmaxing over is the same for each choice
      of boolean b. *)
   >> simp[FUN_EQ_THM] >> qx_gen_tac ‘b’
-                                    
+
   (* *)
   >> DEP_PURE_ONCE_REWRITE_TAC[sp_output_final_result]
   >> conj_tac
@@ -506,7 +681,7 @@ Proof
       >- (cheat
          )
       >- simp[is_tree_rcc_factor_graph]
-      >> 
+      >>
      )
 QED
 
