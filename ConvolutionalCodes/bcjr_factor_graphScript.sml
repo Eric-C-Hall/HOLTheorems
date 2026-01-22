@@ -386,7 +386,7 @@ Proof
   >> simp[]
 QED
 
-Theorem var_nodes_rcc_factor_graph:
+Theorem var_nodes_rcc_factor_graph[simp]:
   ∀n p ps qs ts prior ds_s ds_p.
     var_nodes (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p)) =
     IMAGE INR (range 0 (3 * n + 1))
@@ -400,6 +400,82 @@ Proof
   >> simp[]
   >> Cases_on ‘n = 0’ >- simp[]
   >> simp[range_union_swapped]
+QED
+
+Theorem order_rcc_factor_graph_add_func_nodes_state:
+  ∀n ps qs ts i fg.
+    i ≤ n + 1 ⇒
+    order (get_underlying_graph (rcc_factor_graph_add_func_nodes_state
+                                 n (ps, qs) ts i fg))
+    = order (get_underlying_graph fg) + n + 1 - i
+Proof
+  (* Our base case is when i gets to n + 1. We then want to induct downwards on
+     i. So we induct on n + 1 - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n + 1 - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> simp[]
+
+  >> qpat_x_assum ‘∀fg i n ps qs ts. _ ⇒ _ ⇒ _’
+                  (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  
+  >> DEP_PURE_ONCE_REWRITE_TAC[order_fg_add_function_node]
+  >> conj_tac
+  >- simp[]
+  >> 
+  
+  rpt gen_tac
+      cheat
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> rw[]
+  >> 
+QED
+
+Theorem get_function_nodes_rcc_factor_graph_add_func_nodes_state:
+
+Proof
+QED
+
+Theorem order_rcc_factor_graph[simp]:
+  ∀n p ps qs ts prior ds_s ds_p.
+    order (get_underlying_graph
+           (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
+    ARB
+Proof
+  simp[rcc_factor_graph_def]
+  >> 
+QED
+
+
+Theorem nodes_rcc_factor_graph[simp]:
+  ∀n p ps qs ts prior ds_s ds_p.
+    nodes (get_underlying_graph
+           (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
+    ARB
+Proof
+  rpt gen_tac
+  >> simp[nodes_get_underlying_graph]
+QED
+
+Theorem get_function_nodes_rcc_factor_graph[simp]:
+  ∀n p ps qs ts prior ds_s ds_p.
+    get_function_nodes (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p)) =
+    ARB
+Proof
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
+  >> simp[nodes_get_underlying_graph]
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_def]
+  >> simp[o_DEF]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -444,7 +520,7 @@ Proof
       >- (cheat
          )
       >- simp[is_tree_rcc_factor_graph]
-      >>
+      >> PURE_ONCE_REWRITE_TAC[var_nodes_rcc_factor_graph]
      )
 QED
 

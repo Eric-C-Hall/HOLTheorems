@@ -1758,6 +1758,52 @@ Proof
   >> simp[fsgedges_def] >> qexistsl [‘a’, ‘b’] >> simp[]
 QED
 
+Theorem order_fg_add_function_node0:
+  ∀inputs fn fg.
+    wffactor_graph fg ⇒
+    order (fg_add_function_node0 inputs fn fg).underlying_graph =
+    order fg.underlying_graph + if inputs ⊆ var_nodes fg then 1 else 0
+Proof
+  rpt strip_tac
+  >> simp[fg_add_function_node0_def]
+  >> rw[]
+  >> simp[order_fsgAddNode]
+QED
+
+Theorem order_fg_add_function_node:
+  ∀inputs fn fg.
+    order (get_underlying_graph (fg_add_function_node inputs fn fg)) =
+    order (get_underlying_graph fg) + if inputs ⊆ var_nodes fg then 1 else 0
+Proof
+  rpt gen_tac
+  >> simp[fg_add_function_node_def, order_fg_add_function_node0]
+  >> PURE_ONCE_REWRITE_TAC[get_underlying_graph_def]
+  >> simp[]
+QED
+
+Theorem get_function_nodes_fg_add_function_node0:
+  ∀inputs fn fg.
+    inputs ⊆ var_nodes fg ⇒
+    (fg_add_function_node0 inputs fn fg).function_nodes =
+    INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes
+Proof
+  rpt gen_tac
+  >> simp[fg_add_function_node0_def]
+QED
+
+Theorem get_function_nodes_fg_add_function_node:
+  ∀inputs fn fg.
+    inputs ⊆ var_nodes fg ⇒
+    get_function_nodes (fg_add_function_node inputs fn fg) =
+    INR (CARD (nodes (get_underlying_graph fg))) INSERT
+        get_function_nodes fg
+Proof
+  rpt gen_tac
+  >> simp[fg_add_function_node_def,
+          get_function_nodes_fg_add_function_node0]
+  >> simp[get_function_nodes_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
 (*                                                                            *)
