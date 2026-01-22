@@ -622,8 +622,14 @@ Theorem fg_add_n_variable_nodes_concat:
     fg_add_n_variable_nodes n1 l (fg_add_n_variable_nodes n2 l fg)
     = fg_add_n_variable_nodes (n1 + n2) l fg
 Proof
-  rpt gen_tac
-  >>
+  Induct_on ‘n1’
+  >- simp[fg_add_n_variable_nodes_def]
+  >> rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM SUC_ADD_SYM]
+  >> PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+  >> cong_tac (SOME 1)
+  >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
+  >> pop_assum irule
 QED
 
 Theorem var_nodes_rcc_factor_graph:
