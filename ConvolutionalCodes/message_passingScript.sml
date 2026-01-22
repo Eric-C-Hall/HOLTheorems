@@ -625,41 +625,18 @@ Definition sp_output_def:
   ) (val_map_assignments fg {dst} FEMPTY)
 End
 
-(* It's kinda interesting how this can be proven simply by applying
-   gvs[factor_graph_ABSREP]. The second conjunct rewrites wffactor_graph as
-   REP (ABS ...), and then the first conjunct simplifies the inner ABS (REP) *)
-Theorem wffactor_graph_factor_graph_REP[simp]:
-  ∀fg.
-    wffactor_graph (factor_graph_REP fg)
-Proof
-  gvs[factor_graph_ABSREP]
-QED
-
-Theorem adjacent_in_function_nodes_not_in_function_nodes:
-  ∀fg a b.
-    adjacent (get_underlying_graph fg) a b ⇒
-    (a ∈ get_function_nodes fg ⇔ b ∉ get_function_nodes fg)
-Proof
-  rpt strip_tac
-  >> qspec_then ‘fg’ assume_tac wffactor_graph_factor_graph_REP
-  >> drule_then assume_tac (cj 1 (iffLR wffactor_graph_def))
-  >> gvs[gen_bipartite_ea_def, fsgedges_def, get_function_nodes_def,
-         get_underlying_graph_def]
-  >> metis_tac[]
-QED
-
 Theorem adjacent_nodes_subset_nodes_rep[simp]:
   ∀fg n.
     adjacent_nodes fg n ⊆ nodes fg.underlying_graph
 Proof
-  ASM_SET_TAC[]
+  simp[SUBSET_DEF]
 QED
 
 Theorem adjacent_nodes_subset_nodes_abs[simp]:
   ∀fg n.
     adjacent_nodes fg n ⊆ nodes (get_underlying_graph fg)
 Proof
-  gvs[get_underlying_graph_def]
+  simp[SUBSET_DEF]
 QED
 
 Theorem FINITE_adjacent_nodes[simp]:
@@ -683,7 +660,7 @@ Proof
   >> qexists ‘FUN_FMAP
               (λm. REPLICATE (get_variable_length_map fg ' m) ARB)
               (adjacent_nodes fg n)’
-  >> rpt strip_tac >> gvs[]
+  >> gvs[]
 QED
 
 Theorem exists_val_map_assignments:
@@ -3479,73 +3456,6 @@ Proof
   ASM_SET_TAC[]
 QED
 
-Theorem get_underlying_graph_factor_graph_ABS[simp]:
-  ∀fg.
-    wffactor_graph fg ⇒
-    get_underlying_graph (factor_graph_ABS fg) = fg.underlying_graph
-Proof
-  rpt strip_tac
-  >> simp[get_underlying_graph_def, iffLR (cj 2 factor_graph_ABSREP)]
-QED
-
-Theorem get_function_nodes_factor_graph_ABS[simp]:
-  ∀fg.
-    wffactor_graph fg ⇒
-    get_function_nodes (factor_graph_ABS fg) = fg.function_nodes
-Proof
-  rpt strip_tac
-  >> simp[get_function_nodes_def, iffLR (cj 2 factor_graph_ABSREP)]
-QED
-
-Theorem get_variable_length_map_factor_graph_ABS[simp]:
-  ∀fg.
-    wffactor_graph fg ⇒
-    get_variable_length_map (factor_graph_ABS fg) = fg.variable_length_map
-Proof
-  rpt strip_tac
-  >> simp[get_variable_length_map_def, iffLR (cj 2 factor_graph_ABSREP)]
-QED
-
-Theorem gen_bipartite_ea_get_underlying_graph[simp]:
-  ∀fg.
-    gen_bipartite_ea (get_underlying_graph fg) (get_function_nodes fg)
-Proof
-  rpt strip_tac
-  >> PURE_ONCE_REWRITE_TAC[GSYM (cj 1 factor_graph_ABSREP)]
-  >> simp[]
-  >> metis_tac[wffactor_graph_def, wffactor_graph_factor_graph_REP]
-QED
-
-Theorem adjacent_get_function_nodes:
-  ∀fg n1 n2.
-    adjacent (get_underlying_graph fg) n1 n2 ⇒
-    (n1 ∈ get_function_nodes fg ⇔ n2 ∉ get_function_nodes fg)
-Proof
-  rpt strip_tac
-  >> qspec_then ‘fg’ assume_tac gen_bipartite_ea_get_underlying_graph
-  >> gvs[gen_bipartite_ea_def, Excl "gen_bipartite_ea_get_underlying_graph"]
-  >> gvs[fsgedges_def]
-  >> metis_tac[]
-QED
-
-Theorem adjacent_nodes_subset_var_nodes:
-  ∀fg src.
-    adjacent_nodes fg src ≠ ∅ ⇒
-    (adjacent_nodes fg src ⊆ var_nodes fg ⇔ src ∈ get_function_nodes fg)
-Proof
-  rpt strip_tac
-  >> EQ_TAC >> rpt strip_tac
-  >- (gvs[SUBSET_DEF]
-      >> gvs[GSYM MEMBER_NOT_EMPTY]
-      >> pop_assum $ qspec_then ‘x’ assume_tac
-      >> gvs[]
-      >> metis_tac[adjacent_get_function_nodes]
-     )
-  >> simp[SUBSET_DEF]
-  >> rpt strip_tac
-  >> metis_tac[adjacent_get_function_nodes]
-QED
-
 Theorem IN_FDOM_FBIGUNION:
   ∀x S.
     FINITE S ⇒
@@ -4032,61 +3942,6 @@ Proof
   rpt strip_tac
   >> EQ_TAC >> disch_tac >> gvs[]
   >> Cases_on ‘get_path g a b’ >> gvs[]
-QED
-
-Theorem var_nodes_subset_nodes:
-  ∀fg.
-    var_nodes fg ⊆ nodes (get_underlying_graph fg)
-Proof
-  simp[SUBSET_DEF]
-QED
-
-Theorem in_var_nodes_in_nodes:
-  ∀x fg.
-    x ∈ var_nodes fg ⇒ x ∈ nodes (get_underlying_graph fg)
-Proof
-  simp[]
-QED
-
-Theorem get_function_nodes_subset_nodes:
-  ∀fg.
-    get_function_nodes fg ⊆ nodes (get_underlying_graph fg)
-Proof
-  gen_tac
-  >> simp[get_underlying_graph_def, get_function_nodes_def]
-  >> ‘wffactor_graph (factor_graph_REP fg)’ by simp[]
-  >> ‘gen_bipartite_ea (factor_graph_REP fg).underlying_graph
-      (factor_graph_REP fg).function_nodes’ by metis_tac[wffactor_graph_def]
-  >> gvs[gen_bipartite_ea_def]
-QED
-
-Theorem in_get_function_nodes_in_nodes:
-  ∀x fg.
-    x ∈ get_function_nodes fg ⇒ x ∈ nodes (get_underlying_graph fg)
-Proof
-  rpt strip_tac
-  >> assume_tac get_function_nodes_subset_nodes
-  >> gvs[SUBSET_DEF]
-QED
-
-Theorem nodes_diff_var_nodes:
-  ∀fg.
-    nodes (get_underlying_graph fg) DIFF var_nodes fg = get_function_nodes fg
-Proof
-  gen_tac
-  >> simp[EXTENSION]
-  >> gen_tac
-  >> EQ_TAC >> simp[in_get_function_nodes_in_nodes]
-  >> strip_tac
-QED
-
-Theorem finite_get_function_nodes[simp]:
-  ∀fg.
-    FINITE (get_function_nodes fg)
-Proof
-  gen_tac
-  >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
-  >> simp[]
 QED
 
 Theorem nodes_subtree_absorb_union:

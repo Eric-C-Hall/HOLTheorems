@@ -1,6 +1,6 @@
 Theory factor_graph
 
-Ancestors arithmetic bool ecc_prob_space probability fsgraph fundamental genericGraph pred_set finite_map list transc prim_rec integer partite_ea hyperbolic_functions lifting transfer words
+Ancestors arithmetic bool ecc_prob_space probability fsgraph fundamental genericGraph pred_set finite_map list transc prim_rec integer partite_ea range hyperbolic_functions lifting transfer words
 
 Libs donotexpandLib wordsLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
@@ -529,7 +529,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Many of the theorems above were copy/pasted to get this to work.           *)
 (* -------------------------------------------------------------------------- *)
-val _ = liftdef fg_empty0_respects "fg_empty"
+val (fg_empty_def, fg_empty_relates) = liftdef fg_empty0_respects "fg_empty"
 
 (* -------------------------------------------------------------------------- *)
 (* Add a variable node with length l to the factor_graph.                     *)
@@ -726,7 +726,8 @@ Proof
   >> gvs[fg_add_variable_node0_wf]
 QED
 
-val _ = liftdef fg_add_variable_node0_respects "fg_add_variable_node"
+val (fg_add_variable_node_def, fg_add_variable_node_relates)
+= liftdef fg_add_variable_node0_respects "fg_add_variable_node"
 
 (* -------------------------------------------------------------------------- *)
 (* Adds n variable nodes to the factor graph                                  *)
@@ -1234,7 +1235,8 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val fafnthms = liftdef fg_add_function_node0_respects "fg_add_function_node"
+val (fg_add_function_node_def, fg_add_function_node_relates)
+= liftdef fg_add_function_node0_respects "fg_add_function_node"
 
 Theorem FDOM_FMAP_MAP2[simp] = GEN_ALL (cj 1 FMAP_MAP2_THM);
 
@@ -1253,7 +1255,8 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val gugthms = liftdef get_underlying_graph0_respects "get_underlying_graph"
+val (get_underlying_graph_def, get_underlying_graph_relates)
+= liftdef get_underlying_graph0_respects "get_underlying_graph"
 
 (* -------------------------------------------------------------------------- *)
 (* Allow the function nodes to be obtained in the abstract version of the     *)
@@ -1267,7 +1270,8 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val gfnthms = liftdef get_function_nodes0_respects "get_function_nodes";
+val (get_function_nodes_def, get_function_nodes_relates)
+= liftdef get_function_nodes0_respects "get_function_nodes";
 
 (* -------------------------------------------------------------------------- *)
 (* Allow the function map to be obtained in the abstract version of the       *)
@@ -1279,7 +1283,8 @@ Proof
   gvs[FUN_REL_def, fgequiv_def]
 QED
 
-val gfmthms = liftdef get_function_map0_respects "get_function_map";
+val (get_function_map_def, get_function_map_relates)
+= liftdef get_function_map0_respects "get_function_map";
 
 (* -------------------------------------------------------------------------- *)
 (* The representation hides variable_length_map, but this is useful when      *)
@@ -1294,7 +1299,8 @@ Proof
   >> gvs[fgequiv_def]
 QED
 
-val gvlmthms = liftdef get_variable_length_map0_respects "get_variable_length_map";
+val (get_variable_length_map_def, get_variable_length_map_relates)
+= liftdef get_variable_length_map0_respects "get_variable_length_map";
 
 Overload adjacent_nodes = “λfg cur_node.
                              {adj_node |
@@ -1304,11 +1310,449 @@ Overload adjacent_nodes = “λfg cur_node.
 Overload var_nodes = “λfg. {n | n ∈ nodes (get_underlying_graph fg) ∧
                                 n ∉ (get_function_nodes fg)}”;
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* Add proof that the representation of an abstract factor graph is well-     *)
+(* formed to the simpset.                                                     *)
+(*                                                                            *)
+(* It's kinda interesting how this can be proven simply by applying           *)
+(* gvs[factor_graph_ABSREP]. The second conjunct rewrites wffactor_graph as   *)
+(* REP (ABS ...), and then the first conjunct simplifies the inner ABS (REP)  *)
+(* -------------------------------------------------------------------------- *)
+Theorem wffactor_graph_factor_graph_REP[simp]:
+  ∀fg.
+    wffactor_graph (factor_graph_REP fg)
+Proof
+  simp[#termP_term_REP tydefrec]
+QED
+
+Theorem nodes_get_underlying_graph:
+  ∀fg.
+    nodes (get_underlying_graph fg) =
+    IMAGE INR (count (order (get_underlying_graph fg)))
+Proof
+  gen_tac
+  >> simp[get_underlying_graph_def]
+  >> ‘wffactor_graph (factor_graph_REP fg)’ by simp[]
+  >> drule (iffLR wffactor_graph_def) >> strip_tac
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> rpt (pop_assum kall_tac)
+  >> simp[EXTENSION]
+QED
+
 Theorem var_nodes_finite[simp]:
   ∀fg : α factor_graph.
     FINITE (var_nodes fg)
 Proof
-  gvs[fst gugthms, snd gugthms, fst gfnthms, snd gfmthms]
+  gvs[get_underlying_graph_def, get_underlying_graph_relates, get_function_nodes_def, get_function_nodes_relates]
+QED
+
+Theorem CARD_IMAGE_INR[simp]:
+  ∀S.
+    FINITE S ⇒
+    CARD (IMAGE INR S) = CARD S
+Proof
+  gen_tac >> strip_tac
+  >> irule INJ_CARD_IMAGE
+  >> simp[]
+  >> qexists ‘IMAGE INR S’
+  >> simp[INJ_DEF]
+QED
+
+Theorem var_nodes_fg_add_variable_node0:
+  ∀l fg.
+    wffactor_graph fg ⇒
+    var_nodes (fg_add_variable_node0 l fg) =
+    (INR (CARD (nodes fg.underlying_graph))) INSERT var_nodes fg
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[fg_add_variable_node0_def]
+  >> simp[]
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Add theorem to the simpset: For a well-formed factor graph, converting to  *)
+(* abstract then converting back to the underlying represetnation gets you    *)
+(* back the original factor graph                                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem factor_graph_REP_factor_graph_ABS[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    factor_graph_REP (factor_graph_ABS fg) = fg
+Proof
+  simp[#repabs_pseudo_id tydefrec]
+QED
+
+Theorem var_nodes_factor_graph_ABS[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    var_nodes (factor_graph_ABS fg) = var_nodes fg
+Proof
+  gen_tac >> strip_tac
+  >> simp[get_underlying_graph_def, get_function_nodes_def]
+QED
+
+Theorem var_nodes_factor_graph_REP[simp]:
+  ∀fg.
+    var_nodes (factor_graph_REP fg) = var_nodes fg
+Proof
+  gen_tac
+  >> simp[get_underlying_graph_def, get_function_nodes_def]
+QED
+
+Theorem fg_empty0_underlying_graph[simp]:
+  fg_empty0.underlying_graph = emptyG
+Proof
+  simp[fg_empty0_def]
+QED
+
+Theorem nodes_factor_graph_ABS[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    nodes (get_underlying_graph (factor_graph_ABS fg)) = nodes fg.underlying_graph
+Proof
+  gen_tac >> simp[get_underlying_graph_def]
+QED
+
+Theorem nodes_factor_graph_REP[simp]:
+  ∀fg.
+    nodes ((factor_graph_REP fg).underlying_graph) = nodes (get_underlying_graph fg)
+Proof
+  gen_tac >> simp[get_underlying_graph_def]
+QED
+
+Theorem get_underlying_graph_factor_graph_ABS[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    get_underlying_graph (factor_graph_ABS fg) = fg.underlying_graph
+Proof
+  rpt strip_tac
+  >> simp[get_underlying_graph_def]
+QED
+
+Theorem get_function_nodes_factor_graph_ABS[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    get_function_nodes (factor_graph_ABS fg) = fg.function_nodes
+Proof
+  rpt strip_tac
+  >> simp[get_function_nodes_def]
+QED
+
+Theorem get_variable_length_map_factor_graph_ABS[simp]:
+  ∀fg.
+    wffactor_graph fg ⇒
+    get_variable_length_map (factor_graph_ABS fg) = fg.variable_length_map
+Proof
+  rpt strip_tac
+  >> simp[get_variable_length_map_def]
+QED
+
+Theorem gen_bipartite_ea_get_underlying_graph[simp]:
+  ∀fg.
+    gen_bipartite_ea (get_underlying_graph fg) (get_function_nodes fg)
+Proof
+  rpt strip_tac
+  >> simp[get_underlying_graph_def, get_function_nodes_def]
+  >> metis_tac[wffactor_graph_def, wffactor_graph_factor_graph_REP]
+QED
+
+Theorem adjacent_get_function_nodes:
+  ∀fg n1 n2.
+    adjacent (get_underlying_graph fg) n1 n2 ⇒
+    (n1 ∈ get_function_nodes fg ⇔ n2 ∉ get_function_nodes fg)
+Proof
+  rpt strip_tac
+  >> qspec_then ‘fg’ assume_tac gen_bipartite_ea_get_underlying_graph
+  >> gvs[gen_bipartite_ea_def, Excl "gen_bipartite_ea_get_underlying_graph"]
+  >> gvs[fsgedges_def]
+  >> metis_tac[]
+QED
+
+Theorem adjacent_nodes_subset_var_nodes:
+  ∀fg src.
+    adjacent_nodes fg src ≠ ∅ ⇒
+    (adjacent_nodes fg src ⊆ var_nodes fg ⇔ src ∈ get_function_nodes fg)
+Proof
+  rpt strip_tac
+  >> EQ_TAC >> rpt strip_tac
+  >- (gvs[SUBSET_DEF]
+      >> gvs[GSYM MEMBER_NOT_EMPTY]
+      >> pop_assum $ qspec_then ‘x’ assume_tac
+      >> gvs[]
+      >> metis_tac[adjacent_get_function_nodes]
+     )
+  >> simp[SUBSET_DEF]
+  >> rpt strip_tac
+  >> metis_tac[adjacent_get_function_nodes]
+QED
+
+Theorem get_underlying_graph_fg_empty[simp]:
+  get_underlying_graph fg_empty = emptyG
+Proof
+  simp[fg_empty_def]
+QED
+
+Theorem order_fg_empty[simp]:
+  order (get_underlying_graph fg_empty) = 0
+Proof
+  simp[] 
+QED
+
+Theorem var_nodes_fg_empty:
+  var_nodes fg_empty = ∅
+Proof
+  simp[EXTENSION]
+  >> gen_tac
+  >> simp[nodes_get_underlying_graph]
+QED
+
+Theorem var_nodes_fg_add_variable_node:
+  ∀l fg.
+    var_nodes (fg_add_variable_node l fg) =
+    (INR (CARD (nodes (get_underlying_graph fg)))) INSERT var_nodes fg
+Proof
+  rpt gen_tac
+  >> simp[fg_add_variable_node_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[var_nodes_factor_graph_ABS]
+  >> conj_tac
+  >- (irule fg_add_variable_node0_wf
+      >> irule wffactor_graph_factor_graph_REP)
+  >> simp[var_nodes_fg_add_variable_node0]
+  >> simp[get_underlying_graph_def]
+QED
+
+Theorem nodes_fg_add_variable_node0:
+  ∀l fg.
+    wffactor_graph fg ⇒
+    nodes (fg_add_variable_node0 l fg).underlying_graph =
+    (INR (CARD (nodes fg.underlying_graph))) INSERT nodes fg.underlying_graph
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[fg_add_variable_node0_def]
+  >> simp[]
+QED
+
+Theorem nodes_fg_add_variable_node:
+  ∀l fg.
+    nodes (get_underlying_graph (fg_add_variable_node l fg)) =
+    (INR (CARD (nodes (get_underlying_graph fg))))
+    INSERT (nodes (get_underlying_graph fg))
+Proof
+  rpt gen_tac
+  >> simp[fg_add_variable_node_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[nodes_factor_graph_ABS]
+  >> conj_tac
+  >- (irule fg_add_variable_node0_wf
+      >> irule wffactor_graph_factor_graph_REP)
+  >> simp[nodes_fg_add_variable_node0]
+  >> simp[get_underlying_graph_def]
+QED
+
+Theorem nodes_fg_add_n_variable_nodes:
+  ∀n l fg.
+    nodes (get_underlying_graph (fg_add_n_variable_nodes n l fg)) =
+    IMAGE INR (range
+               (CARD (nodes (get_underlying_graph fg)))
+               (CARD (nodes (get_underlying_graph fg)) + n)
+              ) ∪ nodes (get_underlying_graph fg)
+Proof
+  rpt gen_tac
+  >> Induct_on ‘n’
+  >- (PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+      >> simp[])
+  >> PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+  >> PURE_ONCE_REWRITE_TAC[nodes_fg_add_variable_node]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
+  >- (disj1_tac
+      >> simp[CARD_UNION_EQN]
+      >> qmatch_goalsub_abbrev_tac ‘S1 ∩ S2’
+      >> sg ‘S1 ∩ S2 = ∅’
+      >- (simp[EXTENSION]
+          >> gen_tac
+          >> unabbrev_all_tac
+          >> CCONTR_TAC >> gvs[]
+          >> gvs[range_def]
+          >> gvs[nodes_get_underlying_graph])
+      >> simp[]
+      >> simp[range_def])
+  >- gvs[range_def]
+  (* x' ∈ [val, val + SUC n).
+     First disjunct is x' = val + n
+     Second disjunct is x' ∈ [val, val + n).
+     The combination of these disjuncts clearly makes up the assumption.
+     We just need to case split on x' = val + n *)
+  >> Cases_on ‘x' = CARD (nodes (get_underlying_graph fg)) + n’
+  >- (disj1_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
+      >> conj_tac
+      >- (simp[DISJOINT_ALT]
+          >> gen_tac >> strip_tac
+          >> simp[nodes_get_underlying_graph]
+          >> gvs[range_def, gsize_def])
+      >> simp[]
+      >> gvs[range_def]
+     )
+  >> disj2_tac
+  >> disj1_tac
+  >> gvs[range_def]
+QED
+
+Theorem order_fg_add_n_variable_nodes:
+  ∀n l fg.
+    order (get_underlying_graph (fg_add_n_variable_nodes n l fg)) =
+    order (get_underlying_graph fg) + n
+Proof
+  rpt gen_tac
+  >> simp[gsize_def]
+  >> simp[nodes_fg_add_n_variable_nodes]
+  >> simp[nodes_get_underlying_graph]
+  >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
+  >> conj_tac
+  >- (simp[DISJOINT_ALT]
+      >> gen_tac >> strip_tac
+      >> gen_tac >> strip_tac >> disch_tac
+      >> gvs[range_def])
+  >> simp[]
+QED
+
+Theorem var_nodes_fg_add_n_variable_nodes:
+  ∀n l fg.
+    var_nodes (fg_add_n_variable_nodes n l fg) =
+    IMAGE INR (range
+               (CARD (nodes (get_underlying_graph fg)))
+               (CARD (nodes (get_underlying_graph fg)) + n)
+              ) ∪ var_nodes fg
+Proof
+  Induct_on ‘n’
+  >- (PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+      >> rpt gen_tac
+      >> simp[EXTENSION])
+  >> rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+  >> PURE_ONCE_REWRITE_TAC[var_nodes_fg_add_variable_node]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
+  >- (disj1_tac
+      >> simp[nodes_get_underlying_graph]
+      >> simp[gsize_def]
+      >> simp[nodes_fg_add_n_variable_nodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
+      >> conj_tac
+      >- (simp[DISJOINT_ALT]
+          >> gen_tac >> strip_tac
+          >> gvs[range_def]
+          >> gvs[nodes_get_underlying_graph])
+      >> simp[range_def])
+  >- gvs[range_def]
+  (* x' ∈ [val, val + SUC n).
+     First disjunct is x' = val + n
+     Second disjunct is x' ∈ [val, val + n).
+     The combination of these disjuncts clearly makes up the assumption.
+     We just need to case split on x' = val + n *)
+  >> Cases_on ‘x' = CARD (nodes (get_underlying_graph fg)) + n’
+  >- (disj1_tac
+      >> simp[]
+      >> simp[nodes_fg_add_n_variable_nodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
+      >> conj_tac
+      >- (simp[DISJOINT_ALT]
+          >> gen_tac >> strip_tac
+          >> simp[nodes_get_underlying_graph]
+          >> gvs[range_def, gsize_def])
+      >> simp[]
+     )
+  >> disj2_tac
+  >> disj1_tac
+  >> gvs[range_def]
+QED
+
+Theorem fg_add_n_variable_nodes_concat:
+  ∀n1 n2 l fg.
+    fg_add_n_variable_nodes n1 l (fg_add_n_variable_nodes n2 l fg)
+    = fg_add_n_variable_nodes (n1 + n2) l fg
+Proof
+  Induct_on ‘n1’
+  >- simp[fg_add_n_variable_nodes_def]
+  >> rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM SUC_ADD_SYM]
+  >> PURE_ONCE_REWRITE_TAC[fg_add_n_variable_nodes_def]
+  >> cong_tac (SOME 1)
+  >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
+  >> pop_assum irule
+QED
+
+Theorem var_nodes_subset_nodes:
+  ∀fg.
+    var_nodes fg ⊆ nodes (get_underlying_graph fg)
+Proof
+  simp[SUBSET_DEF]
+QED
+
+Theorem in_var_nodes_in_nodes:
+  ∀x fg.
+    x ∈ var_nodes fg ⇒ x ∈ nodes (get_underlying_graph fg)
+Proof
+  simp[]
+QED
+
+Theorem get_function_nodes_subset_nodes:
+  ∀fg.
+    get_function_nodes fg ⊆ nodes (get_underlying_graph fg)
+Proof
+  gen_tac
+  >> ‘wffactor_graph (factor_graph_REP fg)’ by simp[]
+  >> ‘gen_bipartite_ea (factor_graph_REP fg).underlying_graph
+      (factor_graph_REP fg).function_nodes’ by metis_tac[wffactor_graph_def]
+  >> PURE_ONCE_REWRITE_TAC[get_underlying_graph_def, get_function_nodes_def]
+  >> simp[Excl "nodes_factor_graph_REP"]
+  >> gvs[gen_bipartite_ea_def]
+QED
+
+Theorem in_get_function_nodes_in_nodes:
+  ∀x fg.
+    x ∈ get_function_nodes fg ⇒ x ∈ nodes (get_underlying_graph fg)
+Proof
+  rpt strip_tac
+  >> assume_tac get_function_nodes_subset_nodes
+  >> gvs[SUBSET_DEF]
+QED
+
+Theorem nodes_diff_var_nodes:
+  ∀fg.
+    nodes (get_underlying_graph fg) DIFF var_nodes fg = get_function_nodes fg
+Proof
+  gen_tac
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> EQ_TAC >> simp[in_get_function_nodes_in_nodes]
+  >> strip_tac
+QED
+
+Theorem finite_get_function_nodes[simp]:
+  ∀fg.
+    FINITE (get_function_nodes fg)
+Proof
+  gen_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
+  >> simp[]
+QED
+
+Theorem adjacent_in_function_nodes_not_in_function_nodes:
+  ∀fg a b.
+    adjacent (get_underlying_graph fg) a b ⇒
+    (a ∈ get_function_nodes fg ⇔ b ∉ get_function_nodes fg)
+Proof
+  rpt strip_tac
+  >> ‘a ∈ get_function_nodes fg ⇎ b ∈ get_function_nodes fg’ suffices_by
+    (Cases_on ‘a ∈ get_function_nodes fg’ >> simp[])
+  >> irule (cj 2 (iffLR gen_bipartite_ea_def))
+  >> qexists ‘get_underlying_graph fg’
+  >> simp[]
+  >> simp[fsgedges_def] >> qexistsl [‘a’, ‘b’] >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
