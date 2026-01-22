@@ -56,3 +56,24 @@ Theorem range_same[simp]:
 Proof
   rpt gen_tac >> simp[range_def, EXTENSION]
 QED
+
+Theorem range_union:
+  ∀n m p.
+    n < m ∧
+    m < p ⇒
+    range n m ∪ range m p = range n p
+Proof
+  rpt gen_tac
+  >> simp[range_def]
+  >> simp[EXTENSION]
+QED
+
+Theorem range_union_swapped:
+  ∀n m p.
+    n < m ∧
+    m < p ⇒
+    range m p ∪ range n m = range n p
+Proof
+  PURE_ONCE_REWRITE_TAC[UNION_COMM]
+  >> simp[range_union]
+QED

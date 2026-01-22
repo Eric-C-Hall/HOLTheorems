@@ -389,21 +389,18 @@ QED
 Theorem var_nodes_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     var_nodes (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p)) =
-    ∪
+    IMAGE INR (range 0 (3 * n + 1))
 Proof
   rpt gen_tac
   >> PURE_REWRITE_TAC[rcc_factor_graph_def]
   >> simp[o_DEF]
   >> simp[fg_add_n_variable_nodes_concat]
   >> simp[var_nodes_fg_add_n_variable_nodes]
-  >> PURE_ONCE_REWRITE_TAC[UNION_ASSOC]
   >> PURE_ONCE_REWRITE_TAC[GSYM IMAGE_UNION]
-
-                          
-
-  >> simp[rcc_factor_graph_def]
+  >> simp[]
+  >> Cases_on ‘n = 0’ >- simp[]
+  >> simp[range_union_swapped]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)

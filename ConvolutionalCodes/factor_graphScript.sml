@@ -1360,6 +1360,17 @@ Proof
   >> simp[INJ_DEF]
 QED
 
+Theorem IMAGE_INR_EQ[simp]:
+  ∀S1 S2.
+    IMAGE INR S1 = IMAGE INR S2 ⇔ S1 = S2
+Proof
+  rpt gen_tac
+  >> irule INJ_IMAGE_EQ
+  >> qexists ‘S1 ∪ S2’
+  >> simp[]
+  >> simp[INJ_DEF]
+QED
+
 Theorem var_nodes_fg_add_variable_node0:
   ∀l fg.
     wffactor_graph fg ⇒
@@ -1601,7 +1612,7 @@ Proof
   >> gvs[range_def]
 QED
 
-Theorem order_fg_add_n_variable_nodes:
+Theorem order_fg_add_n_variable_nodes[simp]:
   ∀n l fg.
     order (get_underlying_graph (fg_add_n_variable_nodes n l fg)) =
     order (get_underlying_graph fg) + n
@@ -1616,6 +1627,15 @@ Proof
       >> gen_tac >> strip_tac
       >> gen_tac >> strip_tac >> disch_tac
       >> gvs[range_def])
+  >> simp[]
+QED
+
+Theorem card_fg_add_n_variable_nodes[simp]:
+  ∀n l fg.
+    CARD (nodes (get_underlying_graph (fg_add_n_variable_nodes n l fg))) =
+    CARD (nodes (get_underlying_graph fg)) + n
+Proof
+  PURE_ONCE_REWRITE_TAC[GSYM gsize_def]
   >> simp[]
 QED
 
@@ -1638,14 +1658,6 @@ Proof
   >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
   >- (disj1_tac
       >> simp[nodes_get_underlying_graph]
-      >> simp[gsize_def]
-      >> simp[nodes_fg_add_n_variable_nodes]
-      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
-      >> conj_tac
-      >- (simp[DISJOINT_ALT]
-          >> gen_tac >> strip_tac
-          >> gvs[range_def]
-          >> gvs[nodes_get_underlying_graph])
       >> simp[range_def])
   >- gvs[range_def]
   (* x' ∈ [val, val + SUC n).
@@ -1655,16 +1667,7 @@ Proof
      We just need to case split on x' = val + n *)
   >> Cases_on ‘x' = CARD (nodes (get_underlying_graph fg)) + n’
   >- (disj1_tac
-      >> simp[]
-      >> simp[nodes_fg_add_n_variable_nodes]
-      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_UNION_DISJOINT]
-      >> conj_tac
-      >- (simp[DISJOINT_ALT]
-          >> gen_tac >> strip_tac
-          >> simp[nodes_get_underlying_graph]
-          >> gvs[range_def, gsize_def])
-      >> simp[]
-     )
+      >> simp[])
   >> disj2_tac
   >> disj1_tac
   >> gvs[range_def]
