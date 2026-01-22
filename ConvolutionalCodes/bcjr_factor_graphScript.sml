@@ -389,7 +389,7 @@ QED
 Theorem var_nodes_rcc_factor_graph[simp]:
   ∀n p ps qs ts prior ds_s ds_p.
     var_nodes (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p)) =
-    IMAGE INR (range 0 (3 * n + 1))
+    IMAGE INR (count (3 * n + 1))
 Proof
   rpt gen_tac
   >> PURE_REWRITE_TAC[rcc_factor_graph_def]
@@ -398,19 +398,22 @@ Proof
   >> simp[var_nodes_fg_add_n_variable_nodes]
   >> PURE_ONCE_REWRITE_TAC[GSYM IMAGE_UNION]
   >> simp[]
-  >> Cases_on ‘n = 0’ >- simp[]
-  >> simp[range_union_swapped]
+  >> Cases_on ‘n = 0’ >- simp[range_def, count_def]
+  >> simp[range_union_swapped, range_0]
 QED
 
 Theorem order_rcc_factor_graph_add_func_nodes_state:
   ∀n ps qs ts i fg.
-    i ≤ n + 1 ⇒
+    i ≤ n + 1 ∧
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
     order (get_underlying_graph (rcc_factor_graph_add_func_nodes_state
                                  n (ps, qs) ts i fg))
-    = order (get_underlying_graph fg) + n + 1 - i
+                                       = order (get_underlying_graph fg) + n + 1 - i
+
 Proof
   (* Our base case is when i gets to n + 1. We then want to induct downwards on
      i. So we induct on n + 1 - i. *)
+  
   rpt gen_tac
   >> qabbrev_tac ‘indterm = n + 1 - i’
   >> pop_assum mp_tac >> simp[Abbrev_def]
@@ -423,21 +426,53 @@ Proof
   (* Inductive step *)
   >> rpt gen_tac >> strip_tac >> strip_tac
   >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> simp[]                          
+  >> PURE_ONCE_REWRITE_TAC[order_fg_add_function_node]
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+  >> Cases_on ‘b’ >> simp[]
+  >> pop_assum mp_tac
+  >> PURE_REWRITE_TAC[Abbrev_def, EQ_CLAUSES, IMP_CLAUSES, NOT_CLAUSES]
+  >> qpat_x_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
   >> simp[]
+  >> 
+  >> 
 
-  >> qpat_x_assum ‘∀fg i n ps qs ts. _ ⇒ _ ⇒ _’
-                  (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
-  
-  >> DEP_PURE_ONCE_REWRITE_TAC[order_fg_add_function_node]
-  >> conj_tac
-  >- simp[]
-  >> 
-  
-  rpt gen_tac
-      cheat
-  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+     
+  >> gvs[]
   >> rw[]
-  >> 
+  >> gvs[]
+  >> ‘INR i ∈ var_nodes fg’ suffices_by gvs[]
+  >> qpat_x_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> gvs[range_def]
+
+
+  >> qmatch_goalsub_abbrev_tac ‘if b then _ else _’
+  >> Cases_on ‘b’ >> simp[]
+  >> pop_assum mp_tac >> PURE_ONCE_REWRITE_TAC[Abbrev_def]
+  >> PURE_REWRITE_TAC[EQ_CLAUSES, IMP_CLAUSES, NOT_CLAUSES]
+  >> PURE_ONCE_REWRITE_TAC[SUBSET_DEF]
+  >> gen_tac >> strip_tac
+  >> qpat_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+                                                  >> Cases_on ‘x’
+                                                  >- gvs[]
+                                                  >> simp[]
+                                                  >> ‘y = i ∨ y = i + n ∨ y = i + 2 * n ∨ y = i + (2 * n) + 1’ by gvs[]
+                                                  >> simp[range_def]
+                                                  >> decide_tac
+                                                     
+                                                  >- (gvs[]
+                                                      >> gvs[nodes_get_underlying_graph]
+                                                      >> gvs[NOT_LT]
+                                                     )
+                                                  >> conj_tac
+                                                  >- simp[]
+                                                  >> 
+
+                                                  rpt gen_tac
+                                                      cheat
+                                                  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+                                                  >> rw[]
+                                                  >> 
 QED
 
 Theorem get_function_nodes_rcc_factor_graph_add_func_nodes_state:

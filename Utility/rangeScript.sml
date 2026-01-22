@@ -77,3 +77,10 @@ Proof
   PURE_ONCE_REWRITE_TAC[UNION_COMM]
   >> simp[range_union]
 QED
+
+Theorem range_0:
+  ∀n.
+    range 0 n = count n
+Proof
+  simp[range_def, count_def]
+QED
