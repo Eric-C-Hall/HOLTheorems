@@ -404,21 +404,17 @@ Proof
   >> simp[range_union_swapped, range_0]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: double check: is the condition i ≤ n + 1 necessary?                  *)
-(* -------------------------------------------------------------------------- *)
 Theorem order_rcc_factor_graph_add_func_nodes_state:
   ∀n ps qs ts i fg.
-    i ≤ n ∧
     var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
     order (get_underlying_graph (rcc_factor_graph_add_func_nodes_state
                                  n (ps, qs) ts i fg))
-    = order (get_underlying_graph fg) + n - i
+    = order (get_underlying_graph fg) + (n - i)
 Proof
-  (* Our base case is when i gets to n + 1. We then want to induct downwards on
-     i. So we induct on n + 1 - i. *)
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
   rpt gen_tac
-  >> qabbrev_tac ‘indterm = n + 1 - i’
+  >> qabbrev_tac ‘indterm = n - i’
   >> pop_assum mp_tac >> simp[Abbrev_def]
   >> SPEC_ALL_TAC
   >> Induct_on ‘indterm’
@@ -446,9 +442,44 @@ Proof
 QED
 
 Theorem get_function_nodes_rcc_factor_graph_add_func_nodes_state:
-
+  ∀n ps qs ts i fg.
+    get_function_nodes (rcc_factor_graph_add_func_nodes_state n (ps, qs) ts i fg)
+    = (IMAGE INR (range
+                  (order (get_underlying_graph fg))
+                  (order (get_underlying_graph fg) + (n - i))
+                 )
+      ) ∪ get_function_nodes fg
+        
 Proof
+  
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+      >> simp[]
+      >> pop_assum (fn th => simp[GSYM th]))
+  >> rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> Cases_on ‘n ≤ i’ >- gvs[]
+  >> simp[]
+  (* We have applied the inductive hypothesis and so we no longer need it *)
+  >> qpat_x_assum ‘∀fg i n ps qs ts. _ ⇒ _’ kall_tac
+  (* *)
+  >> simp[order_fg_add_function_node]
+
+  >> 
+  
+  >> gvs[]
+  >> decide_tac
+     
 QED
+
 
 Theorem order_rcc_factor_graph[simp]:
   ∀n p ps qs ts prior ds_s ds_p.

@@ -1783,25 +1783,31 @@ QED
 
 Theorem get_function_nodes_fg_add_function_node0:
   ∀inputs fn fg.
-    inputs ⊆ var_nodes fg ⇒
     (fg_add_function_node0 inputs fn fg).function_nodes =
-    INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes
+    if inputs ⊆ var_nodes fg
+    then
+      INR (CARD (nodes fg.underlying_graph)) INSERT fg.function_nodes
+    else fg.function_nodes
 Proof
   rpt gen_tac
-  >> simp[fg_add_function_node0_def]
+  >> Cases_on ‘inputs ⊆ var_nodes fg’ >> simp[fg_add_function_node0_def]
 QED
 
 Theorem get_function_nodes_fg_add_function_node:
   ∀inputs fn fg.
-    inputs ⊆ var_nodes fg ⇒
     get_function_nodes (fg_add_function_node inputs fn fg) =
-    INR (CARD (nodes (get_underlying_graph fg))) INSERT
-        get_function_nodes fg
+    if inputs ⊆ var_nodes fg
+    then
+      INR (CARD (nodes (get_underlying_graph fg))) INSERT
+          get_function_nodes fg
+    else
+      get_function_nodes fg
 Proof
   rpt gen_tac
-  >> simp[fg_add_function_node_def,
-          get_function_nodes_fg_add_function_node0]
-  >> simp[get_function_nodes_def]
+  >> Cases_on ‘inputs ⊆ var_nodes fg’
+  >> (simp[fg_add_function_node_def,
+           get_function_nodes_fg_add_function_node0]
+      >> simp[get_function_nodes_def])
 QED
 
 (* -------------------------------------------------------------------------- *)
