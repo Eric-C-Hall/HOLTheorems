@@ -443,15 +443,14 @@ QED
 
 Theorem get_function_nodes_rcc_factor_graph_add_func_nodes_state:
   ∀n ps qs ts i fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
     get_function_nodes (rcc_factor_graph_add_func_nodes_state n (ps, qs) ts i fg)
     = (IMAGE INR (range
                   (order (get_underlying_graph fg))
                   (order (get_underlying_graph fg) + (n - i))
                  )
       ) ∪ get_function_nodes fg
-        
 Proof
-  
   (* Our base case is when i gets to n. We then want to induct downwards on
      i. So we induct on n - i. *)
   rpt gen_tac
@@ -460,39 +459,45 @@ Proof
   >> SPEC_ALL_TAC
   >> Induct_on ‘indterm’
   (* Base case *)
-  >- (rpt gen_tac >> strip_tac
+  >- (rpt gen_tac >> strip_tac >> strip_tac
       >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
       >> simp[]
-      >> pop_assum (fn th => simp[GSYM th]))
-  >> rpt gen_tac >> strip_tac
+      >> qpat_x_assum ‘0 = n - i’ (fn th => simp[GSYM th]))
+  >> rpt gen_tac >> strip_tac >> strip_tac
   >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
   >> Cases_on ‘n ≤ i’ >- gvs[]
   >> simp[]
   (* We have applied the inductive hypothesis and so we no longer need it *)
   >> qpat_x_assum ‘∀fg i n ps qs ts. _ ⇒ _’ kall_tac
   (* *)
-  >> simp[order_fg_add_function_node]
-
-  >> 
-  
-  >> gvs[]
+  >> PURE_ONCE_REWRITE_TAC[order_fg_add_function_node]
+  >> PURE_ONCE_REWRITE_TAC[get_function_nodes_fg_add_function_node]
+  >> Q.SUBGOAL_THEN
+      ‘{INR i; INR (i + n); INR (i + 2 * n); INR (i + (2 * n + 1))} ⊆ var_nodes fg’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (qpat_x_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th]) >> simp[])
+  >> simp[]
+  (* *)
+  >> simp[EXTENSION]
+  >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+  >- gvs[range_def]
+  >- (disj1_tac >> simp[range_def, gsize_def])
+  >> gvs[range_def, gsize_def]
   >> decide_tac
-     
 QED
 
-
-Theorem order_rcc_factor_graph[simp]:
+(*Theorem order_rcc_factor_graph[simp]:
   ∀n p ps qs ts prior ds_s ds_p.
     order (get_underlying_graph
            (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
     ARB
 Proof
-  simp[rcc_factor_graph_def]
+  rpt gen_tac
+  >> simp[order_rcc_factor_graph_add_func_nodes_state]
   >>
-QED
+QED*)
 
-
-Theorem nodes_rcc_factor_graph[simp]:
+(*Theorem nodes_rcc_factor_graph[simp]:
   ∀n p ps qs ts prior ds_s ds_p.
     nodes (get_underlying_graph
            (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
@@ -500,9 +505,9 @@ Theorem nodes_rcc_factor_graph[simp]:
 Proof
   rpt gen_tac
   >> simp[nodes_get_underlying_graph]
-QED
+QED*)
 
-Theorem get_function_nodes_rcc_factor_graph[simp]:
+(*Theorem get_function_nodes_rcc_factor_graph[simp]:
   ∀n p ps qs ts prior ds_s ds_p.
     get_function_nodes (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p)) =
     ARB
@@ -512,7 +517,17 @@ Proof
   >> simp[nodes_get_underlying_graph]
   >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_def]
   >> simp[o_DEF]
+QED*)
+
+
+Theorem get_function_map_rcc_factor_graph:
+  ∀n p ps qs ts pior ds_s ds_p.
+    get_function_map (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)) =
+    ARB
+    
+Proof
 QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
@@ -548,16 +563,24 @@ Proof
   (* Prove that the function we are argmaxing over is the same for each choice
      of boolean b. *)
   >> simp[FUN_EQ_THM] >> qx_gen_tac ‘b’
-
+                                    
   (* *)
   >> DEP_PURE_ONCE_REWRITE_TAC[sp_output_final_result]
   >> conj_tac
+     
   >- (rpt conj_tac
-      >- (cheat
+      >- (simp[functions_noninfinite_def]
+          >> rpt gen_tac >> strip_tac
+          >> simp[rcc_factor_graph_def]
+          >>
+
+          cheat
          )
       >- simp[is_tree_rcc_factor_graph]
       >> PURE_ONCE_REWRITE_TAC[var_nodes_rcc_factor_graph]
+      >> simp[]
      )
+     (* *)
 QED
 
 (* -------------------------------------------------------------------------- *)
