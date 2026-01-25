@@ -527,14 +527,14 @@ Theorem get_function_map_rcc_factor_graph_add_func_nodes_state:
     in
       FUN_FMAP (λfunc_node.
                   let
-                    adj_nodes = {}
+                    func_node_index_delta = OUTR func_node - add_index;
+                    adj_nodes = {func_node_index_delta; n + func_node_index_delta; 2 * n + func_node_index_delta; 2 * n + func_node_index_delta + 1};
                   in 
                     FUN_FMAP (λval_map.
-                                
+                                ARB
                              ) (var_assignments adj_nodes (FUN_FMAP (λval_map. 1) adj_nodes))
-               )
-               (IMAGE INR (range add_index (add_index + n)))
-                ⊌ (get_function_map fg)
+               ) (IMAGE INR (range add_index (add_index + n)))
+               ⊌ (get_function_map fg)
 Proof
   rpt gen_tac
   >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
