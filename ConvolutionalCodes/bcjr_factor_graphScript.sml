@@ -269,7 +269,6 @@ Definition rcc_bcjr_fg_decode_def:
     ) (COUNT_LIST n)
 End
 
-
 Theorem is_tree_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     is_tree (get_underlying_graph
@@ -277,6 +276,7 @@ Theorem is_tree_rcc_factor_graph:
             )
 Proof
   rpt gen_tac
+  >>
   >> cheat
 QED
 
@@ -519,13 +519,53 @@ Proof
   >> simp[o_DEF]
 QED*)
 
-
-Theorem get_function_map_rcc_factor_graph:
-  ∀n p ps qs ts pior ds_s ds_p.
-    get_function_map (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)) =
-    ARB
-    
+Theorem get_function_map_rcc_factor_graph_add_func_nodes_state:
+  ∀n ps qs ts i fg.
+    get_function_map (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts i fg) =
+    let
+      add_index = order (get_underlying_graph fg)
+    in
+      FUN_FMAP (λfunc_node.
+                  let
+                    adj_nodes = {}
+                  in 
+                    FUN_FMAP (λval_map.
+                                
+                             ) (var_assignments adj_nodes (FUN_FMAP (λval_map. 1) adj_nodes))
+               )
+               (IMAGE INR (range add_index (add_index + n)))
+                ⊌ (get_function_map fg)
 Proof
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> 
+QED
+        
+Theorem get_function_map_rcc_factor_graph:
+  ∀n p ps qs ts prior ds_s ds_p.
+    get_function_map (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)) =
+    FUN_FMAP
+    (λfunc_node.
+       if (OUTR func_node) ≤ 4 * n
+       then
+         FUN_FMAP ARB ARB
+       else
+         if (OUTR func_node) ≤ 5 * n
+         then
+           FUN_FMAP ARB ARB
+         else
+           if (OUTR func_node) = 5 * n + 1
+           then
+             FUN_FMAP ARB ARB
+           else
+             FUN_FMAP ARB ARB
+    ) (IMAGE INR (range (4 * n) (6 * n + 2)))
+
+Proof
+  rpt gen_tac
+  >> simp[rcc_factor_graph_def]
+         
+  >> cheat
 QED
 
 
@@ -572,6 +612,7 @@ Proof
       >- (simp[functions_noninfinite_def]
           >> rpt gen_tac >> strip_tac
           >> simp[rcc_factor_graph_def]
+          >> 
           >>
 
           cheat
