@@ -164,6 +164,43 @@ Definition rcc_factor_graph_add_func_node_state_initial_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* The function represented by the function node which represents a           *)
+(* transition between states.                                                 *)
+(*                                                                            *)
+(* n: length of input to recursive convolutional code                         *)
+(* (ps,qs): parity equations for recursive convolutional code                 *)
+(* i: the index of the function node. 0 represents the function node between  *)
+(*    the initial state and the first state, 1 represents the function node   *)
+(*    between the first and second states, etc.                               *)
+(* -------------------------------------------------------------------------- *)
+Definition func_node_state_fn_def:
+  func_node_state_fn n (ps,qs) i =
+  λval_map : unit + num |-> bool list.
+    if encode_recursive_parity_equation_state
+       (ps,qs) (val_map ' (INR (2*n + i))) (val_map ' (INR i)) =
+       (val_map ' (INR (2*n + i + 1)))
+       ∧ encode_recursive_parity_equation
+         (ps,qs) (val_map ' (INR (2*n + i))) (val_map ' (INR i)) =
+         val_map ' (INR (n + i))
+    then
+      1 : extreal
+    else
+      0 : extreal
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The indices of the nodes which are adjacent to the function node which     *)
+(* represents a transition between states.                                    *)
+(*                                                                            *)
+(* n: the length of the input to the recursive convolutional code             *)
+(* i: the index of the current function node.                                 *)
+(* -------------------------------------------------------------------------- *)
+Definition func_node_state_adjacent_nodes_def:
+  func_node_state_adjacent_nodes n i =
+  IMAGE INR ({i; n + i; 2 * n + i; 2 * n + i + 1}) : (unit + num -> bool)
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Add the function nodes corresponding to the state transitions              *)
 (*                                                                            *)
 (* n: the number of bits as input to the convolutional code                   *)
@@ -179,19 +216,8 @@ Definition rcc_factor_graph_add_func_nodes_state_def:
   else
     (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts (i + 1))
     (fg_add_function_node
-     ({INR i; INR (n + i); INR (2*n + i); INR (2*n + i + 1)})
-     (λval_map.
-        if encode_recursive_parity_equation_state
-           (ps,qs) (val_map ' (INR (2*n + i))) (val_map ' (INR i)) =
-           (val_map ' (INR (2*n + i + 1)))
-           ∧ encode_recursive_parity_equation
-             (ps,qs) (val_map ' (INR (2*n + i))) (val_map ' (INR i)) =
-             val_map ' (INR (n + i))
-        then
-          1 : extreal
-        else
-          0 : extreal
-     )
+     (func_node_state_adjacent_nodes n i)
+     (func_node_state_fn n (ps,qs) i)
      fg
     )
 Termination
@@ -276,7 +302,6 @@ Theorem is_tree_rcc_factor_graph:
             )
 Proof
   rpt gen_tac
-  >>
   >> cheat
 QED
 
@@ -438,7 +463,7 @@ Proof
   >> pop_assum mp_tac
   >> PURE_REWRITE_TAC[Abbrev_def, EQ_CLAUSES, IMP_CLAUSES, NOT_CLAUSES]
   >> qpat_x_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >> simp[]
+  >> simp[func_node_state_adjacent_nodes_def]
 QED
 
 Theorem get_function_nodes_rcc_factor_graph_add_func_nodes_state:
@@ -473,9 +498,10 @@ Proof
   >> PURE_ONCE_REWRITE_TAC[order_fg_add_function_node]
   >> PURE_ONCE_REWRITE_TAC[get_function_nodes_fg_add_function_node]
   >> Q.SUBGOAL_THEN
-      ‘{INR i; INR (i + n); INR (i + 2 * n); INR (i + (2 * n + 1))} ⊆ var_nodes fg’
+      ‘func_node_state_adjacent_nodes n i ⊆ var_nodes fg’
       (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >- (qpat_x_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th]) >> simp[])
+  >- (qpat_x_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[func_node_state_adjacent_nodes_def])
   >> simp[]
   (* *)
   >> simp[EXTENSION]
@@ -522,22 +548,61 @@ QED*)
 Theorem get_function_map_rcc_factor_graph_add_func_nodes_state:
   ∀n ps qs ts i fg.
     get_function_map (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts i fg) =
-    let
-      add_index = order (get_underlying_graph fg)
-    in
-      FUN_FMAP (λfunc_node.
-                  let
-                    func_node_index_delta = OUTR func_node - add_index;
-                    adj_nodes = {func_node_index_delta; n + func_node_index_delta; 2 * n + func_node_index_delta; 2 * n + func_node_index_delta + 1};
-                  in 
-                    FUN_FMAP (λval_map.
-                                ARB
-                             ) (var_assignments adj_nodes (FUN_FMAP (λval_map. 1) adj_nodes))
-               ) (IMAGE INR (range add_index (add_index + n)))
-               ⊌ (get_function_map fg)
+    FUN_FMAP (λfunc_node.
+                FUN_FMAP (func_node_state_fn
+                          n (ps,qs)
+                          (OUTR func_node - order (get_underlying_graph fg))
+                         ) (var_assignments
+                            (func_node_state_adjacent_nodes
+                             n (OUTR func_node - order (get_underlying_graph fg))
+                            ) (get_variable_length_map fg)
+                           )
+             ) (IMAGE INR (range (order (get_underlying_graph fg))
+                                 (order (get_underlying_graph fg) + (n - i))
+                          )
+               ) ⊌ (get_function_map fg)
+
 Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
   rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> pop_assum (fn th => assume_tac (GSYM th))
+      >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac
+  >> qmatch_abbrev_tac ‘_ = RHS’
   >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> Cases_on ‘n ≤ i’
+  >- (‘F’ suffices_by simp[] >> gvs[])
+  >> qpat_x_assum ‘∀fg i n ps qs ts. _ ⇒ _’ mp_tac
+  >> qmatch_abbrev_tac ‘foo ⇒ _’
+  >> simp[]
+  >> Q.UNABBREV_TAC ‘foo’
+  >> disch_tac
+  >> simp[]
+  
+         simp[]
+  >> Q.UNABBREV_TAC ‘RHS’ >> simp[]
+  >> gvs[]
+     )
+  >> simp[]
+
+  
+         (* Special case of *)
+         rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> rw[]
+  >- (‘n - i = 0’ by decide_tac >> simp[])
+  >> simp[]
+  (* *)
   >> 
 QED
         
@@ -568,6 +633,17 @@ Proof
   >> cheat
 QED
 
+
+Theorem functions_noninfinite_rcc_factor_graph:
+  ∀n p ps qs ts prior ds_s ds_p.
+    functions_noninfinite (rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p))
+Proof
+  rpt gen_tac
+  >> simp[functions_noninfinite_def]
+  >> rpt gen_tac >> strip_tac
+  >> simp[rcc_factor_graph_def]
+  >> cheat
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
@@ -609,14 +685,7 @@ Proof
   >> conj_tac
      
   >- (rpt conj_tac
-      >- (simp[functions_noninfinite_def]
-          >> rpt gen_tac >> strip_tac
-          >> simp[rcc_factor_graph_def]
-          >> 
-          >>
-
-          cheat
-         )
+      >- simp[functions_noninfinite_rcc_factor_graph]
       >- simp[is_tree_rcc_factor_graph]
       >> PURE_ONCE_REWRITE_TAC[var_nodes_rcc_factor_graph]
       >> simp[]
