@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin extreal factor_graph genericGraph map_decoder_convolutional_code marker message_passing list range rich_list pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
+Ancestors binary_symmetric_channel combin extreal factor_graph finite_map genericGraph map_decoder_convolutional_code marker message_passing list range rich_list pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -545,8 +545,105 @@ Proof
   >> simp[o_DEF]
 QED*)
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_function_map_fg_add_function_node0:
+  ∀inputs fn fg.
+    wffactor_graph fg ⇒
+    (fg_add_function_node0 inputs fn fg).function_map =
+    if
+    inputs ⊆ var_nodes fg
+    then
+      fg.function_map |+
+        (INR (order fg.underlying_graph),
+         FUN_FMAP fn (var_assignments inputs fg.variable_length_map)
+        )
+    else
+      fg.function_map
+Proof
+  rpt gen_tac >> strip_tac
+  >> REVERSE $ Cases_on ‘inputs ⊆ var_nodes fg’ >> simp[]
+  >- simp[fg_add_function_node_def, fg_add_function_node0_def,
+          factor_graph_ABSREP]
+  >> simp[fg_add_function_node0_def, gsize_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_function_map_fg_add_function_node:
+  ∀inputs fn fg.
+    get_function_map (fg_add_function_node inputs fn fg) =
+    if
+    inputs ⊆ var_nodes fg
+    then
+      (get_function_map fg)
+      |+ (INR (order (get_underlying_graph fg)),
+          FUN_FMAP fn (var_assignments inputs (get_variable_length_map fg)))
+    else
+      get_function_map fg
+Proof
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[get_underlying_graph_def]
+  >> simp[fg_add_function_node_def, get_function_map_def, get_variable_length_map_def]
+  >> simp[get_function_map_fg_add_function_node0]         
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem FUNION_FUPDATE_SWAP:
+  ∀f g x.
+    (FST x ∈ FDOM f ⇒ f ' (FST x) = SND x) ⇒
+    f ⊌ (g |+ x) = (f |+ x) ⊌ g
+Proof
+  rpt gen_tac >> strip_tac
+  >> Cases_on ‘x’
+  >> simp[GSYM fmap_EQ_THM]
+  >> conj_tac
+  >- (simp[EXTENSION] >> gen_tac >> EQ_TAC >> disch_tac >> gvs[])
+  >> gen_tac >> strip_tac
+  >- (gvs[]
+      >> simp[FUNION_DEF]
+      >> Cases_on ‘q = x’ >> simp[FAPPLY_FUPDATE_THM]
+      >> gvs[])
+  >- (gvs[]
+      >> simp[FUNION_DEF, FAPPLY_FUPDATE_THM])
+  >> simp[FUNION_DEF, FAPPLY_FUPDATE_THM]
+  >> rw[] >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_variable_length_map_fg_add_function_node0[simp]:
+  ∀inputs fn fg.
+    (fg_add_function_node0 inputs fn fg).variable_length_map =
+    fg.variable_length_map
+Proof
+  rpt gen_tac
+  >> simp[fg_add_function_node0_def]
+  >> rw[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_variable_length_map_fg_add_function_node[simp]:
+  ∀inputs fn fg.
+    get_variable_length_map (fg_add_function_node inputs fn fg) =
+    get_variable_length_map fg
+Proof
+  rpt gen_tac
+  >> simp[get_variable_length_map_def,
+          get_variable_length_map_fg_add_function_node0,
+          fg_add_function_node_def]  
+QED
+
 Theorem get_function_map_rcc_factor_graph_add_func_nodes_state:
   ∀n ps qs ts i fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒    
     get_function_map (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts i fg) =
     FUN_FMAP (λfunc_node.
                 FUN_FMAP (func_node_state_fn
@@ -563,6 +660,7 @@ Theorem get_function_map_rcc_factor_graph_add_func_nodes_state:
                ) ⊌ (get_function_map fg)
 
 Proof
+
   (* Our base case is when i gets to n. We then want to induct downwards on
      i. So we induct on n - i. *)
   rpt gen_tac
@@ -577,33 +675,83 @@ Proof
       >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
       >> simp[])
   (* Inductive step *)
-  >> rpt gen_tac >> strip_tac
+  >> rpt gen_tac >> strip_tac >> strip_tac
   >> qmatch_abbrev_tac ‘_ = RHS’
   >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
   >> Cases_on ‘n ≤ i’
   >- (‘F’ suffices_by simp[] >> gvs[])
-  >> qpat_x_assum ‘∀fg i n ps qs ts. _ ⇒ _’ mp_tac
-  >> qmatch_abbrev_tac ‘foo ⇒ _’
+  (* *)
   >> simp[]
-  >> Q.UNABBREV_TAC ‘foo’
-  >> disch_tac
+  (* We have now applied the inductive hypothesis, so we no longer need it *)
+  >> qpat_x_assum ‘∀fg i n ps qs ts. _ ⇒ _ ⇒ _’ kall_tac
+  (* Simplify *)
+  >> simp[order_fg_add_function_node]
+  >> ‘func_node_state_adjacent_nodes n i ⊆ IMAGE INR (count (3 * n + 1))’
+    by (simp[SUBSET_DEF, func_node_state_adjacent_nodes_def]
+        >> gen_tac >> strip_tac >> simp[])
   >> simp[]
-  
-         simp[]
-  >> Q.UNABBREV_TAC ‘RHS’ >> simp[]
-  >> gvs[]
+  (* Move the newly added function mapping into the collection of function
+     mappings *)
+  >> simp[get_function_map_fg_add_function_node]
+  >> DEP_PURE_ONCE_REWRITE_TAC[FUNION_FUPDATE_SWAP]
+  >> conj_tac     
+  >- (strip_tac
+      >> gvs[]
+      (* The newly added node isn't already in the collection of function
+         mappings, which is why the precondition of FUNION_FUPDATE_SWAP holds:
+         we don't need to worry about proving f ' (FST x) = SND x in the
+         precondition of FUNION_FUPDATE_SWAP *)
+      >> ‘F’ suffices_by simp[]
+      >> gvs[range_def]
      )
-  >> simp[]
+  (* Now that we have rewritten so that the newly added node is being added to
+     the collection of function mappings, we just need to prove that the
+     collections of function mappings on the LHS and RHS are equivalent. *)
+  >> Q.UNABBREV_TAC ‘RHS’
+  >> cong_tac (SOME 1)
+  (* Give things simple names *)
+  >> qmatch_abbrev_tac ‘f |+ x = g’
+  (* *)
+  >> simp[GSYM fmap_EQ_THM]
+  (* *)
+  >> conj_tac
+  >- (unabbrev_all_tac >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> disch_tac
+      >> gvs[range_def])
+  >> gen_tac
+     
+  >> Cases_on ‘x’
+  >> simp[FDOM_FUPDATE]
+  >> strip_tac
+  >- (simp[]
+      >> sg ‘FDOM r = FDOM (g ' q)’
+      >- (gvs[Abbrev_def]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- simp[range_def]
+          >> simp[]
+          
+         )
+     )
 
   
-         (* Special case of *)
-         rpt gen_tac
-  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
-  >> rw[]
-  >- (‘n - i = 0’ by decide_tac >> simp[])
+  >> conj_tac
+  >- ()
+  >> rpt strip_tac
+  >> simp[FUN_FMAP_DEF]
+  >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+  >> conj_tac
+  >- (simp[] >> simp[range_def])
   >> simp[]
-  (* *)
-  >> 
+
+  >> gvs[func_node_state_adjacent_nodes_def]
+  >> simp[var_assignments_def]
+  >> simp[EXTENSION] >> gen_tac >> 
+
+  
+  >> simp[get_function_map_fg_add_function_node]
+         
+  >> gvs[func_node_state_adjacent_nodes_def]
+        
 QED
         
 Theorem get_function_map_rcc_factor_graph:
