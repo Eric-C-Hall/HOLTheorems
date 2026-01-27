@@ -512,39 +512,6 @@ Proof
   >> decide_tac
 QED
 
-(*Theorem order_rcc_factor_graph[simp]:
-  ∀n p ps qs ts prior ds_s ds_p.
-    order (get_underlying_graph
-           (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
-    ARB
-Proof
-  rpt gen_tac
-  >> simp[order_rcc_factor_graph_add_func_nodes_state]
-  >>
-QED*)
-
-(*Theorem nodes_rcc_factor_graph[simp]:
-  ∀n p ps qs ts prior ds_s ds_p.
-    nodes (get_underlying_graph
-           (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
-    ARB
-Proof
-  rpt gen_tac
-  >> simp[nodes_get_underlying_graph]
-QED*)
-
-(*Theorem get_function_nodes_rcc_factor_graph[simp]:
-  ∀n p ps qs ts prior ds_s ds_p.
-    get_function_nodes (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p)) =
-    ARB
-Proof
-  rpt gen_tac
-  >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
-  >> simp[nodes_get_underlying_graph]
-  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_def]
-  >> simp[o_DEF]
-QED*)
-
 (* -------------------------------------------------------------------------- *)
 (* TODO: Move to other file                                                   *)
 (* -------------------------------------------------------------------------- *)
@@ -798,7 +765,6 @@ Proof
   >> simp[]
 QED
 
-
 (* -------------------------------------------------------------------------- *)
 (* An expression for the variable nodes as constructed by rcc_factor_graph    *)
 (* -------------------------------------------------------------------------- *)
@@ -817,6 +783,41 @@ Proof
   >> simp[var_nodes_fg_add_n_variable_nodes]
   >> simp[range_def]
   >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
+QED
+
+Theorem order_rcc_factor_graph[simp]:
+  ∀n p ps qs ts prior ds_s ds_p.
+    order (get_underlying_graph
+           (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
+    ARB
+Proof
+  rpt gen_tac
+  >> simp[rcc_factor_graph_def]
+  >> simp[order_rcc_factor_graph_add_func_nodes_state]
+  >> simp[order_rcc_factor_graph]
+  >>
+QED
+
+Theorem nodes_rcc_factor_graph[simp]:
+  ∀n p ps qs ts prior ds_s ds_p.
+    nodes (get_underlying_graph
+           (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
+    ARB
+Proof
+  rpt gen_tac
+  >> simp[nodes_get_underlying_graph]
+QED
+
+Theorem get_function_nodes_rcc_factor_graph[simp]:
+  ∀n p ps qs ts prior ds_s ds_p.
+    get_function_nodes (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p)) =
+    ARB
+Proof
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
+  >> simp[nodes_get_underlying_graph]
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_def]
+  >> simp[o_DEF]
 QED
 
 Theorem get_function_map_rcc_factor_graph:
