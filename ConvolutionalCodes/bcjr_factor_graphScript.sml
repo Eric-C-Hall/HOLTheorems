@@ -785,24 +785,214 @@ Proof
   >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
 QED
 
+Theorem nodes_rcc_factor_graph_add_func_nodes_state:
+  ∀n ps qs ts i fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    nodes (get_underlying_graph
+           (rcc_factor_graph_add_func_nodes_state n (ps, qs) ts i fg)) =
+    IMAGE INR (count (order (get_underlying_graph fg) + (n − i)))
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[nodes_get_underlying_graph, order_rcc_factor_graph_add_func_nodes_state]
+QED
+
+Theorem order_rcc_factor_graph_add_func_node_state_initial:
+  ∀n ts fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    order (get_underlying_graph
+           (rcc_factor_graph_add_func_node_state_initial n ts fg)) =
+    1 + order (get_underlying_graph fg)
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_REWRITE_TAC[rcc_factor_graph_add_func_node_state_initial_def,
+                      order_fg_add_function_node]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[]
+QED
+
+Theorem nodes_rcc_factor_graph_add_func_node_state_initial:
+  ∀n ts fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    nodes (get_underlying_graph
+           (rcc_factor_graph_add_func_node_state_initial n ts fg)) =
+    IMAGE INR (count (order (get_underlying_graph fg) + 1))
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[nodes_get_underlying_graph,
+          order_rcc_factor_graph_add_func_node_state_initial]
+QED
+
+Theorem function_nodes_rcc_factor_graph_add_func_node_state_initial:
+  ∀n ts fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    get_function_nodes (rcc_factor_graph_add_func_node_state_initial n ts fg) =
+    INR (CARD (nodes (get_underlying_graph fg))) INSERT get_function_nodes fg
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_REWRITE_TAC[rcc_factor_graph_add_func_node_state_initial_def,
+                      get_function_nodes_fg_add_function_node]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[]
+QED
+
+Theorem order_rcc_factor_graph_add_func_nodes_enc:
+  ∀n p i ds_p fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    order (get_underlying_graph
+           (rcc_factor_graph_add_func_nodes_enc n p i ds_p fg)) =
+    order (get_underlying_graph fg) + (n - i)
+Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> gvs[]
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+  >> simp[order_fg_add_function_node]
+  >> qpat_x_assum ‘var_nodes fg = IMAGE INR _’ mp_tac
+  >> simp[EXTENSION]
+QED
+
+Theorem nodes_rcc_factor_graph_add_func_nodes_enc:
+  ∀n p i ds_p fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    nodes (get_underlying_graph
+           (rcc_factor_graph_add_func_nodes_enc n p i ds_p fg)) =
+    IMAGE INR (count (order (get_underlying_graph fg) + (n − i)))
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[nodes_get_underlying_graph]
+  >> simp[order_rcc_factor_graph_add_func_nodes_enc]
+QED
+
+Theorem nodes_diff_get_function_nodes:
+  ∀fg.
+    nodes (get_underlying_graph fg) DIFF get_function_nodes fg = var_nodes fg
+Proof
+  gen_tac >> simp[EXTENSION]                 
+QED
+
+Theorem IMAGE_DIFF:
+  ∀f : α -> β S1 S2.
+    INJ f (S1 ∪ S2) (𝕌(:β)) ⇒
+    (IMAGE f S1) DIFF (IMAGE f S2) = IMAGE f (S1 DIFF S2)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[EXTENSION]
+  >> gen_tac >> EQ_TAC >> disch_tac >> gvs[]
+  >- (qexists ‘x'’ >> simp[])
+  >> strip_tac
+  >- (qexists ‘x'’ >> simp[])
+  >> gen_tac >> strip_tac
+  >> disch_tac
+  >> qpat_x_assum ‘INJ _ _ _’ mp_tac
+  >> simp[INJ_DEF]
+  >> qexistsl [‘x'’, ‘x''’]
+  >> simp[]
+  >> disch_tac >> gvs[]
+QED
+
+Theorem function_nodes_rcc_factor_graph_add_func_nodes_enc:
+  ∀n p i ds_p fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    get_function_nodes (rcc_factor_graph_add_func_nodes_enc n p i ds_p fg) =
+    IMAGE INR (range (3 * n + 1) (order (get_underlying_graph fg) + (n − i)))
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
+  >> simp[nodes_rcc_factor_graph_add_func_nodes_enc]
+  >> DEP_PURE_ONCE_REWRITE_TAC[IMAGE_DIFF]
+  >> conj_tac
+  >- simp[INJ_INR]
+  >> cong_tac (SOME 1)
+  >> simp[GSYM range_count_diff]   
+QED
+
+Theorem order_rcc_factor_graph_add_func_nodes_input_sys:
+  ∀n p i prior ds_s fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    order (get_underlying_graph
+           (rcc_factor_graph_add_func_nodes_input_sys n p i prior ds_s fg)) =
+    order (get_underlying_graph fg) + (n - i)
+Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> gvs[]
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_input_sys_def]
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_input_sys_def]
+  >> simp[]
+  >> PURE_ONCE_REWRITE_TAC[order_fg_add_function_node]
+  >> qpat_x_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[]
+QED
+
+Theorem nodes_rcc_factor_graph_add_func_nodes_input_sys:
+  ∀n p i prior ds_s fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    nodes (get_underlying_graph
+           (rcc_factor_graph_add_func_nodes_input_sys n p i prior ds_s fg)) =
+    IMAGE INR (count (order (get_underlying_graph fg) + (n − i)))
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[nodes_get_underlying_graph]
+  >> simp[order_rcc_factor_graph_add_func_nodes_input_sys]
+QED
+
+Theorem function_nodes_rcc_factor_graph_add_func_nodes_input_sys:
+  ∀n p i prior ds_s fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    get_function_nodes
+    (rcc_factor_graph_add_func_nodes_input_sys n p i prior ds_s fg) =
+    IMAGE INR (range (3 * n + 1) (order (get_underlying_graph fg) + (n − i)))
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
+  >> simp[nodes_rcc_factor_graph_add_func_nodes_input_sys]
+  >> DEP_PURE_ONCE_REWRITE_TAC[IMAGE_DIFF]
+  >> conj_tac
+  >- simp[INJ_INR]
+  >> cong_tac (SOME 1)
+  >> simp[GSYM range_count_diff]
+QED
+
 Theorem order_rcc_factor_graph[simp]:
   ∀n p ps qs ts prior ds_s ds_p.
     order (get_underlying_graph
            (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
-    ARB
+    6 * n + 2
 Proof
   rpt gen_tac
   >> simp[rcc_factor_graph_def]
-  >> simp[order_rcc_factor_graph_add_func_nodes_state]
-  >> simp[order_rcc_factor_graph]
-  >>
+  >> simp[order_rcc_factor_graph_add_func_nodes_state,
+          order_rcc_factor_graph_add_func_node_state_initial,
+          order_rcc_factor_graph_add_func_nodes_enc,
+          order_rcc_factor_graph_add_func_nodes_input_sys]
 QED
 
 Theorem nodes_rcc_factor_graph[simp]:
   ∀n p ps qs ts prior ds_s ds_p.
     nodes (get_underlying_graph
            (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p))) =
-    ARB
+    IMAGE INR (count (6 * n + 2))
 Proof
   rpt gen_tac
   >> simp[nodes_get_underlying_graph]
@@ -811,13 +1001,13 @@ QED
 Theorem get_function_nodes_rcc_factor_graph[simp]:
   ∀n p ps qs ts prior ds_s ds_p.
     get_function_nodes (rcc_factor_graph n p (ps, qs) ts prior (ds_s, ds_p)) =
-    ARB
+    IMAGE INR (range (3 * n + 1) (6 * n + 2))
 Proof
   rpt gen_tac
   >> PURE_ONCE_REWRITE_TAC[GSYM nodes_diff_var_nodes]
-  >> simp[nodes_get_underlying_graph]
-  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_def]
-  >> simp[o_DEF]
+  >> simp[]
+  >> simp[IMAGE_DIFF, INJ_INR]
+  >> simp[GSYM range_count_diff]
 QED
 
 Theorem get_function_map_rcc_factor_graph:
