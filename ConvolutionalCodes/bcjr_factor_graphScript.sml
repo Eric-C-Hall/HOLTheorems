@@ -587,7 +587,7 @@ Proof
   rpt gen_tac
   >> PURE_ONCE_REWRITE_TAC[get_underlying_graph_def]
   >> simp[fg_add_function_node_def, get_function_map_def, get_variable_length_map_def]
-  >> simp[get_function_map_fg_add_function_node0]         
+  >> simp[get_function_map_fg_add_function_node0]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -638,29 +638,35 @@ Proof
   rpt gen_tac
   >> simp[get_variable_length_map_def,
           get_variable_length_map_fg_add_function_node0,
-          fg_add_function_node_def]  
+          fg_add_function_node_def]
+QED
+
+Theorem finite_func_node_state_adjacent_nodes[simp]:
+  ∀n i.
+    FINITE (func_node_state_adjacent_nodes n i)
+Proof
+  rpt strip_tac
+  >> simp[func_node_state_adjacent_nodes_def]
 QED
 
 Theorem get_function_map_rcc_factor_graph_add_func_nodes_state:
   ∀n ps qs ts i fg.
-    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒    
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
     get_function_map (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts i fg) =
     FUN_FMAP (λfunc_node.
                 FUN_FMAP (func_node_state_fn
                           n (ps,qs)
-                          (OUTR func_node - order (get_underlying_graph fg))
+                          (OUTR func_node + i - order (get_underlying_graph fg))
                          ) (var_assignments
                             (func_node_state_adjacent_nodes
-                             n (OUTR func_node - order (get_underlying_graph fg))
+                             n (OUTR func_node + i - order (get_underlying_graph fg))
                             ) (get_variable_length_map fg)
                            )
              ) (IMAGE INR (range (order (get_underlying_graph fg))
                                  (order (get_underlying_graph fg) + (n - i))
                           )
                ) ⊌ (get_function_map fg)
-
 Proof
-
   (* Our base case is when i gets to n. We then want to induct downwards on
      i. So we induct on n - i. *)
   rpt gen_tac
@@ -694,7 +700,7 @@ Proof
      mappings *)
   >> simp[get_function_map_fg_add_function_node]
   >> DEP_PURE_ONCE_REWRITE_TAC[FUNION_FUPDATE_SWAP]
-  >> conj_tac     
+  >> conj_tac
   >- (strip_tac
       >> gvs[]
       (* The newly added node isn't already in the collection of function
@@ -718,7 +724,6 @@ Proof
   >- (unabbrev_all_tac >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> disch_tac
       >> gvs[range_def])
   >> gen_tac
-     
   >> Cases_on ‘x’
   >> simp[FDOM_FUPDATE]
   >> strip_tac
@@ -729,31 +734,70 @@ Proof
           >> conj_tac
           >- simp[range_def]
           >> simp[]
-          
          )
-     )
-
-  
-  >> conj_tac
-  >- ()
-  >> rpt strip_tac
+      >> simp[]
+      >> gen_tac >> strip_tac
+      >> gvs[Abbrev_def]
+      >> simp[cj 2 FUN_FMAP_DEF]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- simp[range_def]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- (conj_tac >- simp[]
+          >> gvs[])
+      >> simp[])
+  >> sg ‘FDOM ((f |+ (q,r)) ' x') = FDOM (g ' x')’
+  >- (Cases_on ‘x' = q’
+      >- (simp[]
+          >> gvs[Abbrev_def]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- (simp[] >> gvs[range_def])
+          >> simp[FDOM_FMAP])
+      >> simp[FAPPLY_FUPDATE_THM]
+      >> gvs[Abbrev_def]
+      >> simp[FUN_FMAP_DEF]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- (simp[] >> gvs[range_def])
+      >> simp[])
+  >> simp[]
+  >> gen_tac >> strip_tac
+  >> Cases_on ‘x' = q’
+  >- (simp[]
+      >> gvs[Abbrev_def]
+      >> simp[FUN_FMAP_DEF]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- simp[range_def]
+      >> simp[FUN_FMAP_DEF])
+  >> simp[FAPPLY_FUPDATE_THM]
+  >> gvs[Abbrev_def]
   >> simp[FUN_FMAP_DEF]
   >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
   >> conj_tac
-  >- (simp[] >> simp[range_def])
+  >- (simp[]
+      >> qpat_x_assum ‘x ∈ FDOM (FUN_FMAP _ _ ' _)’ mp_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- (simp[] >> gvs[range_def])
+      >> simp[]
+     )
+  >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+  >> conj_tac
+  >- (simp[] >> gvs[range_def])
+  >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+  >> conj_tac
+  >- (simp[]
+      >> qpat_x_assum ‘x ∈ FDOM (FUN_FMAP _ _ ' _)’ mp_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- (simp[] >> gvs[range_def])
+      >> simp[])
   >> simp[]
-
-  >> gvs[func_node_state_adjacent_nodes_def]
-  >> simp[var_assignments_def]
-  >> simp[EXTENSION] >> gen_tac >> 
-
-  
-  >> simp[get_function_map_fg_add_function_node]
-         
-  >> gvs[func_node_state_adjacent_nodes_def]
-        
 QED
-        
+
 Theorem get_function_map_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     get_function_map (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)) =
@@ -777,7 +821,7 @@ Theorem get_function_map_rcc_factor_graph:
 Proof
   rpt gen_tac
   >> simp[rcc_factor_graph_def]
-         
+
   >> cheat
 QED
 
@@ -827,11 +871,11 @@ Proof
   (* Prove that the function we are argmaxing over is the same for each choice
      of boolean b. *)
   >> simp[FUN_EQ_THM] >> qx_gen_tac ‘b’
-                                    
+
   (* *)
   >> DEP_PURE_ONCE_REWRITE_TAC[sp_output_final_result]
   >> conj_tac
-     
+
   >- (rpt conj_tac
       >- simp[functions_noninfinite_rcc_factor_graph]
       >- simp[is_tree_rcc_factor_graph]
