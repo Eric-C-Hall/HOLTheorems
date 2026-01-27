@@ -798,6 +798,27 @@ Proof
   >> simp[]
 QED
 
+
+(* -------------------------------------------------------------------------- *)
+(* An expression for the variable nodes as constructed by rcc_factor_graph    *)
+(* -------------------------------------------------------------------------- *)
+Theorem var_nodes_rcc_factor_graph_variable_nodes[simp]:
+  ∀n ts.
+    var_nodes
+    (fg_add_n_variable_nodes
+     (n + 1) (LENGTH ts)
+     (fg_add_n_variable_nodes
+      n 1
+      (fg_add_n_variable_nodes n 1 fg_empty)
+     )
+    ) = IMAGE INR (count (3 * n + 1))
+Proof
+  rpt gen_tac
+  >> simp[var_nodes_fg_add_n_variable_nodes]
+  >> simp[range_def]
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
+QED
+
 Theorem get_function_map_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     get_function_map (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)) =
@@ -820,7 +841,8 @@ Theorem get_function_map_rcc_factor_graph:
 
 Proof
   rpt gen_tac
-  >> simp[rcc_factor_graph_def]
+  >> simp[rcc_factor_graph_def]         
+  >> simp[get_function_map_rcc_factor_graph_add_func_nodes_state]         
 
   >> cheat
 QED
