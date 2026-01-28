@@ -101,6 +101,23 @@ Proof
   >> gvs[FUN_FMAP_DEF]
 QED
 
+Theorem FUN_FMAP_EQ_THM2:
+  ∀f g S1 S2.
+    FINITE S1 ∧
+    FINITE S2 ⇒
+    (FUN_FMAP f S1 = FUN_FMAP g S2 ⇔ S1 = S2 ∧ (∀x. x ∈ S1 ⇒ f x = g x))
+Proof
+  rpt gen_tac >> strip_tac
+  >> EQ_TAC >> strip_tac
+  >- (‘S1 = S2’ suffices_by (strip_tac >> gvs[] >> gen_tac >> strip_tac
+                             >> irule (iffLR FUN_FMAP_EQ_THM)
+                             >> qexists ‘S1’ >> simp[])
+      >> ‘FDOM (FUN_FMAP f S1) = FDOM (FUN_FMAP g S2)’ by simp[Excl "FDOM_FMAP"]
+      >> pop_assum mp_tac >> simp[])
+  >> gvs[]
+  >> simp[FUN_FMAP_EQ_THM]
+QED
+
 Theorem FDOM_DRESTRICT_SUBSET[simp]:
   ∀f S.
     FDOM (DRESTRICT f S) ⊆ S

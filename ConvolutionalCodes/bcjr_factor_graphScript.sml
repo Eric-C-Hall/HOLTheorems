@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin extreal factor_graph finite_map genericGraph map_decoder_convolutional_code marker message_passing list range rich_list pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
+Ancestors binary_symmetric_channel combin extreal factor_graph finite_map fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -878,7 +878,7 @@ Theorem nodes_diff_get_function_nodes:
   ∀fg.
     nodes (get_underlying_graph fg) DIFF get_function_nodes fg = var_nodes fg
 Proof
-  gen_tac >> simp[EXTENSION]                 
+  gen_tac >> simp[EXTENSION]
 QED
 
 Theorem IMAGE_DIFF:
@@ -914,7 +914,7 @@ Proof
   >> conj_tac
   >- simp[INJ_INR]
   >> cong_tac (SOME 1)
-  >> simp[GSYM range_count_diff]   
+  >> simp[GSYM range_count_diff]
 QED
 
 Theorem order_rcc_factor_graph_add_func_nodes_input_sys:
@@ -1010,6 +1010,208 @@ Proof
   >> simp[GSYM range_count_diff]
 QED
 
+Theorem get_variable_length_map_rcc_factor_graph_add_func_nodes_state[simp]:
+  ∀n ps qs ts i fg.
+    get_variable_length_map
+    (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts i fg) =
+    get_variable_length_map fg
+Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> gvs[]
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> simp[]
+QED
+
+Theorem get_variable_length_map_rcc_factor_graph_add_func_node_state_initial[simp]:
+  ∀n ts fg.
+    get_variable_length_map
+    (rcc_factor_graph_add_func_node_state_initial n ts fg) =
+    get_variable_length_map fg
+Proof
+  rpt gen_tac
+  >> simp[rcc_factor_graph_add_func_node_state_initial_def]
+QED
+
+Theorem get_variable_length_map_rcc_factor_graph_add_func_nodes_enc[simp]:
+  ∀n p i ds_p fg.
+    get_variable_length_map
+    (rcc_factor_graph_add_func_nodes_enc n p i ds_p fg) =
+    get_variable_length_map fg
+Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> gvs[]
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+  >> simp[]
+QED
+
+Theorem get_variable_length_map_rcc_factor_graph_add_func_nodes_input_sys[simp]:
+  ∀n p i prior ds_s fg.
+    get_variable_length_map
+    (rcc_factor_graph_add_func_nodes_input_sys n p i prior ds_s fg) =
+    get_variable_length_map fg
+Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> gvs[]
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_input_sys_def]
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_input_sys_def]
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem variable_length_map_fg_add_variable_node0:
+  ∀l fg.
+    wffactor_graph fg ⇒
+    (fg_add_variable_node0 l fg).variable_length_map =
+    fg.variable_length_map |+ (INR (CARD (nodes fg.underlying_graph)),l)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[fg_add_variable_node0_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_variable_length_map_fg_add_variable_node:
+  ∀l fg.
+    get_variable_length_map (fg_add_variable_node l fg) =
+    get_variable_length_map fg |+ (INR (CARD (nodes (get_underlying_graph fg))),l)
+Proof
+  rpt gen_tac
+  >> simp[get_variable_length_map_def, fg_add_variable_node_def]
+  >> simp[factor_graph_ABSREP, fg_add_variable_node0_wf]
+  >> simp[variable_length_map_fg_add_variable_node0]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_variable_length_map_fg_add_n_variable_nodes:
+  ∀n l fg.
+    get_variable_length_map (fg_add_n_variable_nodes n l fg) =
+    FUN_FMAP
+    (λvar_node. l)
+    (IMAGE INR (range
+                (CARD (nodes (get_underlying_graph fg)))
+                (CARD (nodes (get_underlying_graph fg)) + n)
+               )
+    ) ⊌ get_variable_length_map fg
+Proof
+  Induct_on ‘n’ >> simp[fg_add_n_variable_nodes_def]
+  >> rpt gen_tac
+  >> simp[get_variable_length_map_fg_add_variable_node]
+  >> simp[GSYM FUNION_FUPDATE_1]
+  >> cong_tac (SOME 1)
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM FUN_FMAP_INSERT]
+  >> conj_tac
+  >- simp[range_def]
+  >> PURE_ONCE_REWRITE_TAC[GSYM IMAGE_INSERT]
+  >> DEP_PURE_ONCE_REWRITE_TAC[insert_range]
+  >> conj_tac >- simp[]
+  >> simp[ADD1]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_variable_length_map_fg_empty[simp]:
+  get_variable_length_map fg_empty = FEMPTY
+Proof
+  simp[fg_empty_def] >> simp[fg_empty0_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem FUN_FMAP_FUNION:
+  ∀f g S1 S2.
+    FINITE S1
+    ∧ FINITE S2 ⇒
+    FUN_FMAP f S1 ⊌ FUN_FMAP g S2 = FUN_FMAP
+                                    (λx. if x ∈ S1 then f x else g x)
+                                    (S1 ∪ S2)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[GSYM fmap_EQ_THM]
+  >> gen_tac >> strip_tac
+  >> simp[FUNION_DEF, FUN_FMAP_DEF]
+QED
+
+Theorem AND_IFF:
+  ∀a b.
+    a ∧ b ⇔ a ∧ (a ⇒ b)
+Proof
+  rpt gen_tac >> Cases_on ‘a’ >> simp[]
+QED
+
+Theorem get_variable_length_map_rcc_factor_graph_variable_nodes[simp]:
+  ∀n ts.
+    get_variable_length_map
+    (fg_add_n_variable_nodes (n + 1) (LENGTH ts)
+                             (fg_add_n_variable_nodes n 1
+                                                      (fg_add_n_variable_nodes
+                                                       n 1 fg_empty)
+                             )
+    ) = FUN_FMAP (λvar_node. if OUTR var_node < 2 * n then 1 else LENGTH ts)
+                 (IMAGE INR (count (3 * n + 1)))
+Proof
+  rpt gen_tac
+  >> simp[get_variable_length_map_fg_add_n_variable_nodes]
+  >> simp[FUN_FMAP_FUNION]
+  >> simp[FUN_FMAP_EQ_THM2]
+  >> conj_tac
+  >- (simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[range_def])
+  >> gen_tac >> strip_tac >> simp[] >> gvs[range_def]
+QED
+
+Theorem get_variable_length_map_rcc_factor_graph:
+  ∀n p ps qs ts prior ds_s ds_p fg.
+    get_variable_length_map
+    (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)) =
+    FUN_FMAP (λvar_node. if OUTR var_node < 2 * n then 1 else LENGTH ts)
+             (IMAGE INR (count (3 * n + 1)))
+Proof
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_def]
+  >> simp[o_DEF]
+QED
+
 Theorem get_function_map_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     get_function_map (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)) =
@@ -1017,25 +1219,37 @@ Theorem get_function_map_rcc_factor_graph:
     (λfunc_node.
        if (OUTR func_node) ≤ 4 * n
        then
-         FUN_FMAP ARB ARB
+         FUN_FMAP (ARB 1) (ARB 2)
        else
          if (OUTR func_node) ≤ 5 * n
          then
-           FUN_FMAP ARB ARB
+           FUN_FMAP (ARB 3) (ARB 4)
          else
            if (OUTR func_node) = 5 * n + 1
            then
-             FUN_FMAP ARB ARB
+             FUN_FMAP (ARB 5) (ARB 6)
            else
-             FUN_FMAP ARB ARB
+             FUN_FMAP (ARB 7) (ARB 8)
     ) (IMAGE INR (range (4 * n) (6 * n + 2)))
 
 Proof
+  
   rpt gen_tac
-  >> simp[rcc_factor_graph_def]         
-  >> simp[get_function_map_rcc_factor_graph_add_func_nodes_state]         
+  >> simp[rcc_factor_graph_def]
+  >> simp[GSYM fmap_EQ_THM]
+  >> conj_tac
+  >- (simp[get_function_map_rcc_factor_graph_add_func_nodes_state,
+           get_function_map_rcc_factor_graph_add_func_node_state_initial]
+     )
 
-  >> cheat
+         
+  >> simp[get_function_map_rcc_factor_graph_add_func_nodes_state]
+  >> simp[order_rcc_factor_graph_add_func_node_state_initial,
+          order_rcc_factor_graph_add_func_nodes_enc,
+          order_rcc_factor_graph_add_func_nodes_input_sys]
+  >> simp[
+
+      >> cheat
 QED
 
 
@@ -1064,7 +1278,6 @@ Theorem rcc_factor_graph_compute:
     = map_decoder_bitwise
       (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
       n m p ds
-
 Proof
 
   rpt strip_tac

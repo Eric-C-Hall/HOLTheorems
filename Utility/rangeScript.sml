@@ -84,3 +84,13 @@ Theorem range_0:
 Proof
   simp[range_def, count_def]
 QED
+
+Theorem insert_range:
+  ∀a b.
+    a ≤ b ⇒
+    b INSERT range a b = range a (b + 1)
+Proof
+  rpt gen_tac
+  >> simp[range_def, EXTENSION]
+  >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
+QED
