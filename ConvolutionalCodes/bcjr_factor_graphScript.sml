@@ -1212,6 +1212,168 @@ Proof
   >> simp[o_DEF]
 QED
 
+Theorem get_function_map_rcc_factor_graph_add_func_node_state_initial:
+  ∀n ts fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    get_function_map (rcc_factor_graph_add_func_node_state_initial n ts fg) =
+    get_function_map fg |+ (INR (CARD (nodes (get_underlying_graph fg))),
+                            FUN_FMAP
+                            (λval_map. if val_map ' (INR (2 * n)) = ts
+                                       then 1 else 0 : extreal)
+                            (var_assignments {INR (2 * n)}
+                                             (get_variable_length_map fg))
+                           )
+Proof
+  rpt gen_tac >> strip_tac 
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_node_state_initial_def]
+  >> PURE_ONCE_REWRITE_TAC[get_function_map_fg_add_function_node]
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[gsize_def]
+QED
+
+Theorem get_function_map_rcc_factor_graph_add_func_nodes_enc:
+  ∀n p i ds_p fg.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    get_function_map (rcc_factor_graph_add_func_nodes_enc n p i ds_p fg) =
+    FUN_FMAP (λfunc_node.
+                let
+                  j = OUTR func_node + i - order (get_underlying_graph fg);
+                in
+                  FUN_FMAP (λval_map.
+                              if [EL j ds_p] ≠ val_map ' (INR (n + j))
+                              then p else 1 - p
+                           ) (var_assignments
+                              {INR (n + j)} (get_variable_length_map fg)
+                             )
+             ) (IMAGE INR (range (order (get_underlying_graph fg))
+                                 (order (get_underlying_graph fg) + (n - i))
+                          )
+               ) ⊌ (get_function_map fg)
+Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac
+      >> gvs[]
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+      >> simp[]
+      >> ‘n - i = 0’ by decide_tac
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+  >> simp[]
+  (* Take the newly added function and move it into the first argument to the
+     FUNION, so that the LHS becomes closer to the RHS *)
+  >> PURE_ONCE_REWRITE_TAC[get_function_map_fg_add_function_node]
+  >> qpat_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[FUNION_FUPDATE_SWAP]
+  >> conj_tac
+  >- (qmatch_abbrev_tac ‘(this_is_false_because_key_is_not_in_first_fmap ⇒ this_is_irrelevant)’
+      >> ‘¬this_is_false_because_key_is_not_in_first_fmap’ suffices_by simp[]
+      >> Q.UNABBREV_TAC ‘this_is_false_because_key_is_not_in_first_fmap’
+      >> Q.UNABBREV_TAC ‘this_is_irrelevant’
+      >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[order_fg_add_function_node]
+      >> qpat_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[]
+      >> simp[range_def])
+  (* Now, all the added keys are in the first argument to FUNION, and the
+   existing keys/values are in the second argument to FUNION. The existing keys
+   are in the same form in the LHS and the RHS, so we only need to prove the
+   equivalence of the expressions for the added keys on the LHS and RHS *)
+  >> cong_tac (SOME 1)
+  (* The added keys on the LHS are split into the most recently added key, and
+     the rest of the keys. Split the set being mapped over on the RHS to match
+     the LHS, so that the most recently added key is separate from the rest of
+     the keys. *)
+  >> Q.SUBGOAL_THEN
+      ‘range
+       (order (get_underlying_graph fg))
+       (n + order (get_underlying_graph fg) - i) =
+       (order (get_underlying_graph fg))
+       INSERT range (order (get_underlying_graph fg) + 1)
+       (n + order (get_underlying_graph fg) - i)’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[insert_range_left]
+  >> simp[]
+  (* Split FUN_FMAP over the most recently added key and the rest *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[FUN_FMAP_INSERT]
+  >> conj_tac
+  >- (simp[] >> simp[range_def])
+  (* Split into two goals: Proving that the added key is equivalent on the LHS
+     and RHS and all the other keys are equivalent on the LHS and RHS *)
+  >> cong_tac (SOME 1)
+  (* *)
+  >- (PURE_ONCE_REWRITE_TAC[order_fg_add_function_node]
+      >> qpat_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[])
+  >> simp[]                   
+QED
+
+Theorem get_function_map_rcc_factor_graph_add_func_nodes_input_sys:
+
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_add_variable_node0_function_map[simp]:
+  ∀l fg.
+    (fg_add_variable_node0 l fg).function_map = fg.function_map
+Proof
+  rpt gen_tac >> simp[fg_add_variable_node0_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_function_map_fg_add_variable_node[simp]:
+  ∀l fg.
+    get_function_map (fg_add_variable_node l fg) = get_function_map fg
+Proof
+  rpt gen_tac
+  >> simp[get_function_map_def, fg_add_variable_node_def,
+          factor_graph_ABSREP, fg_add_variable_node0_wf]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem fg_empty0_function_map[simp]:
+  fg_empty0.function_map = FEMPTY
+Proof
+  simp[fg_empty0_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_function_map_fg_empty[simp]:
+  get_function_map fg_empty = FEMPTY
+Proof
+  simp[fg_empty_def, get_function_map_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_function_map_fg_add_n_variable_nodes[simp]:
+  ∀n l fg.
+    get_function_map (fg_add_n_variable_nodes n l fg) =
+    get_function_map fg
+Proof
+  rpt gen_tac
+  >> Induct_on ‘n’ >> simp[fg_add_n_variable_nodes_def]
+QED
+
 Theorem get_function_map_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     get_function_map (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)) =
@@ -1242,7 +1404,7 @@ Proof
            get_function_map_rcc_factor_graph_add_func_node_state_initial]
      )
 
-         
+     
   >> simp[get_function_map_rcc_factor_graph_add_func_nodes_state]
   >> simp[order_rcc_factor_graph_add_func_node_state_initial,
           order_rcc_factor_graph_add_func_nodes_enc,

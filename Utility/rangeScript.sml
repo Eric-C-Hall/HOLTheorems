@@ -94,3 +94,13 @@ Proof
   >> simp[range_def, EXTENSION]
   >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
 QED
+
+Theorem insert_range_left:
+  ∀a b aplusone.
+    a < b ∧
+    aplusone = a + 1 ⇒
+    a INSERT range aplusone b = range a b
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> gvs[range_def]
+QED
