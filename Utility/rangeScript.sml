@@ -31,6 +31,13 @@ Proof
   >> irule FINITE_COUNT
 QED
 
+Theorem finite_range_expanded[simp]:
+  ∀n m.
+    FINITE {i : num | n ≤ i ∧ i < m}
+Proof
+  PURE_ONCE_REWRITE_TAC[GSYM range_def] >> irule finite_range
+QED
+
 Theorem count_inter[simp]:
   ∀n m.
     count n ∩ count m = count (MIN n m)

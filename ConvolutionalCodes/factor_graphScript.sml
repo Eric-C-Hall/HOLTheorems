@@ -1810,6 +1810,50 @@ Proof
       >> simp[get_function_nodes_def])
 QED
 
+Theorem inr_card_not_in_nodes[simp]:
+  ∀fg.
+    INR (CARD (nodes (get_underlying_graph fg))) ∉ nodes (get_underlying_graph fg)
+Proof
+  gen_tac
+  >> simp[nodes_get_underlying_graph]
+QED
+
+Theorem inr_card_not_in_var_nodes[simp]:
+  ∀fg.
+    INR (CARD (nodes (get_underlying_graph fg))) ∉
+        var_nodes fg
+Proof
+  simp[inr_card_not_in_nodes]
+QED
+
+Theorem inr_card_not_in_get_function_nodes[simp] :
+  ∀fg.
+    INR (CARD (nodes (get_underlying_graph fg))) ∉
+        get_function_nodes fg
+Proof
+  gen_tac >> disch_tac
+  >> drule in_get_function_nodes_in_nodes
+  >> simp[inr_card_not_in_nodes]
+QED
+
+Theorem order_not_in_nodes[simp]:
+  ∀fg. INR (order (get_underlying_graph fg)) ∉ nodes (get_underlying_graph fg)
+Proof
+  simp[gsize_def]
+QED
+
+Theorem order_not_in_var_nodes[simp]:
+  ∀fg. INR (order (get_underlying_graph fg)) ∉ var_nodes fg
+Proof
+  simp[gsize_def]
+QED
+
+Theorem order_not_in_get_function_nodes[simp]:
+  ∀fg. INR (order (get_underlying_graph fg)) ∉ get_function_nodes fg
+Proof
+  simp[gsize_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
 (*                                                                            *)

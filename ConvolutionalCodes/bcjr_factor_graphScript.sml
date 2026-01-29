@@ -1460,52 +1460,353 @@ QED
 Theorem get_function_map_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     get_function_map (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)) =
-    FUN_FMAP
-    (λfunc_node.
-       if (OUTR func_node) ≤ 4 * n
-       then
-         FUN_FMAP (ARB 1) (ARB 2)
-       else
-         if (OUTR func_node) ≤ 5 * n
+    let
+      rcc_factor_graph_variable_length_map =
+      FUN_FMAP (λvar_node. if OUTR var_node < 2 * n then 1 else LENGTH ts)
+               (IMAGE INR (count (3 * n + 1)));
+    in
+      FUN_FMAP
+      (λfunc_node.
+         if (OUTR func_node) ≤ 4 * n
          then
-           FUN_FMAP (ARB 3) (ARB 4)
+           let
+             j = OUTR func_node - (3 * n + 1);
+           in
+             FUN_FMAP (λval_map.
+                         EL j prior *
+                         if [EL j ds_s] ≠ val_map ' (INR j) then p else 1 − p)
+                      (var_assignments {INR j}
+                                       rcc_factor_graph_variable_length_map)
          else
-           if (OUTR func_node) = 5 * n + 1
+           if (OUTR func_node) ≤ 5 * n
            then
-             FUN_FMAP (ARB 5) (ARB 6)
+             let
+               j = OUTR func_node - (4 * n + 1);
+             in
+               FUN_FMAP (λval_map.
+                           if [EL j ds_p] ≠ val_map ' (INR (n + j)) then p
+                           else 1 − p) (var_assignments
+                                        {INR (n + j)}
+                                        rcc_factor_graph_variable_length_map)
            else
-             FUN_FMAP (ARB 7) (ARB 8)
-    ) (IMAGE INR (range (4 * n) (6 * n + 2)))
+             if (OUTR func_node) = 5 * n + 1
+             then
+               FUN_FMAP (λval_map. if val_map ' (INR (2 * n)) = ts then 1 else 0)
+                        (var_assignments {INR (2 * n)}
+                                         rcc_factor_graph_variable_length_map)
+             else
+               let
+                 j = OUTR func_node - (5 * n + 2)
+               in
+                 FUN_FMAP (func_node_state_fn n (ps,qs) j)
+                          (var_assignments
+                           (func_node_state_adjacent_nodes n j)
+                           rcc_factor_graph_variable_length_map)
+      ) (IMAGE INR (range (3 * n + 1) (6 * n + 2)))
+Proof
+  rpt gen_tac
+  >> simp[rcc_factor_graph_def]
+    >> irule (iffLR fmap_EQ_THM)
+    >> REVERSE conj_tac
+    >- (simp[get_function_map_rcc_factor_graph_add_func_nodes_state,
+             get_function_map_rcc_factor_graph_add_func_node_state_initial,
+             get_function_map_rcc_factor_graph_add_func_nodes_enc,
+             get_function_map_rcc_factor_graph_add_func_nodes_input_sys,
+             order_rcc_factor_graph_add_func_node_state_initial,
+             order_rcc_factor_graph_add_func_nodes_enc,
+             order_rcc_factor_graph_add_func_nodes_input_sys,
+             nodes_rcc_factor_graph_add_func_nodes_enc,
+             nodes_rcc_factor_graph_add_func_nodes_input_sys]
+        >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> disch_tac >> gvs[range_def]
+       )
+    >> gen_tac
+    >> simp[get_function_map_rcc_factor_graph_add_func_nodes_state,
+            get_function_map_rcc_factor_graph_add_func_node_state_initial,
+            get_function_map_rcc_factor_graph_add_func_nodes_enc,
+            get_function_map_rcc_factor_graph_add_func_nodes_input_sys,
+            order_rcc_factor_graph_add_func_node_state_initial,
+            order_rcc_factor_graph_add_func_nodes_enc,
+            order_rcc_factor_graph_add_func_nodes_input_sys,
+            nodes_rcc_factor_graph_add_func_nodes_enc,
+            nodes_rcc_factor_graph_add_func_nodes_input_sys]
+  (* Split proof according to which range of nodes we're in (corresponding to
+     a particular type of function node) *) 
+  >> strip_tac     
+  >> (DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- (simp[] >> gvs[range_def])
+      >> simp[FUNION_DEF, cj 2 FUN_FMAP_DEF, FAPPLY_FUPDATE_THM]
+      >> gvs[range_def]
+     )
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem nodes_fg_add_function_node0:
+  ∀inputs fn fg.
+    nodes (fg_add_function_node0 inputs fn fg).underlying_graph =
+    if inputs ⊆ var_nodes fg
+    then
+      INR (order fg.underlying_graph) INSERT nodes fg.underlying_graph
+    else
+      nodes fg.underlying_graph
+Proof
+  rpt gen_tac
+  >> simp[fg_add_function_node0_def]
+  >> rw[gsize_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem nodes_fg_add_function_node:
+  ∀inputs fn fg.
+    nodes (get_underlying_graph (fg_add_function_node inputs fn fg)) =
+    IMAGE INR (count (order (get_underlying_graph fg) +
+                      if inputs ⊆ var_nodes fg then 1n else 0n))
+Proof
+  rpt gen_tac
+  >> simp[nodes_get_underlying_graph, order_fg_add_function_node]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_fg_add_variable_node0[simp]:
+  ∀l fg.
+    adjacent (fg_add_variable_node0 l fg).underlying_graph =
+    adjacent fg.underlying_graph
+Proof
+  rpt gen_tac
+  >> simp[fg_add_variable_node0_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_fg_add_variable_node[simp]:
+  ∀l fg.
+    adjacent (get_underlying_graph (fg_add_variable_node l fg)) =
+    adjacent (get_underlying_graph fg)
+Proof
+  rpt gen_tac
+  >> simp[get_underlying_graph_def, fg_add_variable_node_def,
+          factor_graph_ABSREP, fg_add_variable_node0_wf]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_fg_add_n_variable_nodes[simp]:
+  ∀n l fg.
+    adjacent (get_underlying_graph (fg_add_n_variable_nodes n l fg)) =
+    adjacent (get_underlying_graph fg)
+Proof
+  Induct_on ‘n’ >> simp[fg_add_n_variable_nodes_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_fg_add_function_node0:
+  ∀inputs fn fg n1 n2.
+    inputs ⊆ var_nodes fg ∧
+    n1 ∈ nodes (fg_add_function_node0 inputs fn fg).underlying_graph ∧
+    n2 ∈ nodes (fg_add_function_node0 inputs fn fg).underlying_graph ⇒
+    (adjacent (fg_add_function_node0 inputs fn fg).underlying_graph n1 n2 ⇔
+       (n1 = INR (CARD (nodes (fg.underlying_graph))) ∧ n2 ∈ inputs) ∨
+       (n2 = INR (CARD (nodes (fg.underlying_graph))) ∧ n1 ∈ inputs) ∨
+       adjacent fg.underlying_graph n1 n2
+    )
 
 Proof
 
-  rpt gen_tac
-  >> simp[rcc_factor_graph_def]
-  >> simp[GSYM fmap_EQ_THM]
-  >> conj_tac
-  >- (simp[get_function_map_rcc_factor_graph_add_func_nodes_state,
-           get_function_map_rcc_factor_graph_add_func_node_state_initial]
+  rpt gen_tac >> strip_tac
+  >> simp[fg_add_function_node0_def]
+  >> EQ_TAC >> strip_tac >> gvs[]
+  >- (‘n2 = i’ by gvs[INSERT2_lemma]
+      >> gvs[])
+  >- (‘n1 = i’ by gvs[INSERT2_lemma]
+      >> gvs[])
+  >- gvs[INSERT2_lemma]
+  >- (gvs[nodes_fg_add_function_node0, gsize_def]
+      >- cheat
+      >> Cases_on ‘adjacent fg.underlying_graph
+                   (INR (CARD (nodes fg.underlying_graph))) n2’ >> simp[]
+      >> conj_tac
+      >- (
+       )
      )
-
-
-  >> simp[get_function_map_rcc_factor_graph_add_func_nodes_state]
-  >> simp[order_rcc_factor_graph_add_func_node_state_initial,
-          order_rcc_factor_graph_add_func_nodes_enc,
-          order_rcc_factor_graph_add_func_nodes_input_sys]
-  >> simp[
-
-      >> cheat
+  >> cheat
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_fg_add_function_node:
+  ∀inputs fn fg n1 n2.
+    adjacent (get_underlying_graph (fg_add_function_node inputs fn fg)) n1 n2 ⇔
+      ARB
+Proof
+QED
+
+Theorem adjacent_rcc_factor_graph_add_func_nodes_state:
+  ∀n ps qs ts i fg n1 n2.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    (adjacent (get_underlying_graph
+               (rcc_factor_graph_add_func_nodes_state n (ps,qs) ts i fg)) n1 n2 ⇔
+       (n1 ∈ IMAGE INR (range
+                        (CARD (nodes (get_underlying_graph fg)))
+                        (CARD (nodes (get_underlying_graph fg)) + (n - i))
+                       ) ∧
+        let
+          j = OUTR n1 + i - (CARD (nodes (get_underlying_graph fg)))
+        in
+          (n2 = INR j ∨
+           n2 = INR (n + j) ∨
+           n2 = INR (2 * n + j) ∨
+           n2 = INR (2 * n + j + 1))
+       ) ∨ adjacent (get_underlying_graph fg) n1 n2)
+    
+Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac >> strip_tac
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+      >> simp[]
+      >> qpat_x_assum ‘0 = n - i’ (fn th => assume_tac (GSYM th))
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_state_def]
+  >> simp[]
+  (* Inductive hypothesis has now been applied and is no longer needed *)
+  >> qpat_x_assum ‘∀fg i n n1 n2 ps qs ts. _ ⇒ _ ⇒ _’ kall_tac
+  (* Get an expression for the current step *)
+  >> simp[adjacent_fg_add_function_node]
+
+
+         
+  >> EQ_TAC >> strip_tac >> gvs[range_def]
+  >> PURE_ONCE_REWRITE_TAC[GSYM gsize_def]
+  >> simp[order_fg_add_function_node]
+  >> simp[nodes_fg_add_function_node]
+
+QED
+
+Theorem adjacent_rcc_factor_graph_add_func_node_state_initial:
+
+Proof
+QED
+
+Theorem adjacent_rcc_factor_graph_add_func_nodes_enc:
+
+Proof
+QED
+
+Theorem adjacent_rcc_factor_graph_add_func_nodes_input_sys:
+
+Proof
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Tells us what nodes are adajcent to what other nodes in the bcjr factor    *)
+(* graph.                                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_rcc_factor_graph:
+  ∀n p ps qs ts prior ds_s ds_p n1 n2.
+    n1 ∈ nodes (get_underlying_graph
+                (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))) ∧
+    n2 ∈ nodes (get_underlying_graph
+                (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))) ⇒
+    (adjacent (get_underlying_graph
+               (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))) n1 n2 ⇔
+       if OUTR n1 < n
+       then
+         n2 = INR (OUTR n1 + (3 * n + 1)) ∨ n2 = INR (OUTR n1 + 5 * n + 2)
+       else
+         if OUTR n1 < 2 * n
+         then
+           n2 = INR (OUTR n1 + (3 * n + 1)) ∨ n2 = INR (OUTR n1 + 4 * n + 2)
+         else
+           if OUTR n1 < 3 * n + 1
+           then
+             n2 = INR (OUTR n1 + (3 * n + 1)) ∨
+             (n1 ≠ INR (3 * n) ∧ n2 = INR (OUTR n1 + (3 * n + 2)))
+           else
+             if OUTR n1 < 4 * n + 1
+             then
+               n2 = INR (OUTR n1 - (3 * n + 1))
+             else
+               if OUTR n1 < 5 * n + 1
+               then
+                 n2 = INR (OUTR n1 - (3 * n + 1))
+               else
+                 if OUTR n1 = 5 * n + 1
+                 then
+                   n2 = INR (5 * n + 2)
+                 else
+                   n2 = INR (OUTR n1 - (5 * n + 2)) ∨
+                   n2 = INR (OUTR n1 - (4 * n + 2)) ∨
+                   n2 = INR (OUTR n1 - (3 * n + 2)) ∨
+                   n2 = INR (OUTR n1 - (3 * n + 1))
+    )
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[nodes_rcc_factor_graph]
+  >> simp[rcc_factor_graph_def, o_DEF]
+  >> 
+QED
 
 Theorem functions_noninfinite_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
+    p ≠ +∞ ∧
+    p ≠ −∞ ∧
+    (∀x. MEM x prior ⇒ x ≠ +∞ ∧ x ≠ −∞) ⇒
     functions_noninfinite (rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p))
 Proof
-  rpt gen_tac
+  rpt gen_tac >> strip_tac
   >> simp[functions_noninfinite_def]
   >> rpt gen_tac >> strip_tac
-  >> simp[rcc_factor_graph_def]
+  >> gvs[]
+  >> simp[get_function_map_rcc_factor_graph]
+  >> simp[cj 2 FUN_FMAP_DEF]
+  >> Cases_on ‘x ≤ 4 * n’
+  >- (simp[]
+      >> DEP_PURE_ONCE_REWRITE_TAC [cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- (simp[]
+          >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments _ cur_adj_nodes _ ’
+          >> sg ‘cur_adj_nodes = ARB’
+          >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
+              >> 
+             )
+             
+          >> simp[var_assignments_def]
+          >> gvs[val_map_assignments_def]
+                T>> cheat
+         )
+      >> rw[]
+     )
+     
+  >> rw[]
+  >- (DEP_PURE_ONCE_REWRITE_TAC [cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- (simp[]
+          >> simp[var_assignments_def]
+         )
+     )
+     
+  >> conj_tac
+  >- simp[]
   >> cheat
 QED
 
