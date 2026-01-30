@@ -496,18 +496,14 @@ Proof
   >> qpat_x_assum ‘∀fg i n ps qs ts. _ ⇒ _’ kall_tac
   (* *)
   >> PURE_ONCE_REWRITE_TAC[order_fg_add_function_node]
+  >> qpat_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[func_node_state_adjacent_nodes_def]
   >> PURE_ONCE_REWRITE_TAC[get_function_nodes_fg_add_function_node]
-  >> Q.SUBGOAL_THEN
-      ‘func_node_state_adjacent_nodes n i ⊆ var_nodes fg’
-      (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >- (qpat_x_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
-      >> simp[func_node_state_adjacent_nodes_def])
+  >> qpat_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
   >> simp[]
-  (* *)
-  >> simp[EXTENSION]
-  >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
   >- gvs[range_def]
-  >- (disj1_tac >> simp[range_def, gsize_def])
+  >- (simp[range_def, gsize_def])
   >> gvs[range_def, gsize_def]
   >> decide_tac
 QED
