@@ -1824,22 +1824,140 @@ Proof
                         n2 = INR (CARD (nodes (get_underlying_graph fg)))’)
   >- (gvs[]
       >> cong_tac (SOME 4)
+      >- (simp[drag_and_out_of_iff]
+          >> strip_tac
+          >> gvs[]
+          >> simp[EXTENSION, range_def, gsize_def] >> EQ_TAC >> strip_tac >> gvs[])
+      >> simp[FUN_EQ_THM] >> gen_tac
       >> simp[drag_and_out_of_iff]
       >> strip_tac
       >> gvs[]
-      >> simp[EXTENSION, range_def, gsize_def] >> EQ_TAC >> strip_tac >> gvs[])
-  (* What if n1 is the newly added node *)
-  >> Cases_on ‘n1 = INR (CARD (nodes (get_underlying_graph fg)))’
-  >- (EQ_TAC
-      >> (strip_tac >> gvs[gsize_def, range_def])
+      >> simp[EXTENSION, range_def, gsize_def] >> EQ_TAC >> strip_tac >> gvs[]
      )
-  (* We must instead have n2 is the newly added node *)
-  >> REVERSE (Cases_on ‘n2 = INR (CARD (nodes (get_underlying_graph fg)))’)
-  >- (‘F’ suffices_by simp[] >> gvs[])
-  >> EQ_TAC
-  >> (strip_tac >> gvs[gsize_def, range_def]
+  (* Abbreviations to make things more readable *)
+  >> PURE_REWRITE_TAC[gsize_def]
+  >> qabbrev_tac ‘fg_ord = CARD (nodes (get_underlying_graph fg))’
+  >> simp[]
+  >> qabbrev_tac ‘is_adjacent_node = λnode : unit + num other_node : unit + num.
+                                       (node = INR (i + OUTR other_node − fg_ord) ∨
+                                        node = INR (n + (i + OUTR other_node − fg_ord)) ∨
+                                        node = INR (2 * n + (i + OUTR other_node − fg_ord)) ∨
+                                        node = INR (2 * n + (i + OUTR other_node − fg_ord) + 1))
+                 ’
+  >> simp[]
+  (* The same abbreviations that work in the case of the previously added nodes
+     also work in the case of the currently added node *)
+  >> Q.SUBGOAL_THEN
+      ‘n1 = INR fg_ord ∧ (n2 = INR i ∨ n2 = INR (i + n) ∨ n2 = INR (i + 2 * n) ∨
+                          n2 = INR (i + (2 * n + 1))) ⇔
+         n1 = INR fg_ord ∧ is_adjacent_node n2 n1’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (PURE_ONCE_REWRITE_TAC[drag_and_out_of_iff]
+      >> strip_tac
+      >> unabbrev_all_tac
+      >> simp[]
      )
-     gvs[]
+  >> Q.SUBGOAL_THEN
+      ‘n2 = INR fg_ord ∧ (n1 = INR i ∨ n1 = INR (i + n) ∨ n1 = INR (i + 2 * n) ∨
+                          n1 = INR (i + (2 * n + 1))) ⇔
+         n2 = INR fg_ord ∧ is_adjacent_node n1 n2’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (PURE_ONCE_REWRITE_TAC[drag_and_out_of_iff]
+      >> strip_tac
+      >> unabbrev_all_tac
+      >> simp[]
+     )
+  (* In the case where our nodes are adjacent in the underlying graph, our
+     iff immediately holds, thus we can simplify the iff *)
+  >> Cases_on ‘adjacent (get_underlying_graph fg) n1 n2’ >> simp[]
+  (* Rename components of expression to make it more understandable what each
+     of the components mean *)
+  >> qmatch_abbrev_tac ‘existing_adjacencies_n1 ∨
+                        existing_adjacencies_n2 ∨
+                        new_adjacency_n1 ∨
+                        new_adjacency_n2 ⇔
+                          all_adjacencies_n1 ∨
+                          all_adjacencies_n2’
+  (* Now we can clearly see that we really want to independently join together
+     the added adjacency to the rest of the adjacencies *)
+  >> ‘(existing_adjacencies_n1 ∨ new_adjacency_n1 ⇔ all_adjacencies_n1) ∧
+      (existing_adjacencies_n2 ∨ new_adjacency_n2 ⇔ all_adjacencies_n2)’
+    suffices_by (rpt (pop_assum kall_tac)
+                 >> Cases_on ‘existing_adjacencies_n1’ >> simp[]
+                 >> Cases_on ‘existing_adjacencies_n2’ >> simp[])
+  >> REVERSE conj_tac
+  >- (Q.UNABBREV_TAC ‘existing_adjacencies_n2’
+      >> Q.UNABBREV_TAC ‘new_adjacency_n2’
+      >> Q.UNABBREV_TAC ‘all_adjacencies_n2’
+      >> ‘is_adjacent_node n1 n1 = F’ by cheat
+      >> simp[]
+      >> unabbrev_all_tac >> simp[]
+
+          
+     )
+     
+  
+  (* *)
+  >> sg ‘(∃x. n1 = INR x ∧ x ∈ range (fg_ord + 1) (fg_ord + n − i)) ∧
+         is_adjacent_node n2 n1 ∨
+         n1 = INR fg_ord ∧ is_adjacent_node n2 n1 =
+                           
+        ’
+        
+  (* *)
+  >> qabbrev_tac ‘foo = λn1 : unit + num n2 : unit + num n3 : unit + num n4 : unit + num
+                        .  (∃x. n1 = INR x ∧ x ∈ range (fg_ord + 1) (fg_ord + n − i)) ∧
+                           is_adjacent_node n3 n4 ’
+  >> simp[]
+         
+
+         
+    >> simp[]
+    >> ‘adjacent (get_underlying_graph fg) n1 n2’ by cheat
+    >> 
+    (* Now that it's been abbreviated nicely, it's easier to see what we're doing
+     and to prove the theorem *)
+    >> EQ_TAC
+    >> strip_tac >> gvs[]
+
+                       
+                       
+    >> simp[]
+    >> qabbrev_tac ‘foo1 = λn1 : unit + num fg : extreal factor_graph i x n.
+                             n1 = INR x ∧
+                             x ∈
+                               range (order (get_underlying_graph fg) + 1)
+                               (n + order (get_underlying_graph fg) − i)’
+    >> simp[]
+    >> qabbrev_tac ‘foo2 =
+                    λn2 : unit + num.
+                      n2 = INR (i + OUTR n1 − order (get_underlying_graph fg)) ∨
+                      n2 = INR (n + (i + OUTR n1 − order (get_underlying_graph fg))) ∨
+                      n2 = INR (2 * n + (i + OUTR n1 − order (get_underlying_graph fg))) ∨
+                      n2 =
+                      INR (2 * n + (i + OUTR n1 − order (get_underlying_graph fg)) + 1)’
+    >> simp[]
+    >> qabbrev_tac ‘foo3 =
+                    λbar : extreal factor_graph. order (get_underlying_graph bar)’
+      >> simp[]
+      >> unabbrev_all_tac
+    >> simp[]
+
+           
+
+           
+    (* What if n1 is the newly added node *)
+    >> Cases_on ‘n1 = INR (CARD (nodes (get_underlying_graph fg)))’
+    >- (EQ_TAC
+        >> (strip_tac >> gvs[gsize_def, range_def])
+       )
+    (* We must instead have n2 is the newly added node *)
+    >> REVERSE (Cases_on ‘n2 = INR (CARD (nodes (get_underlying_graph fg)))’)
+    >- (‘F’ suffices_by simp[] >> gvs[])
+    >> EQ_TAC
+    >> (strip_tac >> gvs[gsize_def, range_def]
+       )
+       gvs[]
 
 QED
 

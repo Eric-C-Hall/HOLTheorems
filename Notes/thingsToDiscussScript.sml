@@ -6,6 +6,8 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Pain points: *)
+
 (* -------------------------------------------------------------------------- *)
 (* Would be cool to be able to rewrite within a set comprehension using CONG  *)
 (* somehow.                                                                   *)
