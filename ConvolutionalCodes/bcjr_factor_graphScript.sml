@@ -1569,6 +1569,23 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: Move to other file                                                   *)
 (* -------------------------------------------------------------------------- *)
+Theorem nodes_fg_add_function_node_alt:
+  ∀inputs fn fg.
+    nodes (get_underlying_graph (fg_add_function_node inputs fn fg)) =
+    if inputs ⊆ var_nodes fg
+    then
+      INR (CARD (nodes (get_underlying_graph fg))) INSERT nodes (get_underlying_graph fg)
+    else
+      nodes (get_underlying_graph fg)
+Proof
+  PURE_REWRITE_TAC[get_underlying_graph_def, fg_add_function_node_def]
+  >> simp[]
+  >> simp[nodes_fg_add_function_node0, gsize_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem adjacent_fg_add_variable_node0[simp]:
   ∀l fg.
     adjacent (fg_add_variable_node0 l fg).underlying_graph =
@@ -1609,7 +1626,7 @@ QED
 (* Could potentially extend this theorem to work when fg is not necessarily   *)
 (* well-formed?                                                               *)
 (* -------------------------------------------------------------------------- *)
-Theorem adjacent_fg_add_function_node0:
+Theorem adjacent_fg_add_function_node0_lemma[local]:
   ∀inputs fn fg n1 n2.
     wffactor_graph fg ∧
     inputs ⊆ var_nodes fg ∧
@@ -1653,11 +1670,44 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: Move to other file                                                   *)
 (* -------------------------------------------------------------------------- *)
+Theorem adjacent_fg_add_function_node0:
+  ∀inputs fn fg n1 n2.
+    wffactor_graph fg ∧
+    inputs ⊆ var_nodes fg ⇒
+    (adjacent (fg_add_function_node0 inputs fn fg).underlying_graph n1 n2 ⇔
+       (n1 = INR (CARD (nodes (fg.underlying_graph))) ∧ n2 ∈ inputs) ∨
+       (n2 = INR (CARD (nodes (fg.underlying_graph))) ∧ n1 ∈ inputs) ∨
+       adjacent fg.underlying_graph n1 n2
+    )
+Proof
+(* The additional assumption in adjacent_fg_add_function_node0_local is true
+   on both the LHS and RHS of the iff, therefore we can assume it is true. *)
+  rpt gen_tac >> strip_tac
+  >> EQ_TAC
+  >- (strip_tac
+      >> irule (iffLR adjacent_fg_add_function_node0_lemma)
+      >> simp[]
+      >> qexists ‘fn’
+      >> simp[]
+      >> drule adjacent_members
+      >> simp[])
+  >> disch_tac
+  >> irule (iffRL adjacent_fg_add_function_node0_lemma)
+  >> simp[]
+  >> simp[nodes_fg_add_function_node0]
+  >> gvs[gsize_def]
+  >- gvs[SUBSET_DEF]
+  >- gvs[SUBSET_DEF]
+  >> drule adjacent_members
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem adjacent_fg_add_function_node:
   ∀inputs fn fg n1 n2.
-    inputs ⊆ var_nodes fg ∧
-    n1 ∈ nodes (get_underlying_graph (fg_add_function_node inputs fn fg)) ∧
-    n2 ∈ nodes (get_underlying_graph (fg_add_function_node inputs fn fg)) ⇒
+    inputs ⊆ var_nodes fg ⇒
     (adjacent (get_underlying_graph (fg_add_function_node inputs fn fg)) n1 n2 ⇔
        (n1 = INR (CARD (nodes (get_underlying_graph fg))) ∧ n2 ∈ inputs) ∨
        (n2 = INR (CARD (nodes (get_underlying_graph fg))) ∧ n1 ∈ inputs) ∨
@@ -1669,6 +1719,32 @@ Proof
   >> strip_tac
   >> irule adjacent_fg_add_function_node0
   >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem inr_card_nodes_in_nodes_fg_add_function_node[simp]:
+  ∀inputs fn fg.
+    inputs ⊆ var_nodes fg ⇒
+    INR (CARD (nodes (get_underlying_graph fg))) ∈
+        nodes (get_underlying_graph (fg_add_function_node inputs fn fg))
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[nodes_fg_add_function_node]
+  >> simp[gsize_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem inr_order_in_nodes_fg_add_function_node[simp]:
+  ∀inputs fn fg.
+    inputs ⊆ var_nodes fg ⇒
+    INR (order (get_underlying_graph fg)) ∈
+        nodes (get_underlying_graph (fg_add_function_node inputs fn fg))
+Proof
+  simp[gsize_def]
 QED
 
 Theorem adjacent_rcc_factor_graph_add_func_nodes_state:
@@ -1710,15 +1786,58 @@ Proof
   >> simp[]
   (* Inductive hypothesis has now been applied and is no longer needed *)
   >> qpat_x_assum ‘∀fg i n n1 n2 ps qs ts. _ ⇒ _ ⇒ _’ kall_tac
-  (* Get an expression for the current step *)
-  >> simp[adjacent_fg_add_function_node]
-
-
-         
-  >> EQ_TAC >> strip_tac >> gvs[range_def]
-  >> PURE_ONCE_REWRITE_TAC[GSYM gsize_def]
+  (* *)
+  >> simp[GSYM gsize_def]
   >> simp[order_fg_add_function_node]
-  >> simp[nodes_fg_add_function_node]
+  >> simp[func_node_state_adjacent_nodes_def]
+  (* The LHS has one of the newly added adjacency possibilities wrapped up with
+     the possibility that it was adjacent in the original graph. Disentangle
+     these possibilities to make it more similar to the RHS *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_fg_add_function_node]
+  >> conj_tac
+  >- (qpat_assum ‘var_nodes _ = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[])
+  (* *)
+  >> EQ_TAC
+  >- (strip_tac
+      >- gvs[range_def]
+      >- gvs[range_def]
+      >- gvs[range_def]
+      >- gvs[range_def]
+      >- (gvs[gsize_def, range_def]
+          >- (gvs[range_def, gsize_def]
+              >> decide_tac
+             )
+          >> cheat
+         )
+      >- cheat
+      >- cheat
+     )
+
+     
+     
+  >> EQ_TAC >> 
+  
+  gvs[]
+
+     
+  >> EQ_TAC
+  >- (strip_tac
+      >- gvs[range_def]
+      >- gvs[range_def]
+      >- gvs[range_def]
+      >- gvs[range_def]
+      >> qpat_x_assum ‘adjacent _ _ _’ mp_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_fg_add_function_node]
+      >> conj_tac
+      >- (qpat_assum ‘var_nodes _ = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >> simp[])
+      >> strip_tac
+      >> gvs[]
+     )
+
+     simp[]
+
 
 QED
 
