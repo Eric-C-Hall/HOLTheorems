@@ -1747,6 +1747,14 @@ Proof
   simp[gsize_def]
 QED
 
+Theorem drag_and_out_of_iff:
+  ∀b1 b2 b3.
+    (b1 ∧ b2 ⇔ b1 ∧ b3) ⇔ (b1 ⇒ (b2 ⇔ b3))
+Proof
+  rpt gen_tac
+  >> Cases_on ‘b1’ >> simp[]
+QED
+
 Theorem adjacent_rcc_factor_graph_add_func_nodes_state:
   ∀n ps qs ts i fg n1 n2.
     var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
@@ -1763,7 +1771,20 @@ Theorem adjacent_rcc_factor_graph_add_func_nodes_state:
            n2 = INR (n + j) ∨
            n2 = INR (2 * n + j) ∨
            n2 = INR (2 * n + j + 1))
-       ) ∨ adjacent (get_underlying_graph fg) n1 n2)
+       ) ∨
+       (n2 ∈ IMAGE INR (range
+                        (CARD (nodes (get_underlying_graph fg)))
+                        (CARD (nodes (get_underlying_graph fg)) + (n - i))
+                       ) ∧
+        let
+          j = OUTR n1 + i - (CARD (nodes (get_underlying_graph fg)))
+        in
+          (n1 = INR j ∨
+           n1 = INR (n + j) ∨
+           n1 = INR (2 * n + j) ∨
+           n1 = INR (2 * n + j + 1))
+       ) ∨
+       adjacent (get_underlying_graph fg) n1 n2)
     
 Proof
   (* Our base case is when i gets to n. We then want to induct downwards on
@@ -1797,47 +1818,28 @@ Proof
   >> conj_tac
   >- (qpat_assum ‘var_nodes _ = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
       >> simp[])
-  (* *)
-  >> EQ_TAC
-  >- (strip_tac
-      >- gvs[range_def]
-      >- gvs[range_def]
-      >- gvs[range_def]
-      >- gvs[range_def]
-      >- (gvs[gsize_def, range_def]
-          >- (gvs[range_def, gsize_def]
-              >> decide_tac
-             )
-          >> cheat
-         )
-      >- cheat
-      >- cheat
-     )
-
-     
-     
-  >> EQ_TAC >> 
-  
-  gvs[]
-
-     
-  >> EQ_TAC
-  >- (strip_tac
-      >- gvs[range_def]
-      >- gvs[range_def]
-      >- gvs[range_def]
-      >- gvs[range_def]
-      >> qpat_x_assum ‘adjacent _ _ _’ mp_tac
-      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_fg_add_function_node]
-      >> conj_tac
-      >- (qpat_assum ‘var_nodes _ = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
-          >> simp[])
+  (* The LHS and RHS are only in different forms when n1 or n2 is the newly
+     added node. *)
+  >> REVERSE (Cases_on ‘n1 = INR (CARD (nodes (get_underlying_graph fg))) ∨
+                        n2 = INR (CARD (nodes (get_underlying_graph fg)))’)
+  >- (gvs[]
+      >> cong_tac (SOME 4)
+      >> simp[drag_and_out_of_iff]
       >> strip_tac
       >> gvs[]
+      >> simp[EXTENSION, range_def, gsize_def] >> EQ_TAC >> strip_tac >> gvs[])
+  (* What if n1 is the newly added node *)
+  >> Cases_on ‘n1 = INR (CARD (nodes (get_underlying_graph fg)))’
+  >- (EQ_TAC
+      >> (strip_tac >> gvs[gsize_def, range_def])
      )
-
-     simp[]
-
+  (* We must instead have n2 is the newly added node *)
+  >> REVERSE (Cases_on ‘n2 = INR (CARD (nodes (get_underlying_graph fg)))’)
+  >- (‘F’ suffices_by simp[] >> gvs[])
+  >> EQ_TAC
+  >> (strip_tac >> gvs[gsize_def, range_def]
+     )
+     gvs[]
 
 QED
 
@@ -1931,7 +1933,7 @@ Proof
              
           >> simp[var_assignments_def]
           >> gvs[val_map_assignments_def]
-                T>> cheat
+          >> cheat
          )
       >> rw[]
      )
