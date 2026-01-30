@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin extreal factor_graph finite_map fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
+Ancestors binary_symmetric_channel combin extreal factor_graph finite_map fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -1605,8 +1605,13 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: Move to other file                                                   *)
 (* -------------------------------------------------------------------------- *)
+(* -------------------------------------------------------------------------- *)
+(* Could potentially extend this theorem to work when fg is not necessarily   *)
+(* well-formed?                                                               *)
+(* -------------------------------------------------------------------------- *)
 Theorem adjacent_fg_add_function_node0:
   ∀inputs fn fg n1 n2.
+    wffactor_graph fg ∧
     inputs ⊆ var_nodes fg ∧
     n1 ∈ nodes (fg_add_function_node0 inputs fn fg).underlying_graph ∧
     n2 ∈ nodes (fg_add_function_node0 inputs fn fg).underlying_graph ⇒
@@ -1615,9 +1620,7 @@ Theorem adjacent_fg_add_function_node0:
        (n2 = INR (CARD (nodes (fg.underlying_graph))) ∧ n1 ∈ inputs) ∨
        adjacent fg.underlying_graph n1 n2
     )
-
 Proof
-
   rpt gen_tac >> strip_tac
   >> simp[fg_add_function_node0_def]
   >> EQ_TAC >> strip_tac >> gvs[]
@@ -1625,16 +1628,26 @@ Proof
       >> gvs[])
   >- (‘n1 = i’ by gvs[INSERT2_lemma]
       >> gvs[])
-  >- gvs[INSERT2_lemma]
+  >- gvs[INSERT2_lemma] 
   >- (gvs[nodes_fg_add_function_node0, gsize_def]
-      >- cheat
-      >> Cases_on ‘adjacent fg.underlying_graph
-                   (INR (CARD (nodes fg.underlying_graph))) n2’ >> simp[]
-      >> conj_tac
-      >- (
-       )
-     )
-  >> cheat
+      >- (gvs[SUBSET_DEF]
+          >> last_x_assum drule
+          >> qpat_x_assum ‘INR _ ∈ inputs’ kall_tac
+          >> strip_tac
+          >> gvs[wffactor_graph_def])
+      >> metis_tac[swap_edge]
+      >> qexists ‘n2’
+      >> simp[swap_edge])
+  (* Copy/pasted from above, but with n2 instead of n1*)
+  >> gvs[nodes_fg_add_function_node0, gsize_def]
+  >- (gvs[SUBSET_DEF]
+      >> last_x_assum drule
+      >> qpat_x_assum ‘INR _ ∈ inputs’ kall_tac
+      >> strip_tac
+      >> gvs[wffactor_graph_def])
+  >> metis_tac[swap_edge]
+  >> qexists ‘n1’
+  >> simp[swap_edge]
 QED
 
 (* -------------------------------------------------------------------------- *)
