@@ -1655,9 +1655,20 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem adjacent_fg_add_function_node:
   ∀inputs fn fg n1 n2.
-    adjacent (get_underlying_graph (fg_add_function_node inputs fn fg)) n1 n2 ⇔
-      ARB
+    inputs ⊆ var_nodes fg ∧
+    n1 ∈ nodes (get_underlying_graph (fg_add_function_node inputs fn fg)) ∧
+    n2 ∈ nodes (get_underlying_graph (fg_add_function_node inputs fn fg)) ⇒
+    (adjacent (get_underlying_graph (fg_add_function_node inputs fn fg)) n1 n2 ⇔
+       (n1 = INR (CARD (nodes (get_underlying_graph fg))) ∧ n2 ∈ inputs) ∨
+       (n2 = INR (CARD (nodes (get_underlying_graph fg))) ∧ n1 ∈ inputs) ∨
+       adjacent (get_underlying_graph fg) n1 n2)
 Proof
+  rpt gen_tac
+  >> PURE_REWRITE_TAC[get_underlying_graph_def, fg_add_function_node_def]
+  >> simp[Excl "nodes_factor_graph_REP"]
+  >> strip_tac
+  >> irule adjacent_fg_add_function_node0
+  >> gvs[]
 QED
 
 Theorem adjacent_rcc_factor_graph_add_func_nodes_state:
