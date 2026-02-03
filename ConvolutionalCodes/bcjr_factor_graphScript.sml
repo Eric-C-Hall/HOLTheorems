@@ -1933,8 +1933,49 @@ Proof
 QED
 
 Theorem adjacent_rcc_factor_graph_add_func_nodes_enc:
-
+  ∀n p i ds_p fg n1 n2.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    (adjacent (get_underlying_graph
+               (rcc_factor_graph_add_func_nodes_enc n p i ds_p fg)
+              ) n1 n2 ⇔
+       (n1 ∈ IMAGE INR (range
+                        (CARD (nodes (get_underlying_graph fg)))
+                        (CARD (nodes (get_underlying_graph fg)) + (n - i))
+                       ) ∧
+        let
+          j = OUTR n1 + i - (CARD (nodes (get_underlying_graph fg)))
+        in
+          n2 = INR (n + j)
+       ) ∨
+       (n2 ∈ IMAGE INR (range
+                        (CARD (nodes (get_underlying_graph fg)))
+                        (CARD (nodes (get_underlying_graph fg)) + (n - i))
+                       ) ∧
+        let
+          j = OUTR n1 + i - (CARD (nodes (get_underlying_graph fg)))
+        in
+          n1 = INR (n + j)                   
+       ) ∨
+       adjacent (get_underlying_graph fg) n1 n2)
+    
 Proof
+  (* Our base case is when i gets to n. We then want to induct downwards on
+     i. So we induct on n - i. *)
+  
+  rpt gen_tac
+  >> qabbrev_tac ‘indterm = n - i’
+  >> pop_assum mp_tac >> simp[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘indterm’
+  (* Base case *)
+  >- (rpt gen_tac >> strip_tac >> strip_tac
+      >> qpat_x_assum ‘0 = n - i’ (fn th => assume_tac (GSYM th))
+      >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+      >> simp[])
+  (* Inductive step *)
+  >> rpt gen_tac >> strip_tac >> strip_tac
+  >> 
+
 QED
 
 Theorem adjacent_rcc_factor_graph_add_func_nodes_input_sys:
