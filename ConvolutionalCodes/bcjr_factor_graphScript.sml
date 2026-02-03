@@ -1502,32 +1502,32 @@ Theorem get_function_map_rcc_factor_graph:
 Proof
   rpt gen_tac
   >> simp[rcc_factor_graph_def]
-    >> irule (iffLR fmap_EQ_THM)
-    >> REVERSE conj_tac
-    >- (simp[get_function_map_rcc_factor_graph_add_func_nodes_state,
-             get_function_map_rcc_factor_graph_add_func_node_state_initial,
-             get_function_map_rcc_factor_graph_add_func_nodes_enc,
-             get_function_map_rcc_factor_graph_add_func_nodes_input_sys,
-             order_rcc_factor_graph_add_func_node_state_initial,
-             order_rcc_factor_graph_add_func_nodes_enc,
-             order_rcc_factor_graph_add_func_nodes_input_sys,
-             nodes_rcc_factor_graph_add_func_nodes_enc,
-             nodes_rcc_factor_graph_add_func_nodes_input_sys]
-        >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> disch_tac >> gvs[range_def]
-       )
-    >> gen_tac
-    >> simp[get_function_map_rcc_factor_graph_add_func_nodes_state,
-            get_function_map_rcc_factor_graph_add_func_node_state_initial,
-            get_function_map_rcc_factor_graph_add_func_nodes_enc,
-            get_function_map_rcc_factor_graph_add_func_nodes_input_sys,
-            order_rcc_factor_graph_add_func_node_state_initial,
-            order_rcc_factor_graph_add_func_nodes_enc,
-            order_rcc_factor_graph_add_func_nodes_input_sys,
-            nodes_rcc_factor_graph_add_func_nodes_enc,
-            nodes_rcc_factor_graph_add_func_nodes_input_sys]
+  >> irule (iffLR fmap_EQ_THM)
+  >> REVERSE conj_tac
+  >- (simp[get_function_map_rcc_factor_graph_add_func_nodes_state,
+           get_function_map_rcc_factor_graph_add_func_node_state_initial,
+           get_function_map_rcc_factor_graph_add_func_nodes_enc,
+           get_function_map_rcc_factor_graph_add_func_nodes_input_sys,
+           order_rcc_factor_graph_add_func_node_state_initial,
+           order_rcc_factor_graph_add_func_nodes_enc,
+           order_rcc_factor_graph_add_func_nodes_input_sys,
+           nodes_rcc_factor_graph_add_func_nodes_enc,
+           nodes_rcc_factor_graph_add_func_nodes_input_sys]
+      >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> disch_tac >> gvs[range_def]
+     )
+  >> gen_tac
+  >> simp[get_function_map_rcc_factor_graph_add_func_nodes_state,
+          get_function_map_rcc_factor_graph_add_func_node_state_initial,
+          get_function_map_rcc_factor_graph_add_func_nodes_enc,
+          get_function_map_rcc_factor_graph_add_func_nodes_input_sys,
+          order_rcc_factor_graph_add_func_node_state_initial,
+          order_rcc_factor_graph_add_func_nodes_enc,
+          order_rcc_factor_graph_add_func_nodes_input_sys,
+          nodes_rcc_factor_graph_add_func_nodes_enc,
+          nodes_rcc_factor_graph_add_func_nodes_input_sys]
   (* Split proof according to which range of nodes we're in (corresponding to
-     a particular type of function node) *) 
-  >> strip_tac     
+     a particular type of function node) *)
+  >> strip_tac
   >> (DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
       >> conj_tac
       >- (simp[] >> gvs[range_def])
@@ -1645,7 +1645,7 @@ Proof
       >> gvs[])
   >- (‘n1 = i’ by gvs[INSERT2_lemma]
       >> gvs[])
-  >- gvs[INSERT2_lemma] 
+  >- gvs[INSERT2_lemma]
   >- (gvs[nodes_fg_add_function_node0, gsize_def]
       >- (gvs[SUBSET_DEF]
           >> last_x_assum drule
@@ -1680,7 +1680,7 @@ Theorem adjacent_fg_add_function_node0:
        adjacent fg.underlying_graph n1 n2
     )
 Proof
-(* The additional assumption in adjacent_fg_add_function_node0_local is true
+  (* The additional assumption in adjacent_fg_add_function_node0_local is true
    on both the LHS and RHS of the iff, therefore we can assume it is true. *)
   rpt gen_tac >> strip_tac
   >> EQ_TAC
@@ -1777,7 +1777,7 @@ Theorem adjacent_rcc_factor_graph_add_func_nodes_state:
                         (CARD (nodes (get_underlying_graph fg)) + (n - i))
                        ) ∧
         let
-          j = OUTR n1 + i - (CARD (nodes (get_underlying_graph fg)))
+          j = OUTR n2 + i - (CARD (nodes (get_underlying_graph fg)))
         in
           (n1 = INR j ∨
            n1 = INR (n + j) ∨
@@ -1785,11 +1785,9 @@ Theorem adjacent_rcc_factor_graph_add_func_nodes_state:
            n1 = INR (2 * n + j + 1))
        ) ∨
        adjacent (get_underlying_graph fg) n1 n2)
-    
 Proof
   (* Our base case is when i gets to n. We then want to induct downwards on
      i. So we induct on n - i. *)
-
   rpt gen_tac
   >> qabbrev_tac ‘indterm = n - i’
   >> pop_assum mp_tac >> simp[Abbrev_def]
@@ -1838,11 +1836,12 @@ Proof
   >> PURE_REWRITE_TAC[gsize_def]
   >> qabbrev_tac ‘fg_ord = CARD (nodes (get_underlying_graph fg))’
   >> simp[]
-  >> qabbrev_tac ‘is_adjacent_node = λnode : unit + num other_node : unit + num.
-                                       (node = INR (i + OUTR other_node − fg_ord) ∨
-                                        node = INR (n + (i + OUTR other_node − fg_ord)) ∨
-                                        node = INR (2 * n + (i + OUTR other_node − fg_ord)) ∨
-                                        node = INR (2 * n + (i + OUTR other_node − fg_ord) + 1))
+  >> qabbrev_tac ‘is_adjacent_node =
+                  λnode : unit + num other_node : unit + num.
+                    (node = INR (i + OUTR other_node − fg_ord) ∨
+                     node = INR (n + (i + OUTR other_node − fg_ord)) ∨
+                     node = INR (2 * n + (i + OUTR other_node − fg_ord)) ∨
+                     node = INR (2 * n + (i + OUTR other_node − fg_ord) + 1))
                  ’
   >> simp[]
   (* The same abbreviations that work in the case of the previously added nodes
@@ -1884,81 +1883,34 @@ Proof
       (existing_adjacencies_n2 ∨ new_adjacency_n2 ⇔ all_adjacencies_n2)’
     suffices_by (rpt (pop_assum kall_tac)
                  >> Cases_on ‘existing_adjacencies_n1’ >> simp[]
-                 >> Cases_on ‘existing_adjacencies_n2’ >> simp[])
-  >> REVERSE conj_tac
-  >- (Q.UNABBREV_TAC ‘existing_adjacencies_n2’
-      >> Q.UNABBREV_TAC ‘new_adjacency_n2’
-      >> Q.UNABBREV_TAC ‘all_adjacencies_n2’
-      >> ‘is_adjacent_node n1 n1 = F’ by cheat
+                 >> Cases_on ‘existing_adjacencies_n2’ >> simp[]
+                )
+  >> MAP_EVERY Q.UNABBREV_TAC
+               [‘existing_adjacencies_n1’, ‘new_adjacency_n1’,
+                ‘all_adjacencies_n1’, ‘existing_adjacencies_n2’,
+                ‘new_adjacency_n2’, ‘all_adjacencies_n2’]
+  >> conj_tac
+  >- (EQ_TAC
+      >- (strip_tac
+          >- (simp[] >> qpat_x_assum ‘x ∈ range _ _’ mp_tac >> simp[range_def])
+          >> simp[]
+          >> simp[range_def])
+      >> strip_tac
       >> simp[]
-      >> unabbrev_all_tac >> simp[]
-
-          
+      >> qpat_x_assum ‘x ∈ range _ _’ mp_tac >> simp[range_def])
+  (* Version prior to update to iff thing we need to prove*)
+  >> EQ_TAC
+  >- (strip_tac
+      >- (simp[]
+          >> qpat_x_assum ‘_ ∈ range _ _’ mp_tac >> simp[range_def])
+      >> simp[]
+      >> simp[range_def]
      )
-     
-  
-  (* *)
-  >> sg ‘(∃x. n1 = INR x ∧ x ∈ range (fg_ord + 1) (fg_ord + n − i)) ∧
-         is_adjacent_node n2 n1 ∨
-         n1 = INR fg_ord ∧ is_adjacent_node n2 n1 =
-                           
-        ’
-        
-  (* *)
-  >> qabbrev_tac ‘foo = λn1 : unit + num n2 : unit + num n3 : unit + num n4 : unit + num
-                        .  (∃x. n1 = INR x ∧ x ∈ range (fg_ord + 1) (fg_ord + n − i)) ∧
-                           is_adjacent_node n3 n4 ’
+  >> strip_tac
   >> simp[]
-         
-
-         
-    >> simp[]
-    >> ‘adjacent (get_underlying_graph fg) n1 n2’ by cheat
-    >> 
-    (* Now that it's been abbreviated nicely, it's easier to see what we're doing
-     and to prove the theorem *)
-    >> EQ_TAC
-    >> strip_tac >> gvs[]
-
-                       
-                       
-    >> simp[]
-    >> qabbrev_tac ‘foo1 = λn1 : unit + num fg : extreal factor_graph i x n.
-                             n1 = INR x ∧
-                             x ∈
-                               range (order (get_underlying_graph fg) + 1)
-                               (n + order (get_underlying_graph fg) − i)’
-    >> simp[]
-    >> qabbrev_tac ‘foo2 =
-                    λn2 : unit + num.
-                      n2 = INR (i + OUTR n1 − order (get_underlying_graph fg)) ∨
-                      n2 = INR (n + (i + OUTR n1 − order (get_underlying_graph fg))) ∨
-                      n2 = INR (2 * n + (i + OUTR n1 − order (get_underlying_graph fg))) ∨
-                      n2 =
-                      INR (2 * n + (i + OUTR n1 − order (get_underlying_graph fg)) + 1)’
-    >> simp[]
-    >> qabbrev_tac ‘foo3 =
-                    λbar : extreal factor_graph. order (get_underlying_graph bar)’
-      >> simp[]
-      >> unabbrev_all_tac
-    >> simp[]
-
-           
-
-           
-    (* What if n1 is the newly added node *)
-    >> Cases_on ‘n1 = INR (CARD (nodes (get_underlying_graph fg)))’
-    >- (EQ_TAC
-        >> (strip_tac >> gvs[gsize_def, range_def])
-       )
-    (* We must instead have n2 is the newly added node *)
-    >> REVERSE (Cases_on ‘n2 = INR (CARD (nodes (get_underlying_graph fg)))’)
-    >- (‘F’ suffices_by simp[] >> gvs[])
-    >> EQ_TAC
-    >> (strip_tac >> gvs[gsize_def, range_def]
-       )
-       gvs[]
-
+  >> Cases_on ‘x = fg_ord’ >> simp[]
+  >> qpat_x_assum ‘x ∈ range _ _’ mp_tac
+  >> simp[range_def]
 QED
 
 Theorem adjacent_rcc_factor_graph_add_func_node_state_initial:
@@ -2022,7 +1974,7 @@ Proof
   rpt gen_tac >> strip_tac
   >> gvs[nodes_rcc_factor_graph]
   >> simp[rcc_factor_graph_def, o_DEF]
-  >> 
+  >>
 QED
 
 Theorem functions_noninfinite_rcc_factor_graph:
@@ -2046,16 +1998,16 @@ Proof
           >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments _ cur_adj_nodes _ ’
           >> sg ‘cur_adj_nodes = ARB’
           >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
-              >> 
+              >>
              )
-             
+
           >> simp[var_assignments_def]
           >> gvs[val_map_assignments_def]
           >> cheat
          )
       >> rw[]
      )
-     
+
   >> rw[]
   >- (DEP_PURE_ONCE_REWRITE_TAC [cj 2 FUN_FMAP_DEF]
       >> conj_tac
@@ -2063,7 +2015,7 @@ Proof
           >> simp[var_assignments_def]
          )
      )
-     
+
   >> conj_tac
   >- simp[]
   >> cheat
