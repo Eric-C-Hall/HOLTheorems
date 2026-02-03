@@ -1914,8 +1914,22 @@ Proof
 QED
 
 Theorem adjacent_rcc_factor_graph_add_func_node_state_initial:
-
+  ∀n ts fg n1 n2.
+    var_nodes fg = IMAGE INR (count (3 * n + 1)) ⇒
+    (adjacent (get_underlying_graph
+               (rcc_factor_graph_add_func_node_state_initial n ts fg)) n1 n2 ⇔
+       n1 = INR (CARD (nodes (get_underlying_graph fg))) ∧ n2 = INR (2 * n) ∨
+       n2 = INR (CARD (nodes (get_underlying_graph fg))) ∧ n1 = INR (2 * n) ∨
+       adjacent (get_underlying_graph fg) n1 n2
+    )
 Proof
+  rpt strip_tac
+  >> simp[rcc_factor_graph_add_func_node_state_initial_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_fg_add_function_node]
+  >> conj_tac
+  >- (qpat_x_assum ‘var_nodes fg = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[])
+  >> simp[]
 QED
 
 Theorem adjacent_rcc_factor_graph_add_func_nodes_enc:
