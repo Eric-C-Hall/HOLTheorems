@@ -1952,16 +1952,14 @@ Theorem adjacent_rcc_factor_graph_add_func_nodes_enc:
                         (CARD (nodes (get_underlying_graph fg)) + (n - i))
                        ) ∧
         let
-          j = OUTR n1 + i - (CARD (nodes (get_underlying_graph fg)))
+          j = OUTR n2 + i - (CARD (nodes (get_underlying_graph fg)))
         in
-          n1 = INR (n + j)                   
+          n1 = INR (n + j)
        ) ∨
        adjacent (get_underlying_graph fg) n1 n2)
-    
 Proof
   (* Our base case is when i gets to n. We then want to induct downwards on
      i. So we induct on n - i. *)
-  
   rpt gen_tac
   >> qabbrev_tac ‘indterm = n - i’
   >> pop_assum mp_tac >> simp[Abbrev_def]
@@ -1974,8 +1972,76 @@ Proof
       >> simp[])
   (* Inductive step *)
   >> rpt gen_tac >> strip_tac >> strip_tac
-  >> 
-
+  >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_enc_def]
+  >> simp[]
+  (* We have applied the inductive hypothesis and no longer need it *)
+  >> qpat_x_assum ‘∀ds_p fg i n n1 n2 p. _ ⇒ _ ⇒ _’ kall_tac
+  (* Simplify *)
+  >> PURE_REWRITE_TAC[GSYM gsize_def]
+  >> PURE_REWRITE_TAC[order_fg_add_function_node]
+  >> Q.SUBGOAL_THEN ‘{INR (i + n)} ⊆ var_nodes fg’
+      (fn th => PURE_REWRITE_TAC[th])
+  >- (qpat_assum ‘var_nodes _ = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[])
+  >> simp[]
+  (* *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_fg_add_function_node]
+  >> conj_tac
+  >- (qpat_assum ‘var_nodes _ = _’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[])
+  (* In the case where our nodes are adjacent in the underlying graph, our
+     iff immediately holds, thus we can simplify the iff *)
+  >> Cases_on ‘adjacent (get_underlying_graph fg) n1 n2’ >> simp[]
+  (* Rename components of expression to make it more understandable what each
+     of the components mean *)
+  >> qmatch_abbrev_tac ‘existing_adjacencies_n1 ∨
+                        existing_adjacencies_n2 ∨
+                        new_adjacency_n1 ∨
+                        new_adjacency_n2 ⇔
+                          all_adjacencies_n1 ∨
+                          all_adjacencies_n2’
+  (* Now we can clearly see that we really want to independently join together
+     the added adjacency to the rest of the adjacencies *)
+  >> ‘(existing_adjacencies_n1 ∨ new_adjacency_n1 ⇔ all_adjacencies_n1) ∧
+      (existing_adjacencies_n2 ∨ new_adjacency_n2 ⇔ all_adjacencies_n2)’
+    suffices_by (rpt (pop_assum kall_tac)
+                 >> Cases_on ‘existing_adjacencies_n1’ >> simp[]
+                 >> Cases_on ‘existing_adjacencies_n2’ >> simp[]
+                )
+  >> MAP_EVERY Q.UNABBREV_TAC
+               [‘existing_adjacencies_n1’, ‘new_adjacency_n1’,
+                ‘all_adjacencies_n1’, ‘existing_adjacencies_n2’,
+                ‘new_adjacency_n2’, ‘all_adjacencies_n2’]
+  (* *)
+  >> conj_tac
+  >- (EQ_TAC
+      >- (strip_tac
+          >- (simp[]
+              >> qpat_x_assum ‘_ ∈ range _ _’ mp_tac
+              >> simp[range_def])
+          >> simp[GSYM gsize_def]
+          >> simp[range_def]
+         )
+      >> simp[]
+      >> strip_tac
+      >> Cases_on ‘x = order (get_underlying_graph fg)’
+      >- simp[GSYM gsize_def]
+      >> qpat_x_assum ‘_ ∈ range _ _’ mp_tac
+      >> simp[range_def])
+  >> EQ_TAC
+  >- (strip_tac
+      >- (simp[]
+          >> qpat_x_assum ‘_ ∈ range _ _’ mp_tac
+          >> simp[range_def])
+      >> simp[GSYM gsize_def]
+      >> simp[range_def]
+     )
+  >> strip_tac
+  >> simp[]
+  >> Cases_on ‘x = order (get_underlying_graph fg)’
+  >- simp[GSYM gsize_def]
+  >> qpat_x_assum ‘x ∈ range _ _’ mp_tac
+  >> simp[range_def]
 QED
 
 Theorem adjacent_rcc_factor_graph_add_func_nodes_input_sys:
