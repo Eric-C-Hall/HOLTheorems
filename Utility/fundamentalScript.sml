@@ -487,3 +487,18 @@ Theorem IGNORE_EQ_CONG:
 Proof
   metis_tac[]
 QED
+
+Theorem probability_negation_not_infty:
+  ∀p : extreal.
+    p ≠ +∞ ∧
+    p ≠ −∞ ⇒
+    (1 - p ≠ +∞) ∧ (1 - p ≠ −∞)
+Proof
+  rpt gen_tac >> strip_tac
+  >> conj_tac
+  >- (irule (cj 2 sub_not_infty)
+      >> simp[])
+  >> irule (cj 1 sub_not_infty)
+  >> simp[]
+QED
+

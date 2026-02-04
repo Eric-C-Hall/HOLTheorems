@@ -22,7 +22,7 @@ qmatch_asmsub_abbrev_tac ‘donotexpand_var’
 (* Tactic that undoes the effect of donotexpand_tac *)
 val doexpand_tac =
 (* abbreviate assumption to expand *)
-qmatch_asmsub_abbrev_tac ‘donotexpand donotexpand_var’
+qmatch_asmsub_abbrev_tac ‘donotexpand$donotexpand donotexpand_var’
 (* move assumption to expand to top *)
 >> qpat_x_assum ‘donotexpand donotexpand_var’ assume_tac
 (* expand assumption*)

@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin extreal factor_graph finite_map fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
+Ancestors binary_symmetric_channel combin donotexpand extreal factor_graph finite_map fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -2225,48 +2225,143 @@ Proof
   >- (strip_tac >> gvs[range_def])
 QED
 
+(* This was originally written for the first case, but I found that it also
+ works for most of the other cases *)
+val functions_noninfinite_rcc_factor_graph_solve_case_tac =
+simp[]
+>> DEP_PURE_ONCE_REWRITE_TAC [cj 2 FUN_FMAP_DEF]
+>> conj_tac         
+>- (simp[]
+    >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments _ cur_adj_nodes _ ’
+    >> sg ‘cur_adj_nodes ⊆ var_nodes (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))’
+    >- (simp[var_nodes_rcc_factor_graph]
+        >> Q.UNABBREV_TAC ‘cur_adj_nodes’
+        >> simp[SUBSET_DEF]
+        >> gen_tac
+        >> strip_tac
+        >> Cases_on ‘x'’ >> gvs[]
+        >> gvs[range_def, adjacent_rcc_factor_graph]
+       )
+    >> sg ‘FDOM val_map = cur_adj_nodes’
+    >- (drule in_val_map_assignments_fdom
+        >> disch_then irule
+        >> simp[]
+       )
+    >> simp[var_assignments_def]
+    >> qpat_x_assum ‘x ∈ range _ _’
+                    (fn th => mp_tac (SIMP_RULE (srw_ss()) [range_def] th))
+    >> strip_tac
+    >> qmatch_abbrev_tac ‘cur_adj_nodes = adj_ns ∧ _’
+    >> sg ‘cur_adj_nodes = adj_ns’ >> Q.UNABBREV_TAC ‘adj_ns’
+    >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
+        >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> gvs[adjacent_rcc_factor_graph]
+        >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+            >> simp[adjacent_rcc_factor_graph]
+           )
+        >> strip_tac
+        >> simp[]
+       )
+    >> simp[]
+    >> gvs[val_map_assignments_def]
+    >> simp[get_variable_length_map_rcc_factor_graph]
+   )
+>> ‘1 - p ≠ +∞ ∧ 1 - p ≠ −∞’ by (irule probability_negation_not_infty >> simp[])
+>> rw[];
+
+fun functions_noninfinite_rcc_factor_graph_case1_cleanup_tac i
+= irule (cj i mul_not_infty2)
+>> simp[]
+>> PURE_ONCE_REWRITE_TAC[CONJ_COMM]
+>> last_x_assum irule
+>> irule EL_MEM
+>> doexpand_tac
+>> simp[]
+>> PURE_ONCE_REWRITE_TAC[GSYM NOT_ZERO]
+>> disch_tac
+>> gvs[range_def];
+
 Theorem functions_noninfinite_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     p ≠ +∞ ∧
     p ≠ −∞ ∧
-    (∀x. MEM x prior ⇒ x ≠ +∞ ∧ x ≠ −∞) ⇒
+    (∀x. MEM x prior ⇒ x ≠ +∞ ∧ x ≠ −∞) ∧
+    LENGTH prior = n ⇒
     functions_noninfinite (rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p))
+                          
 Proof
+  
   rpt gen_tac >> strip_tac
+  >> qpat_x_assum ‘LENGTH prior = n’ assume_tac >> donotexpand_tac
   >> simp[functions_noninfinite_def]
   >> rpt gen_tac >> strip_tac
   >> gvs[]
   >> simp[get_function_map_rcc_factor_graph]
   >> simp[cj 2 FUN_FMAP_DEF]
   >> Cases_on ‘x ≤ 4 * n’
-  >- (simp[]
-      >> DEP_PURE_ONCE_REWRITE_TAC [cj 2 FUN_FMAP_DEF]
-      >> conj_tac
-      >- (simp[]
-          >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments _ cur_adj_nodes _ ’
-          >> sg ‘cur_adj_nodes = ARB’
-          >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
-              >>
-             )
-
-          >> simp[var_assignments_def]
-          >> gvs[val_map_assignments_def]
-          >> cheat
-         )
-      >> rw[]
+  >- (functions_noninfinite_rcc_factor_graph_solve_case_tac
+      >- (functions_noninfinite_rcc_factor_graph_case1_cleanup_tac 2)
+      >- (functions_noninfinite_rcc_factor_graph_case1_cleanup_tac 2)
+      >- (functions_noninfinite_rcc_factor_graph_case1_cleanup_tac 1)
+      >> functions_noninfinite_rcc_factor_graph_case1_cleanup_tac 1
      )
-
-  >> rw[]
-  >- (DEP_PURE_ONCE_REWRITE_TAC [cj 2 FUN_FMAP_DEF]
-      >> conj_tac
-      >- (simp[]
-          >> simp[var_assignments_def]
-         )
-     )
-
+  >> simp[]
+  >> Cases_on ‘x ≤ 5 * n’
+  >- functions_noninfinite_rcc_factor_graph_solve_case_tac
+  >> simp[]
+  >> Cases_on  ‘x = 5 * n + 1’
+  >- functions_noninfinite_rcc_factor_graph_solve_case_tac
+  >> simp[]
+  (* Much more significant modifications need to be made for this case than for
+     the other cases, so I copy/pasted the code and modified it *)
+  >> simp[]
+  >> DEP_PURE_ONCE_REWRITE_TAC [cj 2 FUN_FMAP_DEF]
   >> conj_tac
-  >- simp[]
-  >> cheat
+     
+  >- (simp[]
+      >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments _ cur_adj_nodes _ ’
+      >> sg ‘cur_adj_nodes ⊆ var_nodes (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))’
+      >- (simp[var_nodes_rcc_factor_graph]
+          >> Q.UNABBREV_TAC ‘cur_adj_nodes’
+          >> simp[SUBSET_DEF]
+          >> gen_tac
+          >> strip_tac
+          >> Cases_on ‘x'’ >> gvs[]
+          >> gvs[range_def, adjacent_rcc_factor_graph]
+          (* Here is the first modification *)
+          >> pop_assum mp_tac >> rw[]
+          (* End of first modification *)
+          >> all_tac
+         )
+      >> sg ‘FDOM val_map = cur_adj_nodes’
+      >- (drule in_val_map_assignments_fdom
+          >> disch_then irule
+          >> simp[]
+         )
+      >> simp[var_assignments_def]
+      >> qpat_x_assum ‘x ∈ range _ _’
+                      (fn th => mp_tac (SIMP_RULE (srw_ss()) [range_def] th))
+      >> strip_tac
+         
+      (* Here is the second modification *)
+      >> simp[func_node_state_adjacent_nodes_def]
+      (* End of second modification *)
+             
+      >> qmatch_abbrev_tac ‘cur_adj_nodes = adj_ns ∧ _’
+      >> sg ‘cur_adj_nodes = adj_ns’ >> Q.UNABBREV_TAC ‘adj_ns’      
+      >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
+          >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> gvs[adjacent_rcc_factor_graph]
+          >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+              >> simp[adjacent_rcc_factor_graph]
+             )
+          >> strip_tac
+          >> simp[]
+         )
+      >> simp[]
+      >> gvs[val_map_assignments_def]
+      >> simp[get_variable_length_map_rcc_factor_graph]
+     )
+  >> ‘1 - p ≠ +∞ ∧ 1 - p ≠ −∞’ by (irule probability_negation_not_infty >> simp[])
+  >> rw[]
 QED
 
 (* -------------------------------------------------------------------------- *)
