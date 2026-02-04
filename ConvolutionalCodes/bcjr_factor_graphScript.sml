@@ -2164,8 +2164,6 @@ QED
 Theorem adjacent_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p n1 n2.
     n1 ∈ nodes (get_underlying_graph
-                (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))) ∧
-    n2 ∈ nodes (get_underlying_graph
                 (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))) ⇒
     (adjacent (get_underlying_graph
                (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))) n1 n2 ⇔
@@ -2192,7 +2190,7 @@ Theorem adjacent_rcc_factor_graph:
                else
                  if OUTR n1 = 5 * n + 1
                  then
-                   n2 = INR (5 * n + 2)
+                   n2 = INR (2 * n)
                  else
                    n2 = INR (OUTR n1 - (5 * n + 2)) ∨
                    n2 = INR (OUTR n1 - (4 * n + 2)) ∨
@@ -2203,7 +2201,28 @@ Proof
   rpt gen_tac >> strip_tac
   >> gvs[nodes_rcc_factor_graph]
   >> simp[rcc_factor_graph_def, o_DEF]
-  >>
+  >> simp[adjacent_rcc_factor_graph_add_func_nodes_state,
+          GSYM gsize_def,
+          order_rcc_factor_graph_add_func_node_state_initial,
+          order_rcc_factor_graph_add_func_nodes_enc,
+          order_rcc_factor_graph_add_func_nodes_input_sys,
+          adjacent_rcc_factor_graph_add_func_node_state_initial,
+          adjacent_rcc_factor_graph_add_func_nodes_enc,
+          adjacent_rcc_factor_graph_add_func_nodes_input_sys]
+  >> EQ_TAC
+  >- (strip_tac >> gvs[range_def])
+  >> Cases_on ‘x < n’ >> simp[]
+  >- (strip_tac >> gvs[range_def])
+  >> Cases_on ‘x < 2 * n’ >> simp[]
+  >- (strip_tac >> gvs[range_def])
+  >> Cases_on ‘x < 3 * n + 1’ >> simp[]
+  >- (strip_tac >> gvs[range_def])
+  >> Cases_on ‘x < 4 * n + 1’ >> simp[]
+  >- (strip_tac >> gvs[range_def])
+  >> Cases_on ‘x < 5 * n + 1’ >> simp[]
+  >- (strip_tac >> gvs[range_def])
+  >> Cases_on ‘x = 5 * n + 1’ >> simp[]
+  >- (strip_tac >> gvs[range_def])
 QED
 
 Theorem functions_noninfinite_rcc_factor_graph:
