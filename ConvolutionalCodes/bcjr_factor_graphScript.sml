@@ -2071,7 +2071,7 @@ Theorem adjacent_rcc_factor_graph_add_func_nodes_input_sys:
        adjacent (get_underlying_graph fg) n1 n2)
 Proof
   (* Our base case is when i gets to n. We then want to induct downwards on
-     i. So we induct on n - i. *)  
+     i. So we induct on n - i. *)
   rpt gen_tac
   >> qabbrev_tac ‘indterm = n - i’
   >> pop_assum mp_tac >> simp[Abbrev_def]
@@ -2230,7 +2230,7 @@ QED
 val functions_noninfinite_rcc_factor_graph_solve_case_tac =
 simp[]
 >> DEP_PURE_ONCE_REWRITE_TAC [cj 2 FUN_FMAP_DEF]
->> conj_tac         
+>> conj_tac
 >- (simp[]
     >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments _ cur_adj_nodes _ ’
     >> sg ‘cur_adj_nodes ⊆ var_nodes (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))’
@@ -2287,9 +2287,7 @@ Theorem functions_noninfinite_rcc_factor_graph:
     (∀x. MEM x prior ⇒ x ≠ +∞ ∧ x ≠ −∞) ∧
     LENGTH prior = n ⇒
     functions_noninfinite (rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p))
-                          
 Proof
-  
   rpt gen_tac >> strip_tac
   >> qpat_x_assum ‘LENGTH prior = n’ assume_tac >> donotexpand_tac
   >> simp[functions_noninfinite_def]
@@ -2316,7 +2314,6 @@ Proof
   >> simp[]
   >> DEP_PURE_ONCE_REWRITE_TAC [cj 2 FUN_FMAP_DEF]
   >> conj_tac
-     
   >- (simp[]
       >> qmatch_asmsub_abbrev_tac ‘val_map ∈ val_map_assignments _ cur_adj_nodes _ ’
       >> sg ‘cur_adj_nodes ⊆ var_nodes (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))’
@@ -2341,20 +2338,21 @@ Proof
       >> qpat_x_assum ‘x ∈ range _ _’
                       (fn th => mp_tac (SIMP_RULE (srw_ss()) [range_def] th))
       >> strip_tac
-         
-      (* Here is the second modification *)
-      >> simp[func_node_state_adjacent_nodes_def]
-      (* End of second modification *)
-             
       >> qmatch_abbrev_tac ‘cur_adj_nodes = adj_ns ∧ _’
-      >> sg ‘cur_adj_nodes = adj_ns’ >> Q.UNABBREV_TAC ‘adj_ns’      
+      >> sg ‘cur_adj_nodes = adj_ns’ >> Q.UNABBREV_TAC ‘adj_ns’
       >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
+          (* Here is the second modification *)
+          >> simp[func_node_state_adjacent_nodes_def]
+          (* End of second modification *)
           >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> gvs[adjacent_rcc_factor_graph]
           >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM]
               >> simp[adjacent_rcc_factor_graph]
              )
           >> strip_tac
-          >> simp[]
+          (* Here is the third modification *)
+          >> simp[adjacent_rcc_factor_graph]
+          (* End of third modification *)
+          >> all_tac
          )
       >> simp[]
       >> gvs[val_map_assignments_def]
@@ -2362,6 +2360,7 @@ Proof
      )
   >> ‘1 - p ≠ +∞ ∧ 1 - p ≠ −∞’ by (irule probability_negation_not_infty >> simp[])
   >> rw[]
+  >> (simp[func_node_state_fn_def] >> rw[])
 QED
 
 (* -------------------------------------------------------------------------- *)
