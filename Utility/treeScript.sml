@@ -3348,6 +3348,86 @@ Proof
   >> gvs[EL]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* If a node has degree one and it is in a path, then it is the first or last *)
+(* element                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem degree_one_hd_last_path:
+  ∀g : fsgraph n vs.
+    degree g n = 1 ∧
+    path g vs ∧
+    MEM n vs ⇒
+    n = HD vs ∨ n = LAST vs
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> gvs[MEM_EL]
+  >> Cases_on ‘vs = []’ >- gvs[]
+  >> simp[LAST_EL]
+  >> PURE_ONCE_REWRITE_TAC[GSYM (cj 1 EL)]
+  >> CCONTR_TAC >> gvs[]
+  >> ‘n' ≠ PRE (LENGTH vs)’ by (disch_tac >> gvs[])
+  >> ‘n' ≠ 0’ by (disch_tac >> gvs[])
+  (* EL (n' - 1) and EL (n' + 1) are both adjacent to EL n', but the
+             degree is 1 so that's a contradiction. *)
+  >> sg ‘adjacent g (EL (n' - 1) vs) (EL n' vs)’
+  >- (gvs[path_def, walk_def]
+      >> first_x_assum irule
+      >> irule adjacent_el_el
+      >> simp[]
+     )
+  >> sg ‘adjacent g (EL n' vs) (EL (n' + 1) vs)’
+  >- (gvs[path_def, walk_def]
+      >> first_x_assum irule
+      >> irule adjacent_el_el
+      >> simp[]
+     )
+  >> sg ‘EL (n' - 1) vs ≠ EL (n' + 1) vs’
+  >- (gvs[path_def]
+      >> gvs[EL_ALL_DISTINCT_EL_EQ])
+  >> gvs[degree_def, CARD_ONE_CHOOSE_ELT]
+  >> last_assum $ qspecl_then [‘{EL n' vs; EL (n' + 1) vs}’] assume_tac
+  >> last_x_assum $ qspecl_then [‘{EL n' vs; EL (n' - 1) vs}’] assume_tac
+  >> gvs[]
+  >> sg ‘{EL n' vs; EL (n' + 1) vs} ∈ fsgedges g’
+  >- (simp[fsgedges_def]
+      >> qexistsl [‘EL n' vs’, ‘EL (n' + 1) vs’]
+      >> simp[]
+      >> gvs[])
+  >> sg ‘{EL n' vs; EL (n' - 1) vs} ∈ fsgedges g’
+  >- (simp[fsgedges_def]
+      >> qexistsl [‘EL n' vs’, ‘EL (n' - 1) vs’]
+      >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+      >> simp[])
+  >> gvs[]
+  >> gvs[INSERT2_lemma]
+QED
+
+Theorem path_removeNode_imp_reverse:
+  ∀g : fsgraph n vs.
+    degree g n = 1 ∧
+    n ≠ HD vs ∧
+    n ≠ LAST vs ∧
+    path g vs ⇒
+    path (removeNode n g) vs
+Proof
+  rpt gen_tac >> strip_tac
+  (* If the removed node isn't in the path, we can simply use the same path, and
+     it will remain a path *)
+  >> REVERSE $ Cases_on ‘MEM n vs’ >> simp[]
+  >- (gvs[path_def, walk_def]
+      >> rpt gen_tac >> strip_tac
+      >> simp[adjacent_removeNode]
+      >> conj_tac >> disch_tac >> gvs[]
+      >> drule adjacent_MEM
+      >> simp[])
+  (* If the removed node is in the path, since it has degree one, it must be
+     either the first or last element *)
+  >> drule_all degree_one_hd_last_path
+  >> simp[]
+QED
+
 Theorem exists_path_removeNode_imp_reverse:
   ∀g n a b.
     degree g n = 1 ∧
@@ -3359,68 +3439,7 @@ Proof
   rpt gen_tac
   >> strip_tac
   >> gvs[exists_path_def]
-  >> Cases_on ‘MEM n vs’
-  >- (all_tac
-      (* We know n is not the first nor last node, hence it is in the middle
-         of the path. Thus, there are at least two nodes adjacent to it.
-         This  contradicts degree g n = 1 *)
-      >> CCONTR_TAC
-      >> gvs[]
-      >> gvs[MEM_EL]
-      >> qpat_x_assum ‘HD _ ≠ EL _ _’ mp_tac
-      >> qpat_x_assum ‘LAST _ ≠ EL _ _’ mp_tac
-      >> Cases_on ‘vs = []’ >- gvs[]
-      >> simp[LAST_EL]
-      >> PURE_ONCE_REWRITE_TAC[GSYM (cj 1 EL)]
-      >> strip_tac
-      >> CCONTR_TAC
-      >> ‘n' ≠ PRE (LENGTH vs)’ by (disch_tac >> gvs[])
-      >> ‘n' ≠ 0’ by (disch_tac >> gvs[])
-      (* EL (n' - 1) and EL (n' + 1) are both adjacent to EL n', but the
-             degree is 1 so that's a contradiction. *)
-      >> sg ‘adjacent g (EL (n' - 1) vs) (EL n' vs)’
-      >- (gvs[path_def, walk_def]
-          >> first_x_assum irule
-          >> irule adjacent_el_el
-          >> simp[]
-         )
-      >> sg ‘adjacent g (EL n' vs) (EL (n' + 1) vs)’
-      >- (gvs[path_def, walk_def]
-          >> first_x_assum irule
-          >> irule adjacent_el_el
-          >> simp[]
-         )
-      >> sg ‘EL (n' - 1) vs ≠ EL (n' + 1) vs’
-      >- (gvs[path_def]
-          >> gvs[EL_ALL_DISTINCT_EL_EQ])
-      >> gvs[degree_def, CARD_ONE_CHOOSE_ELT]
-      >> last_assum $ qspecl_then [‘{EL n' vs; EL (n' + 1) vs}’] assume_tac
-      >> last_x_assum $ qspecl_then [‘{EL n' vs; EL (n' - 1) vs}’] assume_tac
-      >> gvs[]
-      >> sg ‘{EL n' vs; EL (n' + 1) vs} ∈ fsgedges g’
-      >- (simp[fsgedges_def]
-          >> qexistsl [‘EL n' vs’, ‘EL (n' + 1) vs’]
-          >> simp[]
-          >> gvs[])
-      >> sg ‘{EL n' vs; EL (n' - 1) vs} ∈ fsgedges g’
-      >- (simp[fsgedges_def]
-          >> qexistsl [‘EL n' vs’, ‘EL (n' - 1) vs’]
-          >> simp[]
-          >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
-          >> simp[])
-      >> gvs[]
-      >> gvs[INSERT2_lemma]
-     )
-  >> qexists ‘vs’
-  >> simp[]
-  >> gvs[path_def]
-  >> gvs[walk_def]
-  >> rpt gen_tac >> strip_tac
-  >> simp[adjacent_removeNode]
-  >> ‘MEM v1 vs ∧ MEM v2 vs’
-    suffices_by (strip_tac >> conj_tac >> disch_tac >> gvs[])
-  >> irule adjacent_MEM
-  >> simp[]
+  >> qexists ‘vs’ >> simp[path_removeNode_imp_reverse]
 QED
 
 Theorem connected_removeNode:
@@ -3464,12 +3483,8 @@ Proof
      )
   >> last_x_assum $ qspecl_then [‘a’, ‘b’] assume_tac
   >> gvs[]
-  >> gvs[exists_path_def]
-  >> qexists ‘vs’
+  >> irule exists_path_removeNode_imp_reverse
   >> simp[]
-  >> path_removeNode
-  >> qexists ‘n’
-
 QED
 
 (* -------------------------------------------------------------------------- *)
