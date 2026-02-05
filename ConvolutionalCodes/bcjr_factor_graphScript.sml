@@ -295,16 +295,6 @@ Definition rcc_bcjr_fg_decode_def:
     ) (COUNT_LIST n)
 End
 
-Theorem is_tree_rcc_factor_graph:
-  ∀n p ps qs ts prior ds_s ds_p.
-    is_tree (get_underlying_graph
-             (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))
-            )
-Proof
-  rpt gen_tac
-  >> cheat
-QED
-
 Theorem var_nodes_fg_add_function_node0:
   ∀inputs fn fg.
     wffactor_graph fg ⇒
@@ -2363,6 +2353,19 @@ Proof
   >> (simp[func_node_state_fn_def] >> rw[])
 QED
 
+Theorem is_tree_rcc_factor_graph:
+  ∀n p ps qs ts prior ds_s ds_p.
+    is_tree (get_underlying_graph
+             (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))
+            )
+            
+Proof
+
+  rpt gen_tac
+  >> 
+  >> cheat
+QED
+        
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)

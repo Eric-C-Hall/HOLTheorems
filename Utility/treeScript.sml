@@ -48,6 +48,11 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   value, there's a point at which they converge                            *)
 (*   (exists_point_of_convergence)                                            *)
 (*                                                                            *)
+(* - A graph is a tree if and only if when we take away a leaf node,          *)
+(*   it remains a tree. In particular, note that any tree can be built up     *)
+(*   by repeatedly adding leaves, so it'll be possible to prove any tree is a *)
+(*   tree by repeatedly using this theorem (is_tree_remove_leaf_is_tree)      *)
+(*                                                                            *)
 (* - If a ~ x - b then x = EL 1 (a - b) (adjacent_mem_get_path_first_step)    *)
 (*   (adjacent_mem_get_path_first_step_alt)                                   *)
 (*                                                                            *)
@@ -3078,6 +3083,134 @@ Proof
   >> irule move_end_to_adjacent_adjacent
   >> simp[]
   >> qexists ‘x’ >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This works with more general graphs than adjacent_removeNode               *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_removeNode_imp:
+  ∀n g v1 v2.
+    adjacent (removeNode n g) v1 v2 ⇒
+    adjacent g v1 v2 ∧ v1 ≠ n ∧ v2 ≠ n
+Proof
+  rpt gen_tac >> strip_tac
+  >> drule adjacent_members
+  >> simp[]
+  >> strip_tac
+  >> gvs[adjacent_def]
+  >> (qexistsl [‘e’, ‘ms’, ‘ns’] >> simp[])
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Tells us how adjacency changes when a node is removed.                     *)
+(*                                                                            *)
+(* We require that our graph is not a hypergraph, because in the case of a    *)
+(* hypergraph, it may be that there's an edge between a, b, and c, and        *)
+(* removing the node b removes this edge, hence causing a and c to become     *)
+(* nonadjacent when previously they were adjacent.                            *)
+(*                                                                            *)
+(* TODO: Maybe this can be generalised to work with an arbitrary graph that   *)
+(* satisfies ¬is_hypergraph g, rather than only with fsgraphs                  *)
+(*                                                                            *)
+(* Tag: Possibly move to different file                                       *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_removeNode:
+  ∀n g : fsgraph v1 v2.
+    adjacent (removeNode n g) v1 v2 ⇔
+      adjacent g v1 v2 ∧ v1 ≠ n ∧ v2 ≠ n    
+Proof  
+  rpt gen_tac
+  >> EQ_TAC >> strip_tac
+  >- (irule adjacent_removeNode_imp >> simp[])
+  >> gvs[adjacent_def]
+  >> qexistsl [‘e’, ‘ms’, ‘ns’] >> simp[]
+  >> Cases_on ‘e’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* This works with more general graphs than walk_removeNode.                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem walk_removeNode_imp:
+  ∀n g ns.
+    walk (removeNode n g) ns ⇒
+    walk g ns ∧ ¬MEM n ns
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[walk_def]
+  >> strip_tac
+  >- (rpt gen_tac
+      >> strip_tac
+      >> last_x_assum drule
+      >> strip_tac
+      >> irule (cj 1 adjacent_removeNode_imp)
+      >> qexists ‘n’ >> simp[])
+  >> disch_tac
+  >> last_x_assum drule
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Maybe this can be generalised to work with an arbitrary graph that   *)
+(* satisfies ¬is_hypergraph g, rather than only with fsgraphs                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem walk_removeNode:
+  ∀n g : fsgraph ns.
+    walk (removeNode n g) ns ⇔
+      walk g ns ∧ ¬MEM n ns
+Proof  
+  rpt gen_tac
+  >> EQ_TAC >> strip_tac
+  >- (irule walk_removeNode_imp >> simp[])
+  >> gvs[walk_def]
+  >> rpt gen_tac
+  >> strip_tac
+  >> simp[adjacent_removeNode]
+  >> ‘MEM v1 ns ∧ MEM v2 ns’
+    suffices_by (strip_tac >> conj_tac >> disch_tac >> gvs[])
+  >> irule adjacent_MEM
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Maybe this can be generalised to work with an arbitrary graph that   *)
+(* satisfies ¬is_hypergraph g, rather than only with fsgraphs                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem is_tree_remove_leaf_is_tree:
+  ∀g : fsgraph n.
+    degree g n = 1 ⇒
+    (is_tree g ⇔ is_tree (removeNode n g))
+
+Proof
+
+  rpt gen_tac >> strip_tac
+  >> simp[is_tree_def]
+  >> ‘connected (removeNode n g) ⇔ connected g’ by cheat
+  >> simp[]
+  >> ‘connected g ⇒ ((∀ns. ¬cycle g ns) ⇔ ∀ns. ¬cycle (removeNode n g) ns)’
+    suffices_by (strip_tac >> EQ_TAC >> strip_tac >> gvs[])
+  >> strip_tac
+  >> gvs[]
+  >> EQ_TAC
+     
+  >- (strip_tac
+      >> gen_tac
+      >> first_x_assum (qspecl_then [‘ns’] assume_tac)
+      >> gvs[cycle_def]
+      >> strip_tac
+      >> gvs[]
+      >> disj1_tac
+      >> qpat_x_assum ‘¬walk _ _’ mp_tac
+      >> PURE_REWRITE_TAC[walk_def]
+      >> strip_tac
+      >> disch_tac
+      >> gvs[]
+      >> ‘∃n2. adjacent ns n n2’ by cheat
+      >> qpat_x_assum ‘∀v1 v2. adjacent ns v1 v2 ⇒ adjacent _ _ _’
+                      (qspecl_then [‘n’, ‘n2’] mp_tac)
+      >> simp[]
+      >> strip_tac >> drule adjacent_members
+      >> simp[]
+     )
 QED
 
 (* -------------------------------------------------------------------------- *)
