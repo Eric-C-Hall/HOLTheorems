@@ -3117,8 +3117,8 @@ QED
 Theorem adjacent_removeNode:
   ∀n g : fsgraph v1 v2.
     adjacent (removeNode n g) v1 v2 ⇔
-      adjacent g v1 v2 ∧ v1 ≠ n ∧ v2 ≠ n    
-Proof  
+      adjacent g v1 v2 ∧ v1 ≠ n ∧ v2 ≠ n
+Proof
   rpt gen_tac
   >> EQ_TAC >> strip_tac
   >- (irule adjacent_removeNode_imp >> simp[])
@@ -3157,7 +3157,7 @@ Theorem walk_removeNode:
   ∀n g : fsgraph ns.
     walk (removeNode n g) ns ⇔
       walk g ns ∧ ¬MEM n ns
-Proof  
+Proof
   rpt gen_tac
   >> EQ_TAC >> strip_tac
   >- (irule walk_removeNode_imp >> simp[])
@@ -3169,6 +3169,307 @@ Proof
     suffices_by (strip_tac >> conj_tac >> disch_tac >> gvs[])
   >> irule adjacent_MEM
   >> simp[]
+QED
+
+Theorem walk_removeNode_imp:
+  ∀n g vs.
+    walk (removeNode n g) vs ⇒
+    walk g vs
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[walk_def]
+  >> rpt gen_tac
+  >> strip_tac
+  >> last_x_assum drule
+  >> strip_tac
+  >> irule (cj 1 adjacent_removeNode_imp)
+  >> qexists ‘n’ >> simp[]
+QED
+
+Theorem path_removeNode_imp:
+  ∀n g vs.
+    path (removeNode n g) vs ⇒
+    path g vs
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> gvs[path_def]
+  >> irule walk_removeNode_imp >> qexists ‘n’ >> simp[]
+QED
+
+Theorem exists_path_removeNode_imp:
+  ∀n g a b.
+    exists_path (removeNode n g) a b ⇒
+    exists_path g a b
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[exists_path_def]
+  >> qexists ‘vs’
+  >> simp[]
+  >> irule path_removeNode_imp
+  >> qexists ‘n’ >> pop_assum irule
+QED
+
+Theorem CARD_ONE_SING_DEF:
+  ∀S.
+    FINITE S ⇒
+    (CARD S = 1 ⇔ ∃x. S = {x})
+Proof
+  gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM SING_DEF]
+  >> simp[SING_IFF_CARD1]
+QED
+
+Theorem INSERT_EQ_SING:
+  ∀l ls x.
+    l INSERT ls = {x} ⇔ l = x ∧ (ls = ∅ ∨ ls = {x})
+Proof
+  rpt gen_tac
+  >> Cases_on ‘l ∈ ls’
+  >- (simp[ABSORPTION_RWT]
+      >> EQ_TAC >> simp[]
+      >> strip_tac
+      >> gvs[])
+  >> Cases_on ‘ls’ >> gvs[]
+  >> sg ‘l INSERT x' INSERT t = {x} ⇔ F’
+  >- (simp[]
+      >> disch_then (fn th => assume_tac (GSYM th))
+      >> ‘FINITE {x}’ by simp[]
+      >> ‘CARD {x} = 1’ by simp[]
+      >> NTAC 2 (pop_assum mp_tac)
+      >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+      >> simp[])
+  >> simp[]
+  >> strip_tac
+  >> gvs[]
+  >> disch_tac
+  >> gvs[]
+QED
+
+Theorem CARD_ONE_CHOOSE_ELT_OLD:
+  ∀S.
+    FINITE S ⇒
+    (CARD S = 1 ⇔ S ≠ ∅ ∧ ∃x. ∀y. y ∈ S ⇒ y = x)
+Proof
+  gen_tac >> strip_tac
+  >> simp[CARD_ONE_SING_DEF]
+  >> EQ_TAC
+  >- (strip_tac
+      >> Cases_on ‘S'’ >> gvs[]
+      >> qexists ‘x’ >> gen_tac >> strip_tac >> gvs[] >> gvs[INSERT_EQ_SING])
+  >> strip_tac
+  >> qexists ‘x’
+  >> PURE_ONCE_REWRITE_TAC[EXTENSION]
+  >> gen_tac
+  >> EQ_TAC >> simp[]
+  >> strip_tac
+  >> Cases_on ‘S'’ >> gvs[]
+QED
+
+Theorem CARD_ONE_CHOOSE_ELT:
+  ∀S.
+    FINITE S ⇒
+    (CARD S = 1 ⇔ ∃x. x ∈ S ∧ ∀y. y ∈ S ⇒ y = x)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[CARD_ONE_CHOOSE_ELT_OLD]
+  >> Cases_on ‘S'’ >> simp[]
+  >> EQ_TAC >> strip_tac
+  >- (qexists ‘x’ >> simp[] >> gen_tac >> strip_tac >> last_x_assum irule >> simp[])
+  >- (qexists ‘x’ >> gen_tac >> strip_tac >>
+      first_x_assum $ qspecl_then [‘y’] assume_tac >> simp[])
+  >> qexists ‘x’
+  >> gen_tac >> strip_tac
+  >> first_x_assum $ qspecl_then [‘x’] assume_tac >> gvs[]
+QED
+
+Theorem finite_in_fsgedges_with_specific_element[simp]:
+  ∀g n.
+    FINITE {e | e ∈ fsgedges g ∧ n ∈ e}
+Proof
+  rpt gen_tac
+  >> irule SUBSET_FINITE
+  >> qexists ‘fsgedges g’
+  >> simp[SUBSET_DEF]
+QED
+
+Theorem degree_one_exists_adjacent:
+  ∀g a.
+    degree g a = 1 ⇒ ∃m. adjacent g a m
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> gvs[degree_def]
+  >> gvs[CARD_ONE_CHOOSE_ELT]
+  >> drule alledges_valid >> strip_tac
+  >> gvs[]
+  >- (qexists ‘b’
+      >> qpat_x_assum ‘_ ∈ fsgedges _’ mp_tac
+      >> PURE_ONCE_REWRITE_TAC[fsgedges_def]
+      >> simp[]
+      >> strip_tac
+      >> gvs[INSERT2_lemma]
+      >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+      >> simp[])
+  >> qexists ‘a'’
+  >> qpat_x_assum ‘_ ∈ fsgedges _’ mp_tac
+  >> PURE_ONCE_REWRITE_TAC[fsgedges_def]
+  >> simp[]
+  >> strip_tac
+  >> gvs[INSERT2_lemma]
+  >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+  >> simp[]
+QED
+
+Theorem adjacent_imp_not_equal:
+  ∀g : ('a, 'b, 'c, 'd, 'e, 'f, 'g, noSL) graph a b.
+    adjacent g a b ⇒ a ≠ b
+Proof
+  rpt gen_tac >> strip_tac
+  >> disch_tac >> gvs[]
+QED
+
+Theorem adjacent_el_el:
+  ∀ls : α list n m.
+    m < LENGTH ls ∧
+    m = n + 1 ⇒
+    adjacent ls (EL n ls) (EL m ls)
+Proof
+  Induct_on ‘ls’ >> gvs[]
+  >> rpt gen_tac >> strip_tac
+  >> Cases_on ‘ls’ >> gvs[]
+  >> simp[adjacent_iff]
+  >> last_x_assum $ qspecl_then [‘n - 1’] assume_tac
+  >> gvs[ADD1]
+  >> Cases_on ‘t’ >> gvs[]
+  >- (Cases_on ‘n’ >> gvs[])
+  >> Cases_on ‘n’ >> gvs[]
+  >> gvs[GSYM ADD1]
+  >> gvs[EL]
+QED
+
+Theorem exists_path_removeNode_imp_reverse:
+  ∀g n a b.
+    degree g n = 1 ∧
+    a ≠ n ∧
+    b ≠ n ∧
+    exists_path g a b ⇒
+    exists_path (removeNode n g) a b
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> gvs[exists_path_def]
+  >> Cases_on ‘MEM n vs’
+  >- (all_tac
+      (* We know n is not the first nor last node, hence it is in the middle
+         of the path. Thus, there are at least two nodes adjacent to it.
+         This  contradicts degree g n = 1 *)
+      >> CCONTR_TAC
+      >> gvs[]
+      >> gvs[MEM_EL]
+      >> qpat_x_assum ‘HD _ ≠ EL _ _’ mp_tac
+      >> qpat_x_assum ‘LAST _ ≠ EL _ _’ mp_tac
+      >> Cases_on ‘vs = []’ >- gvs[]
+      >> simp[LAST_EL]
+      >> PURE_ONCE_REWRITE_TAC[GSYM (cj 1 EL)]
+      >> strip_tac
+      >> CCONTR_TAC
+      >> ‘n' ≠ PRE (LENGTH vs)’ by (disch_tac >> gvs[])
+      >> ‘n' ≠ 0’ by (disch_tac >> gvs[])
+      (* EL (n' - 1) and EL (n' + 1) are both adjacent to EL n', but the
+             degree is 1 so that's a contradiction. *)
+      >> sg ‘adjacent g (EL (n' - 1) vs) (EL n' vs)’
+      >- (gvs[path_def, walk_def]
+          >> first_x_assum irule
+          >> irule adjacent_el_el
+          >> simp[]
+         )
+      >> sg ‘adjacent g (EL n' vs) (EL (n' + 1) vs)’
+      >- (gvs[path_def, walk_def]
+          >> first_x_assum irule
+          >> irule adjacent_el_el
+          >> simp[]
+         )
+      >> sg ‘EL (n' - 1) vs ≠ EL (n' + 1) vs’
+      >- (gvs[path_def]
+          >> gvs[EL_ALL_DISTINCT_EL_EQ])
+      >> gvs[degree_def, CARD_ONE_CHOOSE_ELT]
+      >> last_assum $ qspecl_then [‘{EL n' vs; EL (n' + 1) vs}’] assume_tac
+      >> last_x_assum $ qspecl_then [‘{EL n' vs; EL (n' - 1) vs}’] assume_tac
+      >> gvs[]
+      >> sg ‘{EL n' vs; EL (n' + 1) vs} ∈ fsgedges g’
+      >- (simp[fsgedges_def]
+          >> qexistsl [‘EL n' vs’, ‘EL (n' + 1) vs’]
+          >> simp[]
+          >> gvs[])
+      >> sg ‘{EL n' vs; EL (n' - 1) vs} ∈ fsgedges g’
+      >- (simp[fsgedges_def]
+          >> qexistsl [‘EL n' vs’, ‘EL (n' - 1) vs’]
+          >> simp[]
+          >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+          >> simp[])
+      >> gvs[]
+      >> gvs[INSERT2_lemma]
+     )
+  >> qexists ‘vs’
+  >> simp[]
+  >> gvs[path_def]
+  >> gvs[walk_def]
+  >> rpt gen_tac >> strip_tac
+  >> simp[adjacent_removeNode]
+  >> ‘MEM v1 vs ∧ MEM v2 vs’
+    suffices_by (strip_tac >> conj_tac >> disch_tac >> gvs[])
+  >> irule adjacent_MEM
+  >> simp[]
+QED
+
+Theorem connected_removeNode:
+  ∀g n.
+    degree g n = 1 ⇒
+    (connected (removeNode n g) ⇔ connected g)
+
+Proof
+
+  rpt gen_tac >> strip_tac
+  >> simp[connected_exists_path]
+  >> EQ_TAC >> strip_tac >> rpt gen_tac >> strip_tac
+  >- (Cases_on ‘a ≠ n ∧ b ≠ n’
+      >- (last_x_assum $ qspecl_then [‘a’, ‘b’] assume_tac
+          >> gvs[]
+          >> irule exists_path_removeNode_imp
+          >> qexists ‘n’ >> pop_assum irule)
+      >> wlog_tac ‘a = n’ [‘a’, ‘b’]
+      >- (first_x_assum $ qspecl_then [‘b’, ‘a’] assume_tac
+          >> PURE_ONCE_REWRITE_TAC[exists_path_sym]
+          >> pop_assum irule
+          >> simp[]
+          >> gvs[])
+      >> gvs[]
+      >> drule degree_one_exists_adjacent >> strip_tac
+      >> Cases_on ‘a = m’ >- gvs[]
+      >> last_x_assum $ qspecl_then [‘m’, ‘b’] assume_tac
+      >> ‘m ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘a’ >> simp[])
+      >> gvs[]
+      >> Cases_on ‘a = b’ >> gvs[]
+      >> gvs[exists_path_def]
+      (* a cannot be in vs because it is a path in removeNode a g) *)
+      >> Cases_on ‘MEM a vs’
+      >- (gvs[path_def, walk_def] >> last_x_assum drule >> simp[])
+      >> qexists ‘a::vs’
+      >> simp[path_cons]
+      >> Cases_on ‘vs = []’ >- gvs[]
+      >> drule path_removeNode_imp >> strip_tac
+      >> simp[]
+      >> Cases_on ‘vs’ >- gvs[] >> simp[]
+     )
+  >> last_x_assum $ qspecl_then [‘a’, ‘b’] assume_tac
+  >> gvs[]
+  >> gvs[exists_path_def]
+  >> qexists ‘vs’
+  >> simp[]
+  >> path_removeNode
+  >> qexists ‘n’
+
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -3184,14 +3485,13 @@ Proof
 
   rpt gen_tac >> strip_tac
   >> simp[is_tree_def]
-  >> ‘connected (removeNode n g) ⇔ connected g’ by cheat
-  >> simp[]
+  >> simp[connected_removeNode]
   >> ‘connected g ⇒ ((∀ns. ¬cycle g ns) ⇔ ∀ns. ¬cycle (removeNode n g) ns)’
     suffices_by (strip_tac >> EQ_TAC >> strip_tac >> gvs[])
   >> strip_tac
   >> gvs[]
   >> EQ_TAC
-     
+
   >- (strip_tac
       >> gen_tac
       >> first_x_assum (qspecl_then [‘ns’] assume_tac)
