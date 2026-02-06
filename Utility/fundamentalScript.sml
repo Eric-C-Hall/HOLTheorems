@@ -502,3 +502,18 @@ Proof
   >> simp[]
 QED
 
+Theorem pull_out_imp_l:
+  ∀b a1 a2.
+    (b ∧ a1 ⇔ b ∧ a2) ⇔ (b ⇒ (a1 ⇔ a2))
+Proof
+  rpt gen_tac
+  >> Cases_on ‘b’ >> simp[]
+QED
+
+Theorem pull_out_imp_r:
+  ∀b a1 a2.
+    (a1 ∧ b ⇔ a2 ∧ b) ⇔ (b ⇒ (a1 ⇔ a2))
+Proof
+  rpt gen_tac
+  >> Cases_on ‘b’ >> simp[]
+QED
