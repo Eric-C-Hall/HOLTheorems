@@ -4,6 +4,8 @@ Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list 
 
 Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 
+val _ = hide "equiv_class"
+
 (* -------------------------------------------------------------------------- *)
 (* Definitions:                                                               *)
 (*                                                                            *)
@@ -125,6 +127,16 @@ Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 (*   (adjacent_is_first_step)                                                 *)
 (* -------------------------------------------------------------------------- *)
 
+(* -------------------------------------------------------------------------- *)
+(* The current definition of a cycle includes a cycle with only two nodes.    *)
+(* The requirement 3 ≤ LENGTH vs isn't strong enough to ensure that there are *)
+(* 3 nodes because the first and last nodes are not necessarily distinct.     *)
+(* For example, we could have [a; b; a], which only contains two nodes.       *)
+(* -------------------------------------------------------------------------- *)
+Definition nontrivial_cycle:
+  nontrivial_cycle g vs ⇔ cycle g vs ∧ 4 ≤ LENGTH vs
+End
+             
 (* -------------------------------------------------------------------------- *)
 (* True iff g is a tree.                                                      *)
 (*                                                                            *)
@@ -3404,15 +3416,17 @@ Proof
   >> gvs[INSERT2_lemma]
 QED
 
-Theorem path_removeNode_imp_reverse:
+Theorem path_removeNode_degree_one:
   ∀g : fsgraph n vs.
     degree g n = 1 ∧
     n ≠ HD vs ∧
-    n ≠ LAST vs ∧
-    path g vs ⇒
-    path (removeNode n g) vs
+    n ≠ LAST vs ⇒
+    (path (removeNode n g) vs ⇔ path g vs)
 Proof
   rpt gen_tac >> strip_tac
+  >> EQ_TAC
+  >- (strip_tac >> irule path_removeNode_imp >> qexists ‘n’ >> simp[])
+  >> strip_tac
   (* If the removed node isn't in the path, we can simply use the same path, and
      it will remain a path *)
   >> REVERSE $ Cases_on ‘MEM n vs’ >> simp[]
@@ -3428,27 +3442,28 @@ Proof
   >> simp[]
 QED
 
-Theorem exists_path_removeNode_imp_reverse:
-  ∀g n a b.
+Theorem exists_path_removeNode_degree_one:
+  ∀g : fsgraph n a b.
     degree g n = 1 ∧
     a ≠ n ∧
-    b ≠ n ∧
-    exists_path g a b ⇒
-    exists_path (removeNode n g) a b
+    b ≠ n ⇒
+    (exists_path (removeNode n g) a b ⇔
+       exists_path g a b)
 Proof
   rpt gen_tac
   >> strip_tac
+  >> EQ_TAC >> strip_tac
+  >- (irule exists_path_removeNode_imp
+      >> qexists ‘n’ >> simp[])
   >> gvs[exists_path_def]
-  >> qexists ‘vs’ >> simp[path_removeNode_imp_reverse]
+  >> qexists ‘vs’ >> simp[path_removeNode_degree_one]
 QED
 
 Theorem connected_removeNode:
-  ∀g n.
+  ∀g : fsgraph n.
     degree g n = 1 ⇒
     (connected (removeNode n g) ⇔ connected g)
-
 Proof
-
   rpt gen_tac >> strip_tac
   >> simp[connected_exists_path]
   >> EQ_TAC >> strip_tac >> rpt gen_tac >> strip_tac
@@ -3483,8 +3498,168 @@ Proof
      )
   >> last_x_assum $ qspecl_then [‘a’, ‘b’] assume_tac
   >> gvs[]
-  >> irule exists_path_removeNode_imp_reverse
+  >> simp[exists_path_removeNode_degree_one]
+QED
+
+Theorem cycle_removeNode_imp:
+  ∀g n vs.
+    cycle (removeNode n g) vs ⇒
+    cycle g vs
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[cycle_def]
+  >> irule walk_removeNode_imp >> qexists ‘n’ >> simp[]
+QED
+
+Theorem degree_one_adjacent_unique:
+  ∀g n m1 m2.
+    degree g n = 1 ∧
+    adjacent g n m1 ∧
+    adjacent g n m2 ⇒
+    m1 = m2
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[degree_def]
+  >> gvs[CARD_ONE_CHOOSE_ELT]
+  >> last_assum $ qspecl_then [‘{n; m1}’] assume_tac
+  >> last_x_assum $ qspecl_then [‘{n; m2}’] assume_tac
+  >> gvs[adjacent_fsg]
+  >> gvs[INSERT2_lemma]
+QED
+
+Theorem degree_one_alt:
+  ∀g n.
+    degree g n = 1 ⇔
+      ∃m. adjacent g n m ∧ ∀m2. adjacent g n m2 ⇒ m2 = m
+Proof
+  rpt gen_tac
+  >> EQ_TAC
+  >- (strip_tac
+      >> drule degree_one_exists_adjacent
+      >> strip_tac
+      >> qexists ‘m’
+      >> simp[]
+      >> gen_tac
+      >> strip_tac
+      >> irule degree_one_adjacent_unique >> qexistsl [‘g’, ‘n’] >> simp[])
+  >> strip_tac
+  >> simp[degree_def]
+  >> simp[CARD_ONE_CHOOSE_ELT]
+  >> qexists ‘{n; m}’
+  >> conj_tac
+  >- (simp[]
+      >> simp[GSYM adjacent_fsg])
+  >> gen_tac >> strip_tac
+  >> gvs[fsgedges_def]
+  >> simp[INSERT2_lemma]
+  >> Cases_on ‘m' = n’ >- gvs[]
   >> simp[]
+  >> qpat_x_assum ‘adjacent _ m' n’ mp_tac
+  >> PURE_ONCE_REWRITE_TAC[adjacent_SYM]
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Removing a leaf node cannot affect a cycle                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem cycle_removeNode_degree_one:
+  ∀g : fsgraph n vs.
+    degree g n = 1 ∧
+    cycle g vs ⇒
+    cycle (removeNode n g) vs
+          
+Proof
+  
+  rpt gen_tac >> strip_tac
+  >> gvs[cycle_alt]
+  >> simp[adjacent_removeNode]
+  >> DEP_PURE_ONCE_REWRITE_TAC[path_removeNode_degree_one]
+  >> simp[]
+  >> Cases_on ‘vs = []’ >- gvs[]
+  >> simp[LAST_TL]
+  >> ‘n ≠ HD (TL vs) ∧ n ≠ LAST vs’ suffices_by simp[]
+  (* In each of these cases, we will be able to find two adjacent nodes in the
+     cycle that are nonequal, contradicting the fact that n has degree 1 *)
+  >> conj_tac
+
+  >- (Q.SUBGOAL_THEN ‘HD (TL vs) = EL 1 vs’
+       (fn th => gvs[th])
+      >- (PURE_REWRITE_TAC[GSYM (cj 1 EL), GSYM (cj 2 EL), GSYM ONE] >> simp[])
+      (* EL 0 and EL 2 are adjacent to EL 1 but not equal to each other *)
+      >> Cases_on ‘EL 0 vs = EL 2 vs’
+      >- (Cases_on ‘vs’ >> gvs[]
+          >> Cases_on ‘t’ >> gvs[]
+          >> Cases_on ‘t'’ >> gvs[]
+          >> ‘path g (h::t)’ by gvs[path_cons]
+          >> gvs[path_def]
+          >> disch_tac >> gvs[]
+          >>
+          
+          >> Cases_on ‘t’ >> gvs[]
+         )
+
+         sg ‘HD vs ≠ EL 2 vs ∧
+             adjacent g (HD vs) (HD (TL vs)) ∧
+             adjacent g (HD (TL vs)) (EL 2 vs)’
+         
+      >- (PURE_ONCE_REWRITE_TAC[GSYM (cj 1 EL), GSYM (cj 2 EL), GSYM ONE]
+          >> conj_tac
+          >- (gvs[path_def, EL_ALL_DISTINCT_EL_EQ]
+              >> simp[LAST_EL]
+              >> last_x_assum $ qspecl_then [‘LENGTH vs - 2’, ‘1’] assume_tac
+              >> gvs[]
+              >> pop_assum mp_tac
+              >> PURE_ONCE_REWRITE_TAC[GSYM (cj 2 EL)]
+              >> simp[ADD1, PRE_SUB1]
+              >> strip_tac
+              >> disch_tac
+              >> Cases_on ‘vs’ >> gvs[]
+              >> Cases_on ‘t’ >> gvs[]
+              >> Cases_on ‘t'’ >> gvs[]
+              >> Cases_on ‘t’ >> gvs[]
+              >> gvs[walk_def]
+                    
+             )
+             
+          >> Cases_on ‘PRE (LENGTH vs) < LENGTH vs - 1’
+                      
+          >> conj_tac
+          >- (last_x_assum irule
+             )
+          >> 
+         )
+         degree_one_adjacent_unique
+     )
+
+  
+  >> Cases_on ‘n = ’
+
+              
+  >> gvs[walk_removeNode]
+  >> disch_tac
+  >> qspecl_then [‘g’, ‘n’, ‘TL vs’] assume_tac degree_one_hd_last_path
+  >> gvs[path_def]
+  >> Cases_on ‘vs’ >> gnvs[]
+  >> 
+  >> 
+  
+  >> first_x_assum (qspecl_then [‘ns’] assume_tac)
+  >> gvs[cycle_def]
+  >> strip_tac
+  >> gvs[]
+      >> disj1_tac
+      >> qpat_x_assum ‘¬walk _ _’ mp_tac
+      >> PURE_REWRITE_TAC[walk_def]
+      >> strip_tac
+      >> disch_tac
+      >> gvs[]
+      >> ‘∃n2. adjacent ns n n2’ by cheat
+      >> qpat_x_assum ‘∀v1 v2. adjacent ns v1 v2 ⇒ adjacent _ _ _’
+                      (qspecl_then [‘n’, ‘n2’] mp_tac)
+      >> simp[]
+      >> strip_tac >> drule adjacent_members
+      >> simp[]
+             
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -3504,7 +3679,6 @@ Proof
   >> ‘connected g ⇒ ((∀ns. ¬cycle g ns) ⇔ ∀ns. ¬cycle (removeNode n g) ns)’
     suffices_by (strip_tac >> EQ_TAC >> strip_tac >> gvs[])
   >> strip_tac
-  >> gvs[]
   >> EQ_TAC
 
   >- (strip_tac
