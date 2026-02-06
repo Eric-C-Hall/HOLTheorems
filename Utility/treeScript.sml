@@ -3715,36 +3715,22 @@ Theorem is_tree_remove_leaf_is_tree:
   ∀g : fsgraph n.
     degree g n = 1 ⇒
     (is_tree g ⇔ is_tree (removeNode n g))
-
 Proof
-
   rpt gen_tac >> strip_tac
   >> simp[is_tree_def]
   >> simp[connected_removeNode]
-  >> ‘connected g ⇒ ((∀ns. ¬cycle g ns) ⇔ ∀ns. ¬cycle (removeNode n g) ns)’
-    suffices_by (strip_tac >> EQ_TAC >> strip_tac >> gvs[])
-  >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[pull_out_imp_l] >> strip_tac
   >> EQ_TAC
-
   >- (strip_tac
       >> gen_tac
       >> first_x_assum (qspecl_then [‘ns’] assume_tac)
-      >> gvs[cycle_def]
-      >> strip_tac
-      >> gvs[]
-      >> disj1_tac
-      >> qpat_x_assum ‘¬walk _ _’ mp_tac
-      >> PURE_REWRITE_TAC[walk_def]
-      >> strip_tac
       >> disch_tac
-      >> gvs[]
-      >> ‘∃n2. adjacent ns n n2’ by cheat
-      >> qpat_x_assum ‘∀v1 v2. adjacent ns v1 v2 ⇒ adjacent _ _ _’
-                      (qspecl_then [‘n’, ‘n2’] mp_tac)
-      >> simp[]
-      >> strip_tac >> drule adjacent_members
-      >> simp[]
-     )
+      >> qpat_x_assum ‘¬nontrivial_cycle g ns’ mp_tac
+      >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+      >> irule nontrivial_cycle_removeNode_imp
+      >> qexists ‘n’ >> simp[])
+  >> strip_tac >> gen_tac
+  >> gvs[nontrivial_cycle_removeNode_degree_one]
 QED
 
 (* -------------------------------------------------------------------------- *)
