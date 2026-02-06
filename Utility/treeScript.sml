@@ -133,7 +133,7 @@ val _ = hide "equiv_class"
 (* 3 nodes because the first and last nodes are not necessarily distinct.     *)
 (* For example, we could have [a; b; a], which only contains two nodes.       *)
 (* -------------------------------------------------------------------------- *)
-Definition nontrivial_cycle:
+Definition nontrivial_cycle_def:
   nontrivial_cycle g vs ⇔ cycle g vs ∧ 4 ≤ LENGTH vs
 End
              
@@ -168,7 +168,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition is_tree_def:
   is_tree g ⇔ (connected g ∧
-               (∀ns. ¬cycle g ns))
+               (∀ns. ¬nontrivial_cycle g ns))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -673,7 +673,9 @@ Theorem is_tree_path_unique:
     HD vs2 = a ∧
     LAST vs2 = b ⇒
     vs1 = vs2
+          
 Proof
+  
   rpt strip_tac
   (* We work by way of contradiction, assuming that there are two nonequal paths
      that have the same start and end points *)
@@ -685,7 +687,7 @@ Proof
   >- (gvs[]
       >> Cases_on ‘vs1’ >> Cases_on ‘vs2’ >> gvs[]
       >> Cases_on ‘t’ >> Cases_on ‘t'’ >> gvs[]
-     )
+     )     
   (* Prove that there is a point at which the paths diverge *)
   >> sg ‘∃i. EL i vs1 = EL i vs2 ∧
              EL (i + 1) vs1 ≠ EL (i + 1) vs2 ∧
@@ -901,11 +903,11 @@ Proof
      )
   (* We can now create our cycle and prove that our graph cannot be a tree, a
      contradiction. *)
-  >> ‘cycle g (DROP i (TAKE (j + 1) vs1) ++
-               REVERSE (DROP i (TAKE k vs2)))’
+  >> ‘nontrivial_cycle g (DROP i (TAKE (j + 1) vs1) ++
+                          REVERSE (DROP i (TAKE k vs2)))’
     suffices_by metis_tac[is_tree_def]
   (* Prove that this is a cycle by the definition of a cycle *)
-  >> PURE_REWRITE_TAC[cycle_def]
+  >> PURE_REWRITE_TAC[nontrivial_cycle_def, cycle_def]                    
   (* It is frequently helpful to know that each of the components of the cycle
      is nonempty *)
   (*>> ‘DROP i (TAKE (j + 1) vs1) ≠ [] ∧
@@ -980,11 +982,13 @@ Proof
       >> gvs[EL_ALL_DISTINCT_EL_EQ]
      )
   >- gvs[]
-  >> gvs[HD_APPEND_NOT_NIL]
-  >> gvs[LAST_APPEND_NOT_NIL]
-  >> gvs[LAST_REVERSE]
-  >> gvs[HD_DROP]
-  >> gvs[EL_TAKE]
+  >- (gvs[HD_APPEND_NOT_NIL]
+      >> gvs[LAST_APPEND_NOT_NIL]
+      >> gvs[LAST_REVERSE]
+      >> gvs[HD_DROP]
+      >> gvs[EL_TAKE])
+  >> simp[]
+  >> cheat
 QED
 
 Theorem walk_in_nodes:
@@ -2346,11 +2350,16 @@ Theorem is_tree_no_triangle:
     ¬adjacent g c a
 Proof
   rpt strip_tac
-  >> sg ‘cycle g [a; b; c; a]’
-  >- (gvs[cycle_def, walk_def]
-      >> conj_tac >- metis_tac[adjacent_members]
-      >> rpt strip_tac
-      >> gvs[adjacent_iff])
+  >> ‘a ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘b’ >> simp[])
+  >> ‘b ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘c’ >> simp[])
+  >> ‘c ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘a’ >> simp[])
+  >> sg ‘nontrivial_cycle g [a; b; c; a]’
+  >- (gvs[nontrivial_cycle_def, cycle_def, walk_def]
+      >> conj_tac
+      >- (gen_tac >> strip_tac >> simp[])
+      >> rpt gen_tac >> strip_tac
+      >> gvs[adjacent_iff]
+     )
   >> gvs[is_tree_def]
 QED
 
