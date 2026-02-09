@@ -3171,7 +3171,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* This works with more general graphs than walk_removeNode.                  *)
 (* -------------------------------------------------------------------------- *)
-Theorem walk_removeNode_imp:
+Theorem walk_removeNode_imp_full:
   ∀n g ns.
     walk (removeNode n g) ns ⇒
     walk g ns ∧ ¬MEM n ns
@@ -3190,28 +3190,6 @@ Proof
   >> simp[]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: Maybe this can be generalised to work with an arbitrary graph that   *)
-(* satisfies ¬is_hypergraph g, rather than only with fsgraphs                 *)
-(* -------------------------------------------------------------------------- *)
-Theorem walk_removeNode:
-  ∀n g : fsgraph ns.
-    walk (removeNode n g) ns ⇔
-      walk g ns ∧ ¬MEM n ns
-Proof
-  rpt gen_tac
-  >> EQ_TAC >> strip_tac
-  >- (irule walk_removeNode_imp >> simp[])
-  >> gvs[walk_def]
-  >> rpt gen_tac
-  >> strip_tac
-  >> simp[adjacent_removeNode]
-  >> ‘MEM v1 ns ∧ MEM v2 ns’
-    suffices_by (strip_tac >> conj_tac >> disch_tac >> gvs[])
-  >> irule adjacent_MEM
-  >> simp[]
-QED
-
 Theorem walk_removeNode_imp:
   ∀n g vs.
     walk (removeNode n g) vs ⇒
@@ -3225,6 +3203,29 @@ Proof
   >> strip_tac
   >> irule (cj 1 adjacent_removeNode_imp)
   >> qexists ‘n’ >> simp[]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Maybe this can be generalised to work with an arbitrary graph that   *)
+(* satisfies ¬is_hypergraph g, rather than only with fsgraphs                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem walk_removeNode:
+  ∀n g : fsgraph ns.
+    walk (removeNode n g) ns ⇔
+      walk g ns ∧ ¬MEM n ns
+Proof
+  rpt gen_tac
+  >> EQ_TAC >> strip_tac
+  >- (irule walk_removeNode_imp_full >> simp[])
+  >> gvs[walk_def]
+  >> rpt gen_tac
+  >> strip_tac
+  >> simp[adjacent_removeNode]
+  >> ‘MEM v1 ns ∧ MEM v2 ns’
+    suffices_by (strip_tac >> conj_tac >> disch_tac >> gvs[])
+  >> irule adjacent_MEM
+  >> simp[]
 QED
 
 Theorem path_removeNode_imp:
