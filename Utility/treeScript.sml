@@ -128,16 +128,6 @@ val _ = hide "equiv_class"
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* The current definition of a cycle includes a cycle with only two nodes.    *)
-(* The requirement 3 ≤ LENGTH vs isn't strong enough to ensure that there are *)
-(* 3 nodes because the first and last nodes are not necessarily distinct.     *)
-(* For example, we could have [a; b; a], which only contains two nodes.       *)
-(* -------------------------------------------------------------------------- *)
-Definition nontrivial_cycle_def:
-  nontrivial_cycle g vs ⇔ cycle g vs ∧ 4 ≤ LENGTH vs
-End
-
-(* -------------------------------------------------------------------------- *)
 (* True iff g is a tree.                                                      *)
 (*                                                                            *)
 (* Note that this is only valid for undirected graphs: for directed graphs,   *)
@@ -168,7 +158,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition is_tree_def:
   is_tree g ⇔ (connected g ∧
-               (∀ns. ¬nontrivial_cycle g ns))
+               (∀ns. ¬cycle g ns))
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -624,7 +614,7 @@ Theorem cycle_alt:
   ∀g vs.
     cycle g vs ⇔
       path g (TL vs) ∧
-      3 ≤ LENGTH vs ∧
+      4 ≤ LENGTH vs ∧
       HD vs = LAST vs ∧
       adjacent g (HD vs) (HD (TL vs))
 Proof
@@ -898,14 +888,13 @@ Proof
       >> first_x_assum $ qspecl_then [‘l’, ‘m’] kall_tac (* We no longer need
         the conditions on j, and keeping implications may lag the simplifier *)
       >> gvs[]
-     )
+       )       
   (* We can now create our cycle and prove that our graph cannot be a tree, a
      contradiction. *)
-  >> ‘nontrivial_cycle g (DROP i (TAKE (j + 1) vs1) ++
-                          REVERSE (DROP i (TAKE k vs2)))’
+  >> ‘cycle g (DROP i (TAKE (j + 1) vs1) ++ REVERSE (DROP i (TAKE k vs2)))’
     suffices_by metis_tac[is_tree_def]
   (* Prove that this is a cycle by the definition of a cycle *)
-  >> PURE_REWRITE_TAC[nontrivial_cycle_def, cycle_def]
+  >> PURE_REWRITE_TAC[cycle_def, cycle_def]
   (* It is frequently helpful to know that each of the components of the cycle
      is nonempty *)
   (*>> ‘DROP i (TAKE (j + 1) vs1) ≠ [] ∧
@@ -979,36 +968,37 @@ Proof
       >> gvs[path_def]
       >> gvs[EL_ALL_DISTINCT_EL_EQ]
      )
-  >- gvs[]
-  >- (gvs[HD_APPEND_NOT_NIL]
-      >> gvs[LAST_APPEND_NOT_NIL]
-      >> gvs[LAST_REVERSE]
-      >> gvs[HD_DROP]
-      >> gvs[EL_TAKE])
-  (* Our point of divergence is i, our point of convergence is j on vs1 and k on
-     vs2.
+  >- (all_tac
+      (* Our point of divergence is i, our point of convergence is j on vs1 and
+       k on vs2.
 .
-     Each of j and k is not equal to i, so they must be at least one step away
-     from i. However, this in itself only shows that our cycle is at least
-     length 2 (excluding the repeated node at the start and end). We need to
-     show our cycle has at least length 3.
+       Each of j and k is not equal to i, so they must be at least one step away
+       from i. However, this in itself only shows that our cycle is at least
+       length 2 (excluding the repeated node at the start and end). We need to
+       show our cycle has at least length 3.
 .
-     If j and k were both one step away, then the first step away from i would
-     be equal on both paths, which contradicts the fact that i is a point of
-     divergence.
+       If j and k were both one step away, then the first step away from i would
+       be equal on both paths, which contradicts the fact that i is a point of
+       divergence.
 .
-     Thus, at least one of j/k is at least two steps away while the other is
-     at least one step away. So our cycle is has at least length 3.
-   *)
-  >> REVERSE $ Cases_on ‘j - i = 1 ∧ k - i = 1’
-  >- simp[]
-  >> irule FALSITY
-  >> qpat_x_assum ‘EL (i + 1) vs1 ≠ EL (i + 1) vs2’ mp_tac
-  >> PURE_REWRITE_TAC[IMP_CLAUSES, cj 1 NOT_CLAUSES]
-  >> qpat_x_assum ‘EL j vs1 = EL k vs2’ mp_tac
-  >> ‘j = i + 1’ by simp[]
-  >> ‘k = i + 1’ by simp[]
-  >> simp[]
+       Thus, at least one of j/k is at least two steps away while the other is
+       at least one step away. So our cycle is has at least length 3.
+       *)
+      >> REVERSE $ Cases_on ‘j - i = 1 ∧ k - i = 1’
+      >- simp[]
+      >> irule FALSITY
+      >> qpat_x_assum ‘EL (i + 1) vs1 ≠ EL (i + 1) vs2’ mp_tac
+      >> PURE_REWRITE_TAC[IMP_CLAUSES, cj 1 NOT_CLAUSES]
+      >> qpat_x_assum ‘EL j vs1 = EL k vs2’ mp_tac
+      >> ‘j = i + 1’ by simp[]
+      >> ‘k = i + 1’ by simp[]
+      >> simp[]
+     )
+  >> gvs[HD_APPEND_NOT_NIL]
+  >> gvs[LAST_APPEND_NOT_NIL]
+  >> gvs[LAST_REVERSE]
+  >> gvs[HD_DROP]
+  >> gvs[EL_TAKE]
 QED
 
 Theorem walk_in_nodes:
@@ -2373,8 +2363,8 @@ Proof
   >> ‘a ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘b’ >> simp[])
   >> ‘b ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘c’ >> simp[])
   >> ‘c ∈ nodes g’ by (irule (cj 1 adjacent_members) >> qexists ‘a’ >> simp[])
-  >> sg ‘nontrivial_cycle g [a; b; c; a]’
-  >- (gvs[nontrivial_cycle_def, cycle_def, walk_def]
+  >> sg ‘cycle g [a; b; c; a]’
+  >- (gvs[cycle_def, cycle_def, walk_def]
       >> conj_tac
       >- (gen_tac >> strip_tac >> simp[])
       >> rpt gen_tac >> strip_tac
@@ -3589,17 +3579,6 @@ Proof
   >> simp[]
 QED
 
-Theorem nontrivial_cycle_removeNode_imp:
-  ∀g n vs.
-    nontrivial_cycle (removeNode n g) vs ⇒
-    nontrivial_cycle g vs
-Proof
-  rpt gen_tac >> strip_tac
-  >> gvs[nontrivial_cycle_def]
-  >> irule cycle_removeNode_imp
-  >> qexists ‘n’ >> simp[]
-QED
-
 Theorem adjacent_el_el_graph:
   ∀g n m vs.
     path g vs ∧
@@ -3619,8 +3598,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem cycle_removeNode_degree_one:
   ∀g : fsgraph n vs.
-    degree g n = 1 ∧
-    4 ≤ LENGTH vs ⇒
+    degree g n = 1 ⇒
     (cycle (removeNode n g) vs ⇔ cycle g vs)
 Proof
   rpt gen_tac >> strip_tac
@@ -3697,17 +3675,6 @@ Proof
   >> gvs[adjacent_SYM]
 QED
 
-Theorem nontrivial_cycle_removeNode_degree_one:
-  ∀g n vs.
-    degree g n = 1 ⇒
-    (nontrivial_cycle (removeNode n g) vs ⇔ nontrivial_cycle g vs)
-Proof
-  rpt gen_tac >> strip_tac
-  >> simp[nontrivial_cycle_def]
-  >> PURE_ONCE_REWRITE_TAC[pull_out_imp_r] >> strip_tac
-  >> simp[cycle_removeNode_degree_one]
-QED
-
 (* -------------------------------------------------------------------------- *)
 (* TODO: Maybe this can be generalised to work with an arbitrary graph that   *)
 (* satisfies ¬is_hypergraph g, rather than only with fsgraphs                  *)
@@ -3726,21 +3693,19 @@ Proof
       >> gen_tac
       >> first_x_assum (qspecl_then [‘ns’] assume_tac)
       >> disch_tac
-      >> qpat_x_assum ‘¬nontrivial_cycle g ns’ mp_tac
+      >> qpat_x_assum ‘¬cycle g ns’ mp_tac
       >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
-      >> irule nontrivial_cycle_removeNode_imp
+      >> irule cycle_removeNode_imp
       >> qexists ‘n’ >> simp[])
   >> strip_tac >> gen_tac
-  >> gvs[nontrivial_cycle_removeNode_degree_one]
+  >> gvs[cycle_removeNode_degree_one]
 QED
 
 Theorem removeNodes_insert:
   ∀g n ns.
     removeNodes (n INSERT ns) g =
     removeNodes ns (removeNode n g)
-
 Proof
-
   rpt gen_tac
   >> simp[gengraph_component_equality]
   >> rpt conj_tac
@@ -3748,13 +3713,7 @@ Proof
   >- simp[bagTheory.BAG_FILTER_FILTER]
   >> simp[FUN_EQ_THM] 
   >> gen_tac
-  >> rw[]
-  >- (simp[nlabelfun_def]
-          simp[FUPDATE_DEF]
-
-          gvs[]
-     )
-  
+  >> rw[] >> simp[combinTheory.APPLY_UPDATE_THM] >> gvs[]
 QED
 
 Theorem removeNodes_insert_outer:
@@ -3762,9 +3721,17 @@ Theorem removeNodes_insert_outer:
     removeNodes (n INSERT ns) g =
     removeNode n (removeNodes ns g)
 Proof
+  rpt gen_tac
+  >> simp[gengraph_component_equality]
+  >> rpt conj_tac
+  >- (simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[])
+  >- simp[bagTheory.BAG_FILTER_FILTER, CONJ_SYM]
+  >> simp[FUN_EQ_THM]
+  >> gen_tac
+  >> rw[] >> simp[combinTheory.APPLY_UPDATE_THM] >> gvs[]
 QED
 
-Theorem is_tree_rns_is_tree:
+Theorem is_tree_removeNodes_is_tree:
   ∀g : fsgraph ns.
     FINITE ns ∧
     (∀n. n ∈ ns ⇒ degree g n = 1) ⇒
@@ -3780,8 +3747,8 @@ Proof
   >> gen_tac >> strip_tac
   >> strip_tac
   >> simp[removeNodes_def]
+  >> cheat
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
