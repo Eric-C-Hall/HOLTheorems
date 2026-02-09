@@ -6,6 +6,8 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* What happened to buildheap? It's no longer present *)
+
 (* Pain points: *)
 
 (* -------------------------------------------------------------------------- *)

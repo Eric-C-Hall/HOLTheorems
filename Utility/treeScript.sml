@@ -415,11 +415,11 @@ Proof
   >> gvs[]
   >> gvs[path_def]
   >> gvs[walk_def]
-  >> conj_tac
-  >- metis_tac[adjacent_members]
-  >> rpt strip_tac
-  >> Cases_on ‘v1 = a ∧ v2 = b’ >> gvs[]
-  >> Cases_on ‘v1 = a’ >> gvs[adjacent_iff]
+  >> gen_tac
+  >> strip_tac
+  >> (gvs[]
+      >> drule adjacent_members
+      >> simp[])
 QED
 
 Theorem exists_path_adjacent_tc:
@@ -3701,6 +3701,18 @@ Proof
   >> gvs[cycle_removeNode_degree_one]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* A more systematic but less descriptive name for the converse of the above  *)
+(* theorem                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem is_tree_removeNode_degree_one:
+  ∀g : fsgraph n.
+    degree g n = 1 ⇒
+    (is_tree (removeNode n g) ⇔ is_tree g)
+Proof
+  simp[is_tree_remove_leaf_is_tree]
+QED
+
 Theorem removeNodes_insert:
   ∀g n ns.
     removeNodes (n INSERT ns) g =
@@ -3731,12 +3743,11 @@ Proof
   >> rw[] >> simp[combinTheory.APPLY_UPDATE_THM] >> gvs[]
 QED
 
-Theorem is_tree_removeNodes_is_tree:
+(*Theorem is_tree_removeNodes_is_tree:
   ∀g : fsgraph ns.
     FINITE ns ∧
     (∀n. n ∈ ns ⇒ degree g n = 1) ⇒
     (is_tree g ⇔ is_tree (removeNodes ns g))
-
 Proof
   rpt gen_tac >> strip_tac
   >> Induct_on ‘ns’
@@ -3746,9 +3757,12 @@ Proof
   >> gen_tac >> strip_tac
   >> gen_tac >> strip_tac
   >> strip_tac
-  >> simp[removeNodes_def]
-  >> cheat
-QED
+  >> simp[removeNodes_insert_outer]
+  >> DEP_PURE_ONCE_REWRITE_TAC[is_tree_removeNode_degree_one]
+  >> simp[]
+  >> first_x_assum irule  
+  >> 
+  QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
