@@ -3734,6 +3734,55 @@ Proof
   >> gvs[nontrivial_cycle_removeNode_degree_one]
 QED
 
+Theorem removeNodes_insert:
+  ∀g n ns.
+    removeNodes (n INSERT ns) g =
+    removeNodes ns (removeNode n g)
+
+Proof
+
+  rpt gen_tac
+  >> simp[gengraph_component_equality]
+  >> rpt conj_tac
+  >- (simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[])
+  >- simp[bagTheory.BAG_FILTER_FILTER]
+  >> simp[FUN_EQ_THM] 
+  >> gen_tac
+  >> rw[]
+  >- (simp[nlabelfun_def]
+          simp[FUPDATE_DEF]
+
+          gvs[]
+     )
+  
+QED
+
+Theorem removeNodes_insert_outer:
+  ∀g n ns.
+    removeNodes (n INSERT ns) g =
+    removeNode n (removeNodes ns g)
+Proof
+QED
+
+Theorem is_tree_rns_is_tree:
+  ∀g : fsgraph ns.
+    FINITE ns ∧
+    (∀n. n ∈ ns ⇒ degree g n = 1) ⇒
+    (is_tree g ⇔ is_tree (removeNodes ns g))
+
+Proof
+  rpt gen_tac >> strip_tac
+  >> Induct_on ‘ns’
+  >> conj_tac
+  >- simp[] (* Base case *)
+  (* Inductive step *)
+  >> gen_tac >> strip_tac
+  >> gen_tac >> strip_tac
+  >> strip_tac
+  >> simp[removeNodes_def]
+QED
+
+
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
 (* input as a tree, which might make it easier to use induction?              *)

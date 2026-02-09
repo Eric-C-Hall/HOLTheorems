@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin donotexpand extreal factor_graph finite_map fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine wf_state_machine
+Ancestors binary_symmetric_channel combin donotexpand extreal factor_graph finite_map fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine tree wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -2353,6 +2353,27 @@ Proof
   >> (simp[func_node_state_fn_def] >> rw[])
 QED
 
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*       #   #   #         #                                                  *)
+(*       o   o   o         o                                                  *)
+(*   # o # o # o # o ... o # o                                                *)
+(*       o   o   o         o                                                  *)
+(*       #   #   #         #                                                  *)
+(*                                                                            *)
+(*  "#" represents a funciton node.    "o" represents a variable node         *)
+(*                                                                            *)
+(*  Removing a leaf node will conserve whether or not the graph is a tree.    *)
+(*                                                                            *)
+(*  1. Remove all the top function leaf nodes.                                *)
+(*  2. Remove all the top variable nodes, which have become leaf nodes due    *)
+(*     to step 1.                                                             *)
+(*  3. Remove all the bottom function leaf nodes                              *)
+(*  4. Remove all the bottom variable nodes, which have become leaf nodes due *)
+(*     to step 3                                                              *)
+(*  5. Repeatedly remove the leftmost node until we are left with only one    *)
+(*     node, which is trivially a tree                                        *)
+(* -------------------------------------------------------------------------- *)
 Theorem is_tree_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p.
     is_tree (get_underlying_graph
@@ -2360,9 +2381,11 @@ Theorem is_tree_rcc_factor_graph:
             )
             
 Proof
-
   rpt gen_tac
-  >> 
+  (* First, remove the top row of function nodes,  *)
+  >>
+  >> is_tree_remove_leaf_is_tree
+  >> is_tree_remove_leaf_is_tree
   >> cheat
 QED
         
