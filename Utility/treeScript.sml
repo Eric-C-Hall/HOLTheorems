@@ -1,6 +1,6 @@
 Theory tree
 
-Ancestors arithmetic extreal fsgraph fundamental genericGraph indexedLists list marker pred_set prim_rec product_order relation rich_list
+Ancestors arithmetic bag cardinal extreal fsgraph fundamental genericGraph indexedLists list marker pred_set prim_rec product_order relation rich_list
 
 Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 
@@ -54,6 +54,8 @@ val _ = hide "equiv_class"
 (*   it remains a tree. In particular, note that any tree can be built up     *)
 (*   by repeatedly adding leaves, so it'll be possible to prove any tree is a *)
 (*   tree by repeatedly using this theorem (is_tree_remove_leaf_is_tree)      *)
+(* - A graph is a tree if and only if when we take away several leaf nodes    *)
+(*   at once, it remains a tree. (is_tree_removeNodes_is_tree)                *)
 (*                                                                            *)
 (* - If a ~ x - b then x = EL 1 (a - b) (adjacent_mem_get_path_first_step)    *)
 (*   (adjacent_mem_get_path_first_step_alt)                                   *)
@@ -415,11 +417,14 @@ Proof
   >> gvs[]
   >> gvs[path_def]
   >> gvs[walk_def]
-  >> gen_tac
-  >> strip_tac
-  >> (gvs[]
-      >> drule adjacent_members
-      >> simp[])
+  >> conj_tac
+  >- (gen_tac >> strip_tac
+      >> (gvs[]
+          >> drule adjacent_members
+          >> simp[])
+     )
+  >> rpt gen_tac >> strip_tac
+  >> gvs[adjacent_iff]
 QED
 
 Theorem exists_path_adjacent_tc:
@@ -3743,10 +3748,174 @@ Proof
   >> rw[] >> simp[combinTheory.APPLY_UPDATE_THM] >> gvs[]
 QED
 
-(*Theorem is_tree_removeNodes_is_tree:
+Theorem fsgedges_removeNode:
+  ∀g n.
+    fsgedges (removeNode n g) = fsgedges g DIFF {e | e ∈ fsgedges g ∧ n ∈ e}
+Proof
+  rpt gen_tac
+  >> simp[EXTENSION]
+  >> qx_gen_tac ‘e’
+  >> simp[fsgedges_def]
+  >> REVERSE $ Cases_on ‘∃m n. e = {m;n}’
+  >- gvs[]
+  >> gvs[]
+  >> simp[adjacent_removeNode]
+  >> EQ_TAC >> strip_tac
+  >- (conj_tac
+      >- (qexistsl [‘m’, ‘n'’] >> gvs[INSERT2_lemma, adjacent_SYM])
+      >> Cases_on ‘n = m’ >> simp[]
+      >- (rpt gen_tac >> strip_tac
+          >> gvs[INSERT2_lemma, adjacent_SYM])
+      >> strip_tac
+      >> rpt gen_tac >> strip_tac
+      >> gvs[INSERT2_lemma, adjacent_SYM])
+  >- (qexistsl [‘n'’, ‘m’]
+      >> simp[]
+      >> gvs[INSERT2_lemma])
+  >> qexistsl [‘m’, ‘n'’]
+  >> gvs[INSERT2_lemma, adjacent_SYM]
+QED
+
+Theorem degree_removeNode:
+  ∀g n m.
+    n ≠ m ⇒
+    degree (removeNode n g) m =
+    degree g m - (if adjacent g n m then 1 else 0)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[degree_def]
+  >> qmatch_abbrev_tac ‘CARD smaller_set = CARD larger_set - _’
+  >> qsuff_tac ‘larger_set = if adjacent g n m
+                             then {n; m} INSERT smaller_set
+                             else smaller_set’
+  >- (strip_tac
+      >> simp[]
+      >> Cases_on ‘adjacent g n m’ >> simp[]
+      >> ‘FINITE smaller_set’ by (unabbrev_all_tac >> simp[])
+      >> simp[]
+      >> sg ‘{n; m} ∉ smaller_set’
+      >- (unabbrev_all_tac
+          >> simp[]
+          >> simp[GSYM adjacent_fsg]
+          >> simp[adjacent_removeNode])
+      >> simp[]
+     )
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> Cases_on ‘adjacent g n m’
+  >- (unabbrev_all_tac
+      >> simp[]
+      >> gvs[adjacent_fsg]
+      >> Cases_on ‘x = {n;m}’ >> simp[]
+      >> simp[fsgedges_removeNode]
+      >> EQ_TAC >> simp[]
+      >> strip_tac
+      >> disch_tac
+      >> gvs[fsgedges_def, INSERT2_lemma]
+     )
+  >> simp[]
+  >> unabbrev_all_tac
+  >> simp[pull_out_imp_r]
+  >> strip_tac
+  >> REVERSE $ Cases_on ‘∃a b. x = {a;b}’
+  >- gvs[fsgedges_def]
+  >> pop_assum mp_tac >> strip_tac
+  >> simp[]
+  >> simp[GSYM adjacent_fsg]
+  >> simp[adjacent_removeNode]
+  >> EQ_TAC >> simp[]
+  >> strip_tac
+  >> conj_tac >> disch_tac >> gvs[adjacent_SYM]
+QED
+
+Theorem degree_card_adjacent_nodes:
+  ∀g n.
+    degree g n = CARD (adjacent_nodes g n)
+Proof
+  rpt gen_tac
+  >> simp[degree_def]
+  >> irule CARDEQ_CARD
+  >> PURE_ONCE_REWRITE_TAC[CARD_EQ_SYM]
+  >> simp[cardeq_def]
+  >> qexists ‘λm. {n;m}’
+  >> simp[BIJ_THM]
+  >> conj_tac
+  >- (gen_tac >> strip_tac
+      >> simp[GSYM adjacent_fsg, adjacent_SYM])
+  >> gen_tac >> strip_tac
+  >> simp[EXISTS_UNIQUE_THM]
+  >> conj_tac
+  >- (gvs[fsgedges_def]
+      >- (qexists ‘n'’
+          >> simp[adjacent_SYM]
+          >> irule (cj 2 adjacent_members)
+          >> qexists ‘m’ >> simp[])
+      >> qexists ‘m’
+      >> simp[INSERT2_lemma]
+      >> irule (cj 1 adjacent_members)
+      >> qexists ‘n’ >> simp[adjacent_SYM])
+  >> rpt gen_tac >> strip_tac
+  >> gvs[INSERT2_lemma]
+QED
+
+Theorem BAG_FILTER_CONG:
+  ∀P Q B C.
+    BAG_FILTER P B = BAG_FILTER Q C ⇔
+      ARB
+Proof
+  rpt gen_tac
+  >> PURE_REWRITE_TAC[BAG_FILTER_DEF, FUN_EQ_THM]
+  >> EQ_TAC
+  >- (strip_tac
+      >> rpt gen_tac >> strip_tac
+      >> gvs[BAG_FILTER_DEF]
+      >> 
+     )
+   
+  >> simp[BAG_FILTER_DEF]
+  >> simp[FUN_EQ_THM]
+  >> 
+  
+QED
+
+Theorem removeNodes_restrict:
+  ∀g ns.
+    removeNodes ns g = removeNodes (ns ∩ nodes g) g
+Proof
+  rpt gen_tac
+  >> simp[gengraph_component_equality]
+  >> rpt conj_tac
+  >- simp[DIFF_INTER2]
+  >- (cong_tac (SOME 1)
+      >> simp[FUN_EQ_THM] >> gen_tac
+      >> 
+     )
+  
+  >> simp[removeNodes_def, removeNodes0_def]
+  >> rpt conj_tac
+  >- (simp[]
+     )
+QED
+
+Theorem degree_removeNodes:
+  ∀g ns n.
+    n ∉ ns ⇒
+    degree (removeNodes ns g) n =
+    degree g n - CARD (adjacent_nodes g n ∩ ns)
+Proof
+  rpt gen_tac >> strip_tac
+  >> 
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If we remove several leaf nodes from a graph at once, this conserves the   *)
+(* property of whether or not it is a tree                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem is_tree_removeNodes_is_tree:
   ∀g : fsgraph ns.
     FINITE ns ∧
-    (∀n. n ∈ ns ⇒ degree g n = 1) ⇒
+    (∀n. n ∈ ns ⇒ degree g n = 1) ∧
+    (∀n m. n ∈ ns ∧ m ∈ ns ⇒ ¬adjacent g n m) ⇒
     (is_tree g ⇔ is_tree (removeNodes ns g))
 Proof
   rpt gen_tac >> strip_tac
@@ -3756,13 +3925,13 @@ Proof
   (* Inductive step *)
   >> gen_tac >> strip_tac
   >> gen_tac >> strip_tac
-  >> strip_tac
+  >> strip_tac >> strip_tac
   >> simp[removeNodes_insert_outer]
   >> DEP_PURE_ONCE_REWRITE_TAC[is_tree_removeNode_degree_one]
   >> simp[]
   >> first_x_assum irule  
   >> 
-  QED*)
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
