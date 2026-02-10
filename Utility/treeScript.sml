@@ -3122,6 +3122,62 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* If a node is in an edge which has nonzero multiplicty in the graph, then   *)
+(* that node is a valid node.                                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem core_incident_edgebag_nodes:
+  ∀g e x.
+    x ∈ core_incident e ∧
+    BAG_IN e (edgebag g) ⇒
+    x ∈ nodes g
+Proof
+  rpt gen_tac >> strip_tac
+  >> drule core_incident_SUBSET_nodes
+  >> simp[SUBSET_DEF]
+QED
+
+Theorem BAG_FILTER_CONG:
+  ∀P Q B.
+    BAG_FILTER P B = BAG_FILTER Q B ⇔
+      (∀b. BAG_IN b B ⇒ P b = Q b)
+Proof
+  rpt gen_tac
+  >> PURE_REWRITE_TAC[BAG_FILTER_DEF, FUN_EQ_THM]
+  >> EQ_TAC
+  >- (strip_tac
+      >> rpt gen_tac >> strip_tac
+      >> last_x_assum $ qspecl_then [‘b’] assume_tac
+      >> Cases_on ‘P b’ >> Cases_on ‘Q b’ >> gvs[BAG_IN, BAG_INN])
+  >> strip_tac
+  >> qx_gen_tac ‘e’ >> simp[]
+  >> last_x_assum $ qspecl_then [‘e’] assume_tac
+  >> Cases_on ‘P e’ >> Cases_on ‘Q e’ >> gvs[BAG_IN, BAG_INN]
+QED
+
+Theorem removeNodes_restrict:
+  ∀g ns.
+    removeNodes ns g = removeNodes (ns ∩ nodes g) g
+Proof
+  rpt gen_tac
+  >> simp[gengraph_component_equality]
+  >> rpt conj_tac
+  >- simp[DIFF_INTER2]
+  >- (simp[BAG_FILTER_CONG]
+      >> gen_tac >> strip_tac
+      >> simp[DISJOINT_ALT]
+      >> EQ_TAC >> strip_tac >> gen_tac >> strip_tac >> simp[]
+      >> disch_tac
+      >> last_x_assum drule
+      >> simp[]
+      >> irule core_incident_edgebag_nodes
+      >> qexists ‘e’ >> simp[])
+  >> PURE_REWRITE_TAC[FUN_EQ_THM]
+  >> qx_gen_tac ‘e’
+  >> simp[]
+  >> Cases_on ‘e ∈ nodes g’ >> simp[]
+QED
+ 
+(* -------------------------------------------------------------------------- *)
 (* This works with more general graphs than adjacent_removeNode               *)
 (* -------------------------------------------------------------------------- *)
 Theorem adjacent_removeNode_imp:
@@ -3135,6 +3191,19 @@ Proof
   >> strip_tac
   >> gvs[adjacent_def]
   >> (qexistsl [‘e’, ‘ms’, ‘ns’] >> simp[])
+QED
+
+Theorem adjacent_removeNodes_imp:
+  ∀ns g v1 v2.
+    adjacent (removeNodes ns g) v1 v2 ⇒
+    adjacent g v1 v2 ∧ v1 ∉ ns ∧ v2 ∉ ns
+Proof
+  rpt gen_tac >> strip_tac
+  >> drule adjacent_members
+  >> simp[]
+  >> strip_tac
+  >> gvs[adjacent_def]
+  >> (qexistsl [‘e’, ‘ms’, ‘ns'’] >> simp[])
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -3160,6 +3229,19 @@ Proof
   >- (irule adjacent_removeNode_imp >> simp[])
   >> gvs[adjacent_def]
   >> qexistsl [‘e’, ‘ms’, ‘ns’] >> simp[]
+  >> Cases_on ‘e’ >> gvs[]
+QED
+
+Theorem adjacent_removeNodes:
+  ∀ns g : fsgraph v1 v2.
+    adjacent (removeNodes ns g) v1 v2 ⇔
+      adjacent g v1 v2 ∧ v1 ∉ ns ∧ v2 ∉ ns
+Proof
+  rpt gen_tac
+  >> EQ_TAC >> strip_tac
+  >- (irule adjacent_removeNodes_imp >> simp[])
+  >> gvs[adjacent_def]
+  >> qexistsl [‘e’, ‘ms’, ‘ns'’] >> simp[]
   >> Cases_on ‘e’ >> gvs[]
 QED
 
@@ -3828,6 +3910,19 @@ Proof
   >> conj_tac >> disch_tac >> gvs[adjacent_SYM]
 QED
 
+Theorem degree_removeNode_same:
+  ∀g n.
+    n ∈ nodes g ⇒
+    degree (removeNode n g) n = 0
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[degree_def]
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> Cases_on ‘n ∈ x’ >> simp[]
+  >> simp[fsgedges_removeNode]
+QED
+
 Theorem degree_card_adjacent_nodes:
   ∀g n.
     degree g n = CARD (adjacent_nodes g n)
@@ -3858,53 +3953,122 @@ Proof
   >> gvs[INSERT2_lemma]
 QED
 
-Theorem BAG_FILTER_CONG:
-  ∀P Q B C.
-    BAG_FILTER P B = BAG_FILTER Q C ⇔
-      ARB
+Theorem a_eq_a_minus_b:
+  ∀a b : num.
+    a = a - b ⇔ a = 0 ∨ b = 0
 Proof
-  rpt gen_tac
-  >> PURE_REWRITE_TAC[BAG_FILTER_DEF, FUN_EQ_THM]
-  >> EQ_TAC
-  >- (strip_tac
-      >> rpt gen_tac >> strip_tac
-      >> gvs[BAG_FILTER_DEF]
-      >> 
-     )
-   
-  >> simp[BAG_FILTER_DEF]
-  >> simp[FUN_EQ_THM]
-  >> 
-  
+  rpt strip_tac
+  >> decide_tac
 QED
 
-Theorem removeNodes_restrict:
-  ∀g ns.
-    removeNodes ns g = removeNodes (ns ∩ nodes g) g
+Theorem finite_adjacent_nodes_fsgraph[simp]:
+  ∀g : fsgraph n.
+    FINITE (adjacent_nodes g n)
 Proof
   rpt gen_tac
-  >> simp[gengraph_component_equality]
-  >> rpt conj_tac
-  >- simp[DIFF_INTER2]
-  >- (cong_tac (SOME 1)
-      >> simp[FUN_EQ_THM] >> gen_tac
-      >> 
-     )
-  
-  >> simp[removeNodes_def, removeNodes0_def]
-  >> rpt conj_tac
-  >- (simp[]
-     )
+  >> ‘adjacent_nodes g n ⊆ nodes g’ by simp[SUBSET_DEF]
+  >> irule SUBSET_FINITE
+  >> qexists ‘nodes g’
+  >> simp[]
+QED
+
+Theorem one_leq_card:
+  ∀S.
+    FINITE S ⇒
+    (1 ≤ CARD S ⇔ S ≠ ∅)
+Proof
+  gen_tac >> strip_tac
+  >> EQ_TAC >> strip_tac
+  >- (disch_tac >> gvs[])
+  >> Cases_on ‘S'’ >> gvs[]
 QED
 
 Theorem degree_removeNodes:
-  ∀g ns n.
+  ∀g : fsgraph ns n.
     n ∉ ns ⇒
     degree (removeNodes ns g) n =
     degree g n - CARD (adjacent_nodes g n ∩ ns)
 Proof
+  (* We can't induct on ns because it may be infinite, but we can induct on
+     the intersection of ns with nodes, which is finite, and the only relevant
+     part. *)
   rpt gen_tac >> strip_tac
-  >> 
+  >> PURE_ONCE_REWRITE_TAC[removeNodes_restrict]
+  >> qabbrev_tac ‘induct_var = ns ∩ nodes g’
+  >> qpat_x_assum ‘Abbrev (induct_var = _)’ (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
+  >> sg ‘FINITE induct_var’
+  >- (simp[]
+      >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+      >> irule INTER_FINITE
+      >> simp[])
+  >> rpt $ last_x_assum mp_tac >> disch_tac
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘induct_var’
+  >> conj_tac
+  >- (rpt gen_tac >> rpt disch_tac
+      >> simp[]
+      >> simp[a_eq_a_minus_b]
+      >> disj2_tac
+      >> qpat_x_assum ‘∅ = _’ (fn th => assume_tac (GSYM th)) >> simp[]
+      >> gvs[EXTENSION]
+      >> gen_tac
+      >> last_x_assum $ qspecl_then [‘x’] assume_tac
+      >> gvs[]
+     )
+  >> gen_tac >> strip_tac
+  >> gen_tac >> strip_tac
+  >> rpt gen_tac >> rpt disch_tac
+  >> simp[removeNodes_insert_outer]
+  >> Cases_on ‘e = n’
+  >- (gvs[]
+      >> gvs[INTER_DEF, EXTENSION]
+      >> first_x_assum $ qspec_then ‘e’ mp_tac
+      >> simp[])
+  >> simp[degree_removeNode]
+  >> last_x_assum $ qspecl_then [‘g’, ‘n’, ‘ns DELETE e’]
+                  (fn th => assume_tac (REWRITE_RULE [AND_IMP_INTRO] th))
+  >> pop_assum (fn th => DEP_PURE_ONCE_REWRITE_TAC[th])
+  >> conj_tac
+  >- (simp[]
+      >> simp[EXTENSION] >> gen_tac
+      >> EQ_TAC >> strip_tac >> gvs[EXTENSION] >> metis_tac[])
+  >> gvs[]
+  >> cong_tac (SOME 1)
+  >> Cases_on ‘adjacent (removeNodes induct_var g) e n’
+  >- (simp[]
+      >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+      >> PURE_ONCE_REWRITE_TAC[DELETE_INTER]
+      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_DELETE]
+      >> conj_tac
+      >- (PURE_ONCE_REWRITE_TAC[INTER_COMM]
+          >> irule INTER_FINITE
+          >> simp[])
+      >> Cases_on ‘e ∈ ns ∩ adjacent_nodes g n’ >> simp[]
+      >- (simp[]
+          >> DEP_PURE_ONCE_REWRITE_TAC[SUB_ADD]
+          >> simp[]
+          >> DEP_PURE_ONCE_REWRITE_TAC[one_leq_card]
+          >> conj_tac
+          >- (PURE_ONCE_REWRITE_TAC[INTER_COMM]
+              >> irule INTER_FINITE
+              >> simp[])
+          >> disch_tac
+          >> qpat_x_assum ‘e ∈ ns ∩ adjacent_nodes g n’ mp_tac
+          >> pop_assum (fn th => PURE_REWRITE_TAC[th])
+          >> simp[])
+      >> pop_assum mp_tac
+      >> simp[INTER_DEF]
+      >> gvs[adjacent_removeNodes]
+      >> gvs[EXTENSION] >> metis_tac[]
+     )
+  >> simp[]
+  >> cong_tac (SOME 1)
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> EQ_TAC >> strip_tac >> simp[]
+  >> disch_tac >> gvs[]
+  >> gvs[adjacent_removeNodes]
+  >> gvs[EXTENSION] >> metis_tac[]
 QED
 
 (* -------------------------------------------------------------------------- *)
