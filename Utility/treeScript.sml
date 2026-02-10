@@ -4093,8 +4093,11 @@ Proof
   >> simp[removeNodes_insert_outer]
   >> DEP_PURE_ONCE_REWRITE_TAC[is_tree_removeNode_degree_one]
   >> simp[]
-  >> first_x_assum irule  
-  >> 
+  >> simp[degree_removeNodes]
+  >> simp[SUB_EQ_EQ_0]
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> CCONTR_TAC >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)
