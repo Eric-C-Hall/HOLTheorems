@@ -56,9 +56,10 @@ val _ = hide "equiv_class"
 (*   tree by repeatedly using this theorem (is_tree_remove_leaf_is_tree)      *)
 (* - A graph is a tree if and only if when we take away several leaf nodes    *)
 (*   at once, it remains a tree. (is_tree_removeNodes_is_tree)                *)
-(* - If a graph is connected and every node has degree at most 2, then the    *)
-(*   graph is a tree (is_tree_degree_two)                                     *)
-(*                                                                            *)
+(* - If a graph is connected and every node has degree at most 2 and there is *)
+(* a node of degree 1, then the graph is a tree (is_tree_degree_two)          *)
+(* - If a graph is connected and has a degree zero node, then no other node   *)
+(*   can be in the graph. (connected_degree_zero)                             *)
 (*                                                                            *)
 (* - If a ~ x - b then x = EL 1 (a - b) (adjacent_mem_get_path_first_step)    *)
 (*   (adjacent_mem_get_path_first_step_alt)                                   *)
@@ -130,6 +131,8 @@ val _ = hide "equiv_class"
 (*                                                                            *)
 (* - If a ~ b then either b = EL 1 (a - c) or a = EL 1 (b - c)                *)
 (*   (adjacent_is_first_step)                                                 *)
+(*                                                                            *)
+(* exists_path_adjacent_tc                                                    *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -430,6 +433,22 @@ Proof
   >> gvs[adjacent_iff]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* The definition of TC can be thought of in the following way:               *)
+(*                                                                            *)
+(* a and b are related under the transitive closure if and only if:           *)
+(* For any P which starts off being true for precisely the originally         *)
+(* provided adjacencies, and then we also require P to satisfy transitivity,  *)
+(* then it will necessarily have to relate a and b as a consequence of these  *)
+(* requirements.                                                              *)
+(*                                                                            *)
+(* Alternatively, its the smallest relation with the provided adjacencies     *)
+(* which also satisfies transitivity.                                         *)
+(*                                                                            *)
+(* Note that this definition means that a point may not be related to itself  *)
+(* under the transitive closure if there is no path which leads away from     *)
+(* that point and then back to itself again (loops are counted as such paths) *)
+(* -------------------------------------------------------------------------- *)
 Theorem exists_path_adjacent_tc:
   ∀g a b.
     exists_path g a b ⇔
@@ -4103,16 +4122,149 @@ Proof
   >> CCONTR_TAC >> gvs[]
 QED
 
+Theorem adjacent_tc_exists_path:
+  ∀g : fsgraph a b.
+    (adjacent g)⁺ a b ⇔ exists_path g a b ∧ a ≠ b
+Proof
+  rpt gen_tac
+  >> simp[exists_path_adjacent_tc]
+  >> Cases_on ‘a = b’ >> simp[]
+  >> simp[TC_DEF]
+  >> qexists ‘$≠’
+  >> simp[]
+  
+  
+  >> EQ_TAC >> simp[]
+  >- (
+
+  PURE_ONCE_REWRITE_TAC[TC_DEF]
+  >> strip_tac >> disch_tac >> last_x_assum mp_tac >> simp[] >> pop_assum kall_tac
+  >> qexists ‘adjacent g’
+  >> simp[]
+  >> rpt gen_tac
+  >> simp[]
+  >>
+  disch_tac >> gvs[]
+  >> pop_assum HO_MATCH_MP_TAC
+  >> strip_tac
+  >- (rpt gen_tac >> strip_tac >> disch_tac >> gvs[])
+  >> rpt gen_tac >> strip_tac
+  >> disch_tac >> gvs[]
+  )
+
+     simp[TC_DEF]
+     simp[bagTheory.mlt_NOT_REFL]
+QED
+
+
+Theorem connected_degree_zero:
+  ∀g : fsgraph n m.
+    connected g ∧
+    n ∈ nodes g ∧
+    degree g n = 0 ∧
+    n ≠ m ⇒
+    m ∉ nodes g
+      
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[connected_def]
+  >> disch_tac
+  >> last_x_assum $ qspecl_then [‘n’, ‘m’] assume_tac
+  >> gvs[]
+  >> gvs[degree_def]
+  >> 
+QED
+
 (* -------------------------------------------------------------------------- *)
-(* If a graph is connected and every node has degree at most 2, then the      *)
-(* graph is a tree                                                            *)
+(* If a graph is connected and every node has degree at most 2 and there is   *)
+(* a node of degree 1, then the graph is a tree                               *)
 (* -------------------------------------------------------------------------- *)
 Theorem is_tree_degree_two:
   ∀g : fsgraph.
     connected g ∧
-    (∀n. n ∈ nodes g ⇒ degree n ≤ 2) ⇒
+    (∃n. n ∈ nodes g ∧ degree g  n = 1) ∧
+    (∀n. n ∈ nodes g ⇒ degree g n ≤ 2) ⇒
     is_tree g
 Proof
+  (* Induct on the number of nodes in the graph *)
+  gen_tac
+  >> strip_tac
+  >> ‘FINITE (nodes g)’ by simp[]
+  >> qabbrev_tac ‘induct_var = CARD (nodes g)’
+  >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
+  >> rpt $ pop_assum mp_tac
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘induct_var’
+  >- simp[]
+  >> rpt gen_tac >> rpt disch_tac
+  (* We may remove the node n and this will preserve whether or not our graph
+     is a tree, because n is a leaf node. *)
+  >> drule is_tree_removeNode_degree_one
+  >> disch_then (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  (* We will be able to apply the inductive hypothesis on the smaller tree.
+.
+     But we can only do so when our new tree has a degree 1 node. This occurs
+     when our previous degree 1 node was connected to a degree 2 node, which has
+     now been decreased to degree 1.
+.
+     In the other case, where we have a degree 1 node, we will terminate
+     (or otherwise violate connectedness)
+.
+     First step: find the adjacent node to the current degree 1 node.
+   *)
+  >> drule degree_one_exists_adjacent >> strip_tac
+  (* The case where this new node has degree 2, and thus we can apply the
+     inductive hypothesis to the smaller tree: *)
+  >> Cases_on ‘degree g m = 2’
+  >- (last_x_assum irule
+      >> rpt conj_tac
+      >- (gen_tac >> strip_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[degree_removeNode]
+          >> conj_tac
+          >- (disch_tac >> gvs[])
+          >> ‘degree g n' ≤ 2’ suffices_by decide_tac
+          >> last_x_assum irule
+          >> gvs[nodes_removeNode]
+         )
+      >- simp[nodes_removeNode]
+      >- simp[connected_removeNode]
+      >- simp[nodes_removeNode]
+      >> qexists ‘m’
+      >> DEP_PURE_ONCE_REWRITE_TAC[degree_removeNode]
+      >> conj_tac
+      >- (disch_tac >> gvs[])
+      >> simp[]
+      >> Cases_on ‘m = n’ >- gvs[]
+      >> simp[]
+      >> irule (cj 2 adjacent_members)
+      >> qexists ‘n’ >> simp[]
+     )
+  (* If instread m has degree 0, we immediately contradict connectedness *)
+  >> Cases_on ‘degree g m = 0’
+  >- (
+  )
+     
+  >>
+
+  (*
+      Under normal
+     circumstances, the degree 2 node that is connected to the current degree 1
+     node will serve as the degree 1 node.
+.
+     However, if we are at the final node which is degree 1, then the inductive
+     hypothesis doesn't apply. So we have to treat this terminating case as a
+     special case. In this case, if there are any further nodes, this
+     contradicts connectedness. Otherwise, we trivially have a tree because we
+     only have one node.*)
+  
+  >> qexists ‘m’ >> simp[]
+                        
+  >- (simp[degree_
+            )
+           >> 
+           
+           >> Induct_on ‘nodes g’
+           >> 
 QED
 
 (* -------------------------------------------------------------------------- *)
