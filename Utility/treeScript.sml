@@ -56,6 +56,9 @@ val _ = hide "equiv_class"
 (*   tree by repeatedly using this theorem (is_tree_remove_leaf_is_tree)      *)
 (* - A graph is a tree if and only if when we take away several leaf nodes    *)
 (*   at once, it remains a tree. (is_tree_removeNodes_is_tree)                *)
+(* - If a graph is connected and every node has degree at most 2, then the    *)
+(*   graph is a tree (is_tree_degree_two)                                     *)
+(*                                                                            *)
 (*                                                                            *)
 (* - If a ~ x - b then x = EL 1 (a - b) (adjacent_mem_get_path_first_step)    *)
 (*   (adjacent_mem_get_path_first_step_alt)                                   *)
@@ -4098,6 +4101,18 @@ Proof
   >> simp[EXTENSION]
   >> gen_tac
   >> CCONTR_TAC >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* If a graph is connected and every node has degree at most 2, then the      *)
+(* graph is a tree                                                            *)
+(* -------------------------------------------------------------------------- *)
+Theorem is_tree_degree_two:
+  ∀g : fsgraph.
+    connected g ∧
+    (∀n. n ∈ nodes g ⇒ degree n ≤ 2) ⇒
+    is_tree g
+Proof
 QED
 
 (* -------------------------------------------------------------------------- *)

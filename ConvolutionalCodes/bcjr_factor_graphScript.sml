@@ -2381,9 +2381,119 @@ Theorem is_tree_rcc_factor_graph:
             )
             
 Proof
+  
   rpt gen_tac
+  >> qmatch_abbrev_tac ‘is_tree g’
   (* First, remove the top row of function nodes,  *)
-  >>
+  >> qspecl_then [‘g’, ‘IMAGE INR (range (3 * n + 1) (4 * n + 1))’] assume_tac is_tree_removeNodes_is_tree
+  >> Q.UNABBREV_TAC ‘g’
+  >> pop_assum (fn th => irule (iffRL th))
+  >> conj_tac
+  >- (rpt gen_tac >> strip_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
+      >> conj_tac
+      >- (simp[nodes_rcc_factor_graph] >> Cases_on ‘n'’ >> gvs[range_def])
+      >> Cases_on ‘n'’ >> gvs[range_def]
+     )
+  >> conj_tac
+  >- (rpt gen_tac >> strip_tac
+      >> simp[degree_one_alt]
+      >> Cases_on ‘n'’ >> gvs[range_def]
+      >> simp[adjacent_rcc_factor_graph])
+  >> simp[]
+  >> qmatch_abbrev_tac ‘is_tree new_g’
+  (* Next, remove the row of variable nodes underneath the top row of function nodes *)
+  >> qspecl_then [‘new_g’, ‘IMAGE INR (range 0 n)’] assume_tac is_tree_removeNodes_is_tree
+  >> Q.UNABBREV_TAC ‘new_g’
+  >> pop_assum (fn th => irule (iffRL th))
+  >> conj_tac
+  >- (rpt gen_tac >> strip_tac
+      >> simp[adjacent_removeNodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
+      >> conj_tac
+      >- (simp[nodes_rcc_factor_graph] >> Cases_on ‘n'’ >> gvs[range_def])
+      >> Cases_on ‘n'’ >> gvs[range_def]
+     )
+  >> conj_tac     
+  >- (gen_tac >> strip_tac
+      >> simp[degree_one_alt]
+      >> Cases_on ‘n'’ >> gvs[range_def]
+      >> qexists ‘INR (5 * n + (y + 2))’
+      >> simp[adjacent_removeNodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
+      >> conj_tac
+      >- simp[nodes_rcc_factor_graph]
+      >> conj_tac
+      >- simp[]
+      >> gen_tac >> strip_tac
+      >> gvs[adjacent_rcc_factor_graph]
+     )
+  >> simp[]
+  >> qmatch_abbrev_tac ‘is_tree new_g’
+  (* Next, remove the bottom row of function nodes
+     (Working based on previous case) *)
+  >> qspecl_then [‘new_g’, ‘IMAGE INR (range (4 * n + 1) (5 * n + 1))’] assume_tac is_tree_removeNodes_is_tree
+  >> Q.UNABBREV_TAC ‘new_g’
+  >> pop_assum (fn th => irule (iffRL th))
+  >> conj_tac
+  >- (rpt gen_tac >> strip_tac
+      >> simp[adjacent_removeNodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
+      >> conj_tac
+      >- (simp[nodes_rcc_factor_graph] >> Cases_on ‘n'’ >> gvs[range_def])
+      >> Cases_on ‘n'’ >> gvs[range_def]
+     )
+  >> conj_tac     
+  >- (gen_tac >> strip_tac
+      >> simp[degree_one_alt]
+      >> Cases_on ‘n'’ >> gvs[range_def]
+      >> qexists ‘INR (y - (3 * n + 1))’
+      >> simp[adjacent_removeNodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
+      >> conj_tac
+      >- simp[nodes_rcc_factor_graph]
+      >> conj_tac
+      >- simp[]
+      >> gen_tac >> strip_tac
+      >> gvs[adjacent_rcc_factor_graph]
+     )
+  >> simp[]
+  >> qmatch_abbrev_tac ‘is_tree new_g’
+  (* Next, remove the row of variable nodes above the previously removed row
+     of function nodes (Working based on previous case) *)
+  >> qspecl_then [‘new_g’, ‘IMAGE INR (range n (2 * n))’] assume_tac is_tree_removeNodes_is_tree
+  >> Q.UNABBREV_TAC ‘new_g’
+  >> pop_assum (fn th => irule (iffRL th))
+  >> conj_tac
+  >- (rpt gen_tac >> strip_tac
+      >> simp[adjacent_removeNodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
+      >> conj_tac
+      >- (simp[nodes_rcc_factor_graph] >> Cases_on ‘n'’ >> gvs[range_def])
+      >> Cases_on ‘n'’ >> gvs[range_def]
+     )
+  >> conj_tac     
+  >- (gen_tac >> strip_tac
+      >> simp[degree_one_alt]
+      >> Cases_on ‘n'’ >> gvs[range_def]
+      >> qexists ‘INR (4 * n + (y + 2))’
+      >> simp[adjacent_removeNodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
+      >> conj_tac
+      >- simp[nodes_rcc_factor_graph]
+      >> conj_tac
+      >- simp[]
+      >> gen_tac >> strip_tac
+      >> gvs[adjacent_rcc_factor_graph]
+     )
+  >> simp[]
+  >> qmatch_abbrev_tac ‘is_tree new_g’
+  (* *)
+  >> 
+  
+  
+
+  
   >> is_tree_remove_leaf_is_tree
   >> is_tree_remove_leaf_is_tree
   >> cheat
