@@ -4122,40 +4122,51 @@ Proof
   >> CCONTR_TAC >> gvs[]
 QED
 
-Theorem adjacent_tc_exists_path:
-  ∀g : fsgraph a b.
-    (adjacent g)⁺ a b ⇔ exists_path g a b ∧ a ≠ b
+(* See comment for exists_path_adjacent_tc *)
+(*Theorem adjacent_tc_exists_path:
+  ∀g a b.
+    (adjacent g)⁺ a b ⇔ exists_path g a b ∧
+                        (if a = b then
+                           adjacent g a a
+                           ∨ (∃c. exists_path g a c ∧ exists_path g c a)
+                         else T)
 Proof
   rpt gen_tac
   >> simp[exists_path_adjacent_tc]
   >> Cases_on ‘a = b’ >> simp[]
-  >> simp[TC_DEF]
-  >> qexists ‘$≠’
-  >> simp[]
-  
-  
   >> EQ_TAC >> simp[]
-  >- (
-
-  PURE_ONCE_REWRITE_TAC[TC_DEF]
-  >> strip_tac >> disch_tac >> last_x_assum mp_tac >> simp[] >> pop_assum kall_tac
-  >> qexists ‘adjacent g’
-  >> simp[]
-  >> rpt gen_tac
-  >> simp[]
-  >>
-  disch_tac >> gvs[]
-  >> pop_assum HO_MATCH_MP_TAC
+  >- (strip_tac
+     )
   >> strip_tac
-  >- (rpt gen_tac >> strip_tac >> disch_tac >> gvs[])
-  >> rpt gen_tac >> strip_tac
-  >> disch_tac >> gvs[]
-  )
+  >- simp[TC_DEF]
+  >- (simp[TC_DEF]
+      >> gen_tac
+      >> strip_tac
+      >> metis_tac[]
+      >> gvs[TC_DEF]
+     )
+  >- gvs[]
+  >- gvs[]
+  >- (PURE_ONCE_REWRITE_TAC[TC_DEF]
+      >> gen_tac
+     )
+     QED*)
 
-     simp[TC_DEF]
-     simp[bagTheory.mlt_NOT_REFL]
-QED
-
+(*Theorem adjacent_tc_exists_path_fsgraph:
+  ∀g : fsgraph a b.
+    (adjacent g)⁺ a b ⇔ exists_path g a b ∧ degree g a ≠ 0
+Proof
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[exists_path_adjacent_tc]
+  >> EQ_TAC >> simp[]
+  >- (strip_tac >> simp[degree_def] >> simp[EXTENSION]
+      >> 
+      >> 
+     )
+                        >> strip_tac
+                        >> gvs[]
+                        >> simp[TC_DEF]
+QED*)
 
 Theorem connected_degree_zero:
   ∀g : fsgraph n m.
@@ -4167,11 +4178,16 @@ Theorem connected_degree_zero:
       
 Proof
   rpt gen_tac >> strip_tac
-  >> gvs[connected_def]
+  >> gvs[connected_exists_path]
   >> disch_tac
   >> last_x_assum $ qspecl_then [‘n’, ‘m’] assume_tac
   >> gvs[]
-  >> gvs[degree_def]
+  >> 
+  
+  >> gvs[connected_def]
+  >> disch_tac
+  >> gvs[]
+  >> 
   >> 
 QED
 
@@ -4241,8 +4257,8 @@ Proof
      )
   (* If instread m has degree 0, we immediately contradict connectedness *)
   >> Cases_on ‘degree g m = 0’
-  >- (
-  )
+  >- (gvs[connected_exists_path]
+     )
      
   >>
 
