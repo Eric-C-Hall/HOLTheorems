@@ -58,6 +58,8 @@ val _ = hide "equiv_class"
 (*   at once, it remains a tree. (is_tree_removeNodes_is_tree)                *)
 (* - If a graph is connected and every node has degree at most 2 and there is *)
 (* a node of degree 1, then the graph is a tree (is_tree_degree_two)          *)
+(* - A graph containing only a singular node is a tree (is_tree_sing)         *)
+(* - A graph containing a singular node is connected (is_tree_connected)      *)
 (* - If a graph is connected and has a degree zero node, then no other node   *)
 (*   can be in the graph. (connected_degree_zero)                             *)
 (*                                                                            *)
@@ -4175,20 +4177,49 @@ Theorem connected_degree_zero:
     degree g n = 0 ∧
     n ≠ m ⇒
     m ∉ nodes g
-      
 Proof
   rpt gen_tac >> strip_tac
   >> gvs[connected_exists_path]
   >> disch_tac
   >> last_x_assum $ qspecl_then [‘n’, ‘m’] assume_tac
   >> gvs[]
-  >> 
-  
-  >> gvs[connected_def]
+  >> gvs[degree_def]
+  >> qpat_x_assum ‘_ = ∅’ mp_tac
+  >> simp[EXTENSION]
+  >> qexists ‘{n; EL 1 (get_path g n m)}’
+  >> simp[GSYM adjacent_fsg]
+QED
+
+Theorem connected_sing:
+  ∀g x.
+    nodes g = {x} ⇒
+    connected g
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[connected_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A graph containing a single node is a tree.                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem is_tree_sing:
+  ∀g x.
+    nodes g = {x} ⇒
+    is_tree g
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[is_tree_def, connected_sing]
+  >> gen_tac
   >> disch_tac
-  >> gvs[]
-  >> 
-  >> 
+  >> gvs[cycle_def]
+  >> namedCases_on ‘ns’ ["", "n1 ns"] >> gvs[]
+  >> namedCases_on ‘ns'’ ["", "n2 ns"] >> gvs[]
+  >> namedCases_on ‘ns’ ["", "n3 ns"] >> gvs[]
+  >> ‘n2 ≠ n3’ by (disch_tac >> gvs[])                 
+  >> qsuff_tac ‘n2 ∈ nodes g ∧ n3 ∈ nodes g’
+  >- (strip_tac >> gvs[])
+  >> qpat_x_assum ‘walk _ _’ mp_tac >> rpt (pop_assum kall_tac) >> strip_tac
+  >> gvs[walk_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -4229,6 +4260,7 @@ Proof
      First step: find the adjacent node to the current degree 1 node.
    *)
   >> drule degree_one_exists_adjacent >> strip_tac
+  >> ‘m ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘n’ >> simp[])
   (* The case where this new node has degree 2, and thus we can apply the
      inductive hypothesis to the smaller tree: *)
   >> Cases_on ‘degree g m = 2’
@@ -4255,32 +4287,21 @@ Proof
       >> irule (cj 2 adjacent_members)
       >> qexists ‘n’ >> simp[]
      )
-  (* If instread m has degree 0, we immediately contradict connectedness *)
+  (* If instead m has degree 0, we immediately contradict connectedness *)
   >> Cases_on ‘degree g m = 0’
-  >- (gvs[connected_exists_path]
-     )
-     
-  >>
+  >- (drule connected_degree_zero
+      >> disch_then (qspecl_then [‘m’, ‘n’] assume_tac)
+      >> gvs[])
+  (* If m has degree 1, we are in the terminating case. We cannot have any
+     further nodes becuase this contradicts connectedness. Thus, our graph only
+     has m in it. Thus, it is trivially a tree. *)
+  >> Cases_on ‘degree g m = 1’
+  >- (
 
-  (*
-      Under normal
-     circumstances, the degree 2 node that is connected to the current degree 1
-     node will serve as the degree 1 node.
-.
-     However, if we are at the final node which is degree 1, then the inductive
-     hypothesis doesn't apply. So we have to treat this terminating case as a
-     special case. In this case, if there are any further nodes, this
-     contradicts connectedness. Otherwise, we trivially have a tree because we
-     only have one node.*)
-  
-  >> qexists ‘m’ >> simp[]
-                        
-  >- (simp[degree_
-            )
-           >> 
-           
-           >> Induct_on ‘nodes g’
-           >> 
+  cheat
+  )
+  >> ‘degree g m ≤ 2’ by simp[]
+  >> decide_tac
 QED
 
 (* -------------------------------------------------------------------------- *)
