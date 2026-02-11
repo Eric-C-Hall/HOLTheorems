@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin donotexpand extreal factor_graph finite_map fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine tree wf_state_machine
+Ancestors binary_symmetric_channel combin donotexpand extreal factor_graph finite_map fsgraph fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine tree wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -2353,6 +2353,36 @@ Proof
   >> (simp[func_node_state_fn_def] >> rw[])
 QED
 
+Theorem degree_rcc_factor_graph:
+  ∀n p ps qs ts prior ds_s ds_p x.
+    degree (get_underlying_graph
+            (rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p))) x =
+    if x = INL ()
+    then
+      0
+    else
+      ARB
+Proof
+  rpt gen_tac
+  >> simp[degree_def]
+  >> Cases_on ‘x = INL ()’
+  >- (simp[EXTENSION]
+      >> gen_tac
+      >> Cases_on ‘INL () ∈ x'’ >> gvs[]
+      >> simp[fsgedges_def]
+      >> rpt gen_tac >> strip_tac
+      >> disch_tac
+      (* Without loss of generality, we may take INL () to be the first of the
+         two elements, because the two elements are interchangable. *)
+      >> wlog_tac ‘INL () = m’ [‘m’, ‘n'’]
+      >- (last_x_assum $ qspecl_then [‘n'’, ‘m’] assume_tac
+          >> gvs[INSERT2_lemma, adjacent_SYM])
+      >> gvs[]
+      >> drule adjacent_members
+      >> simp[nodes_rcc_factor_graph]
+     )
+QED
+
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
 (*       #   #   #         #                                                  *)
@@ -2489,6 +2519,15 @@ Proof
   >> simp[]
   >> qmatch_abbrev_tac ‘is_tree new_g’
   (* *)
+  >> irule is_tree_degree_two
+  >> rpt conj_tac
+  >- (unabbrev_all_tac
+      >> simp[]
+      >> gen_tac >> strip_tac
+      >> simp[degree_removeNodes]
+      >> simp[adjacent_removeNodes]
+      >> simp[degree_rcc_factor_graph]
+     )
   >> 
   
   

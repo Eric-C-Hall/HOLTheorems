@@ -58,6 +58,8 @@ val _ = hide "equiv_class"
 (*   at once, it remains a tree. (is_tree_removeNodes_is_tree)                *)
 (* - If a graph is connected and every node has degree at most 2 and there is *)
 (* a node of degree 1, then the graph is a tree (is_tree_degree_two)          *)
+(* - If there are at most two nodes in a graph with a degree of at most 1,    *)
+(*   then the graph is connected (connected_degree_one)                       *)
 (* - A graph containing only a singular node is a tree (is_tree_sing)         *)
 (* - A graph containing a singular node is connected (is_tree_connected)      *)
 (* - If a graph is connected and has a degree zero node, then no other node   *)
@@ -4359,6 +4361,18 @@ Proof
   >> ‘degree g m ≤ 2’ by simp[]
   >> decide_tac
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* If there are at most two nodes in a graph with a degree of at most 1, then *)
+(* the graph is connected                                                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem connected_degree_one:
+  ∀g : fsgraph.
+    CARD (nodes g ∩ {n | degree g n ≤ 1}) ≤ 2 ⇒ connected g
+Proof
+  cheat
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
