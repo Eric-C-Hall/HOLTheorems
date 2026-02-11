@@ -2153,42 +2153,68 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem adjacent_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p n1 n2.
-    n1 ∈ nodes (get_underlying_graph
-                (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))) ⇒
     (adjacent (get_underlying_graph
                (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))) n1 n2 ⇔
-       if OUTR n1 < n
+       if n1 = INL () ∨ 6 * n + 2 ≤ OUTR n1
        then
-         n2 = INR (OUTR n1 + (3 * n + 1)) ∨ n2 = INR (OUTR n1 + 5 * n + 2)
+         F
        else
-         if OUTR n1 < 2 * n
+         if OUTR n1 < n
          then
-           n2 = INR (OUTR n1 + (3 * n + 1)) ∨ n2 = INR (OUTR n1 + 4 * n + 2)
+           n2 = INR (OUTR n1 + (3 * n + 1)) ∨ n2 = INR (OUTR n1 + 5 * n + 2)
          else
-           if OUTR n1 < 3 * n + 1
+           if OUTR n1 < 2 * n
            then
-             n2 = INR (OUTR n1 + (3 * n + 1)) ∨
-             (n1 ≠ INR (3 * n) ∧ n2 = INR (OUTR n1 + (3 * n + 2)))
+             n2 = INR (OUTR n1 + (3 * n + 1)) ∨ n2 = INR (OUTR n1 + 4 * n + 2)
            else
-             if OUTR n1 < 4 * n + 1
+             if OUTR n1 < 3 * n + 1
              then
-               n2 = INR (OUTR n1 - (3 * n + 1))
+               n2 = INR (OUTR n1 + (3 * n + 1)) ∨
+               (n1 ≠ INR (3 * n) ∧ n2 = INR (OUTR n1 + (3 * n + 2)))
              else
-               if OUTR n1 < 5 * n + 1
+               if OUTR n1 < 4 * n + 1
                then
                  n2 = INR (OUTR n1 - (3 * n + 1))
                else
-                 if OUTR n1 = 5 * n + 1
+                 if OUTR n1 < 5 * n + 1
                  then
-                   n2 = INR (2 * n)
-                 else
-                   n2 = INR (OUTR n1 - (5 * n + 2)) ∨
-                   n2 = INR (OUTR n1 - (4 * n + 2)) ∨
-                   n2 = INR (OUTR n1 - (3 * n + 2)) ∨
                    n2 = INR (OUTR n1 - (3 * n + 1))
+                 else
+                   if OUTR n1 = 5 * n + 1
+                   then
+                     n2 = INR (2 * n)
+                   else
+                     n2 = INR (OUTR n1 - (5 * n + 2)) ∨
+                     n2 = INR (OUTR n1 - (4 * n + 2)) ∨
+                     n2 = INR (OUTR n1 - (3 * n + 2)) ∨
+                     n2 = INR (OUTR n1 - (3 * n + 1))
     )
 Proof
-  rpt gen_tac >> strip_tac
+  rpt gen_tac
+  >> REVERSE $ Cases_on ‘n1 ∈ nodes
+                         (get_underlying_graph
+                          (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p)))’
+  >- (qmatch_abbrev_tac ‘_ ⇔ if b then _ else _’
+      >> sg ‘b’ >> Q.UNABBREV_TAC ‘b’
+      >- (gvs[nodes_rcc_factor_graph]
+          >> Cases_on ‘n1’ >> gvs[])
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[]
+      >> disch_tac
+      >> drule adjacent_members
+      >> simp[])
+  >> qmatch_abbrev_tac ‘_ ⇔ if b then _ else _’
+  >> sg ‘¬b’ >> Q.UNABBREV_TAC ‘b’
+  >- gvs[nodes_rcc_factor_graph]
+  >> simp[]
+  >> qpat_x_assum ‘¬(_ ∨ _)’ kall_tac
+  (* The above was added to this theorem later: initially, we required that
+     n1 was in the nodes of the graph as a precondition, but I changed it so
+     that this was included as an if statement in the expression for
+     adjacent (rcc_factor_graph), so that I can apply this theorem even to nodes
+     which aren't in the factor graph. By this point, I have modified the proof
+     state to be equivalent to the proof state I had when I was initially
+     writing this proof.*)
   >> gvs[nodes_rcc_factor_graph]
   >> simp[rcc_factor_graph_def, o_DEF]
   >> simp[adjacent_rcc_factor_graph_add_func_nodes_state,
