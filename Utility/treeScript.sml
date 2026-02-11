@@ -4229,10 +4229,10 @@ QED
 Theorem is_tree_degree_two:
   ∀g : fsgraph.
     connected g ∧
-    (∃n. n ∈ nodes g ∧ degree g  n = 1) ∧
+    (∃n. n ∈ nodes g ∧ degree g n = 1) ∧
     (∀n. n ∈ nodes g ⇒ degree g n ≤ 2) ⇒
-    is_tree g
-Proof
+    is_tree g            
+Proof  
   (* Induct on the number of nodes in the graph *)
   gen_tac
   >> strip_tac
@@ -4261,6 +4261,7 @@ Proof
    *)
   >> drule degree_one_exists_adjacent >> strip_tac
   >> ‘m ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘n’ >> simp[])
+  >> ‘n ≠ m’ by (disch_tac >> qpat_x_assum ‘adjacent g n m’ mp_tac >> simp[])
   (* The case where this new node has degree 2, and thus we can apply the
      inductive hypothesis to the smaller tree: *)
   >> Cases_on ‘degree g m = 2’
@@ -4278,15 +4279,10 @@ Proof
       >- simp[connected_removeNode]
       >- simp[nodes_removeNode]
       >> qexists ‘m’
-      >> DEP_PURE_ONCE_REWRITE_TAC[degree_removeNode]
-      >> conj_tac
-      >- (disch_tac >> gvs[])
-      >> simp[]
-      >> Cases_on ‘m = n’ >- gvs[]
-      >> simp[]
-      >> irule (cj 2 adjacent_members)
-      >> qexists ‘n’ >> simp[]
+      >> simp[degree_removeNode]
      )
+  (* We no longer need the inductive hypothesis *)
+  >> qpat_x_assum ‘∀g n. _’ kall_tac
   (* If instead m has degree 0, we immediately contradict connectedness *)
   >> Cases_on ‘degree g m = 0’
   >- (drule connected_degree_zero
@@ -4295,11 +4291,71 @@ Proof
   (* If m has degree 1, we are in the terminating case. We cannot have any
      further nodes becuase this contradicts connectedness. Thus, our graph only
      has m in it. Thus, it is trivially a tree. *)
-  >> Cases_on ‘degree g m = 1’
-  >- (
-
-  cheat
-  )
+  >> Cases_on ‘degree g m = 1’              
+  >- (irule is_tree_sing
+      >> qexists ‘m’
+      >> simp[EXTENSION]
+      >> gen_tac
+      >> REVERSE EQ_TAC
+      >- (strip_tac >> gvs[])
+      >> strip_tac
+      >> CCONTR_TAC
+      >> gvs[connected_exists_path]
+      >> last_x_assum $ qspecl_then [‘n’, ‘x’] mp_tac
+      >> simp[]
+      >> disch_tac
+      (* The zeroth element on n - x is n.
+         The first element on n - x must be m, since that's the only option, as
+         n has degree 1.
+         The second element on n - x must be n, since that's the only option, as
+         m has degree 1.
+         But this contradicts the possibility that we have a path.
+       *)
+      (* Split up n - x into zeroth element followed by tail *)
+      >> Cases_on ‘get_path g n x’ >- gvs[]                                         
+      (* The zeroth element is n *)
+      >> Q.SUBGOAL_THEN ‘h = n’ (fn th => gvs[th])
+      >- (Q.SUBGOAL_THEN ‘HD (get_path g n x) = HD (h::t)’ mp_tac
+          >- (pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th]) >> simp[])
+          >> simp[])
+      (* Split up the tail of n - x into first element followed by tail *)
+      >> Cases_on ‘t’ >- gvs[]
+      (* The first element is m *)
+      >> Q.SUBGOAL_THEN ‘h = m’ (fn th => gvs[th])
+      >- (Q.SUBGOAL_THEN ‘path g (get_path g n x)’ mp_tac >- simp[]
+          >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >> simp[path_def, walk_def]
+          >> strip_tac
+          >> sg ‘adjacent g n h’
+          >- (last_x_assum irule >> simp[])
+          >> simp[]
+          >> qpat_x_assum ‘degree g n = 1’ mp_tac
+          >> simp[degree_one_alt] >> strip_tac
+          >> ‘h = m'’ by (pop_assum irule >> simp[])
+          >> ‘m = m'’ by (first_x_assum irule >> simp[])
+          >> simp[])
+      (* Split up the tail of n - x into second element followed by tail *)
+      >> Cases_on ‘t'’
+      >- (Q.SUBGOAL_THEN ‘LAST (get_path g n x) = x’ mp_tac >- simp[]
+          >> simp[Excl "exists_path_last_get_path"])
+      (* The second element is n *)
+      >> Q.SUBGOAL_THEN ‘h = n’ (fn th => gvs[th])
+      >- (sg ‘adjacent g m h’
+          >- (Q.SUBGOAL_THEN ‘path g (get_path g n x)’ mp_tac >- simp[]
+              >> PURE_REWRITE_TAC[path_def, walk_def]
+              >> strip_tac
+              >> first_x_assum irule
+              >> simp[adjacent_iff])
+          >> qpat_x_assum ‘degree g m = 1’ mp_tac
+          >> simp[degree_one_alt] >> strip_tac
+          >> ‘h = m'’ by (pop_assum irule >> simp[])
+          >> ‘n = m'’ by (first_x_assum irule >>
+                          PURE_ONCE_REWRITE_TAC[adjacent_SYM] >> simp[])
+          >> simp[])
+      (* This contradicts the fact that we have a path *)
+      >> Q.SUBGOAL_THEN ‘path g (get_path g n x)’ mp_tac >- simp[]
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[path_def])
   >> ‘degree g m ≤ 2’ by simp[]
   >> decide_tac
 QED
