@@ -4552,7 +4552,7 @@ Proof
   >> Cases_on ‘n’ >> simp[line_graph_def, COUNT_ONE]
   >> simp[fsgedges_fsgAddEdges]
   >> qmatch_abbrev_tac ‘added_edges ∪ _ = _’
-  >> qsuff_tac ‘added_edges = {{INR (SUC n'); INR n'}}’
+  >> qsuff_tac ‘added_edges = {{INR (SUC n'); INR n'}}’               
   >- (strip_tac >> simp[]
       >> irule (iffRL EXTENSION) >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
       >- (gvs[]
@@ -4561,10 +4561,13 @@ Proof
           >> qexists ‘i’
           >> simp[])
       >> gvs[]
+      >> simp[INSERT2_lemma]
      )
-   
-  >> simp[COUNT_SUC]
-  >> PURE_ONCE_REWRITE_TAC[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+  >> Q.UNABBREV_TAC ‘added_edges’
+  >> irule (iffRL EXTENSION)
+  >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
+  >> qexistsl [‘INR (SUC n')’, ‘INR n'’]
+  >> simp[nodes_line_graph]
 QED
 
 Theorem line_graph_connected:
