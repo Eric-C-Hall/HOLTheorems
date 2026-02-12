@@ -2698,7 +2698,7 @@ Proof
      )
   >> simp[]
   >> qmatch_abbrev_tac ‘is_tree new_g’
-  (* *)
+  (* *) 
   >> irule is_tree_degree_two
   >> rpt conj_tac
   >- (unabbrev_all_tac
@@ -2707,17 +2707,38 @@ Proof
       >> simp[degree_removeNodes]
       >> simp[adjacent_removeNodes]
       >> simp[degree_rcc_factor_graph]
+      >> cheat
      )
-  >> 
+  >- (qexists ‘INR (5 * n + 1)’
+      >> Q.UNABBREV_TAC ‘new_g’
+      >> gvs[range_def]
+      >> simp[nodes_removeNodes, degree_removeNodes, degree_rcc_factor_graph]
+      >> rw[]
+      >> gvs[range_def]
+      >> cheat
+     )
+  (*  >> 
   
   
 
   
-  >> is_tree_remove_leaf_is_tree
-  >> is_tree_remove_leaf_is_tree
+        >> is_tree_remove_leaf_is_tree
+        >> is_tree_remove_leaf_is_tree*)
   >> cheat
 QED
-        
+
+Theorem connected_rcc_factor_graph:
+  ∀n p ps qs ts prior ds_s ds_p.
+    connected (get_underlying_graph
+               (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))
+              )
+Proof
+  rpt gen_tac
+  >> qspecl_then [‘n’, ‘p’, ‘ps’, ‘qs’, ‘ts’, ‘prior’, ‘ds_s’, ‘ds_p’]
+                 mp_tac is_tree_rcc_factor_graph
+  >> simp[is_tree_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)

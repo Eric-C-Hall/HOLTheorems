@@ -1,6 +1,6 @@
 Theory tree
 
-Ancestors arithmetic bag cardinal extreal fsgraph fundamental genericGraph indexedLists list marker pred_set prim_rec product_order relation rich_list
+Ancestors arithmetic bag cardinal extreal fsgraph fundamental genericGraph indexedLists list marker permutes pred_set prim_rec product_order relation rich_list
 
 Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 
@@ -58,8 +58,8 @@ val _ = hide "equiv_class"
 (*   at once, it remains a tree. (is_tree_removeNodes_is_tree)                *)
 (* - If a graph is connected and every node has degree at most 2 and there is *)
 (* a node of degree 1, then the graph is a tree (is_tree_degree_two)          *)
-(* - If there are at most two nodes in a graph with a degree of at most 1,    *)
-(*   then the graph is connected (connected_degree_one)                       *)
+(* - If all the nodes in a graph are of degree two, except for two which have *)
+(* degree one, then the graph is connected. (connected_degree_two)            *)
 (* - A graph containing only a singular node is a tree (is_tree_sing)         *)
 (* - A graph containing a singular node is connected (is_tree_connected)      *)
 (* - If a graph is connected and has a degree zero node, then no other node   *)
@@ -286,6 +286,14 @@ End
 Definition eccentricity_def:
   eccentricity (g : fsgraph) n = MAX_SET (IMAGE (distance g n) (nodes g))
 End
+
+
+Definition graph_isomorphism:
+  isomorphism f g1 g2 ⇔
+    BIJ f (nodes g1) (nodes g2) ∧
+    (∀n m. adjacent g1 n m ⇔ adjacent g2 (f n) (f m))
+End
+
 
 Overload adjacent_nodes = “λg cur_node.
                              {adj_node | adj_node ∈ nodes g ∧
@@ -3592,10 +3600,10 @@ Proof
   >> qexists ‘vs’ >> simp[path_removeNode_degree_one]
 QED
 
-Theorem connected_removeNode:
+Theorem connected_removeNode_degree_one:
   ∀g : fsgraph n.
     degree g n = 1 ⇒
-    (connected (removeNode n g) ⇔ connected g)
+  (connected (removeNode n g) ⇔ connected g)
 Proof
   rpt gen_tac >> strip_tac
   >> simp[connected_exists_path]
@@ -3799,7 +3807,7 @@ Theorem is_tree_remove_leaf_is_tree:
 Proof
   rpt gen_tac >> strip_tac
   >> simp[is_tree_def]
-  >> simp[connected_removeNode]
+  >> simp[connected_removeNode_degree_one]
   >> PURE_ONCE_REWRITE_TAC[pull_out_imp_l] >> strip_tac
   >> EQ_TAC
   >- (strip_tac
@@ -4278,7 +4286,7 @@ Proof
           >> gvs[nodes_removeNode]
          )
       >- simp[nodes_removeNode]
-      >- simp[connected_removeNode]
+      >- simp[connected_removeNode_degree_one]
       >- simp[nodes_removeNode]
       >> qexists ‘m’
       >> simp[degree_removeNode]
@@ -4362,14 +4370,155 @@ Proof
   >> decide_tac
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* If there are at most two nodes in a graph with a degree of at most 1, then *)
-(* the graph is connected                                                     *)
-(* -------------------------------------------------------------------------- *)
-Theorem connected_degree_one:
-  ∀g : fsgraph.
-    CARD (nodes g ∩ {n | degree g n ≤ 1}) ≤ 2 ⇒ connected g
+Theorem not_degree_one:
+  ∀g n m1 m2.
+    adjacent g n m1 ∧
+    adjacent g n m2 ∧
+    m1 ≠ m2 ⇒
+    degree g n ≠ 1
 Proof
+  rpt gen_tac
+  >> strip_tac
+  >> simp[degree_one_alt]
+  >> gen_tac
+  >> Cases_on ‘adjacent g n m’ >> simp[]
+  >> Cases_on ‘m1 = m’
+  >- (qexists ‘m2’ >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> simp[])
+  >> qexists ‘m1’
+  >> simp[]
+QED
+
+Theorem BIJ_COMM:
+  ∀f s t.
+    BIJ f s t ⇔ BIJ (inverse f) t s
+Proof
+  rpt gen_tac
+  >> simp[BIJ_IFF_INV, Cong LHS_CONG]
+  >> EQ_TAC >> strip_tac
+  >- (simp[BIJ_THM]
+      >> conj_tac
+      >- (gen_tac >> strip_tac
+          >> simp[inverse] 
+         )
+     )
+  >> 
+QED
+
+Theorem connected_graph_isomorphism:
+  ∀f g1 g2.
+    connected g1 ∧
+    isomorphism f g1 g2 ⇒
+    connected g2
+Proof
+  rpt gen_tac >> simp[connected_exists_path] >> strip_tac
+  >> rpt gen_tac >> strip_tac
+  >> inverse 
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* If all the nodes in a graph are of degree two, except for two which have   *)
+(* degree one, then the graph is connected.                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem connected_degree_two:
+  ∀g : fsgraph e1 e2.
+    e1 ∈ nodes g ∧
+    (∀n. n ∈ nodes g ⇒ degree g n = if n = e1 ∨ n = e2 then 1 else 2) ⇒
+    connected g
+
+Proof
+  
+  (* This proof is similar to the proof for is_tree_degree_two
+.
+   Induct on the number of nodes in the graph *)
+  rpt gen_tac
+  >> strip_tac
+  >> ‘FINITE (nodes g)’ by simp[]
+  >> qabbrev_tac ‘induct_var = CARD (nodes g)’
+  >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
+  >> rpt $ pop_assum mp_tac
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘induct_var’
+  >- simp[]
+  >> rpt gen_tac >> rpt disch_tac
+  (* We may remove the node e1 and this will preserve whether or not our graph
+     is connected, because e1 is a leaf node. *)
+  >> ‘degree g e1 = 1’ by simp[]
+  >> drule connected_removeNode_degree_one
+  >> disch_then (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  (* We will be able to apply the inductive hypothesis on the smaller tree.
+.
+     But we can only do so when our new tree has a degree 1 node. This occurs
+     when our previous degree 1 node was connected to a degree 2 node, which has
+     now been decreased to degree 1.
+.
+     In the other case, where we have a degree 1 node, we will terminate
+.
+     First step: find the adjacent node to the current degree 1 node.
+   *)
+  >> drule degree_one_exists_adjacent >> strip_tac
+  >> ‘m ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘e1’ >> simp[])
+  >> ‘e1 ≠ m’ by (disch_tac >> qpat_x_assum ‘adjacent g n m’ mp_tac >> simp[]) 
+  (* The case where this new node has degree 2, and thus we can apply the
+     inductive hypothesis to the smaller tree: *)
+  >> Cases_on ‘degree g m = 2’              
+  >- (last_x_assum irule
+      >> rpt conj_tac
+      >- simp[]
+      >- simp[]
+      >> qexistsl [‘m’, ‘e2’]
+      >> simp[]
+      >> qx_gen_tac ‘cur_node’ >> strip_tac
+      (* We need to prove that in the new graph, cur_node will always have
+         degree 2 unless it is at an endpoint. *)
+      >> Cases_on ‘cur_node = m’
+      >- (gvs[]
+          >> Cases_on ‘cur_node = e2’ >> gvs[]
+          >> simp[degree_removeNode])
+      >> Cases_on ‘cur_node = e2’                  
+      >- (gvs[]
+          >> simp[degree_removeNode]
+          >> rw[]
+          (* e1 has degree 1 *)
+          >> last_x_assum $ qspec_then ‘e1’ mp_tac
+          >> simp[]
+          (* Despite the fact e1 has degree 1, it is adjacent to both m and
+             cur_node *)
+          >> irule not_degree_one
+          >> qexistsl [‘m’, ‘cur_node’]
+          >> simp[]
+         )
+      (* We have considered the cases where cur_node is an endpoint. Now
+         we consider the case where it is not an endpoint. *)
+      >> simp[]
+      >> simp[degree_removeNode]
+      >> rw[]           
+      (* e1 is adjacent to m and cur_node but has degree 1 *)
+      >> qpat_x_assum ‘degree g e1 = 1’ mp_tac
+      >> PURE_REWRITE_TAC[IMP_CLAUSES]
+      >> irule not_degree_one
+      >> qexistsl [‘m’, ‘cur_node’] >> simp[]
+     )
+  (* We no longer need the inductive hypothesis *)
+  >> qpat_x_assum ‘∀e1 e2 g. _ ⇒ _ ⇒ _’ kall_tac
+  (* If instead m has degree 0, we immediately contradict connectedness *)
+  >> Cases_on ‘degree g m = 0’
+  >- (drule connected_degree_zero
+      >> disch_then (qspecl_then [‘m’, ‘n’] assume_tac)
+      >> gvs[])
+     
+     
+
+     
+
+     
+     (* *)
+     
+     rpt gen_tac
+  >> strip_tac
+  >> 
+  >> 
   cheat
 QED
 
