@@ -2271,11 +2271,9 @@ simp[]
     >> sg ‘cur_adj_nodes = adj_ns’ >> Q.UNABBREV_TAC ‘adj_ns’
     >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
         >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> gvs[adjacent_rcc_factor_graph]
-        >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM]
-            >> simp[adjacent_rcc_factor_graph]
-           )
         >> strip_tac
         >> simp[]
+        >> pop_assum mp_tac >> simp[]
        )
     >> simp[]
     >> gvs[val_map_assignments_def]
@@ -2361,14 +2359,11 @@ Proof
           >> simp[func_node_state_adjacent_nodes_def]
           (* End of second modification *)
           >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> gvs[adjacent_rcc_factor_graph]
-          >- (PURE_ONCE_REWRITE_TAC[adjacent_SYM]
-              >> simp[adjacent_rcc_factor_graph]
-             )
           >> strip_tac
           (* Here is the third modification *)
           >> simp[adjacent_rcc_factor_graph]
+          >> pop_assum mp_tac >> simp[] >> rw[]
           (* End of third modification *)
-          >> all_tac
          )
       >> simp[]
       >> gvs[val_map_assignments_def]
