@@ -64,6 +64,11 @@ val _ = hide "equiv_class"
 (* - A graph containing a singular node is connected (is_tree_connected)      *)
 (* - If a graph is connected and has a degree zero node, then no other node   *)
 (*   can be in the graph. (connected_degree_zero)                             *)
+(* - graph isomorphisms preserve connectedness (graph_isomorphism_connected)  *)
+(* - TODO: graph isomorphisms preserve tree-ness                              *)
+(* - the graph which is just a line of nodes is connected                     *)
+(* - TODO: the graph which is just a line of nodes is a tree                  *)
+(*                                                                            *)
 (*                                                                            *)
 (* - If a ~ x - b then x = EL 1 (a - b) (adjacent_mem_get_path_first_step)    *)
 (*   (adjacent_mem_get_path_first_step_alt)                                   *)
@@ -291,6 +296,21 @@ Definition graph_isomorphism_def:
   graph_isomorphism f g1 g2 ⇔
     BIJ f (nodes g1) (nodes g2) ∧
     (∀n m. n ∈ nodes g1 ∧ m ∈ nodes g1 ⇒ (adjacent g1 n m ⇔ adjacent g2 (f n) (f m)))
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The graph which consists of a line of nodes, each connected to the         *)
+(* previous node                                                              *)
+(*                                                                            *)
+(* Very easy to prove stuff for using induction. A nice simple graph. Many    *)
+(* graphs contain line graphs as components                                   *)
+(*                                                                            *)
+(* n: the number of nodes in the graph                                        *)
+(* -------------------------------------------------------------------------- *)
+Definition line_graph_def:
+  line_graph 0 = emptyG ∧
+  line_graph (SUC 0) = fsgAddNode (INR 0) (line_graph 0) ∧
+  line_graph (SUC (SUC n)) = fsgAddEdges {{INR (SUC n); INR n}} (fsgAddNode (INR (SUC n)) (line_graph (SUC n)))
 End
 
 Overload adjacent_nodes = “λg cur_node.
@@ -4488,7 +4508,7 @@ Proof
   >> gvs[graph_isomorphism_def, BIJ_DEF]
 QED
 
-Theorem connected_graph_isomorphism:
+Theorem graph_isomorphism_connected:
   ∀f g1 g2.
     connected g1 ∧
     graph_isomorphism f g1 g2 ⇒
@@ -4511,6 +4531,82 @@ Proof
   >> Cases_on ‘vs = []’ >- gvs[]
   >> simp[LAST_MAP]
 QED
+
+Theorem nodes_line_graph:
+  ∀n.
+    nodes (line_graph n) = IMAGE INR (count n)
+Proof
+  rpt gen_tac
+  >> Induct_on ‘n’ >- simp[line_graph_def]
+  >> Cases_on ‘n’ >> simp[line_graph_def]
+  >- simp[COUNT_ONE]
+  >> simp[COUNT_SUC]
+QED
+
+Theorem fsgedges_line_graph:
+  ∀n.
+    fsgedges (line_graph n) = IMAGE (λi. {INR i; INR (i - 1)}) (count n DELETE 0)
+Proof
+  rpt gen_tac
+  >> Induct_on ‘n’ >- simp[line_graph_def]
+  >> Cases_on ‘n’ >> simp[line_graph_def, COUNT_ONE]
+  >> simp[fsgedges_fsgAddEdges]
+  >> qmatch_abbrev_tac ‘added_edges ∪ _ = _’
+  >> qsuff_tac ‘added_edges = {{INR (SUC n'); INR n'}}’
+  >- (strip_tac >> simp[]
+      >> irule (iffRL EXTENSION) >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+      >- (gvs[]
+          >- (qexists ‘SUC n'’
+              >> simp[])
+          >> qexists ‘i’
+          >> simp[])
+      >> gvs[]
+     )
+   
+  >> simp[COUNT_SUC]
+  >> PURE_ONCE_REWRITE_TAC[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+QED
+
+Theorem line_graph_connected:
+  ∀n.
+    connected (line_graph n)
+Proof
+  gen_tac
+  >> Induct_on ‘n’
+  >- simp[line_graph_def]
+  >> Cases_on ‘n’ >> simp[line_graph_def]
+  >- (irule connected_sing
+      >> qexists ‘INR 0’
+      >> simp[])
+  >> qmatch_abbrev_tac ‘connected g’
+  >> qspecl_then [‘g’, ‘INR (SUC n')’]
+                 (fn th => DEP_PURE_ONCE_REWRITE_TAC[GSYM th])
+                 connected_removeNode_degree_one
+  >> conj_tac
+  >- (Q.UNABBREV_TAC ‘g’
+      >> DEP_PURE_ONCE_REWRITE_TAC[degree_fsgAddEdges]
+      >> conj_tac
+      >- (simp[valid_edges_def]
+          >> simp[nodes_line_graph])
+      >> simp[]
+      >> qmatch_abbrev_tac ‘CARD added_edges = 1’
+      >> ‘added_edges = {{INR (SUC n'); INR n'}}’ suffices_by simp[]
+      >> Q.UNABBREV_TAC ‘added_edges’
+      >> PURE_ONCE_REWRITE_TAC[EXTENSION] >> gen_tac >> EQ_TAC >> simp[]
+      >> strip_tac
+      >> 
+      
+      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_ONE_CHOOSE_ELT]
+      >> conj_tac
+      >- (simp[]
+          >> 
+         )
+     )
+     
+  >> simp[line_graph_def]
+  >> 
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
