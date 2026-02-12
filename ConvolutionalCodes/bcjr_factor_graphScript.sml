@@ -2622,9 +2622,7 @@ Proof
   >> pop_assum (fn th => irule (iffRL th))
   >> conj_tac
   >- (rpt gen_tac >> strip_tac
-      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
-      >> conj_tac
-      >- (simp[nodes_rcc_factor_graph] >> Cases_on ‘n'’ >> gvs[range_def])
+      >> simp[adjacent_rcc_factor_graph]
       >> Cases_on ‘n'’ >> gvs[range_def]
      )
   >> conj_tac
@@ -2641,9 +2639,7 @@ Proof
   >> conj_tac
   >- (rpt gen_tac >> strip_tac
       >> simp[adjacent_removeNodes]
-      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
-      >> conj_tac
-      >- (simp[nodes_rcc_factor_graph] >> Cases_on ‘n'’ >> gvs[range_def])
+      >> simp[adjacent_rcc_factor_graph]
       >> Cases_on ‘n'’ >> gvs[range_def]
      )
   >> conj_tac     
@@ -2652,11 +2648,7 @@ Proof
       >> Cases_on ‘n'’ >> gvs[range_def]
       >> qexists ‘INR (5 * n + (y + 2))’
       >> simp[adjacent_removeNodes]
-      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
-      >> conj_tac
-      >- simp[nodes_rcc_factor_graph]
-      >> conj_tac
-      >- simp[]
+      >> simp[adjacent_rcc_factor_graph]
       >> gen_tac >> strip_tac
       >> gvs[adjacent_rcc_factor_graph]
      )
@@ -2667,12 +2659,10 @@ Proof
   >> qspecl_then [‘new_g’, ‘IMAGE INR (range (4 * n + 1) (5 * n + 1))’] assume_tac is_tree_removeNodes_is_tree
   >> Q.UNABBREV_TAC ‘new_g’
   >> pop_assum (fn th => irule (iffRL th))
-  >> conj_tac
+  >> conj_tac     
   >- (rpt gen_tac >> strip_tac
       >> simp[adjacent_removeNodes]
-      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
-      >> conj_tac
-      >- (simp[nodes_rcc_factor_graph] >> Cases_on ‘n'’ >> gvs[range_def])
+      >> simp[adjacent_rcc_factor_graph]
       >> Cases_on ‘n'’ >> gvs[range_def]
      )
   >> conj_tac     
@@ -2681,13 +2671,7 @@ Proof
       >> Cases_on ‘n'’ >> gvs[range_def]
       >> qexists ‘INR (y - (3 * n + 1))’
       >> simp[adjacent_removeNodes]
-      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
-      >> conj_tac
-      >- simp[nodes_rcc_factor_graph]
-      >> conj_tac
-      >- simp[]
-      >> gen_tac >> strip_tac
-      >> gvs[adjacent_rcc_factor_graph]
+      >> simp[adjacent_rcc_factor_graph]
      )
   >> simp[]
   >> qmatch_abbrev_tac ‘is_tree new_g’
@@ -2699,9 +2683,7 @@ Proof
   >> conj_tac
   >- (rpt gen_tac >> strip_tac
       >> simp[adjacent_removeNodes]
-      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
-      >> conj_tac
-      >- (simp[nodes_rcc_factor_graph] >> Cases_on ‘n'’ >> gvs[range_def])
+      >> simp[adjacent_rcc_factor_graph]
       >> Cases_on ‘n'’ >> gvs[range_def]
      )
   >> conj_tac     
@@ -2710,11 +2692,7 @@ Proof
       >> Cases_on ‘n'’ >> gvs[range_def]
       >> qexists ‘INR (4 * n + (y + 2))’
       >> simp[adjacent_removeNodes]
-      >> DEP_PURE_ONCE_REWRITE_TAC[adjacent_rcc_factor_graph]
-      >> conj_tac
-      >- simp[nodes_rcc_factor_graph]
-      >> conj_tac
-      >- simp[]
+      >> simp[adjacent_rcc_factor_graph]
       >> gen_tac >> strip_tac
       >> gvs[adjacent_rcc_factor_graph]
      )
