@@ -8,7 +8,10 @@ Libs dep_rewrite;
 
 (* What happened to buildheap? It's no longer present *)
 
-(* Pain points: *)
+(* Pain points:
+
+degree_rcc_factor_graph
+ *)
 
 (* -------------------------------------------------------------------------- *)
 (* Would be cool to be able to rewrite within a set comprehension using CONG  *)

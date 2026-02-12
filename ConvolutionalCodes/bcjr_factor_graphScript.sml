@@ -241,8 +241,10 @@ End
 (*                 o cp_0            o cp_1                     o cp_{n-1}    *)
 (*                 |                 |                          |             *)
 (*                 #                 #                          #             *)
-(*            P(dp_0|cp_0)        P(cp_1|b_1)             P(cp_{n-1}|b_{n-1})  *)
+(*            P(dp_0|cp_0)        P(cp_1|b_1)             P(cp_{n-1}|b_{n-1}) *)
 (*                                                                            *)
+(*                                                                            *)
+(* The following ranges are inclusive:                                        *)
 (*                                                                            *)
 (* The n variable nodes relating to the inputs b_i have labels 0 through n-1  *)
 (* The n variable nodes relating to the encoded inputs cp_i have labels       *)
@@ -2373,35 +2375,199 @@ Proof
   >> rw[]
   >> (simp[func_node_state_fn_def] >> rw[])
 QED
-
+        
 Theorem degree_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p x.
     degree (get_underlying_graph
             (rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p))) x =
-    if x = INL ()
+    if x = INL () ∨ 6 * n + 2 ≤ OUTR x
     then
       0
     else
-      ARB
+      if OUTR x ∈ range (3 * n) (5 * n + 2)
+      then
+        1
+      else
+        if OUTR x ∈ range 0 (3 * n)
+        then
+          2
+        else
+          4
+
 Proof
+  
   rpt gen_tac
   >> simp[degree_def]
-  >> Cases_on ‘x = INL ()’
-  >- (simp[EXTENSION]
+  (* Handle the case where x is not a valid node *)
+  >> Cases_on ‘x = INL () ∨ 6 * n + 2 ≤ OUTR x’
+  >- (simp[]
+      (* In this case, we don't have a valid node *)
+      >> sg ‘x ∉ nodes (get_underlying_graph
+                        (rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p)))’
+      >- (simp[nodes_rcc_factor_graph]
+          >> gen_tac >> strip_tac >> gvs[])
+      (* We don't need the specific value of x, only that it isn't a valid
+         node. Avoid accidental case splits on the or statement. *)
+      >> qpat_x_assum ‘_ ∨ _’ kall_tac
+      (* *)
+      >> simp[EXTENSION]
       >> gen_tac
-      >> Cases_on ‘INL () ∈ x'’ >> gvs[]
+      >> Cases_on ‘x ∈ x'’ >> gvs[]
       >> simp[fsgedges_def]
       >> rpt gen_tac >> strip_tac
       >> disch_tac
       (* Without loss of generality, we may take INL () to be the first of the
          two elements, because the two elements are interchangable. *)
-      >> wlog_tac ‘INL () = m’ [‘m’, ‘n'’]
+      >> wlog_tac ‘x = m’ [‘m’, ‘n'’]
       >- (last_x_assum $ qspecl_then [‘n'’, ‘m’] assume_tac
           >> gvs[INSERT2_lemma, adjacent_SYM])
       >> gvs[]
       >> drule adjacent_members
       >> simp[nodes_rcc_factor_graph]
      )
+  (* Handle the cases where we have degree 1 *)
+  >> Cases_on ‘OUTR x ∈ range (3 * n) (5 * n + 2)’
+  >- (simp[]
+      >> simp[fsgedges_def]
+      >> simp[adjacent_rcc_factor_graph]
+      >> qmatch_abbrev_tac ‘CARD edges_with_x = 1’
+      (* The subcase where we have the node 3 * n *)
+      >> Cases_on ‘OUTR x = 3 * n’
+      >- (sg ‘edges_with_x = {{INR (3 * n); INR(3 * n + (3 * n + 1))}}’
+          >- (irule (iffRL EXTENSION)
+              >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+              >- (Q.UNABBREV_TAC ‘edges_with_x’
+                  >> gvs[]
+                  >- (Cases_on ‘m’ >> gvs[])
+                  >- (Cases_on ‘m’ >> gvs[])
+                  >> Cases_on ‘m’ >> gvs[] >> Cases_on ‘n'’ >> gvs[]
+                  >> Cases_on ‘y = 5 * n + 1’ >> gvs[]
+                  >- gvs[range_def, INSERT2_lemma]
+                  >> gvs[INSERT2_lemma]
+                 )
+              >> Q.UNABBREV_TAC ‘edges_with_x’
+              >> Cases_on ‘x’ >> gvs[]
+              >> qexistsl [‘INR (3 * n)’, ‘INR (3 * n + (3 * n + 1))’]
+              >> simp[]
+             )
+          >> simp[]
+         )
+      (* The subcase where we have a node in 3n + 1 - 4n + 1 *)
+      >> Cases_on ‘OUTR x ∈ range (3 * n + 1) (4 * n + 1)’
+      >- (‘edges_with_x = {{x; INR (OUTR x - (3 * n + 1))}}’ suffices_by simp[]
+          >> irule (iffRL EXTENSION)
+          >> gen_tac >> EQ_TAC >> strip_tac >> Q.UNABBREV_TAC ‘edges_with_x’
+          >- (gvs[range_def]
+              >> Cases_on ‘m’ >> Cases_on ‘n'’ >> gvs[]
+              >> simp[INSERT2_lemma])
+          >> gvs[range_def]
+          >> qexistsl [‘x’, ‘INR (OUTR x - (3 * n + 1))’]
+          >> simp[]
+         )
+      (* The subcase wher we have a node in 4n + 1 to 5n + 1 *)
+      >> Cases_on ‘OUTR x ∈ range (4 * n + 1) (5 * n + 1)’                  
+      >- (gvs[range_def]
+          >> qsuff_tac ‘edges_with_x = {{x; INR (OUTR x - (3 * n + 1))}}’
+          >- simp[]
+          >> irule (iffRL EXTENSION)
+          >> gen_tac >> EQ_TAC >> strip_tac >> Q.UNABBREV_TAC ‘edges_with_x’
+          >- (gvs[]
+              >> Cases_on ‘m’ >> Cases_on ‘n'’ >> gvs[] >> simp[INSERT2_lemma])
+          >> gvs[]
+          >> qexistsl [‘x’, ‘INR (OUTR x - (3 * n + 1))’]
+          >> simp[]
+         )
+      >> Cases_on ‘OUTR x = 5 * n + 1’                  
+      >- (Cases_on ‘x’ >> gvs[range_def]
+          >> qsuff_tac ‘edges_with_x = {{INR (5 * n + 1); INR (2 * n)}}’
+          >- simp[]
+          >> irule (iffRL EXTENSION)
+          >> gen_tac >> EQ_TAC >> strip_tac >> Q.UNABBREV_TAC ‘edges_with_x’
+          >- (gvs[]
+              >> Cases_on ‘m’ >> gvs[] >> simp[INSERT2_lemma])
+          >> gvs[]
+          >> qexistsl [‘INR (5 * n + 1)’, ‘INR (2 * n)’]
+          >> simp[]
+         )
+      >> gvs[range_def]
+     )
+  (* Handle the cases where we have degree 2 *)
+  >> Cases_on ‘OUTR x ∈ range 0 (3 * n)’              
+  >- (simp[]
+      >> simp[fsgedges_def, adjacent_rcc_factor_graph]
+      >> Cases_on ‘x’ >> gvs[range_def]
+      >> qmatch_abbrev_tac ‘CARD edges_with_inr_y = 2’
+      (* Subcase of 0 - n *)
+      >> Cases_on ‘y ∈ range 0 n’                  
+      >- (qsuff_tac ‘edges_with_inr_y = {{INR y; INR (y + (3 * n + 1))};
+                     {INR y; INR (y + 5 * n + 2)}}’
+          >- (simp[] >> strip_tac >> simp[INSERT2_lemma])
+          >> Q.UNABBREV_TAC ‘edges_with_inr_y’
+          >> irule (iffRL EXTENSION)
+          >> gen_tac >> EQ_TAC >> strip_tac
+          >- (gvs[range_def]
+              >> Cases_on ‘m’ >> gvs[]
+              >> Cases_on ‘y' < 4 * n + 1’ >> gvs[]
+              >> (simp[INSERT2_lemma])
+             )
+          >> gvs[]
+          >- (qexistsl [‘INR y’, ‘INR (y + 3 * n + 1)’]
+              >> simp[])
+          >> qexistsl [‘INR y’, ‘INR (y + 5 * n + 2)’]
+          >> simp[]
+          >> gvs[range_def]
+         )
+      (* Subcase of n - 2 * n*)
+      >> Cases_on ‘y ∈ range n (2 * n)’                  
+      >- (qsuff_tac ‘edges_with_inr_y = {{INR y; INR (y + (3 * n + 1))};
+                     {INR y; INR (y + (4 * n + 2))}}’
+          >- (simp[] >> strip_tac >> simp[INSERT2_lemma])
+          >> Q.UNABBREV_TAC ‘edges_with_inr_y’
+          >> irule (iffRL EXTENSION)
+          >> gen_tac >> EQ_TAC >> strip_tac
+          >- (gvs[range_def]
+              >> Cases_on ‘m’ >> gvs[]
+              >> simp[INSERT2_lemma]
+              >> pop_assum mp_tac >> rw[]
+             )
+          >> gvs[]
+          >- (qexistsl [‘INR y’, ‘INR (y + 3 * n + 1)’]
+              >> simp[])
+          >> qexistsl [‘INR y’, ‘INR (y + 4 * n + 2)’]
+          >> simp[]
+          >> gvs[range_def]
+         )
+      (* Subcase of 2 * n - 3 * n *)
+      >> ‘y ∈ range (2 * n) (3 * n)’ by gvs[range_def]
+      >> qsuff_tac ‘edges_with_inr_y = {{INR y; INR (y + (3 * n + 1))};
+                    {INR y; INR (y + (3 * n + 2))}}’
+      >- (simp[] >> strip_tac >> simp[INSERT2_lemma])
+      >> Q.UNABBREV_TAC ‘edges_with_inr_y’
+      >> irule (iffRL EXTENSION)
+      >> gen_tac >> EQ_TAC >> strip_tac
+      >- (gvs[range_def]
+          >> Cases_on ‘m’ >> gvs[]
+          >> simp[INSERT2_lemma]
+          >> pop_assum mp_tac >> rw[]
+         )
+      >> gvs[]
+      >- (qexistsl [‘INR y’, ‘INR (y + 3 * n + 1)’]
+          >> simp[])
+      >> qexistsl [‘INR y’, ‘INR (y + 3 * n + 2)’]
+      >> simp[]
+      >> gvs[range_def]
+     )
+  (* Handle the remaining case, where we have degree 4 *)
+  >> Cases_on ‘x’ >> gvs[range_def]
+  >> simp[fsgedges_def, adjacent_rcc_factor_graph]
+  >> qmatch_abbrev_tac ‘CARD edges_with_inr_y = 4’
+  >> qsuff_tac ‘edges_with_inr_y
+                = {{INR y; INR (y - (5 * n + 2))};
+                {INR y; INR (y - (4 * n + 2))};
+                {INR y; INR (y - (3 * n + 2))};
+                {INR y; INR (y - (3 * n + 1))}}’
+  >- (disch_tac
+      >> gvs[Abbr ‘edges_with_inr_y’, INSERT2_lemma])
 QED
 
 (* -------------------------------------------------------------------------- *)
