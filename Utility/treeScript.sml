@@ -1,6 +1,6 @@
 Theory tree
 
-Ancestors arithmetic bag cardinal extreal fsgraph fundamental genericGraph indexedLists list marker permutes pred_set prim_rec product_order relation rich_list
+Ancestors arithmetic bag cardinal combin extreal fsgraph fundamental genericGraph indexedLists list marker permutes pred_set prim_rec product_order relation rich_list
 
 Libs dep_rewrite ConseqConv donotexpandLib useful_tacticsLib;
 
@@ -287,13 +287,11 @@ Definition eccentricity_def:
   eccentricity (g : fsgraph) n = MAX_SET (IMAGE (distance g n) (nodes g))
 End
 
-
-Definition graph_isomorphism:
-  isomorphism f g1 g2 ⇔
+Definition graph_isomorphism_def:
+  graph_isomorphism f g1 g2 ⇔
     BIJ f (nodes g1) (nodes g2) ∧
-    (∀n m. adjacent g1 n m ⇔ adjacent g2 (f n) (f m))
+    (∀n m. n ∈ nodes g1 ∧ m ∈ nodes g1 ⇒ (adjacent g1 n m ⇔ adjacent g2 (f n) (f m)))
 End
-
 
 Overload adjacent_nodes = “λg cur_node.
                              {adj_node | adj_node ∈ nodes g ∧
@@ -4389,139 +4387,130 @@ Proof
   >> simp[]
 QED
 
-Theorem BIJ_COMM:
-  ∀f s t.
-    BIJ f s t ⇔ BIJ (inverse f) t s
+(* -------------------------------------------------------------------------- *)
+(* Based on BIJ_INV                                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem isomorphism_comm:
+  ∀f g1 g2.
+    graph_isomorphism f g1 g2 ⇒
+    ∃g. graph_isomorphism g g2 g1 ∧
+        (∀x. x ∈ (nodes g1) ⇒ (g (f x) = x)) ∧
+        ∀x. x ∈ (nodes g2) ⇒ f (g x) = x
+Proof
+  rpt gen_tac >> simp[graph_isomorphism_def]
+  >> strip_tac
+  >> drule BIJ_INV
+  >> strip_tac
+  >> qexists ‘g’
+  >> simp[]
+  >> REVERSE conj_tac
+  >- gvs[]
+  >> rpt gen_tac >> strip_tac
+  >> last_x_assum $ qspecl_then [‘g n’, ‘g m’] mp_tac
+  >> gvs[BIJ_THM]
+QED
+
+Theorem graph_isomorphism_in_nodes:
+  ∀f g1 g2 x.
+    graph_isomorphism f g1 g2 ∧
+    x ∈ nodes g1 ⇒
+    f x ∈ nodes g2
+Proof
+  simp[graph_isomorphism_def, BIJ_THM]
+QED
+
+Theorem graph_isomorphism_adjacent:
+  ∀f g1 g2 n m.
+    graph_isomorphism f g1 g2 ∧
+    adjacent g1 n m ⇒
+    adjacent g2 (f n) (f m)
+Proof
+  rpt gen_tac >> simp[graph_isomorphism_def] >> strip_tac
+  >> first_x_assum $ qspecl_then [‘n’, ‘m’] assume_tac
+  >> drule adjacent_members >> strip_tac
+  >> gvs[]
+QED
+
+Theorem graph_isomorphism_walk:
+  ∀f g1 g2 vs.
+    graph_isomorphism f g1 g2 ∧
+    walk g1 vs ⇒
+    walk g2 (MAP f vs)
 Proof
   rpt gen_tac
-  >> simp[BIJ_IFF_INV, Cong LHS_CONG]
-  >> EQ_TAC >> strip_tac
-  >- (simp[BIJ_THM]
-      >> conj_tac
-      >- (gen_tac >> strip_tac
-          >> simp[inverse] 
-         )
+  >> simp[walk_def]
+  >> strip_tac
+  >> conj_tac
+  >- (gen_tac >> strip_tac
+      >> gvs[MEM_MAP]
+      >> irule graph_isomorphism_in_nodes
+      >> qexists ‘g1’
+      >> simp[]
      )
-  >> 
+  >> rpt gen_tac >> strip_tac
+  >> gvs[adjacent_MAP]
+  >> irule graph_isomorphism_adjacent
+  >> qexists ‘g1’
+  >> simp[]
+QED
+
+Theorem ALL_DISTINCT_MAP_INJ_FUNC:
+  ∀f s t ls.
+    INJ f s t ∧
+    set ls ⊆ s ∧
+    ALL_DISTINCT ls ⇒
+    ALL_DISTINCT (MAP f ls)
+Proof
+  rpt gen_tac >> strip_tac
+  >> irule ALL_DISTINCT_MAP_INJ
+  >> simp[]
+  >> rpt gen_tac >> strip_tac
+  >> gvs[INJ_DEF]
+  >> last_x_assum irule
+  >> gvs[SUBSET_DEF]
+QED
+
+Theorem graph_isomorphism_path:
+  ∀f g1 g2 vs.
+    graph_isomorphism f g1 g2 ∧
+    path g1 vs ⇒
+    path g2 (MAP f vs)
+Proof
+  rpt gen_tac >> simp[path_def] >> strip_tac
+  >> conj_tac
+  >- (irule graph_isomorphism_walk
+      >> qexists ‘g1’ >> simp[])
+  >> irule ALL_DISTINCT_MAP_INJ_FUNC
+  >> simp[]
+  >> qexistsl [‘nodes g1’, ‘nodes g2’]
+  >> conj_tac
+  >- gvs[walk_def, SUBSET_DEF]
+  >> gvs[graph_isomorphism_def, BIJ_DEF]
 QED
 
 Theorem connected_graph_isomorphism:
   ∀f g1 g2.
     connected g1 ∧
-    isomorphism f g1 g2 ⇒
+    graph_isomorphism f g1 g2 ⇒
     connected g2
 Proof
   rpt gen_tac >> simp[connected_exists_path] >> strip_tac
+  >> drule isomorphism_comm >> strip_tac
   >> rpt gen_tac >> strip_tac
-  >> inverse 
-QED
-
-
-(* -------------------------------------------------------------------------- *)
-(* If all the nodes in a graph are of degree two, except for two which have   *)
-(* degree one, then the graph is connected.                                   *)
-(* -------------------------------------------------------------------------- *)
-Theorem connected_degree_two:
-  ∀g : fsgraph e1 e2.
-    e1 ∈ nodes g ∧
-    (∀n. n ∈ nodes g ⇒ degree g n = if n = e1 ∨ n = e2 then 1 else 2) ⇒
-    connected g
-
-Proof
-  
-  (* This proof is similar to the proof for is_tree_degree_two
-.
-   Induct on the number of nodes in the graph *)
-  rpt gen_tac
+  >> last_x_assum $ qspecl_then [‘g a’, ‘g b’] mp_tac
+  >> impl_tac
+  >- metis_tac[graph_isomorphism_in_nodes]
+  >> simp[exists_path_def]
   >> strip_tac
-  >> ‘FINITE (nodes g)’ by simp[]
-  >> qabbrev_tac ‘induct_var = CARD (nodes g)’
-  >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
-  >> rpt $ pop_assum mp_tac
-  >> SPEC_ALL_TAC
-  >> Induct_on ‘induct_var’
-  >- simp[]
-  >> rpt gen_tac >> rpt disch_tac
-  (* We may remove the node e1 and this will preserve whether or not our graph
-     is connected, because e1 is a leaf node. *)
-  >> ‘degree g e1 = 1’ by simp[]
-  >> drule connected_removeNode_degree_one
-  >> disch_then (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
-  (* We will be able to apply the inductive hypothesis on the smaller tree.
-.
-     But we can only do so when our new tree has a degree 1 node. This occurs
-     when our previous degree 1 node was connected to a degree 2 node, which has
-     now been decreased to degree 1.
-.
-     In the other case, where we have a degree 1 node, we will terminate
-.
-     First step: find the adjacent node to the current degree 1 node.
-   *)
-  >> drule degree_one_exists_adjacent >> strip_tac
-  >> ‘m ∈ nodes g’ by (irule (cj 2 adjacent_members) >> qexists ‘e1’ >> simp[])
-  >> ‘e1 ≠ m’ by (disch_tac >> qpat_x_assum ‘adjacent g n m’ mp_tac >> simp[]) 
-  (* The case where this new node has degree 2, and thus we can apply the
-     inductive hypothesis to the smaller tree: *)
-  >> Cases_on ‘degree g m = 2’              
-  >- (last_x_assum irule
-      >> rpt conj_tac
-      >- simp[]
-      >- simp[]
-      >> qexistsl [‘m’, ‘e2’]
-      >> simp[]
-      >> qx_gen_tac ‘cur_node’ >> strip_tac
-      (* We need to prove that in the new graph, cur_node will always have
-         degree 2 unless it is at an endpoint. *)
-      >> Cases_on ‘cur_node = m’
-      >- (gvs[]
-          >> Cases_on ‘cur_node = e2’ >> gvs[]
-          >> simp[degree_removeNode])
-      >> Cases_on ‘cur_node = e2’                  
-      >- (gvs[]
-          >> simp[degree_removeNode]
-          >> rw[]
-          (* e1 has degree 1 *)
-          >> last_x_assum $ qspec_then ‘e1’ mp_tac
-          >> simp[]
-          (* Despite the fact e1 has degree 1, it is adjacent to both m and
-             cur_node *)
-          >> irule not_degree_one
-          >> qexistsl [‘m’, ‘cur_node’]
-          >> simp[]
-         )
-      (* We have considered the cases where cur_node is an endpoint. Now
-         we consider the case where it is not an endpoint. *)
-      >> simp[]
-      >> simp[degree_removeNode]
-      >> rw[]           
-      (* e1 is adjacent to m and cur_node but has degree 1 *)
-      >> qpat_x_assum ‘degree g e1 = 1’ mp_tac
-      >> PURE_REWRITE_TAC[IMP_CLAUSES]
-      >> irule not_degree_one
-      >> qexistsl [‘m’, ‘cur_node’] >> simp[]
+  >> qexists ‘MAP f vs’
+  >> rpt conj_tac
+  >- (irule graph_isomorphism_path >> qexists ‘g1’ >> simp[])
+  >- (Cases_on ‘vs = []’ >- gvs[]
+      >> simp[MAP_HD]
      )
-  (* We no longer need the inductive hypothesis *)
-  >> qpat_x_assum ‘∀e1 e2 g. _ ⇒ _ ⇒ _’ kall_tac
-  (* If instead m has degree 0, we immediately contradict connectedness *)
-  >> Cases_on ‘degree g m = 0’
-  >- (drule connected_degree_zero
-      >> disch_then (qspecl_then [‘m’, ‘n’] assume_tac)
-      >> gvs[])
-     
-     
-
-     
-
-     
-     (* *)
-     
-     rpt gen_tac
-  >> strip_tac
-  >> 
-  >> 
-  cheat
+  >> Cases_on ‘vs = []’ >- gvs[]
+  >> simp[LAST_MAP]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
