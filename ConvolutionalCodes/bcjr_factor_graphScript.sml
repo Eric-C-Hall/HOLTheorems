@@ -2393,9 +2393,7 @@ Theorem degree_rcc_factor_graph:
           2
         else
           4
-
 Proof
-  
   rpt gen_tac
   >> simp[degree_def]
   (* Handle the case where x is not a valid node *)
@@ -2568,6 +2566,23 @@ Proof
                 {INR y; INR (y - (3 * n + 1))}}’
   >- (disch_tac
       >> gvs[Abbr ‘edges_with_inr_y’, INSERT2_lemma])
+  >> Q.UNABBREV_TAC ‘edges_with_inr_y’
+  >> irule (iffRL EXTENSION)
+  >> gen_tac >> EQ_TAC >> strip_tac
+  >- (gvs[range_def]
+      >> Cases_on ‘m’ >> gvs[]
+      >> simp[INSERT2_lemma]
+      >> pop_assum mp_tac >> rw[]
+     )
+  >> gvs[]
+  >- (qexistsl [‘INR y’, ‘INR (y - (5 * n + 2))’]
+      >> simp[])
+  >- (qexistsl [‘INR y’, ‘INR (y - (4 * n + 2))’]
+      >> simp[])
+  >- (qexistsl [‘INR y’, ‘INR (y - (3 * n + 2))’]
+      >> simp[])
+  >> qexistsl [‘INR y’, ‘INR (y - (3 * n + 1))’]
+  >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
