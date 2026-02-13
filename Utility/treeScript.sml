@@ -4570,10 +4570,309 @@ Proof
   >> simp[nodes_line_graph]
 QED
 
+
+(*
+(* TODO: *)
+Theorem fsgAddEdges_alt:
+  ∀g es.
+    fsgAddEdges es g =
+    ITSET (λe. addUDEdge e () g) es
+Proof
+QED*)
+
+Theorem INSERT2_sym:
+  ∀a b.
+    {a;b} = {b;a}
+Proof
+  rpt gen_tac
+  >> simp[EXTENSION]
+  >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+QED
+
+Theorem finite_directed_to_undirected_edge[simp]:
+  ∀g es.
+    FINITE es ⇒
+    FINITE {(n, m) | {n;m} ∈ es}
+Proof
+  rpt gen_tac >> strip_tac
+  >> Induct_on ‘es’
+  >> conj_tac
+  >- simp[]
+  >> gen_tac >> strip_tac
+  >> gen_tac >> strip_tac
+  >> qmatch_abbrev_tac ‘FINITE new_es’
+  >> Cases_on ‘∃n m. e = {n;m}’
+  >- (gvs[]
+      >> sg ‘new_es = (n,m) INSERT (m,n) INSERT {(n,m) | {n;m} ∈ es}’
+      >- (Q.UNABBREV_TAC ‘new_es’
+          >> PURE_ONCE_REWRITE_TAC[EXTENSION]
+          >> gen_tac >> EQ_TAC >> strip_tac >> gvs[INSERT2_lemma]
+         )
+      >> simp[]
+     )
+  >> sg ‘new_es = {(n,m) | {n; m} ∈ es}’
+  >- (Q.UNABBREV_TAC ‘new_es’
+      >> irule (iffRL EXTENSION)
+      >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
+     )
+  >> simp[]
+QED
+        
+Theorem finite_directed_to_undirected_edge_additional_restrictions[simp]:
+  ∀g es.
+    FINITE es ⇒
+    FINITE {(n,m) | n ≠ m ∧ n ∈ nodes g ∧ m ∈ nodes g ∧ {n; m} ∈ es}
+Proof
+  rpt gen_tac >> strip_tac
+  (* This is a subset of all possible directed edges on the undirected edges es,
+     which is also finite *)
+  >> irule SUBSET_FINITE
+  >> qexists ‘{(n,m) | {n;m} ∈ es}’
+  >> simp[SUBSET_DEF]
+  >> gen_tac >> strip_tac
+  >> qexistsl [‘n’, ‘m’]
+  >> simp[]
+QED
+
+Theorem union_idem[simp]:
+  ∀s1 s2.
+    s1 ∪ (s1 ∪ s2) = s1 ∪ s2
+Proof
+  rpt gen_tac
+  >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+QED
+
+Theorem edgebag_addUDEdge:
+  ∀ns lab g : ('a, undirectedG, 'ec, 'el, θ, 'nf, 'nl, 'sl) graph.
+    edgebag (addUDEdge ns lab g) =
+    if SING ns ∧ ¬itself2bool (:'sl) then edgebag g
+    else if INFINITE ns ∧ itself2bool (:'nf) then edgebag g
+    else if ¬itself2bool (:θ) ∧ (FINITE ns ⇒ 2 < CARD ns) then edgebag g
+    else if ns = ∅ then edgebag g
+    else
+      ARB
+Proof
+  rpt gen_tac
+  >> simp[addUDEdge_def, addUDEdge0_def]
+  >> rw[graph_ABSREP]
+       
+  >> simp[]
+QED
+
+Theorem addUDEdge_idem:
+  ∀ns lab g.
+    addUDEdge ns lab (addUDEdge ns lab g) = addUDEdge ns lab g
+Proof
+  rpt gen_tac
+  >> Cases_on ‘∃a b. ns = {a;b} ∧ a ≠ b’ >> gvs[]
+  >- (simp[gengraph_component_equality]
+      >> rpt conj_tac
+     )
+  >> 
+
+  
+  >> simp[addUDEdge_def]
+  >> simp[addUDEdge0_def]
+QED
+
+Theorem fsgAddEdges_insert_lemma:
+  ∀g e es.
+    FINITE es ⇒
+    fsgAddEdges (e INSERT es) g = addUDEdge e () (fsgAddEdges es g)
+
+Proof
+  
+  rpt gen_tac >> strip_tac
+  >> simp[fsgAddEdges_def]
+  >> qmatch_abbrev_tac
+     ‘ITSET _ edge_set_lhs g = addUDEdge _ _ (ITSET _ edge_set_rhs _)’
+  >> sg ‘if ∃a b. a ≠ b ∧ a ∈ nodes g ∧ b ∈ nodes g ∧ e = {a;b}
+         then
+           let
+             (a,b) = @(a,b). a ≠ b ∧ a ∈ nodes g ∧ b ∈ nodes g ∧ e = {a;b}
+           in
+             edge_set_lhs = (a,b) INSERT (b,a) INSERT edge_set_rhs
+         else
+           edge_set_lhs = edge_set_rhs
+        ’
+  >- (rw[]
+      >- (SELECT_ELIM_TAC
+          >> conj_tac
+          >- (qexists ‘(a, b)’ >> simp[])
+          >> gen_tac >> strip_tac
+          >> namedCases_on ‘x’ ["a b"] >> gvs[]
+          >> irule (iffRL EXTENSION)
+          >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+          >- (Q.UNABBREV_TAC ‘edge_set_lhs’ >> Q.UNABBREV_TAC ‘edge_set_rhs’
+              >> gvs[]
+              >> wlog_tac ‘m = a'’ [‘a'’, ‘b'’]
+              >- (first_x_assum $ qspecl_then [‘b'’, ‘a'’] mp_tac
+                  >> gvs[INSERT2_lemma]
+                 )
+              >> gvs[INSERT2_lemma]
+             )
+          >> Q.UNABBREV_TAC ‘edge_set_lhs’ >> Q.UNABBREV_TAC ‘edge_set_rhs’
+          >> gvs[INSERT2_lemma]
+         )
+      >> Q.UNABBREV_TAC ‘edge_set_lhs’ >> Q.UNABBREV_TAC ‘edge_set_rhs’
+      >> irule (iffRL EXTENSION) >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+      >- (gvs[]
+          >> last_x_assum $ qspecl_then [‘n’, ‘m’] mp_tac
+          >> simp[INSERT2_sym]
+         )
+      >> gvs[]
+     )
+  >> Cases_on ‘∃a b. a ≠ b ∧ a ∈ nodes g ∧ b ∈ nodes g ∧ e = {a;b}’              
+
+  >- (gvs[]
+      >> qmatch_asmsub_abbrev_tac
+         ‘(λ(a,b). edge_set_lhs = (a,b) INSERT (b,a) INSERT edge_set_rhs) chosen_ab’
+      >> namedCases_on ‘chosen_ab’ ["chosen_a chosen_b"]
+      >> gvs[]
+      >> qmatch_abbrev_tac ‘ITSET f _ _ = _’
+      (* Our function f is commutative, which is required for ITSET_REDUCTION *)
+      >> sg ‘∀x y z. f x (f y z) = f y (f x z)’
+      >- (Q.UNABBREV_TAC ‘f’
+          >> rpt gen_tac
+          >> Cases_on ‘x’ >> simp[]
+          >> Cases_on ‘y’ >> simp[]
+          >> simp[addUDEdge_udul_LCOMM]
+         )
+      (* Delete the inserted elements from edge_set_rhs to ensure they aren't
+         in it, so that we can apply ITSET_REDUCTION to drag the elments out *)
+      >> Q.SUBGOAL_THEN
+          ‘(chosen_a,chosen_b) INSERT (chosen_b,chosen_a) INSERT edge_set_rhs =
+           (chosen_a,chosen_b) INSERT (chosen_b,chosen_a) INSERT
+                               (edge_set_rhs DELETE (chosen_a, chosen_b)
+                                             DELETE (chosen_b, chosen_a))’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- ASM_SET_TAC[]
+      (* *)
+      >> qmatch_abbrev_tac ‘ITSET _ (_ INSERT _ INSERT edge_set_rhs_deleted) _ = _’
+      (* *)
+      >> sg ‘(chosen_a, chosen_b) ∉ edge_set_rhs_deleted’
+      >- (Q.UNABBREV_TAC ‘edge_set_rhs_deleted’ >> simp[])
+      >> sg ‘(chosen_b, chosen_a) ∉ edge_set_rhs_deleted’
+      >- (Q.UNABBREV_TAC ‘edge_set_rhs_deleted’ >> simp[])
+      >> sg ‘FINITE edge_set_rhs_deleted’
+      >- (Q.UNABBREV_TAC ‘edge_set_rhs_deleted’
+          >> Q.UNABBREV_TAC ‘edge_set_rhs’
+          >> simp[]
+         )         
+      >> sg ‘chosen_a ≠ chosen_b’
+      >- (disch_tac >> gvs[]
+          >> qpat_x_assum ‘_ = (chosen_a, chosen_a)’ mp_tac
+          >> SELECT_ELIM_TAC
+          >> conj_tac
+          >- (qexists ‘(a,b)’
+              >> simp[])
+          >> gen_tac
+          >> namedCases_on ‘x’ ["a' b'"] >> simp[]
+          >> rpt disch_tac
+          >> gvs[]
+         )
+      >> simp[ITSET_REDUCTION]
+      >> Q.UNABBREV_TAC ‘f’
+      >> simp[INSERT2_sym]
+      (* *)
+             
+      >> DEP_PURE_ONCE_REWRITE_TAC[ITSET_REDUCTION]
+      >> conj_tac
+      >- (simp[]
+         )
+         
+      >> conj_tac
+
+      >- (
+       >> simp[]
+       >> unabbrev_all_tac
+       >> simp[]
+       >> sg ‘chosen_a ≠ chosen_b’
+       >- (disch_tac
+           >> gvs[]
+           >> qpat_x_assum ‘_ = _ INSERT _’ mp_tac
+           >> simp[EXTENSION]
+           >> qexists ‘(chosen_a, chosen_a)’
+           >> simp[]
+          )
+       >> simp[]
+       >> CCONTR_TAC >> gvs[]
+       >> qpat_x_assum ‘_ = (chosen_a, chosen_b)’ mp_tac
+       >> SELECT_ELIM_TAC
+       >> conj_tac
+       >- (qexists ‘(a,b)’ >> simp[])
+       >> gen_tac
+       >> namedCases_on ‘x’ ["a' b'"] >> simp[]
+       >> strip_tac
+       >> strip_tac
+       >> disch_tac
+       >> wlog_tac ‘a = a'’ [‘a'’, ‘b'’, ‘chosen_a’, ‘chosen_b’]
+       >- (first_x_assum $ qspecl_then [‘b'’, ‘a'’, ‘chosen_b’, ‘chosen_a’] assume_tac
+           >> gvs[INSERT2_lemma, INSERT_COMM])
+       >> gvs[INSERT2_lemma]
+       >> 
+       )
+         
+     )
+     
+
+
+     
+  >> Cases_on ‘∃a b. a ≠ b ∧ a ∈ nodes g ∧ b ∈ nodes g ∧ e = {a;b}’
+  >- (gvs[]
+      >> sg ‘edge_set = {a;b} INSERT {}’
+     )
+  >> simp[]
+QED
+
+Theorem fsgAddEdges_insert:
+  ∀g e es.
+    fsgAddEdges (e INSERT es) g = fsgAddEdges {e} (fsgAddEdges es g)
+Proof
+  rpt gen_tac
+  >> simp[fsgAddEdges_def]
+  >> Cases_on ‘∃a b. a ≠ b ∧ e = {a;b}’
+  >- (gvs[]
+     )
+  >>  
+  >> simp[ITSET_ITSET]
+  >> cheat
+QED
+
+Theorem fsgAddEdges_fsgAddEdges:
+  ∀g es1 es2.
+    FINITE es1 ⇒
+    fsgAddEdges es1 (fsgAddEdges es2 g) = fsgAddEdges (es1 ∪ es2) g
+Proof
+  rpt gen_tac
+  >> Induct_on ‘es1’ >> conj_tac
+  >- simp[]
+  >> gen_tac >> strip_tac >> gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[INSERT_UNION_EQ]
+  >> PURE_ONCE_REWRITE_TAC[fsgAddEdges_insert]
+  >> simp[]
+QED
+
+Theorem removeNode_fsgAddEdges:
+  ∀g n es.
+    FINITE es ⇒
+    removeNode n (fsgAddEdges es g) = fsgAddEdges (es ∩ {e | n ∉ e}) (removeNode n g)
+Proof
+  rpt gen_tac
+  >> Induct_on ‘es’ using FINITE_INDUCT >> conj_tac
+  >- simp[]
+  >> gen_tac >> strip_tac >> gen_tac >> strip_tac
+  >> simp[fsgAddEdges_INSERT]
+      
+         rpt gen_tac
+  >> 
+QED
+
 Theorem line_graph_connected:
   ∀n.
     connected (line_graph n)
 Proof
+
   gen_tac
   >> Induct_on ‘n’
   >- simp[line_graph_def]
@@ -4597,14 +4896,10 @@ Proof
       >> Q.UNABBREV_TAC ‘added_edges’
       >> PURE_ONCE_REWRITE_TAC[EXTENSION] >> gen_tac >> EQ_TAC >> simp[]
       >> strip_tac
-      >> 
-      
-      >> DEP_PURE_ONCE_REWRITE_TAC[CARD_ONE_CHOOSE_ELT]
-      >> conj_tac
-      >- (simp[]
-          >> 
-         )
+      >> gvs[fsgedges_line_graph]
      )
+  >> Q.UNABBREV_TAC ‘g’
+  >> 
      
   >> simp[line_graph_def]
   >> 
