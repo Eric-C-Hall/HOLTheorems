@@ -4570,7 +4570,6 @@ Proof
   >> simp[nodes_line_graph]
 QED
 
-
 (*
 (* TODO: *)
 Theorem fsgAddEdges_alt:
@@ -5108,11 +5107,65 @@ Proof
   >> gvs[]
 QED
 
+Theorem removeNode_fsgAddNode:
+  ∀g n.
+    removeNode n (fsgAddNode n g) = removeNode n g
+Proof
+  rpt gen_tac
+  >> simp[fsgraph_component_equality]
+  >> conj_tac
+  >- simp[DELETE_INSERT]
+  >> simp[fsgedges_removeNode]
+QED
+
+Theorem walk_fsgAddEdges:
+  ∀g es vs.
+    walk g vs ⇒
+    walk (fsgAddEdges es g) vs
+Proof
+  rpt gen_tac
+  >> simp[walk_def]
+QED
+
+Theorem path_fsgAddEdges:
+  ∀g es vs.
+    path g vs ⇒
+    path (fsgAddEdges es g) vs
+Proof
+  rpt gen_tac
+  >> simp[path_def, walk_fsgAddEdges]
+QED
+
+Theorem exists_path_fsgAddEdges:
+  ∀g es a b.
+    exists_path g a b ⇒
+    exists_path (fsgAddEdges es g) a b
+Proof
+  rpt gen_tac
+  >> simp[exists_path_def]
+  >> strip_tac
+  >> qexists ‘vs’
+  >> simp[path_fsgAddEdges]
+QED
+
+Theorem connected_fsgAddEdges:
+  ∀g es.
+    connected g ⇒
+    connected (fsgAddEdges es g)
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> gvs[connected_exists_path]
+  >> rpt gen_tac
+  >> strip_tac
+  >> last_x_assum $ qspecl_then [‘a’, ‘b’] mp_tac
+  >> simp[exists_path_fsgAddEdges]
+QED
+
 Theorem line_graph_connected:
   ∀n.
     connected (line_graph n)
 Proof
-
   gen_tac
   >> Induct_on ‘n’
   >- simp[line_graph_def]
@@ -5139,12 +5192,13 @@ Proof
       >> gvs[fsgedges_line_graph]
      )
   >> Q.UNABBREV_TAC ‘g’
-  >> 
-     
-  >> simp[line_graph_def]
-  >> 
+  >> simp[removeNode_fsgAddEdges]
+  >> simp[removeNode_fsgAddNode]
+  >> DEP_PURE_ONCE_REWRITE_TAC[removeNode_NONMEMBER]
+  >> conj_tac
+  >- simp[nodes_line_graph]
+  >> simp[connected_fsgAddEdges]
 QED
-
 
 (* -------------------------------------------------------------------------- *)
 (* Might it be a good idea to update the message passing in order to take an  *)
