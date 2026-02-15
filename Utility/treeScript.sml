@@ -5162,7 +5162,7 @@ Proof
   >> simp[exists_path_fsgAddEdges]
 QED
 
-Theorem line_graph_connected:
+Theorem line_graph_connected[simp]:
   ∀n.
     connected (line_graph n)
 Proof

@@ -2695,10 +2695,11 @@ Proof
       >> simp[adjacent_rcc_factor_graph]
       >> gen_tac >> strip_tac
       >> gvs[adjacent_rcc_factor_graph]
-     )
+     )     
   >> simp[]
   >> qmatch_abbrev_tac ‘is_tree new_g’
-  (* *) 
+  (* *)
+                       
   >> irule is_tree_degree_two
   >> rpt conj_tac
   >- (unabbrev_all_tac
@@ -2717,6 +2718,39 @@ Proof
       >> gvs[range_def]
       >> cheat
      )
+
+     
+  >> qspecl_then [‘λx. if OUTR x = 5 * n + 1
+                       then INR 0
+                       else if OUTR x ∈ range (2 * n) (3 * n + 1)
+                       then INR ((OUTR x - 2 * n) * 2 + 1)
+                       else INR ((OUTR x - (5 * n + 2)) * 2 + 2)’,
+                  ‘line_graph (2 * n + 2)’, ‘new_g’] irule
+                 graph_isomorphism_connected
+  >> simp[] >> qexists ‘n’
+  >> simp[graph_isomorphism_def]
+  >> REVERSE conj_tac
+  >- (rpt gen_tac
+      >> simp[nodes_line_graph] >> strip_tac
+      >> gvs[]
+      >> simp[adjacent_line_graph]
+     )
+  >> simp[BIJ_IFF_INV]
+  >> conj_tac
+     
+  >- (gen_tac >> strip_tac
+      >> Q.UNABBREV_TAC ‘new_g’
+      >> pop_assum mp_tac
+      >> simp[nodes_removeNodes, range_def, nodes_line_graph]
+      >> strip_tac
+      >> rw[]
+      >> gvs[]
+      >> decide_tac
+     )
+  
+  >> irule graph_isomorphism_connected
+  >> simp[]
+         
   (*  >> 
   
   
