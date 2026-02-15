@@ -4642,6 +4642,7 @@ Proof
   >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
 QED
 
+(* TODO: Delete? instead use udedges_addUDEdge?
 Theorem edgebag_addUDEdge:
   ∀ns lab g : ('a, undirectedG, 'ec, 'el, θ, 'nf, 'nl, 'sl) graph.
     edgebag (addUDEdge ns lab g) =
@@ -4655,19 +4656,63 @@ Proof
   rpt gen_tac
   >> simp[addUDEdge_def, addUDEdge0_def]
   >> rw[graph_ABSREP]
-       
+
+  >> udedges_def
+  >> udedges_addUDEdge
+  >> nodes_addUDEdge
+  >> adjacent_addUDEdge
+
+
+
+     simp[udedges_def, oneEdge_max_def] >>
+  xfer_back_tac[] >> simp[addUDEdge0_def] >> rw[] >> rw[] >> gvs[] >>
+  Cases_on ‘m = n’ >> gvs[] >>
+  simp[udfilter_insertedge_def, GSPEC_OR, AC CONJ_COMM CONJ_ASSOC] >>
+  rename [‘itself2_ecv x’] >> Cases_on ‘itself2_ecv x’ >> gvs[] >>
+  simp[Once EXTENSION] >> rw[] >>
+  metis_tac[]
+     
   >> simp[]
+QED
+ *)
+
+Theorem addUDEdge_invalid:
+  ∀ns g : (α,ν,σ) udulgraph.
+    ¬(itself2bool (:σ) ∧ CARD ns = 1) ∧
+    FINITE ns ∧
+    CARD ns ≠ 2 ⇒
+    addUDEdge ns () g = g
+Proof
+  rpt gen_tac
+  >> simp[addUDEdge_def, addUDEdge0_def]
+  >> rw[graph_ABSREP]
+  >> Cases_on ‘ns’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
+  >> Cases_on ‘t'’ >> gvs[]
 QED
 
 Theorem addUDEdge_idem:
-  ∀ns lab g.
+  ∀ns lab g : (α,ν,σ) udulgraph.
     addUDEdge ns lab (addUDEdge ns lab g) = addUDEdge ns lab g
 Proof
   rpt gen_tac
   >> Cases_on ‘∃a b. ns = {a;b} ∧ a ≠ b’ >> gvs[]
-  >- (simp[gengraph_component_equality]
-      >> rpt conj_tac
+  >- (simp[udul_component_equality]
+      >> simp[udedges_addUDEdge]
+      >> simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+      >- (disj2_tac
+          >> qexists ‘x'’
+          >> simp[])
+      >> disj2_tac
+      >> REVERSE conj_tac
+      >- (qexists ‘x'’ >> simp[])
+      >> disj2_tac
+      >> qexists ‘x'’ >> simp[]
      )
+  >> 
+     
+  >> simp[addUDEdge_def]
+  >> simp[udul_component_equality]
   >> 
 
   

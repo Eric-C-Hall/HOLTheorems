@@ -8,6 +8,8 @@ Libs dep_rewrite;
 
 (* What happened to buildheap? It's no longer present *)
 
+(* How does transferlib work? in particular, xfer_back_tac *)
+
 (* Pain points:
 
 degree_rcc_factor_graph
