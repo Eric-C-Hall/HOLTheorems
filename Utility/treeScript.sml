@@ -4768,11 +4768,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem fsgAddEdges_insert_lemma:
   ∀g e es.
+    e ⊆ nodes g ∧
     FINITE es ⇒
     fsgAddEdges (e INSERT es) g = addUDEdge e () (fsgAddEdges es g)
-
 Proof
-
   rpt gen_tac >> strip_tac
   >> simp[fsgAddEdges_def]
   >> qmatch_abbrev_tac
@@ -4936,25 +4935,9 @@ Proof
   >> gvs[]
   >> Cases_on ‘e’ >> gvs[]
   >> Cases_on ‘t’ >> gvs[]
-                                                
-  
-                        simp[addUDEdge_invalid]
-                        
-  >> ‘FINITE e’ by simp[]
-
-  >> DEP_PURE_ONCE_REWRITE_TAC[addUDEdge_invalid]
-  >> conj_tac
-  >- (simp[]
-      >> rw[]
-     )
-
-
-  
-  >> Cases_on ‘∃a b. a ≠ b ∧ a ∈ nodes g ∧ b ∈ nodes g ∧ e = {a;b}’
-  >- (gvs[]
-      >> sg ‘edge_set = {a;b} INSERT {}’
-     )
->> simp[]
+  (* One of the elements of the edge is not in the set of nodes, contradicting
+     our assumption *)
+  >> first_x_assum $ qspecl_then [‘x’, ‘x'’] mp_tac >> simp[]
 QED
 
 Theorem fsgAddEdges_insert:
