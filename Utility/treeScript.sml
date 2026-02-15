@@ -4677,11 +4677,11 @@ QED
  *)
 
 Theorem addUDEdge_invalid:
-  ∀ns g : (α,ν,σ) udulgraph.
-    ¬(itself2bool (:σ) ∧ CARD ns = 1) ∧
-    FINITE ns ∧
-    CARD ns ≠ 2 ⇒
-    addUDEdge ns () g = g
+  ∀ns g : ('a,'c,'b,'d,'e,'f) udgraph l.
+    INFINITE ns ∨
+    (¬selfloops_ok g ∧ CARD ns = 1) ∨
+    (CARD ns ≠ 2 ∧ CARD ns ≠ 1) ⇒
+    addUDEdge ns l g = g
 Proof
   rpt gen_tac
   >> simp[addUDEdge_def, addUDEdge0_def]
@@ -4691,11 +4691,16 @@ Proof
   >> Cases_on ‘t'’ >> gvs[]
 QED
 
-Theorem addUDEdge_idem:
+(* -------------------------------------------------------------------------- *)
+(* TODO: Would be nicer to have udgraph_component_equality rather than only   *)
+(* udul_component_equality, as this would allow this theorem to be more       *)
+(* general                                                                    *)
+(* -------------------------------------------------------------------------- *)
+Theorem addUDEdge_idem[simp]:
   ∀ns lab g : (α,ν,σ) udulgraph.
     addUDEdge ns lab (addUDEdge ns lab g) = addUDEdge ns lab g
 Proof
-  rpt gen_tac
+  rpt gen_tac     
   >> Cases_on ‘∃a b. ns = {a;b} ∧ a ≠ b’ >> gvs[]
   >- (simp[udul_component_equality]
       >> simp[udedges_addUDEdge]
@@ -4709,15 +4714,21 @@ Proof
       >> disj2_tac
       >> qexists ‘x'’ >> simp[]
      )
-  >> 
-     
-  >> simp[addUDEdge_def]
+  >> Cases_on ‘INFINITE ns ∨
+               (¬itself2bool (:σ) ∧ CARD ns = 1) ∨
+               (CARD ns ≠ 2 ∧ CARD ns ≠ 1)’
+  >- (irule addUDEdge_invalid >> simp[])
+  >> gvs[]
+  >- (Cases_on ‘ns’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[])
+  >> Cases_on ‘ns’ >> gvs[]
   >> simp[udul_component_equality]
-  >> 
-
-  
-  >> simp[addUDEdge_def]
-  >> simp[addUDEdge0_def]
+  >> Q.SUBGOAL_THEN ‘{x} = {x;x}’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[]
+  >> conj_tac
+  >- simp[nodes_addUDEdge]
+  >> simp[udedges_addUDEdge]
+  >> irule (iffRL EXTENSION) >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
 QED
 
 Theorem fsgAddEdges_insert_lemma:
