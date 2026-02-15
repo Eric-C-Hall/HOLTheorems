@@ -4691,6 +4691,33 @@ Proof
   >> Cases_on ‘t'’ >> gvs[]
 QED
 
+(* Unfortunately this fails because udedges restricts the bag to a set which
+   has maximum multiplicity 1.
+
+Theorem udgraph_component_equality:
+  ∀g1 g2 : ('a, 'c, 'b, 'd, 'e, 'f) udgraph.
+    g1 = g2 ⇔
+      nodes g1 = nodes g2 ∧ udedges g1 = udedges g2 ∧ nlabelfun g1 = nlabelfun g2
+Proof
+  rpt gen_tac
+  >> simp[gengraph_component_equality]
+  >> PURE_ONCE_REWRITE_TAC[pull_out_imp_l]
+  >> PURE_ONCE_REWRITE_TAC[CONJ_SYM]
+  >> PURE_ONCE_REWRITE_TAC[pull_out_imp_l]
+  >> disch_tac >> disch_tac
+  >> simp[udedges_def]
+  >> EQ_TAC >> strip_tac
+  >- (irule (iffRL EXTENSION) >> gen_tac >> EQ_TAC >> strip_tac >> gvs[])
+  >> pop_assum mp_tac >> simp[EXTENSION] >> strip_tac
+  >> irule (iffRL BAG_EXTENSION)
+  >> rpt gen_tac
+  >> 
+         
+  >> 
+                       
+  >> CCONTR_TAC >> qpat_x_assum ‘{he | _} = {he | _}’ mp_tac
+QED*)
+
 (* -------------------------------------------------------------------------- *)
 (* TODO: Would be nicer to have udgraph_component_equality rather than only   *)
 (* udul_component_equality, as this would allow this theorem to be more       *)
@@ -4731,13 +4758,21 @@ Proof
   >> irule (iffRL EXTENSION) >> gen_tac >> EQ_TAC >> strip_tac >> gvs[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Note: addUDEdge and fsgAddEdges behave differently in the case where a     *)
+(* node in the edge being added is not already a node in the graph.           *)
+(*                                                                            *)
+(* addUDEdge will add the corresponding nodes to the graph so that the edge   *)
+(* can be added in a valid way, while fsgAddEdges will ignore these nodes and *)
+(* edges, leaving the graph unchanged.                                        *)
+(* -------------------------------------------------------------------------- *)
 Theorem fsgAddEdges_insert_lemma:
   ∀g e es.
     FINITE es ⇒
     fsgAddEdges (e INSERT es) g = addUDEdge e () (fsgAddEdges es g)
 
 Proof
-  
+
   rpt gen_tac >> strip_tac
   >> simp[fsgAddEdges_def]
   >> qmatch_abbrev_tac
@@ -4778,8 +4813,7 @@ Proof
          )
       >> gvs[]
      )
-  >> Cases_on ‘∃a b. a ≠ b ∧ a ∈ nodes g ∧ b ∈ nodes g ∧ e = {a;b}’              
-
+  >> Cases_on ‘∃a b. a ≠ b ∧ a ∈ nodes g ∧ b ∈ nodes g ∧ e = {a;b}’
   >- (gvs[]
       >> qmatch_asmsub_abbrev_tac
          ‘(λ(a,b). edge_set_lhs = (a,b) INSERT (b,a) INSERT edge_set_rhs) chosen_ab’
@@ -4803,9 +4837,10 @@ Proof
                                              DELETE (chosen_b, chosen_a))’
           (fn th => PURE_ONCE_REWRITE_TAC[th])
       >- ASM_SET_TAC[]
-      (* *)
+      (* Nicer name of the edge set with the added elements removed *)
       >> qmatch_abbrev_tac ‘ITSET _ (_ INSERT _ INSERT edge_set_rhs_deleted) _ = _’
-      (* *)
+      (* Prove preconditions to apply ITSET_REDUCTION, so we can drag the added
+         elements out of the LHS *)
       >> sg ‘(chosen_a, chosen_b) ∉ edge_set_rhs_deleted’
       >- (Q.UNABBREV_TAC ‘edge_set_rhs_deleted’ >> simp[])
       >> sg ‘(chosen_b, chosen_a) ∉ edge_set_rhs_deleted’
@@ -4827,58 +4862,99 @@ Proof
           >> rpt disch_tac
           >> gvs[]
          )
+      (* Drag the added elements out of the LHS: the repeated additions of the
+         same edge collapse into one addition via idempotency *)
       >> simp[ITSET_REDUCTION]
       >> Q.UNABBREV_TAC ‘f’
       >> simp[INSERT2_sym]
-      (* *)
-             
-      >> DEP_PURE_ONCE_REWRITE_TAC[ITSET_REDUCTION]
-      >> conj_tac
-      >- (simp[]
+      (* chosen_a and chosen_b correspond to a and b, in some order *)             
+      >> qpat_x_assum ‘_ = (chosen_a, chosen_b)’ assume_tac
+      >> Q.SUBGOAL_THEN ‘(a = chosen_a ∧ b = chosen_b) ∨
+                         (b = chosen_a ∧ a = chosen_b)’ assume_tac
+      >- (pop_assum mp_tac
+          >> SELECT_ELIM_TAC
+          >> conj_tac
+          >- (qexists ‘(a, b)’ >> simp[])
+          >> gen_tac
+          >> namedCases_on ‘x’ ["x_a x_b"] >> simp[]
+          >> simp[INSERT2_lemma]
+          >> strip_tac >> simp[]
          )
-         
-      >> conj_tac
-
-      >- (
-       >> simp[]
-       >> unabbrev_all_tac
-       >> simp[]
-       >> sg ‘chosen_a ≠ chosen_b’
-       >- (disch_tac
-           >> gvs[]
-           >> qpat_x_assum ‘_ = _ INSERT _’ mp_tac
-           >> simp[EXTENSION]
-           >> qexists ‘(chosen_a, chosen_a)’
-           >> simp[]
-          )
-       >> simp[]
-       >> CCONTR_TAC >> gvs[]
-       >> qpat_x_assum ‘_ = (chosen_a, chosen_b)’ mp_tac
-       >> SELECT_ELIM_TAC
-       >> conj_tac
-       >- (qexists ‘(a,b)’ >> simp[])
-       >> gen_tac
-       >> namedCases_on ‘x’ ["a' b'"] >> simp[]
-       >> strip_tac
-       >> strip_tac
-       >> disch_tac
-       >> wlog_tac ‘a = a'’ [‘a'’, ‘b'’, ‘chosen_a’, ‘chosen_b’]
-       >- (first_x_assum $ qspecl_then [‘b'’, ‘a'’, ‘chosen_b’, ‘chosen_a’] assume_tac
-           >> gvs[INSERT2_lemma, INSERT_COMM])
-       >> gvs[INSERT2_lemma]
-       >> 
-       )
-         
+      (* Without loss of generality, we can choose chosen_a = a and
+      chosen_b = b *)
+      >> wlog_tac ‘chosen_a = a’ [‘a’, ‘b’]
+      >- (first_x_assum $ qspecl_then [‘b’, ‘a’] mp_tac
+          >> Q.SUBGOAL_THEN ‘{b;a} = {a;b}’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- simp[INSERT2_lemma]
+          >> gvs[]
+         )
+      >> gvs[]
+      (* Helpful assumption *)
+      >> sg ‘FINITE edge_set_rhs’
+      >- (Q.UNABBREV_TAC ‘edge_set_rhs_deleted’
+          >> qpat_x_assum ‘FINITE (edge_set_rhs DELETE _ DELETE _)’ mp_tac
+          >> simp[])
+      (* We have dragged the (a,b) edges out of the LHS, but they may also have
+         been present in the RHS. We should drag them out of the RHS too. *)
+      >> Q.SUBGOAL_THEN
+          ‘(addUDEdge {a; b} () (ITSET (λ(m,n) g. addUDEdge {m; n} () g)
+                                       edge_set_rhs g)) =
+             addUDEdge {a; b} () (ITSET (λ(m,n) g. addUDEdge {m; n} () g)
+                                        (edge_set_rhs DELETE (a,b)) g)’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])            
+      >- (REVERSE $ Cases_on ‘(a,b) ∈ edge_set_rhs’
+          >- simp[DELETE_NON_ELEMENT_RWT]
+          >> qmatch_abbrev_tac ‘_ = RHS’                               
+          >> Q.SUBGOAL_THEN ‘edge_set_rhs =
+                             (a,b) INSERT (edge_set_rhs DELETE (a,b))’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- simp[]
+          >> simp[ITSET_REDUCTION, Excl "INSERT_DELETE"]
+          >> Q.UNABBREV_TAC ‘RHS’
+          >> simp[]
+         )         
+      (* Drag the second edge out of the RHS *)
+      >> Q.UNABBREV_TAC ‘edge_set_rhs_deleted’
+      >> REVERSE $ Cases_on ‘(b,a) ∈ edge_set_rhs’
+      >- simp[DELETE_NON_ELEMENT_RWT]
+      >> qmatch_abbrev_tac ‘LHS = _’                         
+      >> Q.SUBGOAL_THEN ‘edge_set_rhs =
+                         (b,a) INSERT (edge_set_rhs DELETE (b,a))’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- simp[]
+      >> simp[DELETE_INSERT]
+      >> DEP_PURE_ONCE_REWRITE_TAC[ITSET_REDUCTION]
+      >> simp[ITSET_REDUCTION, Excl "INSERT_DELETE"]
+      >> Q.UNABBREV_TAC ‘LHS’
+      >> simp[INSERT2_sym, DELETE_COMM]
      )
-     
+  (* The case where we are adding an invalid edge *)
+  >> gvs[]
+  >> Cases_on ‘INFINITE e ∨ ¬selfloops_ok g ∧ CARD e = 1 ∨
+               CARD e ≠ 2 ∧ CARD e ≠ 1’
+  >- (SYM_TAC >> irule addUDEdge_invalid >> gvs[])
+  >> gvs[]
+  >> Cases_on ‘e’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
+                                                
+  
+                        simp[addUDEdge_invalid]
+                        
+  >> ‘FINITE e’ by simp[]
+
+  >> DEP_PURE_ONCE_REWRITE_TAC[addUDEdge_invalid]
+  >> conj_tac
+  >- (simp[]
+      >> rw[]
+     )
 
 
-     
+  
   >> Cases_on ‘∃a b. a ≠ b ∧ a ∈ nodes g ∧ b ∈ nodes g ∧ e = {a;b}’
   >- (gvs[]
       >> sg ‘edge_set = {a;b} INSERT {}’
      )
-  >> simp[]
+>> simp[]
 QED
 
 Theorem fsgAddEdges_insert:
