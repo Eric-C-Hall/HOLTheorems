@@ -4766,7 +4766,7 @@ QED
 (* can be added in a valid way, while fsgAddEdges will ignore these nodes and *)
 (* edges, leaving the graph unchanged.                                        *)
 (* -------------------------------------------------------------------------- *)
-Theorem fsgAddEdges_insert_lemma:
+Theorem fsgAddEdges_insert_addUDEdge:
   ∀g e es.
     e ⊆ nodes g ∧
     FINITE es ⇒
@@ -4942,16 +4942,31 @@ QED
 
 Theorem fsgAddEdges_insert:
   ∀g e es.
+    FINITE es ⇒
     fsgAddEdges (e INSERT es) g = fsgAddEdges {e} (fsgAddEdges es g)
 Proof
-  rpt gen_tac
+  rpt gen_tac >> strip_tac
+  >> Cases_on ‘e ⊆ nodes g’
+  >- simp[fsgAddEdges_insert_addUDEdge]
   >> simp[fsgAddEdges_def]
-  >> Cases_on ‘∃a b. a ≠ b ∧ e = {a;b}’
-  >- (gvs[]
+  >> qmatch_abbrev_tac ‘ITSET f s_total g = ITSET f s_hd (ITSET f s_tl g)’
+  >> sg ‘s_hd = ∅’
+  >- (simp[EXTENSION]
+      >> gen_tac
+      >> unabbrev_all_tac
+      >> namedCases_on ‘x’ ["m n"]
+      >> simp[]
+      >> strip_tac
+      >> gvs[SUBSET_DEF]
      )
-  >>  
-  >> simp[ITSET_ITSET]
-  >> cheat
+  >> simp[]
+  >> qpat_x_assum ‘s_hd = ∅’ kall_tac
+  >> qpat_x_assum ‘Abbrev (s_hd = _)’ kall_tac
+  >> cong_tac (SOME 1)
+  >> unabbrev_all_tac
+  >> irule (iffRL EXTENSION) >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+  >> (namedCases_on ‘x’ ["m n"] >> simp[]
+      >> gvs[])
 QED
 
 Theorem fsgAddEdges_fsgAddEdges:
