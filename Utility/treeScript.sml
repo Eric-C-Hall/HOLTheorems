@@ -4940,6 +4940,14 @@ Proof
   >> first_x_assum $ qspecl_then [‘x’, ‘x'’] mp_tac >> simp[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* Advantage over fsgAddEdges_insert_addUDEdge: doesn't require that the edge *)
+(* being added is in the nodes of the graph.                                  *)
+(*                                                                            *)
+(* Disadvantage compared to fsgAddEdges_insert_addUDEdge: if applied as a     *)
+(* simplification rule, goes into an infinite loop because the RHS is an      *)
+(* instance of the LHS                                                        *)
+(* -------------------------------------------------------------------------- *)
 Theorem fsgAddEdges_insert:
   ∀g e es.
     FINITE es ⇒
@@ -4971,16 +4979,17 @@ QED
 
 Theorem fsgAddEdges_fsgAddEdges:
   ∀g es1 es2.
-    FINITE es1 ⇒
+    FINITE es1 ∧
+    FINITE es2 ⇒
     fsgAddEdges es1 (fsgAddEdges es2 g) = fsgAddEdges (es1 ∪ es2) g
 Proof
-  rpt gen_tac
+  rpt gen_tac >> strip_tac
   >> Induct_on ‘es1’ >> conj_tac
   >- simp[]
   >> gen_tac >> strip_tac >> gen_tac >> strip_tac
   >> PURE_ONCE_REWRITE_TAC[INSERT_UNION_EQ]
-  >> PURE_ONCE_REWRITE_TAC[fsgAddEdges_insert]
-  >> simp[]
+  >> simp[Once fsgAddEdges_insert, Cong LHS_CONG]
+  >> simp[Once fsgAddEdges_insert, Cong RHS_CONG]
 QED
 
 Theorem removeNode_fsgAddEdges:
@@ -4992,10 +5001,111 @@ Proof
   >> Induct_on ‘es’ using FINITE_INDUCT >> conj_tac
   >- simp[]
   >> gen_tac >> strip_tac >> gen_tac >> strip_tac
-  >> simp[fsgAddEdges_INSERT]
-      
-         rpt gen_tac
-  >> 
+  >> simp[INSERT_INTER]
+  >> rw[]       
+  >- (simp[Once fsgAddEdges_insert]
+      >> simp[Once fsgAddEdges_insert, Cong RHS_CONG]
+      >> qpat_x_assum ‘removeNode _ _ = fsgAddEdges _ _’
+                      (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> simp[GSYM fsgAddEdges_insert]
+      >> simp[fsgraph_component_equality]
+      >> simp[fsgedges_fsgAddEdges, fsgedges_removeNode]
+      >> irule (iffRL EXTENSION)
+      >> gen_tac
+      >> Cases_on ‘x = e’                  
+      >- (simp[]
+          >> EQ_TAC >> strip_tac
+          >- (qpat_x_assum ‘{m; n'} = e’ kall_tac
+              >> gvs[]
+              >> disj1_tac
+              >> qexistsl [‘m’, ‘n'’]
+              >> simp[])
+          >- (simp[]
+              >> disj1_tac
+              >> qexistsl [‘m’, ‘n'’]
+              >> simp[]
+              >> gvs[])
+          >- simp[]
+          >- (qpat_x_assum ‘{m; n'} = e’ kall_tac
+              >> gvs[]
+              >> disj1_tac
+              >> qexistsl [‘m’, ‘n'’]
+              >> simp[]
+             )
+          >- (disj1_tac
+              >> qexistsl [‘m’, ‘n'’]
+              >> simp[])
+          >> simp[]
+         )
+      >> Cases_on ‘n ∈ x’
+      >- (simp[]
+          >> EQ_TAC >> strip_tac
+          >- gvs[]
+          >- (gnvs[]
+              >> gvs[]
+              >- (first_x_assum $ qspecl_then [‘m’, ‘n'’] assume_tac
+                                >> gvs[])
+              >> first_x_assum $ qspecl_then [‘m’, ‘n’] assume_tac
+              >> gvs[]
+             )
+          >- gvs[]
+          >> gvs[]
+          >- (first_x_assum $ qspecl_then [‘m’, ‘n'’] assume_tac
+              >> gvs[])
+          >> first_x_assum $ qspecl_then [‘m’, ‘n’] assume_tac
+          >> gvs[]
+         )
+      >> simp[]
+      >> EQ_TAC >> strip_tac
+      >- gvs[]
+      >- (gvs[]
+          >> disj2_tac
+          >> disj1_tac
+          >> qexistsl [‘m’, ‘n'’]
+          >> simp[]
+         )
+      >- simp[]
+      >- gvs[]
+      >- (gvs[]
+          >> disj1_tac
+          >> qexistsl [‘m’, ‘n'’]
+          >> simp[])
+      >> simp[]
+     )
+  >> qpat_x_assum ‘removeNode _ _ = fsgAddEdges _ _’
+                  (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  >> simp[Once fsgAddEdges_insert]
+  >> simp[fsgraph_component_equality]
+  >> simp[fsgedges_removeNode, fsgedges_fsgAddEdges]
+  >> irule (iffRL EXTENSION)
+  >> gen_tac >> EQ_TAC >> strip_tac
+  >- (gvs[]
+      >- (qexistsl [‘m’, ‘n'’] >> simp[]
+          >> last_x_assum $ qspecl_then [‘m’, ‘n'’] assume_tac
+          >> gvs[]
+         )
+      >- (last_x_assum $ qspecl_then [‘m’, ‘n’] assume_tac
+          >> gvs[])
+      >- (first_x_assum $ qspecl_then [‘m’, ‘n'’] assume_tac
+          >> gvs[])
+      >> disj1_tac
+      >> qexistsl [‘m’, ‘n'’]
+      >> simp[])
+  >> simp[]
+  >> strip_tac
+  >- (gvs[]
+      >- (first_x_assum $ qspecl_then [‘m’, ‘n'’] assume_tac
+          >> gvs[])
+      >> disj2_tac
+      >> disj1_tac
+      >> qexistsl [‘m’, ‘n'’]
+      >> simp[]
+     )
+  >> gvs[]
+  >> Cases_on ‘n ≠ m ∧ n ≠ n'’ >> simp[]
+  >> rpt gen_tac
+  >> strip_tac >> strip_tac
+  >> gvs[]
 QED
 
 Theorem line_graph_connected:
