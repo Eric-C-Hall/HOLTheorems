@@ -2375,7 +2375,7 @@ Proof
   >> rw[]
   >> (simp[func_node_state_fn_def] >> rw[])
 QED
-        
+
 Theorem degree_rcc_factor_graph:
   ∀n p ps qs ts prior ds_s ds_p x.
     degree (get_underlying_graph
@@ -2463,7 +2463,7 @@ Proof
           >> simp[]
          )
       (* The subcase wher we have a node in 4n + 1 to 5n + 1 *)
-      >> Cases_on ‘OUTR x ∈ range (4 * n + 1) (5 * n + 1)’                  
+      >> Cases_on ‘OUTR x ∈ range (4 * n + 1) (5 * n + 1)’
       >- (gvs[range_def]
           >> qsuff_tac ‘edges_with_x = {{x; INR (OUTR x - (3 * n + 1))}}’
           >- simp[]
@@ -2475,7 +2475,7 @@ Proof
           >> qexistsl [‘x’, ‘INR (OUTR x - (3 * n + 1))’]
           >> simp[]
          )
-      >> Cases_on ‘OUTR x = 5 * n + 1’                  
+      >> Cases_on ‘OUTR x = 5 * n + 1’
       >- (Cases_on ‘x’ >> gvs[range_def]
           >> qsuff_tac ‘edges_with_x = {{INR (5 * n + 1); INR (2 * n)}}’
           >- simp[]
@@ -2490,13 +2490,13 @@ Proof
       >> gvs[range_def]
      )
   (* Handle the cases where we have degree 2 *)
-  >> Cases_on ‘OUTR x ∈ range 0 (3 * n)’              
+  >> Cases_on ‘OUTR x ∈ range 0 (3 * n)’
   >- (simp[]
       >> simp[fsgedges_def, adjacent_rcc_factor_graph]
       >> Cases_on ‘x’ >> gvs[range_def]
       >> qmatch_abbrev_tac ‘CARD edges_with_inr_y = 2’
       (* Subcase of 0 - n *)
-      >> Cases_on ‘y ∈ range 0 n’                  
+      >> Cases_on ‘y ∈ range 0 n’
       >- (qsuff_tac ‘edges_with_inr_y = {{INR y; INR (y + (3 * n + 1))};
                      {INR y; INR (y + 5 * n + 2)}}’
           >- (simp[] >> strip_tac >> simp[INSERT2_lemma])
@@ -2516,7 +2516,7 @@ Proof
           >> gvs[range_def]
          )
       (* Subcase of n - 2 * n*)
-      >> Cases_on ‘y ∈ range n (2 * n)’                  
+      >> Cases_on ‘y ∈ range n (2 * n)’
       >- (qsuff_tac ‘edges_with_inr_y = {{INR y; INR (y + (3 * n + 1))};
                      {INR y; INR (y + (4 * n + 2))}}’
           >- (simp[] >> strip_tac >> simp[INSERT2_lemma])
@@ -2646,9 +2646,9 @@ Theorem is_tree_rcc_factor_graph:
     is_tree (get_underlying_graph
              (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))
             )
-            
+
 Proof
-  
+
   rpt gen_tac
   >> qmatch_abbrev_tac ‘is_tree g’
   (* First, remove the top row of function nodes,  *)
@@ -2677,7 +2677,7 @@ Proof
       >> simp[adjacent_rcc_factor_graph]
       >> Cases_on ‘n'’ >> gvs[range_def]
      )
-  >> conj_tac     
+  >> conj_tac
   >- (gen_tac >> strip_tac
       >> simp[degree_one_alt]
       >> Cases_on ‘n'’ >> gvs[range_def]
@@ -2694,13 +2694,13 @@ Proof
   >> qspecl_then [‘new_g’, ‘IMAGE INR (range (4 * n + 1) (5 * n + 1))’] assume_tac is_tree_removeNodes_is_tree
   >> Q.UNABBREV_TAC ‘new_g’
   >> pop_assum (fn th => irule (iffRL th))
-  >> conj_tac     
+  >> conj_tac
   >- (rpt gen_tac >> strip_tac
       >> simp[adjacent_removeNodes]
       >> simp[adjacent_rcc_factor_graph]
       >> Cases_on ‘n'’ >> gvs[range_def]
      )
-  >> conj_tac     
+  >> conj_tac
   >- (gen_tac >> strip_tac
       >> simp[degree_one_alt]
       >> Cases_on ‘n'’ >> gvs[range_def]
@@ -2721,7 +2721,7 @@ Proof
       >> simp[adjacent_rcc_factor_graph]
       >> Cases_on ‘n'’ >> gvs[range_def]
      )
-  >> conj_tac     
+  >> conj_tac
   >- (gen_tac >> strip_tac
       >> simp[degree_one_alt]
       >> Cases_on ‘n'’ >> gvs[range_def]
@@ -2730,35 +2730,66 @@ Proof
       >> simp[adjacent_rcc_factor_graph]
       >> gen_tac >> strip_tac
       >> gvs[adjacent_rcc_factor_graph]
-     )     
+     )
   >> simp[]
   >> qmatch_abbrev_tac ‘is_tree new_g’
-  (* *)                       
+  (* *)
   >> irule is_tree_degree_two
   >> rpt conj_tac
   (* All nodes are of degree at most 2 *)
-         
   >- (unabbrev_all_tac
       >> simp[]
       >> gen_tac >> strip_tac
       >> Cases_on ‘n'’ >> gvs[]
+      (* Combine the remove nodes calls into one *)
+      >> simp[removeNodes_removeNodes]
+      >> qmatch_abbrev_tac ‘degree (removeNodes removed_nodes _) _ ≤ 2’
+      >> Q.SUBGOAL_THEN
+          ‘removed_nodes = IMAGE INR (range 0 (2 * n) ∪
+                                            range (3 * n + 1) (5 * n + 1))’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (Q.UNABBREV_TAC ‘removed_nodes’
+          >> PURE_REWRITE_TAC[GSYM IMAGE_UNION]
+          >> cong_tac (SOME 1)
+          >> simp[EXTENSION, range_def])
+      >> qpat_x_assum ‘Abbrev (removed_nodes = _)’ kall_tac
+      (* Split on the possibilities for x *)
       >> sg ‘x ∈ range (2 * n) (3 * n + 1) ∨
              x = 5 * n + 1 ∨
              x ∈ range (5 * n + 2) (6 * n + 2)’
       >- gvs[range_def] >> gvs[range_def]
-      (* These calls take a siginificant amount of time *)
-      (* TODO: use removeNodes_removeNodes to speed up this *)
       >- (simp[degree_removeNodes, adjacent_removeNodes]
           >> simp[adjacent_rcc_factor_graph, degree_rcc_factor_graph, range_def])
       >- (simp[degree_removeNodes, adjacent_removeNodes]
           >> simp[adjacent_rcc_factor_graph, degree_rcc_factor_graph, range_def])
-      >>
-      
-      >> 
-      
-      >> cheat
+      >> simp[degree_removeNodes]
+      >> simp[degree_rcc_factor_graph]
+      >> rw[]
+      >> gvs[range_def]
+      >> qmatch_abbrev_tac ‘4 ≤ CARD ns + 2’
+      >> ‘2 ≤ CARD ns’ suffices_by decide_tac
+      >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
+      (* We need to find the two nodes that have been removed next to x,
+         bringing its degree down to 2.*)
+      >> sg ‘INR (x - (5 * n + 2)) ∈ ns ∧
+             INR ((x - (5 * n + 2)) + n) ∈ ns’
+      >- gvs[adjacent_rcc_factor_graph]
+      (* We also need to know that our set of removed nodes is finite to make
+         sure the cardinality makes sense *)
+      >> sg ‘FINITE ns’            
+      >- (pop_assum kall_tac >> pop_assum kall_tac
+          >> simp[]
+          >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+          >> irule INTER_FINITE
+          >> simp[]
+          >> simp[GSYM count_def]
+         )
+      (* We no longer need the explicit form of ns, we only need the *)
+      >> qpat_x_assum ‘ns = _’ kall_tac
+      >> Cases_on ‘ns’ >> gnvs[]
+      >> Cases_on ‘t’ >> gnvs[]
      )
-     
+
   (* There is a node of degree 1 *)
   >- (qexists ‘INR (5 * n + 1)’
       >> Q.UNABBREV_TAC ‘new_g’
@@ -2766,7 +2797,7 @@ Proof
       >- simp[nodes_removeNodes, range_def]
       >> simp[range_def]
       >> simp[Once degree_removeNodes]
-             
+
       >> gvs[range_def]
       >> simp[nodes_removeNodes, degree_removeNodes, degree_rcc_factor_graph]
       >> rw[]
@@ -2777,7 +2808,7 @@ Proof
      )
   (* The reduced graph is connected. We prove this by showing that it is
      isomorphic to a graph which consists of a line of nodes, which is
-     connected *)     
+     connected *)
   >> qspecl_then [‘λx. if OUTR x = 5 * n + 1
                        then INR 0
                        else if OUTR x ∈ range (2 * n) (3 * n + 1)
@@ -2787,11 +2818,11 @@ Proof
                  graph_isomorphism_connected
   >> simp[] >> qexists ‘n’
   >> simp[graph_isomorphism_def]
-  >> REVERSE conj_tac                          
+  >> REVERSE conj_tac
   >- (rpt gen_tac >> strip_tac
       >> simp[adjacent_line_graph]
-      >> Q.UNABBREV_TAC ‘new_g’          
-      >> gvs[adjacent_removeNodes, range_def, adjacent_rcc_factor_graph]            
+      >> Q.UNABBREV_TAC ‘new_g’
+      >> gvs[adjacent_removeNodes, range_def, adjacent_rcc_factor_graph]
       >- (CCONTR_TAC >> gvs[]
           >> (gvs[ADD1]
               (* The LHS of this assumption is odd while the RHS is even: a
@@ -2830,7 +2861,7 @@ Proof
          )
      )
   >> simp[BIJ_IFF_INV]
-  >> conj_tac     
+  >> conj_tac
   >- (gen_tac >> strip_tac
       >> Q.UNABBREV_TAC ‘new_g’
       >> pop_assum mp_tac
@@ -2839,7 +2870,7 @@ Proof
       >> rw[]
       >> gvs[]
       >> decide_tac
-     )     
+     )
   >> qexists ‘λx. if EVEN (OUTR x)
                   then
                     if x = INR 0
@@ -2872,12 +2903,12 @@ Proof
           (fn th => PURE_ONCE_REWRITE_TAC[th])
       >- simp[]
       >> irule (EVEN_DOUBLE)
-     )     
+     )
   >> gen_tac
   >> strip_tac
   >> Q.UNABBREV_TAC ‘new_g’
   >> gvs[]
-  >> rw[]       
+  >> rw[]
   >- (pop_assum mp_tac
       >> rw[]
       >- (disch_tac
