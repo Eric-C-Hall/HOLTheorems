@@ -74,3 +74,7 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 
 (* See cong_tac in the HOL4 cheatsheet. Can reduce f x = g x to f = g and can
    reduce f x = f y to x = y, but can also do smarter stuff with congruence rules, etc *)
+
+(* Use case ... of ... statements more, rather than, e.g. iff or ISL, ISR *)
+
+(* REFL_TAC: solves a = a *)

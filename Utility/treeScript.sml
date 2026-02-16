@@ -4532,7 +4532,7 @@ Proof
   >> simp[LAST_MAP]
 QED
 
-Theorem nodes_line_graph:
+Theorem nodes_line_graph[simp]:
   ∀n.
     nodes (line_graph n) = IMAGE INR (count n)
 Proof
@@ -5194,10 +5194,51 @@ Proof
   >> Q.UNABBREV_TAC ‘g’
   >> simp[removeNode_fsgAddEdges]
   >> simp[removeNode_fsgAddNode]
-  >> DEP_PURE_ONCE_REWRITE_TAC[removeNode_NONMEMBER]
-  >> conj_tac
-  >- simp[nodes_line_graph]
+  >> simp[removeNode_NONMEMBER, nodes_line_graph]
   >> simp[connected_fsgAddEdges]
+QED
+
+Theorem line_graph_zero[simp]:
+  line_graph 0 = emptyG
+Proof
+  simp[line_graph_def]
+QED
+
+Theorem line_graph_one[simp]:
+  line_graph 1 = fsgAddNode (INR 0) emptyG
+Proof
+  PURE_REWRITE_TAC[ONE, line_graph_def, line_graph_zero]
+  >> REFL_TAC
+QED
+
+Theorem adjacent_line_graph:
+  ∀n a b.
+    adjacent (line_graph n) a b ⇔
+      case a of
+        INL _ => F
+      | INR a_val => case b of
+                       INL _ => F
+                     | INR b_val => a_val < n ∧
+                                    b_val < n ∧
+                                    (b_val = SUC a_val ∨ a_val = SUC b_val)
+Proof  
+  rpt gen_tac
+  >> Induct_on ‘n’
+  >- (rpt gen_tac >> Cases_on ‘a’ >- simp[] >> Cases_on ‘b’ >> simp[])
+  >> Cases_on ‘n’
+  >- (rpt gen_tac
+      >> Cases_on ‘a’
+      >- simp[]
+      >> simp[]
+      >> Cases_on ‘b’ >> simp[])
+  >> rpt gen_tac
+  >> Cases_on ‘a’
+  >- (simp[line_graph_def, nodes_line_graph] >> gvs[]) 
+  >> Cases_on ‘b’
+  >- (simp[line_graph_def, nodes_line_graph] >> gvs[])
+  >> gvs[line_graph_def, nodes_line_graph]
+  >> pop_assum kall_tac
+  >> EQ_TAC >> strip_tac >> gvs[] >> gvs[INSERT2_lemma]
 QED
 
 (* -------------------------------------------------------------------------- *)
