@@ -5225,6 +5225,20 @@ Proof
   >> REFL_TAC
 QED
 
+Theorem removeNodes_removeNodes:
+  ∀g ns1 ns2.
+    removeNodes ns1 (removeNodes ns2 g) = removeNodes (ns1 ∪ ns2) g
+Proof
+  rpt gen_tac
+  >> simp[gengraph_component_equality]
+  >> rpt conj_tac
+  >- simp[DIFF_UNION, DIFF_COMM]
+  >- simp[bagTheory.BAG_FILTER_FILTER, DISJOINT_SYM]
+  >> simp[FUN_EQ_THM]
+  >> gen_tac
+  >> rw[] >> gvs[]
+QED
+
 Theorem adjacent_line_graph:
   ∀n a b.
     adjacent (line_graph n) a b ⇔

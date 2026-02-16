@@ -2585,6 +2585,41 @@ Proof
   >> simp[]
 QED
 
+Theorem EVEN_DOUBLE_ADD1[simp]:
+  ∀n.
+    ¬EVEN (2 * n + 1)
+Proof
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM ADD1]
+  >> PURE_ONCE_REWRITE_TAC[EVEN]
+  >> simp[EVEN_DOUBLE]
+QED
+
+Theorem DOUBLE_ADD1_DIV2[simp]:
+  ∀n.
+    (2 * n + 1) DIV 2 = n
+Proof
+  gen_tac
+  >> Induct_on ‘n’ >> simp[]
+QED
+
+Theorem NOT_EVEN_EXISTS:
+  ∀n.
+    ¬EVEN n ⇔ ∃k. n = 2 * k + 1
+Proof
+  gen_tac >> simp[EVEN_ODD, ODD_EXISTS, ADD1]
+QED
+
+Theorem DIV_ADD1_EQ_ORIG[simp]:
+  ∀n.
+    2 * (n DIV 2) + 1 = n ⇔ ¬EVEN n
+Proof
+  gen_tac
+  >> Cases_on ‘EVEN n’ >> simp[]
+  >- gvs[EVEN_EXISTS]
+  >> gvs[NOT_EVEN_EXISTS]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
 (*       #   #   #         #                                                  *)
@@ -2698,33 +2733,51 @@ Proof
      )     
   >> simp[]
   >> qmatch_abbrev_tac ‘is_tree new_g’
-  (* *)
-                       
+  (* *)                       
   >> irule is_tree_degree_two
   >> rpt conj_tac
   (* All nodes are of degree at most 2 *)
+         
   >- (unabbrev_all_tac
       >> simp[]
       >> gen_tac >> strip_tac
-      >> simp[degree_removeNodes]
-      >> simp[adjacent_removeNodes]
-      >> simp[degree_rcc_factor_graph]
+      >> Cases_on ‘n'’ >> gvs[]
+      >> sg ‘x ∈ range (2 * n) (3 * n + 1) ∨
+             x = 5 * n + 1 ∨
+             x ∈ range (5 * n + 2) (6 * n + 2)’
+      >- gvs[range_def] >> gvs[range_def]
+      (* These calls take a siginificant amount of time *)
+      (* TODO: use removeNodes_removeNodes to speed up this *)
+      >- (simp[degree_removeNodes, adjacent_removeNodes]
+          >> simp[adjacent_rcc_factor_graph, degree_rcc_factor_graph, range_def])
+      >- (simp[degree_removeNodes, adjacent_removeNodes]
+          >> simp[adjacent_rcc_factor_graph, degree_rcc_factor_graph, range_def])
+      >>
+      
+      >> 
+      
       >> cheat
      )
+     
   (* There is a node of degree 1 *)
   >- (qexists ‘INR (5 * n + 1)’
       >> Q.UNABBREV_TAC ‘new_g’
+      >> conj_tac
+      >- simp[nodes_removeNodes, range_def]
+      >> simp[range_def]
+      >> simp[Once degree_removeNodes]
+             
       >> gvs[range_def]
       >> simp[nodes_removeNodes, degree_removeNodes, degree_rcc_factor_graph]
       >> rw[]
-      >> gvs[range_def]
+      >- (gvs[range_def]
+          >> gvs[adjacent_removeNodes, adjacent_rcc_factor_graph]
+         )
       >> cheat
      )
   (* The reduced graph is connected. We prove this by showing that it is
      isomorphic to a graph which consists of a line of nodes, which is
-     connected *)
-
-     
+     connected *)     
   >> qspecl_then [‘λx. if OUTR x = 5 * n + 1
                        then INR 0
                        else if OUTR x ∈ range (2 * n) (3 * n + 1)
@@ -2734,36 +2787,50 @@ Proof
                  graph_isomorphism_connected
   >> simp[] >> qexists ‘n’
   >> simp[graph_isomorphism_def]
-  >> REVERSE conj_tac
-                          
+  >> REVERSE conj_tac                          
   >- (rpt gen_tac >> strip_tac
-      >> gvs[]
       >> simp[adjacent_line_graph]
       >> Q.UNABBREV_TAC ‘new_g’          
-      >> simp[adjacent_removeNodes, range_def]
+      >> gvs[adjacent_removeNodes, range_def, adjacent_rcc_factor_graph]            
+      >- (CCONTR_TAC >> gvs[]
+          >> (gvs[ADD1]
+              (* The LHS of this assumption is odd while the RHS is even: a
+               contradiction *)
+              >> qpat_x_assum ‘2 * _ + 1 = 2 * _ + 2’ mp_tac
+              >> rpt (pop_assum kall_tac)
+              >> qmatch_abbrev_tac ‘2 * k + 1n = 2 * k2 + 2 ⇒ F’
+              >> pop_assum kall_tac >> pop_assum kall_tac
+              >> Q.SUBGOAL_THEN ‘2 * k2 + 2 = 2 * (k2 + 1)’
+                  (fn th => PURE_ONCE_REWRITE_TAC[th])
+              >- simp[]
+              >> qmatch_abbrev_tac ‘2 * k + 1n = 2 * k3 ⇒ F’
+              >> pop_assum kall_tac
+              >> strip_tac
+              >> Q.SUBGOAL_THEN ‘EVEN (2 * k3)’ mp_tac
+              >- simp[EVEN_DOUBLE]
+              >> Q.SUBGOAL_THEN ‘¬EVEN (2 * k + 1)’ mp_tac
+              >- simp[EVEN_DOUBLE_ADD1]
+              >> simp[Excl "EVEN_DOUBLE_ADD1"]
+             )
+         )
+      >- rw[]
+      >- rw[]
       >> rw[]
-      >- simp[adjacent_rcc_factor_graph]
-      >- simp[adjacent_rcc_factor_graph]
-      >- simp[adjacent_rcc_factor_graph]
-      >- (simp[adjacent_rcc_factor_graph]
-          >> CCONTR_TAC >> gvs[]
-          >> ‘x'' = 2 * n’ by decide_tac
-          >> gvs[]
-          >> Cases_on ‘n’ >> gvs[]
+      >> (gvs[]
+          >> qmatch_abbrev_tac ‘2 * k1 + 2 ≠ SUC (2 * k2 + 2)’
+          >> rpt (pop_assum kall_tac)
+         (* The LHS of this assumption is odd while the RHS is even: a
+               contradiction *)
+          >> simp[ADD1]
+          >> ‘2 * k1 ≠ 2 * k2 + 1’ suffices_by simp[]
+          >> disch_tac
+          >> qspec_then ‘k1’ mp_tac EVEN_DOUBLE
+          >> qspec_then ‘k2’ mp_tac EVEN_DOUBLE_ADD1
+          >> simp[]
          )
-      >- (simp[adjacent_rcc_factor_graph]
-          >> cheat
-         )
-      >- simp[adjacent_rcc_factor_graph]
-      >- (simp[adjacent_rcc_factor_graph]
-          >> cheat
-         )
-      >- simp[adjacent_rcc_factor_graph]
-       
      )
   >> simp[BIJ_IFF_INV]
-  >> conj_tac
-     
+  >> conj_tac     
   >- (gen_tac >> strip_tac
       >> Q.UNABBREV_TAC ‘new_g’
       >> pop_assum mp_tac
@@ -2772,19 +2839,66 @@ Proof
       >> rw[]
       >> gvs[]
       >> decide_tac
+     )     
+  >> qexists ‘λx. if EVEN (OUTR x)
+                  then
+                    if x = INR 0
+                    then
+                      INR (5 * n + 1)
+                    else
+                      INR (5 * n + 1 + ((OUTR x) DIV 2))
+                  else INR (2 * n + ((OUTR x) DIV 2))’
+  >> conj_tac
+  >- (gen_tac >> strip_tac
+      >> simp[]
+      >> Q.UNABBREV_TAC ‘new_g’
+      >> simp[nodes_removeNodes]
+      >> rw[range_def]
+      >> (‘x' ≤ 2 * n + 1’ by simp[]
+          >> ‘x' DIV 2 ≤ (2 * n + 1) DIV 2’ by simp[DIV_LE_MONOTONE]
+          >> gvs[])
      )
-  
-  >> irule graph_isomorphism_connected
-  >> simp[]
-         
-  (*  >> 
-  
-  
-
-  
-        >> is_tree_remove_leaf_is_tree
-        >> is_tree_remove_leaf_is_tree*)
-  >> cheat
+  >> conj_tac
+  >- (gen_tac >> strip_tac
+      >> simp[]
+      >> Q.UNABBREV_TAC ‘new_g’
+      >> gvs[nodes_removeNodes, range_def]
+      >> rw[]
+      >> qpat_x_assum ‘¬EVEN _’ mp_tac
+      >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+      >> rw[]
+      >> qmatch_abbrev_tac ‘EVEN (2 * k + 2)’
+      >> Q.SUBGOAL_THEN ‘2 * k + 2 = 2 * (k + 1)’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- simp[]
+      >> irule (EVEN_DOUBLE)
+     )     
+  >> gen_tac
+  >> strip_tac
+  >> Q.UNABBREV_TAC ‘new_g’
+  >> gvs[]
+  >> rw[]       
+  >- (pop_assum mp_tac
+      >> rw[]
+      >- (disch_tac
+          >> gvs[parity_equations_helperTheory.DIV_2_0])
+      >> Cases_on ‘x'’ >> gvs[ADD1]
+      >> gvs[LESS_EQ, ADD1]
+      >> sg ‘(n' + 1) DIV 2 ≤ n’
+      >- (pop_assum kall_tac >> pop_assum kall_tac
+          >> ‘(n' + 1) ≤ 2 * n + 1’ by simp[]
+          >> last_x_assum kall_tac
+          >> ‘(n' + 1) DIV 2 ≤ (2 * n + 1) DIV 2’ by simp[DIV_LE_MONOTONE]
+          >> last_x_assum kall_tac
+          >> gvs[]
+         )
+      >> decide_tac
+     )
+  >- gvs[range_def]
+  >- (gvs[range_def]
+      >> gvs[EVEN_EXISTS])
+  >> gvs[range_def]
+  >> gvs[EVEN_ODD, ODD_EXISTS, ADD1]
 QED
 
 Theorem connected_rcc_factor_graph:
