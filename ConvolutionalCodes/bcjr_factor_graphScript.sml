@@ -2702,6 +2702,7 @@ Proof
                        
   >> irule is_tree_degree_two
   >> rpt conj_tac
+  (* All nodes are of degree at most 2 *)
   >- (unabbrev_all_tac
       >> simp[]
       >> gen_tac >> strip_tac
@@ -2710,6 +2711,7 @@ Proof
       >> simp[degree_rcc_factor_graph]
       >> cheat
      )
+  (* There is a node of degree 1 *)
   >- (qexists ‘INR (5 * n + 1)’
       >> Q.UNABBREV_TAC ‘new_g’
       >> gvs[range_def]
@@ -2718,6 +2720,9 @@ Proof
       >> gvs[range_def]
       >> cheat
      )
+  (* The reduced graph is connected. We prove this by showing that it is
+     isomorphic to a graph which consists of a line of nodes, which is
+     connected *)
 
      
   >> qspecl_then [‘λx. if OUTR x = 5 * n + 1
@@ -2730,10 +2735,29 @@ Proof
   >> simp[] >> qexists ‘n’
   >> simp[graph_isomorphism_def]
   >> REVERSE conj_tac
-  >- (rpt gen_tac
-      >> simp[nodes_line_graph] >> strip_tac
+                          
+  >- (rpt gen_tac >> strip_tac
       >> gvs[]
       >> simp[adjacent_line_graph]
+      >> Q.UNABBREV_TAC ‘new_g’          
+      >> simp[adjacent_removeNodes, range_def]
+      >> rw[]
+      >- simp[adjacent_rcc_factor_graph]
+      >- simp[adjacent_rcc_factor_graph]
+      >- simp[adjacent_rcc_factor_graph]
+      >- (simp[adjacent_rcc_factor_graph]
+          >> CCONTR_TAC >> gvs[]
+          >> cheat
+         )
+      >- (simp[adjacent_rcc_factor_graph]
+          >> cheat
+         )
+      >- simp[adjacent_rcc_factor_graph]
+      >- (simp[adjacent_rcc_factor_graph]
+          >> cheat
+         )
+      >- simp[adjacent_rcc_factor_graph]
+       
      )
   >> simp[BIJ_IFF_INV]
   >> conj_tac
