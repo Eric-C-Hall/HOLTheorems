@@ -64,7 +64,8 @@ val _ = hide "equiv_class"
 (* - A graph containing a singular node is connected (is_tree_connected)      *)
 (* - If a graph is connected and has a degree zero node, then no other node   *)
 (*   can be in the graph. (connected_degree_zero)                             *)
-(* - graph isomorphisms preserve connectedness (graph_isomorphism_connected)  *)
+(* - graph isomorphisms preserve connectedness (graph_isomorphism_connected), *)
+(*   (graph_isomorphism_connected_reverse)                                    *)
 (* - TODO: graph isomorphisms preserve tree-ness                              *)
 (* - the graph which is just a line of nodes is connected                     *)
 (* - TODO: the graph which is just a line of nodes is a tree                  *)
@@ -4410,7 +4411,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Based on BIJ_INV                                                           *)
 (* -------------------------------------------------------------------------- *)
-Theorem isomorphism_comm:
+Theorem graph_isomorphism_comm:
   ∀f g1 g2.
     graph_isomorphism f g1 g2 ⇒
     ∃g. graph_isomorphism g g2 g1 ∧
@@ -4508,14 +4509,14 @@ Proof
   >> gvs[graph_isomorphism_def, BIJ_DEF]
 QED
 
-Theorem graph_isomorphism_connected:
+Theorem graph_isomorphism_connected_reverse:
   ∀f g1 g2.
     connected g1 ∧
     graph_isomorphism f g1 g2 ⇒
     connected g2
 Proof
   rpt gen_tac >> simp[connected_exists_path] >> strip_tac
-  >> drule isomorphism_comm >> strip_tac
+  >> drule graph_isomorphism_comm >> strip_tac
   >> rpt gen_tac >> strip_tac
   >> last_x_assum $ qspecl_then [‘g a’, ‘g b’] mp_tac
   >> impl_tac
@@ -4530,6 +4531,19 @@ Proof
      )
   >> Cases_on ‘vs = []’ >- gvs[]
   >> simp[LAST_MAP]
+QED
+
+Theorem graph_isomorphism_connected:
+  ∀f g1 g2.
+    connected g1 ∧
+    graph_isomorphism f g2 g1 ⇒
+    connected g2
+Proof
+  rpt gen_tac >> strip_tac
+  >> drule graph_isomorphism_comm
+  >> strip_tac
+  >> qspecl_then [‘g’, ‘g1’, ‘g2’] mp_tac graph_isomorphism_connected_reverse
+  >> simp[]
 QED
 
 Theorem nodes_line_graph[simp]:

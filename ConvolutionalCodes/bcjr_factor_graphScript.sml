@@ -2747,7 +2747,9 @@ Proof
       >- simp[adjacent_rcc_factor_graph]
       >- (simp[adjacent_rcc_factor_graph]
           >> CCONTR_TAC >> gvs[]
-          >> cheat
+          >> ‘x'' = 2 * n’ by decide_tac
+          >> gvs[]
+          >> Cases_on ‘n’ >> gvs[]
          )
       >- (simp[adjacent_rcc_factor_graph]
           >> cheat
