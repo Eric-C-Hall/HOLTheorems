@@ -2620,6 +2620,13 @@ Proof
   >> gvs[NOT_EVEN_EXISTS]
 QED
 
+Theorem SUB_EQ_ORIG:
+  ∀n m : num.
+    n - m = n ⇔ n = 0 ∨ m = 0
+Proof
+  decide_tac
+QED
+
 (* -------------------------------------------------------------------------- *)
 (*                                                                            *)
 (*       #   #   #         #                                                  *)
@@ -2646,9 +2653,7 @@ Theorem is_tree_rcc_factor_graph:
     is_tree (get_underlying_graph
              (rcc_factor_graph n p (ps,qs) ts prior (ds_s, ds_p))
             )
-
 Proof
-
   rpt gen_tac
   >> qmatch_abbrev_tac ‘is_tree g’
   (* First, remove the top row of function nodes,  *)
@@ -2789,23 +2794,32 @@ Proof
       >> Cases_on ‘ns’ >> gnvs[]
       >> Cases_on ‘t’ >> gnvs[]
      )
-
-  (* There is a node of degree 1 *)
+  (* There is a node of degree 1 *)     
   >- (qexists ‘INR (5 * n + 1)’
       >> Q.UNABBREV_TAC ‘new_g’
       >> conj_tac
       >- simp[nodes_removeNodes, range_def]
-      >> simp[range_def]
-      >> simp[Once degree_removeNodes]
-
-      >> gvs[range_def]
-      >> simp[nodes_removeNodes, degree_removeNodes, degree_rcc_factor_graph]
+      >> simp[removeNodes_removeNodes]
+      >> DEP_PURE_ONCE_REWRITE_TAC[degree_removeNodes]
+      >> conj_tac
+      >- simp[range_def]
+      >> simp[degree_rcc_factor_graph]
+      >> rw[range_def]
+      >> simp[SUB_EQ_ORIG]
+      >> qmatch_abbrev_tac ‘CARD ns = 0’
+      >> sg ‘FINITE ns’
+      >- (Q.UNABBREV_TAC ‘ns’
+          >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+          >> irule INTER_FINITE
+          >> simp[GSYM count_def])
+      >> simp[]
+      >> pop_assum kall_tac >> unabbrev_all_tac
+      >> simp[EXTENSION]
+      >> gen_tac
+      >> Cases_on ‘x’ >> simp[]
+      >> simp[adjacent_rcc_factor_graph]
       >> rw[]
-      >- (gvs[range_def]
-          >> gvs[adjacent_removeNodes, adjacent_rcc_factor_graph]
-         )
-      >> cheat
-     )
+      )
   (* The reduced graph is connected. We prove this by showing that it is
      isomorphic to a graph which consists of a line of nodes, which is
      connected *)
