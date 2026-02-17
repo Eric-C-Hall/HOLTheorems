@@ -3023,6 +3023,32 @@ Proof
   >> Cases_on ‘x ∈ a’ >> gvs[]
 QED
 
+Theorem GENLIST_ID_IFF[simp]:
+  ∀f x.
+    GENLIST f (LENGTH x) = x ⇔ (∀i. i < LENGTH x ⇒ f i = EL i x)
+Proof
+  rpt gen_tac
+  >> Induct_on ‘x’ using SNOC_INDUCT
+  >- simp[]
+  >> gen_tac
+  >> simp[GENLIST]
+  (* We have used the inductive hypothesis and no longer need it *)
+  >> pop_assum kall_tac
+  (* *)
+  >> EQ_TAC >> strip_tac
+  >- (gen_tac >> strip_tac
+      >> Cases_on ‘i = LENGTH x’
+      >- simp[EL_LENGTH_SNOC]
+      >> simp[EL_SNOC]
+     )
+  >> conj_tac
+  >- (pop_assum $ qspec_then ‘LENGTH x’ assume_tac
+      >> gvs[EL_LENGTH_SNOC])
+  >> gen_tac >> strip_tac
+  >> last_x_assum $ qspec_then ‘i’ assume_tac
+  >> gvs[EL_SNOC]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)
@@ -3082,53 +3108,167 @@ Proof
       >> simp[val_map_assignments_def]
       >> simp[cj 2 FUN_FMAP_DEF, get_variable_length_map_rcc_factor_graph]
      )
-
   (* *)
   >> simp[nodes_rcc_factor_graph]
   >> simp[sum_prod_def]
   (* *)
-
   >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
   >> rpt conj_tac
   >- simp[]
   >- (cheat
+     )     
+  >> qexists ‘λ(bs,σs,cs_p).
+                FUN_FMAP (λx.
+                            if OUTR x ∈ range 0 n
+                            then [EL (OUTR x) bs]
+                            else if OUTR x ∈ range n (2 * n)
+                            then [EL (OUTR x - n) cs_p]
+                            else EL (OUTR x - 2 * n) σs
+                         )
+                         (IMAGE INR (range 0 (3 * n + 1)))’
+  >> conj_tac
+  >- (cheat
      )
-     
-  >- (qexists ‘λ(bs,σs,cs_p).
-                 FUN_FMAP (λx.
-                             if OUTR x ∈ range 0 n
-                             then [EL (OUTR x) bs]
-                             else if OUTR x ∈ range n (2 * n)
-                             then [EL (OUTR x - n) cs_p]
-                             else EL (OUTR x - 2 * n) σs
-                          )
-                          (IMAGE INR (range 0 (3 * n + 1)))’
-      >> 
+  >> simp[BIJ_IFF_INV]
+  >> conj_tac         
+  >- (gen_tac >> strip_tac
+      >> namedCases_on ‘x’ ["bs σs cs_p"]
+      >> simp[]
+      >> simp[val_map_assignments_def]
+      >> rpt conj_tac
+      >- (simp[range_def, EXTENSION]
+          >> gen_tac >> EQ_TAC >> strip_tac >> simp[])             
+      >- (gen_tac >> strip_tac
+          >> simp[cj 2 FUN_FMAP_DEF]
+          >> rw[]
+          >> (simp[get_variable_length_map_rcc_factor_graph]
+              >> gvs[range_def]
+              >> simp[cj 2 FUN_FMAP_DEF])
+          >> gvs[mdr_summed_out_values_2_def]
+          >> first_x_assum irule
+          >> simp[]
+          >> irule EL_MEM
+          >> simp[]
+         )
+      >> strip_tac
+      >> simp[cj 2 FUN_FMAP_DEF]
+      >> rw[] >> gvs[range_def, mdr_summed_out_values_2_def]
      )
-
-  >> 
-
-
-         
-  (* *)
-  >> qmatch_abbrev_tac ‘_ = ∑ (λval_map. ∏ _ _) _ : extreal’
-                       
-  >> Q.SUBGOAL_THEN ‘IMAGE INR (count (6 * n + 2)) ∩
-                     IMAGE INR (range (3 * n + 1) (6 * n + 2)) =
-                     IMAGE INR (range (3 * n + 1) (6 * n + 2))’
-      (fn th => simp[th, Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG])
-  >- (irule SUBSET_ANTISYM
+  >> qexists ‘λval_map.
+                (MAP (λi. HD (val_map ' (INR i))) (COUNT_LIST n),
+                 MAP (λi. val_map ' (INR (i + 2 * n))) (COUNT_LIST (n + 1)),
+                 MAP (λi. HD (val_map ' (INR (i + n)))) (COUNT_LIST n))
+             ’
+  >> conj_tac
+  >- (qx_gen_tac ‘val_map’
+      >> strip_tac
+      >> simp[mdr_summed_out_values_2_def]
+      >> rpt conj_tac
+      >- simp[LENGTH_COUNT_LIST]
+      >- (simp[EL_MAP, LENGTH_COUNT_LIST]
+          >> simp[EL_COUNT_LIST]
+          >> gvs[val_map_assignments_def]
+          >> simp[cj 2 FUN_FMAP_DEF])
+      >- simp[LENGTH_COUNT_LIST]
+      >- (gen_tac >> strip_tac
+          >> gvs[val_map_assignments_def, get_variable_length_map_rcc_factor_graph]
+          >> gvs[MAP_COUNT_LIST, MEM_GENLIST]
+          >> first_x_assum $ qspec_then ‘INR (i' + 2 * n)’ assume_tac
+          >> gvs[]
+          >> simp[cj 2 FUN_FMAP_DEF]
+         )
+      >> simp[LENGTH_COUNT_LIST]
+     )
+  >> conj_tac
+  >- (gen_tac >> strip_tac
+      >> namedCases_on ‘x’ ["bs σs cs_p"]
+      >> gvs[mdr_summed_out_values_2_def]
+      (* We don't need this, and repeatedly attempting to rewrite anything of
+         the form LENGTH σ causes slowdown *)
+      >> qpat_x_assum ‘∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts’ kall_tac
+      >> rpt conj_tac             
+      >- (simp[MAP_COUNT_LIST]
+          >> gen_tac >> strip_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- simp[range_def]
+          >> rw[] >> gvs[range_def])
+      >- (qpat_x_assum ‘LENGTH σs = LENGTH bs + 1’
+                       (fn th => assume_tac (GSYM th))
+          >> simp[MAP_COUNT_LIST]
+          >> gen_tac >> strip_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- simp[range_def]
+          >> rw[]
+          >- gvs[range_def]
+          >> gvs[range_def]
+         )
+      >> qpat_x_assum ‘LENGTH cs_p = LENGTH bs’ (fn th => assume_tac (GSYM th))
+      >> simp[MAP_COUNT_LIST]
+      >> gen_tac >> strip_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
       >> conj_tac
-      >- simp[]
-      >> simp[SUBSET_DEF, range_def]
+      >- simp[range_def]
+      >- (simp[]
+          >> rw[] >> gvs[range_def])
      )
-  (* *)
+  >> qx_gen_tac ‘val_map’
+  >> strip_tac
   >> simp[]
+  >> PURE_ONCE_REWRITE_TAC[GSYM fmap_EQ_THM]
+  >> conj_tac
+  >- (simp[]
+      >> drule in_val_map_assignments_fdom_inter
+      >> simp[] >> strip_tac
+      >> simp[range_def, count_def, EXTENSION]
+      >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
+     )
+  >> gen_tac
+  >> simp[]
+  >> Cases_on ‘x’ >> simp[range_def]
+  >> strip_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+  >> conj_tac
+  >- simp[GSYM count_def]
+  >> rw[]
+  >- (
+  )
+  >- (
+  )
+  >>
+  
+  
+  >> simp[range_def]
+  >> strip_tac
+     
+
+  >> cheat
+
+
+          >> 
+
+
+
+          (* *)
+          >> qmatch_abbrev_tac ‘_ = ∑ (λval_map. ∏ _ _) _ : extreal’
+                               
+                           >> Q.SUBGOAL_THEN ‘IMAGE INR (count (6 * n + 2)) ∩
+                                              IMAGE INR (range (3 * n + 1) (6 * n + 2)) =
+                                              IMAGE INR (range (3 * n + 1) (6 * n + 2))’
+                               (fn th => simp[th, Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG])
+                           >- (irule SUBSET_ANTISYM
+                               >> conj_tac
+                               >- simp[]
+                               >> simp[SUBSET_DEF, range_def]
+                              )
+                           (* *)
+                           >> simp[]
 
 
 
 
-  >> simp[mdr_summed_out_values_2_def]
+                           >> simp[mdr_summed_out_values_2_def]
 
 QED
 
