@@ -2781,7 +2781,7 @@ Proof
       >- gvs[adjacent_rcc_factor_graph]
       (* We also need to know that our set of removed nodes is finite to make
          sure the cardinality makes sense *)
-      >> sg ‘FINITE ns’            
+      >> sg ‘FINITE ns’
       >- (pop_assum kall_tac >> pop_assum kall_tac
           >> simp[]
           >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
@@ -2794,7 +2794,7 @@ Proof
       >> Cases_on ‘ns’ >> gnvs[]
       >> Cases_on ‘t’ >> gnvs[]
      )
-  (* There is a node of degree 1 *)     
+  (* There is a node of degree 1 *)
   >- (qexists ‘INR (5 * n + 1)’
       >> Q.UNABBREV_TAC ‘new_g’
       >> conj_tac
@@ -3006,6 +3006,23 @@ Proof
   simp[map_decoder_bitwise_def]
 QED
 
+Theorem EQ_INTER_SELF[simp]:
+  ∀a b.
+    a = a ∩ b ⇔ a ⊆ b
+Proof
+  rpt gen_tac
+  >> EQ_TAC
+  >- (simp[SUBSET_DEF, EXTENSION]
+      >> strip_tac >> strip_tac
+      >> pop_assum $ qspec_then ‘x’ assume_tac
+      >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >> simp[])
+  >> simp[SUBSET_DEF, EXTENSION]
+  >> strip_tac >> strip_tac
+  >> pop_assum $ qspec_then ‘x’ assume_tac
+  >> Cases_on ‘x ∈ a’ >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)
@@ -3022,6 +3039,7 @@ Theorem rcc_factor_graph_compute:
       n m p ds
 
 Proof
+
   rpt strip_tac
   (* Handle the special case of n = 0 *)
   >> Cases_on ‘n = 0’
@@ -3042,7 +3060,8 @@ Proof
   (* Prove that the function we are argmaxing over is the same for each choice
      of boolean b. *)
   >> simp[FUN_EQ_THM] >> qx_gen_tac ‘b’
-  (* *)
+  (* Rewrite the output of the sum-product algorithm in terms of a sum of
+     products *)
   >> DEP_PURE_ONCE_REWRITE_TAC[sp_output_final_result]
   >> conj_tac
   >- (rpt conj_tac
@@ -3056,8 +3075,61 @@ Proof
       >> PURE_ONCE_REWRITE_TAC[var_nodes_rcc_factor_graph]
       >> simp[]
      )
-     (* *)
+  (* Simplify application of FUN_FMAP *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+  >> conj_tac
+  >- (simp[]
+      >> simp[val_map_assignments_def]
+      >> simp[cj 2 FUN_FMAP_DEF, get_variable_length_map_rcc_factor_graph]
+     )
+
+  (* *)
+  >> simp[nodes_rcc_factor_graph]
+  >> simp[sum_prod_def]
+  (* *)
+
+  >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
+  >> rpt conj_tac
+  >- simp[]
+  >- (cheat
+     )
      
+  >- (qexists ‘λ(bs,σs,cs_p).
+                 FUN_FMAP (λx.
+                             if OUTR x ∈ range 0 n
+                             then [EL (OUTR x) bs]
+                             else if OUTR x ∈ range n (2 * n)
+                             then [EL (OUTR x - n) cs_p]
+                             else EL (OUTR x - 2 * n) σs
+                          )
+                          (IMAGE INR (range 0 (3 * n + 1)))’
+      >> 
+     )
+
+  >> 
+
+
+         
+  (* *)
+  >> qmatch_abbrev_tac ‘_ = ∑ (λval_map. ∏ _ _) _ : extreal’
+                       
+  >> Q.SUBGOAL_THEN ‘IMAGE INR (count (6 * n + 2)) ∩
+                     IMAGE INR (range (3 * n + 1) (6 * n + 2)) =
+                     IMAGE INR (range (3 * n + 1) (6 * n + 2))’
+      (fn th => simp[th, Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG])
+  >- (irule SUBSET_ANTISYM
+      >> conj_tac
+      >- simp[]
+      >> simp[SUBSET_DEF, range_def]
+     )
+  (* *)
+  >> simp[]
+
+
+
+
+  >> simp[mdr_summed_out_values_2_def]
+
 QED
 
 (* -------------------------------------------------------------------------- *)

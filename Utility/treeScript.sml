@@ -946,7 +946,7 @@ Proof
       >> first_x_assum $ qspecl_then [‘l’, ‘m’] kall_tac (* We no longer need
         the conditions on j, and keeping implications may lag the simplifier *)
       >> gvs[]
-       )       
+       )
   (* We can now create our cycle and prove that our graph cannot be a tree, a
      contradiction. *)
   >> ‘cycle g (DROP i (TAKE (j + 1) vs1) ++ REVERSE (DROP i (TAKE k vs2)))’
@@ -3229,7 +3229,7 @@ Proof
   >> simp[]
   >> Cases_on ‘e ∈ nodes g’ >> simp[]
 QED
- 
+
 (* -------------------------------------------------------------------------- *)
 (* This works with more general graphs than adjacent_removeNode               *)
 (* -------------------------------------------------------------------------- *)
@@ -3724,7 +3724,7 @@ Theorem adjacent_el_el_graph:
     path g vs ∧
     m = n + 1 ∧
     m < LENGTH vs ⇒
-    adjacent g (EL n vs) (EL m vs) 
+    adjacent g (EL n vs) (EL m vs)
 Proof
   rpt gen_tac >> strip_tac
   >> gvs[path_def, walk_def]
@@ -3755,7 +3755,7 @@ Proof
   (* In each of these cases, we will be able to find two adjacent nodes in the
      cycle that are nonequal, contradicting the fact that n has degree 1 *)
   >> conj_tac
-  >- (disch_tac 
+  >- (disch_tac
       >> Q.SUBGOAL_THEN ‘HD (TL vs) = EL 1 vs’
           (fn th => gvs[th])
       >- (PURE_REWRITE_TAC[GSYM (cj 1 EL), GSYM (cj 2 EL), GSYM ONE] >> simp[])
@@ -3790,7 +3790,7 @@ Proof
   >> gvs[LAST_EL_LEN_MINUS_ONE]
   (* EL (LENGTH vs - 2) and EL 1 are adjacent to EL (LENGTH vs - 1), but not
      equal to each other, contradicting the fact that EL (LENGTH vs - 1) has
-     degree 1 *)         
+     degree 1 *)
   >> Cases_on ‘EL (LENGTH vs - 2) vs = EL 1 vs’
   >- (gvs[path_def]
       >> gvs[EL_ALL_DISTINCT_EL_EQ]
@@ -3799,7 +3799,7 @@ Proof
       >> gvs[GSYM (cj 2 EL), ADD1, HD_TL]
      )
   >> sg ‘adjacent g (EL (LENGTH vs - 2) vs) (EL (LENGTH vs - 1) vs) ∧
-         adjacent g (EL (LENGTH vs - 1) vs) (EL 1 vs)’        
+         adjacent g (EL (LENGTH vs - 1) vs) (EL 1 vs)’
   >- (REVERSE conj_tac
       >- simp[]
       >> Cases_on ‘LENGTH vs - 2’ >- decide_tac
@@ -3863,7 +3863,7 @@ Proof
   >> rpt conj_tac
   >- (simp[EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[])
   >- simp[bagTheory.BAG_FILTER_FILTER]
-  >> simp[FUN_EQ_THM] 
+  >> simp[FUN_EQ_THM]
   >> gen_tac
   >> rw[] >> simp[combinTheory.APPLY_UPDATE_THM] >> gvs[]
 QED
@@ -4191,8 +4191,8 @@ Proof
   >> PURE_ONCE_REWRITE_TAC[exists_path_adjacent_tc]
   >> EQ_TAC >> simp[]
   >- (strip_tac >> simp[degree_def] >> simp[EXTENSION]
-      >> 
-      >> 
+      >>
+      >>
      )
                         >> strip_tac
                         >> gvs[]
@@ -4244,7 +4244,7 @@ Proof
   >> namedCases_on ‘ns’ ["", "n1 ns"] >> gvs[]
   >> namedCases_on ‘ns'’ ["", "n2 ns"] >> gvs[]
   >> namedCases_on ‘ns’ ["", "n3 ns"] >> gvs[]
-  >> ‘n2 ≠ n3’ by (disch_tac >> gvs[])                 
+  >> ‘n2 ≠ n3’ by (disch_tac >> gvs[])
   >> qsuff_tac ‘n2 ∈ nodes g ∧ n3 ∈ nodes g’
   >- (strip_tac >> gvs[])
   >> qpat_x_assum ‘walk _ _’ mp_tac >> rpt (pop_assum kall_tac) >> strip_tac
@@ -4260,8 +4260,8 @@ Theorem is_tree_degree_two:
     connected g ∧
     (∃n. n ∈ nodes g ∧ degree g n = 1) ∧
     (∀n. n ∈ nodes g ⇒ degree g n ≤ 2) ⇒
-    is_tree g            
-Proof  
+    is_tree g
+Proof
   (* Induct on the number of nodes in the graph *)
   gen_tac
   >> strip_tac
@@ -4320,7 +4320,7 @@ Proof
   (* If m has degree 1, we are in the terminating case. We cannot have any
      further nodes becuase this contradicts connectedness. Thus, our graph only
      has m in it. Thus, it is trivially a tree. *)
-  >> Cases_on ‘degree g m = 1’              
+  >> Cases_on ‘degree g m = 1’
   >- (irule is_tree_sing
       >> qexists ‘m’
       >> simp[EXTENSION]
@@ -4341,7 +4341,7 @@ Proof
          But this contradicts the possibility that we have a path.
        *)
       (* Split up n - x into zeroth element followed by tail *)
-      >> Cases_on ‘get_path g n x’ >- gvs[]                                         
+      >> Cases_on ‘get_path g n x’ >- gvs[]
       (* The zeroth element is n *)
       >> Q.SUBGOAL_THEN ‘h = n’ (fn th => gvs[th])
       >- (Q.SUBGOAL_THEN ‘HD (get_path g n x) = HD (h::t)’ mp_tac
@@ -4566,7 +4566,7 @@ Proof
   >> Cases_on ‘n’ >> simp[line_graph_def, COUNT_ONE]
   >> simp[fsgedges_fsgAddEdges]
   >> qmatch_abbrev_tac ‘added_edges ∪ _ = _’
-  >> qsuff_tac ‘added_edges = {{INR (SUC n'); INR n'}}’               
+  >> qsuff_tac ‘added_edges = {{INR (SUC n'); INR n'}}’
   >- (strip_tac >> simp[]
       >> irule (iffRL EXTENSION) >> gen_tac >> EQ_TAC >> strip_tac >> simp[]
       >- (gvs[]
@@ -4630,7 +4630,7 @@ Proof
      )
   >> simp[]
 QED
-        
+
 Theorem finite_directed_to_undirected_edge_additional_restrictions[simp]:
   ∀g es.
     FINITE es ⇒
@@ -4684,7 +4684,7 @@ Proof
   rename [‘itself2_ecv x’] >> Cases_on ‘itself2_ecv x’ >> gvs[] >>
   simp[Once EXTENSION] >> rw[] >>
   metis_tac[]
-     
+
   >> simp[]
 QED
  *)
@@ -4724,10 +4724,10 @@ Proof
   >> pop_assum mp_tac >> simp[EXTENSION] >> strip_tac
   >> irule (iffRL BAG_EXTENSION)
   >> rpt gen_tac
-  >> 
-         
-  >> 
-                       
+  >>
+
+  >>
+
   >> CCONTR_TAC >> qpat_x_assum ‘{he | _} = {he | _}’ mp_tac
 QED*)
 
@@ -4740,7 +4740,7 @@ Theorem addUDEdge_idem[simp]:
   ∀ns lab g : (α,ν,σ) udulgraph.
     addUDEdge ns lab (addUDEdge ns lab g) = addUDEdge ns lab g
 Proof
-  rpt gen_tac     
+  rpt gen_tac
   >> Cases_on ‘∃a b. ns = {a;b} ∧ a ≠ b’ >> gvs[]
   >- (simp[udul_component_equality]
       >> simp[udedges_addUDEdge]
@@ -4861,7 +4861,7 @@ Proof
       >- (Q.UNABBREV_TAC ‘edge_set_rhs_deleted’
           >> Q.UNABBREV_TAC ‘edge_set_rhs’
           >> simp[]
-         )         
+         )
       >> sg ‘chosen_a ≠ chosen_b’
       >- (disch_tac >> gvs[]
           >> qpat_x_assum ‘_ = (chosen_a, chosen_a)’ mp_tac
@@ -4879,7 +4879,7 @@ Proof
       >> simp[ITSET_REDUCTION]
       >> Q.UNABBREV_TAC ‘f’
       >> simp[INSERT2_sym]
-      (* chosen_a and chosen_b correspond to a and b, in some order *)             
+      (* chosen_a and chosen_b correspond to a and b, in some order *)
       >> qpat_x_assum ‘_ = (chosen_a, chosen_b)’ assume_tac
       >> Q.SUBGOAL_THEN ‘(a = chosen_a ∧ b = chosen_b) ∨
                          (b = chosen_a ∧ a = chosen_b)’ assume_tac
@@ -4913,10 +4913,10 @@ Proof
                                        edge_set_rhs g)) =
              addUDEdge {a; b} () (ITSET (λ(m,n) g. addUDEdge {m; n} () g)
                                         (edge_set_rhs DELETE (a,b)) g)’
-          (fn th => PURE_ONCE_REWRITE_TAC[th])            
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
       >- (REVERSE $ Cases_on ‘(a,b) ∈ edge_set_rhs’
           >- simp[DELETE_NON_ELEMENT_RWT]
-          >> qmatch_abbrev_tac ‘_ = RHS’                               
+          >> qmatch_abbrev_tac ‘_ = RHS’
           >> Q.SUBGOAL_THEN ‘edge_set_rhs =
                              (a,b) INSERT (edge_set_rhs DELETE (a,b))’
               (fn th => PURE_ONCE_REWRITE_TAC[th])
@@ -4924,12 +4924,12 @@ Proof
           >> simp[ITSET_REDUCTION, Excl "INSERT_DELETE"]
           >> Q.UNABBREV_TAC ‘RHS’
           >> simp[]
-         )         
+         )
       (* Drag the second edge out of the RHS *)
       >> Q.UNABBREV_TAC ‘edge_set_rhs_deleted’
       >> REVERSE $ Cases_on ‘(b,a) ∈ edge_set_rhs’
       >- simp[DELETE_NON_ELEMENT_RWT]
-      >> qmatch_abbrev_tac ‘LHS = _’                         
+      >> qmatch_abbrev_tac ‘LHS = _’
       >> Q.SUBGOAL_THEN ‘edge_set_rhs =
                          (b,a) INSERT (edge_set_rhs DELETE (b,a))’
           (fn th => PURE_ONCE_REWRITE_TAC[th])
@@ -5015,7 +5015,7 @@ Proof
   >- simp[]
   >> gen_tac >> strip_tac >> gen_tac >> strip_tac
   >> simp[INSERT_INTER]
-  >> rw[]       
+  >> rw[]
   >- (simp[Once fsgAddEdges_insert]
       >> simp[Once fsgAddEdges_insert, Cong RHS_CONG]
       >> qpat_x_assum ‘removeNode _ _ = fsgAddEdges _ _’
@@ -5025,7 +5025,7 @@ Proof
       >> simp[fsgedges_fsgAddEdges, fsgedges_removeNode]
       >> irule (iffRL EXTENSION)
       >> gen_tac
-      >> Cases_on ‘x = e’                  
+      >> Cases_on ‘x = e’
       >- (simp[]
           >> EQ_TAC >> strip_tac
           >- (qpat_x_assum ‘{m; n'} = e’ kall_tac
@@ -5249,7 +5249,7 @@ Theorem adjacent_line_graph:
                      | INR b_val => a_val < n ∧
                                     b_val < n ∧
                                     (b_val = SUC a_val ∨ a_val = SUC b_val)
-Proof  
+Proof
   rpt gen_tac
   >> Induct_on ‘n’
   >- (rpt gen_tac >> Cases_on ‘a’ >- simp[] >> Cases_on ‘b’ >> simp[])
@@ -5261,7 +5261,7 @@ Proof
       >> Cases_on ‘b’ >> simp[])
   >> rpt gen_tac
   >> Cases_on ‘a’
-  >- (simp[line_graph_def, nodes_line_graph] >> gvs[]) 
+  >- (simp[line_graph_def, nodes_line_graph] >> gvs[])
   >> Cases_on ‘b’
   >- (simp[line_graph_def, nodes_line_graph] >> gvs[])
   >> gvs[line_graph_def, nodes_line_graph]
