@@ -2958,6 +2958,54 @@ Proof
   >> simp[is_tree_def]
 QED
 
+Theorem le_num_extreal[simp]:
+  ∀a b : num.
+    &a : extreal ≤ &b : extreal ⇔ a ≤ b
+Proof
+  simp[extreal_of_num_def]
+QED
+
+Theorem extreal_of_num_eq_zero[simp]:
+  ∀n : num.
+    &n = 0 ⇔ n = 0n
+Proof
+  rpt gen_tac
+  >> REVERSE EQ_TAC >> strip_tac
+  >- simp[]
+  >> Cases_on ‘n’ >> gvs[]
+  >> ‘1 ≤ SUC n'’ by simp[]
+  >> ‘&1 ≤ &(SUC n')’ by simp[]
+  >> gvs[Excl "le_num_extreal"]
+  >> gvs[]
+QED
+
+(* We use SUC n instead of n because division by zero is invalid *)
+Theorem reciprocal_extreal_of_num_not_infty[simp]:
+  ∀n : num.
+    1 / &(SUC n) ≠ +∞ ∧ 1 / &(SUC n) ≠ −∞
+Proof
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM normal_1]
+  >> irule div_not_infty
+  >> disch_tac
+  >> gvs[]
+QED
+
+Theorem rcc_bcjr_fg_decode_empty[simp]:
+  ∀p ps qs ts.
+    rcc_bcjr_fg_decode p (ps,qs) ts [] = []
+Proof
+  rpt gen_tac
+  >> simp[rcc_bcjr_fg_decode_def]
+QED
+
+Theorem map_decoder_bitwise_zero_n[simp]:
+  ∀enc m p ds.
+    map_decoder_bitwise enc 0 m p ds = []
+Proof
+  simp[map_decoder_bitwise_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)
@@ -2972,9 +3020,12 @@ Theorem rcc_factor_graph_compute:
     = map_decoder_bitwise
       (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
       n m p ds
-Proof
 
+Proof
   rpt strip_tac
+  (* Handle the special case of n = 0 *)
+  >> Cases_on ‘n = 0’
+  >- gvs[]
   (* Definition of factor graph decode *)
   >> gvs[rcc_bcjr_fg_decode_def]
   (* Use form of MAP decoder which is closest to the factor graph definition *)
@@ -2991,18 +3042,22 @@ Proof
   (* Prove that the function we are argmaxing over is the same for each choice
      of boolean b. *)
   >> simp[FUN_EQ_THM] >> qx_gen_tac ‘b’
-
   (* *)
   >> DEP_PURE_ONCE_REWRITE_TAC[sp_output_final_result]
   >> conj_tac
-
   >- (rpt conj_tac
-      >- simp[functions_noninfinite_rcc_factor_graph]
+      >- (irule functions_noninfinite_rcc_factor_graph
+          >> simp[]
+          >> Cases_on ‘p = +∞’ >> gvs[]
+          >> Cases_on ‘p = −∞’ >> gvs[]
+          >> Cases_on ‘n’ >> gvs[]
+         )
       >- simp[is_tree_rcc_factor_graph]
       >> PURE_ONCE_REWRITE_TAC[var_nodes_rcc_factor_graph]
       >> simp[]
      )
      (* *)
+     
 QED
 
 (* -------------------------------------------------------------------------- *)
