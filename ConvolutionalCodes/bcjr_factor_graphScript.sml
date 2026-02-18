@@ -3065,7 +3065,7 @@ Theorem rcc_factor_graph_compute:
       n m p ds
 
 Proof
-
+  
   rpt strip_tac
   (* Handle the special case of n = 0 *)
   >> Cases_on ‘n = 0’
@@ -3127,7 +3127,38 @@ Proof
                          )
                          (IMAGE INR (range 0 (3 * n + 1)))’
   >> conj_tac
-  >- (cheat
+     
+  >- (gen_tac >> strip_tac
+      >> namedCases_on ‘x’ ["bs σs cs_p"]
+      >> simp[]
+      (* Simplify set being producted over on the RHS *)
+      >> qmatch_abbrev_tac ‘_ = EXTREAL_PROD_IMAGE _ (node_set ∩ fun_node_set)’
+      >> Q.SUBGOAL_THEN ‘node_set ∩ fun_node_set = fun_node_set’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >-  (Q.UNABBREV_TAC ‘node_set’ >> Q.UNABBREV_TAC ‘fun_node_set’
+           >> irule SUBSET_ANTISYM
+           >> conj_tac
+           >- simp[]
+           >> simp[SUBSET_DEF, range_def]
+          )
+      >> Q.UNABBREV_TAC ‘node_set’                                       
+      (* Split the RHS up in the same way that the LHS is split up *)
+      >> Q.SUBGOAL_THEN ‘fun_node_set =
+                         IMAGE INR (range (3 * n + 1) (4 * n + 1)) ∪
+                               IMAGE INR (range (4 * n + 1) (5 * n + 1)) ∪
+                               {INR (5 * n + 1)} ∪
+                               IMAGE INR (range (5 * n + 2) (6 * n + 2))’
+          (fn th => PURE_ONCE_REWRITE_TAC[th]) >> Q.UNABBREV_TAC ‘fun_node_set’
+      >- (simp[range_def, EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[])
+      (* *)
+      >> DEP_PURE_REWRITE_TAC[EXTREAL_PROD_IMAGE_DISJOINT_UNION]
+      >> conj_tac
+      >- (simp[DISJOINT_ALT, range_def]
+          >> rpt conj_tac
+          >> (gen_tac >> strip_tac >> gen_tac >> strip_tac >> gvs[]))         
+      >> 
+      >> 
+
      )
   >> simp[BIJ_IFF_INV]
   >> conj_tac         
@@ -3232,44 +3263,11 @@ Proof
   >> conj_tac
   >- simp[GSYM count_def]
   >> rw[]
-  >- (
-  )
-  >- (
-  )
-  >>
-  
-  
-  >> simp[range_def]
-  >> strip_tac
-     
-
-  >> cheat
-
-
-          >> 
-
-
-
-          (* *)
-          >> qmatch_abbrev_tac ‘_ = ∑ (λval_map. ∏ _ _) _ : extreal’
-                               
-                           >> Q.SUBGOAL_THEN ‘IMAGE INR (count (6 * n + 2)) ∩
-                                              IMAGE INR (range (3 * n + 1) (6 * n + 2)) =
-                                              IMAGE INR (range (3 * n + 1) (6 * n + 2))’
-                               (fn th => simp[th, Cong EXTREAL_SUM_IMAGE_CONG, Cong EXTREAL_PROD_IMAGE_CONG])
-                           >- (irule SUBSET_ANTISYM
-                               >> conj_tac
-                               >- simp[]
-                               >> simp[SUBSET_DEF, range_def]
-                              )
-                           (* *)
-                           >> simp[]
-
-
-
-
-                           >> simp[mdr_summed_out_values_2_def]
-
+  >> (simp[MAP_COUNT_LIST]
+      >> gvs[val_map_assignments_def]
+      >> simp[get_variable_length_map_rcc_factor_graph]
+      >> simp[cj 2 FUN_FMAP_DEF]
+     )
 QED
 
 (* -------------------------------------------------------------------------- *)
