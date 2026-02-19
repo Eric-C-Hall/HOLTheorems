@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin donotexpand extreal factor_graph finite_map fsgraph fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine tree wf_state_machine
+Ancestors binary_symmetric_channel combin donotexpand ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine tree wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -3055,13 +3055,16 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: move to other file (possibly map_decoder_convolutional_codeScript,   *)
 (* as this expression occurs in                                               *)
-(*  map_decoder_bitwise_encode_recursive_parity_equation_with_systematic.     *)
-(* Perhaps we can have a variant of that theorem rewritten in this way        *)
+(*  map_decoder_bitwise_encode_recursive_parity_equation_with_systematic)     *)
 (*                                                                            *)
 (* Split P(ds_p,ds_s | bs) into P(ds_p | enc bs) * P(ds_s | bs)               *)
 (* -------------------------------------------------------------------------- *)
 Theorem cond_prob_received_given_sent_recursive_parity_equation_with_systematic_split:
   ∀n p ps qs ts bs ds.
+    0 < p ∧
+    p < 1 ∧
+    LENGTH bs = n ∧
+    LENGTH ds = 2 * n ⇒
     ∏ (λj.
          cond_prob (ecc_bsc_prob_space n (2 * n) p)
                    (event_received_bit_takes_value
@@ -3074,31 +3077,40 @@ Theorem cond_prob_received_given_sent_recursive_parity_equation_with_systematic_
                            (ps,qs) ts bs)))
       ) (count (2 * n)) =
     let
-      enc = encode_recursive_parity_equation (ps,qs) ts;
+      enc1 = encode_recursive_parity_equation (ps,qs) ts;
+      enc2 = I;
     in
       ∏ (λj.
            cond_prob (ecc_bsc_prob_space n n p)
                      (event_received_bit_takes_value
-                      enc
-                      n n j (EL j ds)
+                      enc1
+                      n n j (EL j (TAKE n ds))
                      )
                      (event_sent_bit_takes_value
-                      enc
-                      n n j (EL j (enc bs))
+                      enc1
+                      n n j (EL j (enc1 bs))
                      )
         ) (count n) *
       ∏ (λj.
-           sym_noise_mass_func p [EL j bs ⇎ EL (j + n) ds]
+           cond_prob (ecc_bsc_prob_space n n p)
+                     (event_received_bit_takes_value
+                      enc2
+                      n n j (EL j (DROP n ds))
+                     )
+                     (event_sent_bit_takes_value
+                      enc2
+                      n n j (EL j (enc2 bs))
+                     )
         ) (count n)
-        
-Proof
-(* TODO: Check that EL j (enc2 bs) is correct and
-    shouldn't be EL (j + n) (enc2 bs) *)
-  (* TODO: Simplify the RHS right multiple, given that we are provided with I as our encoder. Use cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value *)
-  rpt gen_tac >> simp[]
-  >> simp[]
-         DEP_PURE_ONCE_REWRITE_TAC[cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value]
-         map_decoder_convolutional_codeTheory.prob_received_given_sent_bit
+Proof 
+  rpt gen_tac >> strip_tac >> simp[Excl "I_THM"]
+  >> simp[prob_received_given_sent_bit]
+  >> PURE_ONCE_REWRITE_TAC[encode_recursive_parity_equation_with_systematic_def]
+  >> qmatch_abbrev_tac ‘_ = RHS’
+  >> Q.SUBGOAL_THEN ‘ds = TAKE n ds ++ DROP n ds’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[]
+  >> simp[bxor_append, sym_noise_mass_func_append]
 QED
 
 

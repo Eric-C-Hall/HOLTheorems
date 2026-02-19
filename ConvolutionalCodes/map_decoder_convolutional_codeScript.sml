@@ -1980,6 +1980,9 @@ Proof
   >> gvs[inter_input_parity_eq_parity]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: move to other file?                                                  *)
+(* -------------------------------------------------------------------------- *)
 Theorem prob_received_given_sent_bit:
   ∀n m p enc bs ds.
     0 < p ∧ p < 1 ∧
