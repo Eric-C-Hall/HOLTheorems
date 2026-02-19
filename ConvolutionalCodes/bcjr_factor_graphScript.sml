@@ -3098,6 +3098,7 @@ Proof
   rpt gen_tac >> simp[]
   >> simp[]
          DEP_PURE_ONCE_REWRITE_TAC[cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value]
+         map_decoder_convolutional_codeTheory.prob_received_given_sent_bit
 QED
 
 
@@ -3220,7 +3221,7 @@ Proof
          So we start by splitting up the last product on the LHS in the way
          mentioned above
        *)
-          
+      >>           
       
       (* Split the RHS up in the same way that the LHS is split up *)
       >> Q.SUBGOAL_THEN ‘fun_node_set =

@@ -1980,7 +1980,7 @@ Proof
   >> gvs[inter_input_parity_eq_parity]
 QED
 
-Theorem prod_received_given_sent_bit:
+Theorem prob_received_given_sent_bit:
   ∀n m p enc bs ds.
     0 < p ∧ p < 1 ∧
     LENGTH bs = n ∧
@@ -2031,7 +2031,7 @@ Proof
   >> gvs[TAKE_LENGTH_TOO_LONG]
 QED
 
-(*Theorem prod_received_given_sent_bit_TODO_PARITY_ONLY:
+(*Theorem prob_received_given_sent_bit_TODO_PARITY_ONLY:
   ∀n m p ps qs ts bs ds.
   0 ≤ p ∧ p ≤ 1 ⇒
   ∏ (λj.
@@ -2521,7 +2521,7 @@ Proof
       >> qmatch_goalsub_abbrev_tac ‘event_received_bit_takes_value enc _ _ _ _’
       (* This lemma should prove the result, we just need to show that the
          preconditions hold *)
-      >> irule (GSYM prod_received_given_sent_bit)
+      >> irule (GSYM prob_received_given_sent_bit)
       >> simp[]
       >> gvs[mdr_summed_out_values_2_def]
       >> unabbrev_all_tac >> simp[]
