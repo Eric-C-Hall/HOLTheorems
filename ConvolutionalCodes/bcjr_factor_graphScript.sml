@@ -3113,6 +3113,62 @@ Proof
   >> simp[bxor_append, sym_noise_mass_func_append]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* This form is more convenient than the form of mul_not_infty2, because      *)
+(* grouping together proofs that a variable is not +∞ with the proof that a   *)
+(* variable is not −∞ allows us to perform both proofs at the same time,      *)
+(* using, for example, another instance of this theorem.                      *)
+(*                                                                            *)
+(* Unfortunately, irule messes with the bracketing, so this isn't actually    *)
+(* helpful when applying using irule.                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem mul_not_infty2_alt:
+  ∀x y.
+    (x ≠ −∞ ∧ x ≠ +∞) ∧
+    (y ≠ −∞ ∧ y ≠ +∞) ⇒
+    x * y ≠ −∞ ∧ x * y ≠ +∞
+Proof
+  rpt gen_tac >> strip_tac
+  >> irule mul_not_infty2
+  >> simp[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: probabilityTheory.COND_PROB_FINITE should have the +∞ and −∞ swapped *)
+(* in order to match mul_not_infty2, EXTREAL_PROD_IMAGE_NOT_INFTY,            *)
+(* PROB_FINITE, etc                                                           *)
+(* -------------------------------------------------------------------------- *)
+Theorem COND_PROB_FINITE_ALT:
+  ∀p A B.
+    prob_space p ∧ A ∈ events p ∧ B ∈ events p ∧ prob p B ≠ 0 ⇒
+    cond_prob p A B ≠ −∞ ∧ cond_prob p A B ≠ +∞
+Proof
+  metis_tac[COND_PROB_FINITE]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: move to appropriate location                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem event_state_takes_value_inter_event_input_bit_takes_value_nonzero_prob:
+  ∀n m p ps qs ts i b σ.
+    0 < p ∧
+    p < 1 ∧
+    (∃bs. LENGTH bs = n ∧
+          EL i bs = b ∧
+          encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs) = σ) ⇒
+    prob (ecc_bsc_prob_space n m p)
+         (event_state_takes_value n m (ps,qs) ts i σ ∩
+                                  event_input_bit_takes_value n m i b) ≠ 0
+Proof
+  rpt gen_tac >> strip_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
+  >> simp[prob_ecc_bsc_prob_space_zero, EVENTS_INTER]
+  >> simp[event_state_takes_value_def,
+          event_input_bit_takes_value_def]
+  >> simp[EXTENSION]
+  >> qexists ‘(bs, REPLICATE m ARB)’
+  >> simp[]
+QED
 
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
@@ -3132,6 +3188,7 @@ Theorem rcc_factor_graph_compute:
 Proof
   
   rpt strip_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[lt_imp_le]
   (* Handle the special case of n = 0 *)
   >> Cases_on ‘n = 0’
   >- gvs[]
@@ -3180,7 +3237,91 @@ Proof
   >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
   >> rpt conj_tac
   >- simp[]
-  >- (cheat
+         
+  >- (disj1_tac
+      >> gen_tac >> strip_tac
+      >> namedCases_on ‘x’ ["bs σs cs_p"]
+      >> simp[]
+      >> qmatch_abbrev_tac ‘x1 * x2 * x3 * x4 ≠ −∞’
+      (* The case where σs is invalid with respect to bs has to be handled with
+         caution, because in this case, we may have denominator 0.
+         We use a part of input_state_parity_valid. *)
+      >> REVERSE $ Cases_on
+                 ‘σs = encode_recursive_parity_equation_state_sequence
+                       (ps,qs) ts bs’
+      >- (‘x2 = 0’ suffices_by simp[] (* In this case, x2 = 0 *)
+          >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]
+          >> prob_event_input_state_parity_zero
+          >> PURE_ONCE_REWRITE_TAC[entire]
+          >> irule EXTREAL_PROD_IMAGE_0
+         )
+      >> ‘x1 ≠ −∞ ∧ x1 ≠ +∞ ∧
+          x2 ≠ −∞ ∧ x2 ≠ +∞ ∧
+          x3 ≠ −∞ ∧ x3 ≠ +∞ ∧
+          x4 ≠ −∞ ∧ x4 ≠ +∞’ suffices_by (strip_tac >> simp[mul_not_infty2])
+      >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]
+      >> rpt conj_tac 
+      >- simp[mul_not_infty2, EXTREAL_PROD_IMAGE_NOT_INFTY, PROB_FINITE]
+      >- simp[mul_not_infty2, EXTREAL_PROD_IMAGE_NOT_INFTY, PROB_FINITE]             
+      >- (irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
+          >> simp[]
+          >> gen_tac >> strip_tac
+          >> irule COND_PROB_FINITE_ALT
+          >> simp[EVENTS_INTER]
+          >> irule event_state_takes_value_inter_event_input_bit_takes_value_nonzero_prob
+          >> simp[]
+          >> qexists ‘bs’
+          >> gvs[mdr_summed_out_values_2_def]
+          >> simp[el_encode_recursive_parity_equation_state_sequence]
+         )
+      >- (irule (cj 2 EXTREAL_PROD_IMAGE_NOT_INFTY)
+          >> simp[]
+          >> gen_tac >> strip_tac
+          >> irule COND_PROB_FINITE_ALT
+          >> simp[EVENTS_INTER]
+          >> irule event_state_takes_value_inter_event_input_bit_takes_value_nonzero_prob
+          >> simp[]
+          >> qexists ‘bs’
+          >> gvs[mdr_summed_out_values_2_def]
+          >> simp[el_encode_recursive_parity_equation_state_sequence]
+         )
+      >- (irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
+          >> simp[]
+          >> gen_tac >> strip_tac
+          >> irule COND_PROB_FINITE_ALT
+          >> simp[EVENTS_INTER]
+          >> irule event_state_takes_value_inter_event_input_bit_takes_value_nonzero_prob
+          >> simp[]
+          >> qexists ‘bs’
+          >> gvs[mdr_summed_out_values_2_def]
+          >> simp[el_encode_recursive_parity_equation_state_sequence]
+         )         
+      >- (irule (cj 2 EXTREAL_PROD_IMAGE_NOT_INFTY)
+          >> simp[]
+          >> gen_tac >> strip_tac
+          >> irule COND_PROB_FINITE_ALT
+          >> simp[EVENTS_INTER]
+          >> irule event_state_takes_value_inter_event_input_bit_takes_value_nonzero_prob
+          >> simp[]
+          >> qexists ‘bs’
+          >> gvs[mdr_summed_out_values_2_def]
+          >> simp[el_encode_recursive_parity_equation_state_sequence]
+         )   
+      >- (irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
+          >> simp[]
+          >> gen_tac >> strip_tac
+          >> irule COND_PROB_FINITE_ALT
+          >> simp[]
+          >> simp[prob_event_sent_bit_takes_value_nonzero]
+          >> gvs[mdr_summed_out_values_2_def]
+         )
+      >> irule (cj 2 EXTREAL_PROD_IMAGE_NOT_INFTY)
+      >> simp[]
+      >> gen_tac >> strip_tac
+      >> irule COND_PROB_FINITE_ALT
+      >> simp[]
+      >> simp[prob_event_sent_bit_takes_value_nonzero]
+      >> gvs[mdr_summed_out_values_2_def]
      )     
   >> qexists ‘λ(bs,σs,cs_p).
                 FUN_FMAP (λx.
