@@ -2999,6 +2999,9 @@ Proof
   >> simp[rcc_bcjr_fg_decode_def]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem map_decoder_bitwise_zero_n[simp]:
   ∀enc m p ds.
     map_decoder_bitwise enc 0 m p ds = []
@@ -3048,6 +3051,55 @@ Proof
   >> last_x_assum $ qspec_then ‘i’ assume_tac
   >> gvs[EL_SNOC]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: move to other file (possibly map_decoder_convolutional_codeScript,   *)
+(* as this expression occurs in                                               *)
+(*  map_decoder_bitwise_encode_recursive_parity_equation_with_systematic.     *)
+(* Perhaps we can have a variant of that theorem rewritten in this way        *)
+(*                                                                            *)
+(* Split P(ds_p,ds_s | bs) into P(ds_p | enc bs) * P(ds_s | bs)               *)
+(* -------------------------------------------------------------------------- *)
+Theorem cond_prob_received_given_sent_recursive_parity_equation_with_systematic_split:
+  ∀n p ps qs ts bs ds.
+    ∏ (λj.
+         cond_prob (ecc_bsc_prob_space n (2 * n) p)
+                   (event_received_bit_takes_value
+                    (encode_recursive_parity_equation_with_systematic
+                     (ps,qs) ts) n (2 * n) j (EL j ds))
+                   (event_sent_bit_takes_value
+                    (encode_recursive_parity_equation_with_systematic
+                     (ps,qs) ts) n (2 * n) j
+                    (EL j (encode_recursive_parity_equation_with_systematic
+                           (ps,qs) ts bs)))
+      ) (count (2 * n)) =
+    let
+      enc = encode_recursive_parity_equation (ps,qs) ts;
+    in
+      ∏ (λj.
+           cond_prob (ecc_bsc_prob_space n n p)
+                     (event_received_bit_takes_value
+                      enc
+                      n n j (EL j ds)
+                     )
+                     (event_sent_bit_takes_value
+                      enc
+                      n n j (EL j (enc bs))
+                     )
+        ) (count n) *
+      ∏ (λj.
+           sym_noise_mass_func p [EL j bs ⇎ EL (j + n) ds]
+        ) (count n)
+        
+Proof
+(* TODO: Check that EL j (enc2 bs) is correct and
+    shouldn't be EL (j + n) (enc2 bs) *)
+  (* TODO: Simplify the RHS right multiple, given that we are provided with I as our encoder. Use cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value *)
+  rpt gen_tac >> simp[]
+  >> simp[]
+         DEP_PURE_ONCE_REWRITE_TAC[cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value]
+QED
+
 
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
@@ -3141,7 +3193,35 @@ Proof
            >- simp[]
            >> simp[SUBSET_DEF, range_def]
           )
-      >> Q.UNABBREV_TAC ‘node_set’                                       
+      >> Q.UNABBREV_TAC ‘node_set’
+      (* The LHS is split up into:
+         ∏ P(b_i) *
+         P(σ_0) *
+         ∏ P(σ_{i+1} | σ_i, b_i) *
+         ∏ P(c_i | σ_i, b_i) *
+         ∏ P(d_s_i, d_p_i | c_s_i, c_p_i)
+.
+         b: the original message
+         c_s: the systematic encoded bits
+         c_p: the parity encoded bits
+         d_s: the systematic recevied bits
+         d_p: the parity received bits
+.
+         We can split the last product into
+         ∏ P(d_s_i | c_s_i) * ∏ P(d_p_i | c_p_i)
+.
+         Then ∏ P(b_i) ∏ P(d_s_i | c_s_i) is equivalent to the product of the
+         top row of nodes in the factor graph, and P(σ_0) is equivalent to the
+         leftmost node in the factor graph, and  ∏ P(σ_{i+1} | σ_i, b_i) *
+         ∏ P(c_i | σ_i, b_i) is equivalent to the middle row of nodes in the
+         factor graph, and ∏ P(d_p_i | c_p_i) is equivalent to
+         the  bottom row of nodes in the factor graph.
+.
+         So we start by splitting up the last product on the LHS in the way
+         mentioned above
+       *)
+          
+      
       (* Split the RHS up in the same way that the LHS is split up *)
       >> Q.SUBGOAL_THEN ‘fun_node_set =
                          IMAGE INR (range (3 * n + 1) (4 * n + 1)) ∪
