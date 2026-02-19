@@ -3178,6 +3178,16 @@ Proof
   >> simp[event_input_string_starts_with_def]
 QED
 
+Theorem HD_FRONT:
+  ∀ls.
+    2 ≤ LENGTH ls ⇒
+    HD (FRONT ls) = HD ls
+Proof
+  rpt gen_tac >> strip_tac
+  >> Cases_on ‘ls’ >> gvs[]
+  >> Cases_on ‘t’ >> gvs[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Split the probability of the states taking a particular sequence of values *)
 (*                                                                            *)
@@ -3208,6 +3218,7 @@ Theorem extreal_prod_image_state_given_input:
               (event_input_string_starts_with n m bs)
        
 Proof
+
   (*rpt gen_tac >> strip_tac
    >> qabbrev_tac ‘l = LENGTH bs’
    >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
@@ -3220,6 +3231,41 @@ Proof
       >> simp[event_state_sequence_starts_with_sing]
      )
   >> rpt gen_tac >> strip_tac
+  (* Reduce to smaller l on the LHS *)
+  >> PURE_ONCE_REWRITE_TAC[COUNT_SUC]
+  >> simp[cj 2 EXTREAL_PROD_IMAGE_THM]
+  (* Apply the inductive hypothesis to transform the LHS towards the RHS *)
+  >> last_x_assum $ qspecl_then [‘n’, ‘m’, ‘p’, ‘ps’, ‘qs’, ‘ts’, ‘FRONT bs’, ‘FRONT σs’] assume_tac
+  >> gvs[ADD1]
+  >> qpat_x_assum ‘l + 1 = LENGTH bs’ (fn th => assume_tac (GSYM th))
+  >> Cases_on ‘σs = []’ >- gvs[]
+  >> Cases_on ‘bs = []’ >- gvs[]
+  >> gvs[HD_FRONT, LENGTH_FRONT, PRE_SUB1]
+  (* Rewrite the inductive term in the goal to match the inductive term in the
+     inductive hypothesis, so we can apply it to transform the LHS towards the
+     RHS. *)
+  >> qmatch_abbrev_tac ‘_ * ind_term_goal = _ : extreal’
+  >> qmatch_asmsub_abbrev_tac ‘ind_term_assum = cond_prob _ _ _’
+  >> Q.SUBGOAL_THEN ‘ind_term_goal = ind_term_assum’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (Q.UNABBREV_TAC ‘ind_term_goal’ >> Q.UNABBREV_TAC ‘ind_term_assum’
+      >> irule EXTREAL_PROD_IMAGE_EQ
+      >> gen_tac >> strip_tac
+      >> simp[EL_FRONT, LENGTH_FRONT, NULL_EQ_NIL]
+      >> pop_assum mp_tac >> simp[] >> disch_tac
+      >> simp[EL_FRONT, NULL_EQ_NIL, LENGTH_FRONT, PRE_SUB1]
+     )
+  >> simp[]
+  (* We've applied the inductive hypothesis and no longer need it. *)
+  >> qpat_x_assum ‘ind_term_assum = _’ kall_tac
+  >> Q.UNABBREV_TAC ‘ind_term_goal’ >> Q.UNABBREV_TAC ‘ind_term_assum’
+  (* *)
+  >> 
+
+
+
+  (* Reduce to smaller l on the RHS *)
+  >> 
   >> cheat
 QED
 
@@ -3298,8 +3344,7 @@ Proof
   (* *)
   >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
   >> rpt conj_tac
-  >- simp[]
-         
+  >- simp[]         
   >- (disj1_tac
       >> gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
@@ -3321,7 +3366,6 @@ Proof
       >> REVERSE $ Cases_on
                  ‘σs = encode_recursive_parity_equation_state_sequence
                        (ps,qs) ts bs’
-                 
       >- (‘x2 = 0’ suffices_by simp[] (* In this case, x2 = 0 *)
           >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]                       
           >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input]
