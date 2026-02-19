@@ -78,3 +78,5 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* Use case ... of ... statements more, rather than, e.g. iff or ISL, ISR *)
 
 (* REFL_TAC: solves a = a *)
+
+(* C+S+M++ gives you ⁺. That is, control-shift-alt-plussign*)

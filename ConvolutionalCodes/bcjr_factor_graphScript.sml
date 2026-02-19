@@ -3170,6 +3170,68 @@ Proof
   >> simp[]
 QED
 
+Theorem event_input_string_starts_with_empty[simp]:
+  ∀n m.
+    event_input_string_starts_with n m [] = event_universal n m
+Proof
+  rpt gen_tac
+  >> simp[event_input_string_starts_with_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Split the probability of the states taking a particular sequence of values *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* Possible improvement: could allow this theorem to work when producting     *)
+(* only up to a part of the state sequence, rather than the entire state      *)
+(* sequence.                                                                  *)
+(* -------------------------------------------------------------------------- *)
+(* TODO: Finish this                                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem extreal_prod_image_state_given_input:
+  ∀n m p ps qs ts bs σs l.
+    0 ≤ p ∧
+    p ≤ 1 ∧
+    HD σs = ts ∧
+    LENGTH σs = LENGTH bs + 1 ∧
+    l = LENGTH bs ⇒
+    ∏ (λi.
+         cond_prob (ecc_bsc_prob_space n m p)
+                   (event_state_takes_value n m (ps,qs) ts (i + 1) (EL (i + 1) σs))
+                   ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
+                    ∩ event_input_bit_takes_value n m i (EL i bs))
+      ) (count l) =
+    cond_prob (ecc_bsc_prob_space n m p)
+              (event_state_sequence_starts_with n m (ps,qs) ts σs)
+              (event_input_string_starts_with n m bs)
+       
+Proof
+  (*rpt gen_tac >> strip_tac
+   >> qabbrev_tac ‘l = LENGTH bs’
+   >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
+   >> rpt (pop_assum mp_tac)
+   >> SPEC_ALL_TAC*)
+  Induct_on ‘l’
+  >- (rpt gen_tac >> rpt disch_tac
+      >> gvs[]
+      >> Cases_on ‘σs’ >> gvs[]
+      >> simp[event_state_sequence_starts_with_sing]
+     )
+  >> rpt gen_tac >> strip_tac
+  >> cheat
+QED
+
+Theorem zero_div_alt:
+  ∀x y.
+    x = 0 ∧
+    y ≠ 0 ⇒
+    x / y = 0
+Proof
+  simp[zero_div]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)
@@ -3242,18 +3304,50 @@ Proof
       >> gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
       >> simp[]
-      >> qmatch_abbrev_tac ‘x1 * x2 * x3 * x4 ≠ −∞’
+      >> qmatch_abbrev_tac ‘x1 * x2 * x3 * x4 ≠ −∞’                           
+      (* The case where the starting state of σs is incorrect is a special
+         case that we have to handle separately, because then our expression
+         is invalid and we have denominator 0. *)
+      >> REVERSE $ Cases_on ‘HD σs = ts’
+      >- (‘x1 = 0’ suffices_by simp[]
+          >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]
+          >> simp[entire]
+          >> disj2_tac
+          >> simp[event_state_takes_value_def]
+         )
       (* The case where σs is invalid with respect to bs has to be handled with
          caution, because in this case, we may have denominator 0.
          We use a part of input_state_parity_valid. *)
       >> REVERSE $ Cases_on
                  ‘σs = encode_recursive_parity_equation_state_sequence
                        (ps,qs) ts bs’
+                 
       >- (‘x2 = 0’ suffices_by simp[] (* In this case, x2 = 0 *)
-          >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]
-          >> prob_event_input_state_parity_zero
-          >> PURE_ONCE_REWRITE_TAC[entire]
-          >> irule EXTREAL_PROD_IMAGE_0
+          >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]                       
+          >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input]
+          >> conj_tac
+          >- gvs[mdr_summed_out_values_2_def]
+          >> simp[cond_prob_def]
+          >> irule zero_div_alt
+          >> conj_tac
+          >- (irule event_input_string_starts_with_nonzero_prob
+              >> simp[]
+              >> gvs[mdr_summed_out_values_2_def]
+             )             
+          >> simp[prob_ecc_bsc_prob_space_zero, EVENTS_INTER]
+          >> irule (iffRL EXTENSION) >> gen_tac >> simp[]
+          >> CCONTR_TAC >> gvs[]
+          >> gvs[event_state_sequence_starts_with_def,
+                 event_input_string_starts_with_def,
+                 mdr_summed_out_values_2_def]
+          >> ‘bs = bs'’ by (irule (iffLR IS_PREFIX_LENGTH_ANTI) >> simp[])
+          >> qpat_x_assum ‘bs ≼ bs'’ kall_tac
+          >> qpat_x_assum ‘LENGTH bs' = LENGTH bs’ kall_tac
+          >> gvs[]
+          >> qpat_x_assum ‘σs ≠ _’ mp_tac
+          >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+          >> irule (iffLR IS_PREFIX_LENGTH_ANTI)
+          >> simp[]
          )
       >> ‘x1 ≠ −∞ ∧ x1 ≠ +∞ ∧
           x2 ≠ −∞ ∧ x2 ≠ +∞ ∧
@@ -3418,7 +3512,7 @@ Proof
       (* Equivalence of expressions for non-initial state components *)
       >- (cheat
          )
-         (* Equivalence of expressions for encoded component *)
+      (* Equivalence of expressions for encoded component *)
       >> cheat
      )
   >> simp[BIJ_IFF_INV]

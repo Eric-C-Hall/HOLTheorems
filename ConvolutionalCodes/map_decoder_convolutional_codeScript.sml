@@ -213,17 +213,6 @@ Proof
      )
 QED
 
-Theorem event_srcc_parity_bit_takes_value_is_event:
-  ∀n m p ps qs ts i c_p.
-    event_srcc_parity_bit_takes_value (ps,qs) n m ts i c_p ∈
-                                      events (ecc_bsc_prob_space n m p)
-Proof
-  rpt gen_tac
-  >> simp[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
-  >> gen_tac >> strip_tac
-  >> Cases_on ‘x’ >> gvs[event_srcc_parity_bit_takes_value_def]
-QED
-
 Theorem event_state_takes_value_disjoint[simp]:
   ∀n m ps qs ts i σ1 σ2.
     σ1 ≠ σ2 ⇒
@@ -1038,6 +1027,17 @@ Proof
   >> rw[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
   >> gvs[event_input_state_parity_def]
   >> gvs[event_input_string_starts_with_def]
+QED
+
+Theorem event_srcc_parity_bit_takes_value_is_event[simp]:
+  ∀n m p ps qs ts i c_p.
+    event_srcc_parity_bit_takes_value (ps,qs) n m ts i c_p ∈
+                                      events (ecc_bsc_prob_space n m p)
+Proof
+  rpt gen_tac
+  >> simp[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+  >> gen_tac >> strip_tac
+  >> Cases_on ‘x’ >> gvs[event_srcc_parity_bit_takes_value_def]
 QED
 
 Theorem finite_mdr_summed_out_values_2[simp]:
