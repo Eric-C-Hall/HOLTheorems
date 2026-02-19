@@ -3233,9 +3233,12 @@ Proof
          So we start by splitting up the last product on the LHS in the way
          mentioned above
        *)
-      >>           
-      
-      (* Split the RHS up in the same way that the LHS is split up *)
+      >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_received_given_sent_recursive_parity_equation_with_systematic_split]
+      >> conj_tac
+      >- gvs[mdr_summed_out_values_2_def]
+      >> simp[]
+      (* Now we split the RHS up so as to match the RHS, according to the
+         working above *)
       >> Q.SUBGOAL_THEN ‘fun_node_set =
                          IMAGE INR (range (3 * n + 1) (4 * n + 1)) ∪
                                IMAGE INR (range (4 * n + 1) (5 * n + 1)) ∪
@@ -3243,15 +3246,39 @@ Proof
                                IMAGE INR (range (5 * n + 2) (6 * n + 2))’
           (fn th => PURE_ONCE_REWRITE_TAC[th]) >> Q.UNABBREV_TAC ‘fun_node_set’
       >- (simp[range_def, EXTENSION] >> gen_tac >> EQ_TAC >> strip_tac >> simp[])
-      (* *)
+      (* Finish splitting up the RHS (so we have a product, not a union) *)
       >> DEP_PURE_REWRITE_TAC[EXTREAL_PROD_IMAGE_DISJOINT_UNION]
       >> conj_tac
       >- (simp[DISJOINT_ALT, range_def]
           >> rpt conj_tac
-          >> (gen_tac >> strip_tac >> gen_tac >> strip_tac >> gvs[]))         
-      >> 
-      >> 
-
+          >> (gen_tac >> strip_tac >> gen_tac >> strip_tac >> gvs[]))
+      >> PURE_REWRITE_TAC[mul_assoc]                         
+      (* We need to prove the equivalence of like terms on the LHS and RHS *)
+      >> qmatch_abbrev_tac
+         ‘input_probs * initial_state_prob * transition_probs * encoded_probs *
+          encoded_noise_probs * systematic_noise_probs
+          =
+          systematic_node_probs * encoded_node_probs * initial_state_node_prob
+          * state_node_probs : extreal’
+      >>  ‘input_probs * systematic_noise_probs = systematic_node_probs ∧
+           initial_state_prob = initial_state_node_prob ∧
+           transition_probs * encoded_probs = state_node_probs ∧
+           encoded_noise_probs = encoded_node_probs
+          ’ suffices_by
+        (rpt (pop_assum kall_tac) >> strip_tac >> gvs[AC mul_comm mul_assoc])
+      >> rpt conj_tac
+             
+      (* Equivalence of expressions for systematic component *)
+      >- (cheat
+         )
+      (* Equivalence of expressions for initial state component *)
+      >- (cheat
+         )
+      (* Equivalence of expressions for non-initial state components *)
+      >- (cheat
+         )
+         (* Equivalence of expressions for encoded component *)
+      >> cheat
      )
   >> simp[BIJ_IFF_INV]
   >> conj_tac         
