@@ -3637,8 +3637,7 @@ Proof
       >- (unabbrev_all_tac
           >> cheat
          )         
-      (* Equivalence of expressions for initial state component *)
-         
+      (* Equivalence of expressions for initial state component *)         
       >- (unabbrev_all_tac
           >> simp[]
           >> simp[get_function_map_rcc_factor_graph]
@@ -3681,9 +3680,31 @@ Proof
           >> simp[range_def]
           >> simp[event_state_takes_value_def] >> rw[]
          )
-         
       (* Equivalence of expressions for non-initial state components *)
-      >- (cheat
+         
+      >- (unabbrev_all_tac
+          >> simp[Cong EXTREAL_PROD_IMAGE_CONG,
+                  DRESTRICT_FUN_FMAP]
+
+          >> qmatch_abbrev_tac ‘_ * _ = prod_to_simplify : extreal’
+          >> sg ‘prod_to_simplify =
+                 ∏ (ARB : unit + num -> extreal)
+                   (IMAGE INR (range (5 * n + 2) (6 * n + 2)))’
+          >- (Q.UNABBREV_TAC ‘prod_to_simplify’
+              >> irule EXTREAL_PROD_IMAGE_EQ
+              >> gen_tac >> strip_tac
+              >> simp[]
+              >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
+              >> conj_tac
+              >- (simp[]
+                  >> irule SUBSET_FINITE
+                  >> qexists ‘IMAGE INR (count (6 * n + 2))’
+                  >> simp[]
+                  >> simp[SUBSET_DEF]
+                 )
+              >> cheat
+             )
+          >> cheat
          )
       (* Equivalence of expressions for encoded component *)
       >> cheat
