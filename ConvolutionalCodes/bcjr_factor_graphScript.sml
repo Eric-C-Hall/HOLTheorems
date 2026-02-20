@@ -3325,31 +3325,16 @@ Proof
       >> CCONTR_TAC
       >> qpat_x_assum ‘LHS ≠ _’ mp_tac
       >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
-      >> 
-      (* *)
-      >> 
+      (* *) 
       >> cheat
      )
   >> MAP_EVERY Q.UNABBREV_TAC [‘A’, ‘B’, ‘C’]
   >> simp[COND_PROB_INTER_SPLIT]
   (* Now we remove unnecssary information from the denominator *)
-         
-
-         
-  >> conj_tac
-
-  >- (
-  >> simp[]
-         
-  
-  >> simp[]
-  >> cheat
-  )
 
 
 
   (* Reduce to smaller l on the RHS *)
-  >>
   >> cheat
 QED
 
@@ -3360,6 +3345,24 @@ Theorem zero_div_alt:
     x / y = 0
 Proof
   simp[zero_div]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem DRESTRICT_FUN_FMAP:
+  ∀f S1 S2.
+    FINITE S1 ∧
+    FINITE S2 ⇒
+    DRESTRICT (FUN_FMAP f S1) S2 = FUN_FMAP f (S1 ∩ S2)
+Proof
+  rpt gen_tac >> strip_tac
+  >> irule (iffLR fmap_EQ_THM)
+  >> conj_tac
+  >- (gen_tac >> strip_tac
+      >> gvs[FDOM_DRESTRICT, FUN_FMAP_DEF, DRESTRICT_DEF]
+     )
+  >> simp[FDOM_DRESTRICT]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -3555,7 +3558,7 @@ Proof
                          )
                          (IMAGE INR (range 0 (3 * n + 1)))’
   >> conj_tac
-
+     
   >- (gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
       >> simp[]
@@ -3630,13 +3633,55 @@ Proof
           ’ suffices_by
         (rpt (pop_assum kall_tac) >> strip_tac >> gvs[AC mul_comm mul_assoc])
       >> rpt conj_tac
-
       (* Equivalence of expressions for systematic component *)
-      >- (cheat
-         )
+      >- (unabbrev_all_tac
+          >> cheat
+         )         
       (* Equivalence of expressions for initial state component *)
-      >- (cheat
+         
+      >- (unabbrev_all_tac
+          >> simp[]
+          >> simp[get_function_map_rcc_factor_graph]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- simp[range_def]
+          >> simp[]
+          >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
+          >> conj_tac
+          >- (simp[]
+              >> irule SUBSET_FINITE
+              >> qexists ‘IMAGE INR (count (6 * n + 2))’
+              >> simp[SUBSET_DEF])
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- (simp[]
+              >> simp[var_assignments_def]
+              >> conj_tac
+              >- (simp[EXTENSION]
+                  >> gen_tac
+                  >> REVERSE EQ_TAC >> strip_tac
+                  >- simp[adjacent_rcc_factor_graph, range_def]
+                  >> gvs[adjacent_rcc_factor_graph, range_def])
+              >> gen_tac >> strip_tac
+              >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+              >> conj_tac
+              >- (simp[] >> gvs[range_def])
+              >> gvs[range_def]
+              >> simp[cj 2 FUN_FMAP_DEF]
+              >> rw[]
+              >> gvs[mdr_summed_out_values_2_def]
+              >> first_x_assum irule
+              >> irule EL_MEM
+              >> simp[]
+             )
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- (simp[range_def]
+              >> simp[adjacent_rcc_factor_graph])
+          >> simp[range_def]
+          >> simp[event_state_takes_value_def] >> rw[]
          )
+         
       (* Equivalence of expressions for non-initial state components *)
       >- (cheat
          )
