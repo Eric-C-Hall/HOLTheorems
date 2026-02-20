@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin donotexpand ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine tree wf_state_machine
+Ancestors binary_symmetric_channel combin donotexpand ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine tree useful_theorems wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 
@@ -3102,7 +3102,7 @@ Theorem cond_prob_received_given_sent_recursive_parity_equation_with_systematic_
                       n n j (EL j (enc2 bs))
                      )
         ) (count n)
-Proof 
+Proof
   rpt gen_tac >> strip_tac >> simp[Excl "I_THM"]
   >> simp[prob_received_given_sent_bit]
   >> PURE_ONCE_REWRITE_TAC[encode_recursive_parity_equation_with_systematic_def]
@@ -3188,6 +3188,44 @@ Proof
   >> Cases_on ‘t’ >> gvs[]
 QED
 
+Theorem prob_event_state_takes_value_inter_event_input_string_starts_with_zero:
+  ∀n m p ps qs ts bs i σ.
+    0 < p ∧
+    p < 1 ∧
+    i ≤ LENGTH bs ∧
+    LENGTH bs ≤ n ⇒
+    (prob (ecc_bsc_prob_space n m p)
+          ((event_state_takes_value n m (ps,qs) ts i σ)
+           ∩ (event_input_string_starts_with n m bs)
+          ) = 0 ⇔
+       encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs) ≠ σ)
+Proof
+  rpt gen_tac >> strip_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
+  >> simp[prob_ecc_bsc_prob_space_zero, EVENTS_INTER]
+  >> EQ_TAC >> strip_tac
+  >- (disch_tac
+      >> qpat_x_assum ‘_ = ∅’ mp_tac >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+      >> simp[EXTENSION]
+      >> qexists ‘(bs ++ REPLICATE (n - LENGTH bs) ARB, REPLICATE m ARB)’
+      >> simp[event_state_takes_value_def, event_input_string_starts_with_def]
+      >> ‘i - LENGTH bs = 0’ by decide_tac
+      >> simp[TAKE_APPEND])
+  >> simp[EXTENSION]
+  >> gen_tac
+  >> CCONTR_TAC >> gvs[]
+  >> namedCases_on ‘x’ ["bs_example ns_example"]
+  >> gvs[event_state_takes_value_def, event_input_string_starts_with_def]
+  >> qpat_x_assum ‘encode_recursive_parity_equation_state _ _ _ ≠
+                   encode_recursive_parity_equation_state _ _ _’ mp_tac
+  >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+  >> cong_tac (SOME 1)
+  >> simp[TAKE_EQ_TAKE_EL]
+  >> gen_tac >> strip_tac
+  >> irule is_prefix_el
+  >> simp[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Split the probability of the states taking a particular sequence of values *)
 (*                                                                            *)
@@ -3202,11 +3240,12 @@ QED
 (* -------------------------------------------------------------------------- *)
 Theorem extreal_prod_image_state_given_input:
   ∀n m p ps qs ts bs σs l.
-    0 ≤ p ∧
-    p ≤ 1 ∧
+    0 < p ∧
+    p < 1 ∧
     HD σs = ts ∧
     LENGTH σs = LENGTH bs + 1 ∧
-    l = LENGTH bs ⇒
+    l = LENGTH bs ∧
+    LENGTH bs ≤ n ⇒
     ∏ (λi.
          cond_prob (ecc_bsc_prob_space n m p)
                    (event_state_takes_value n m (ps,qs) ts (i + 1) (EL (i + 1) σs))
@@ -3216,16 +3255,12 @@ Theorem extreal_prod_image_state_given_input:
     cond_prob (ecc_bsc_prob_space n m p)
               (event_state_sequence_starts_with n m (ps,qs) ts σs)
               (event_input_string_starts_with n m bs)
-       
+
 Proof
 
-  (*rpt gen_tac >> strip_tac
-   >> qabbrev_tac ‘l = LENGTH bs’
-   >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
-   >> rpt (pop_assum mp_tac)
-   >> SPEC_ALL_TAC*)
   Induct_on ‘l’
   >- (rpt gen_tac >> rpt disch_tac
+      >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
       >> gvs[]
       >> Cases_on ‘σs’ >> gvs[]
       >> simp[event_state_sequence_starts_with_sing]
@@ -3236,6 +3271,7 @@ Proof
   >> simp[cj 2 EXTREAL_PROD_IMAGE_THM]
   (* Apply the inductive hypothesis to transform the LHS towards the RHS *)
   >> last_x_assum $ qspecl_then [‘n’, ‘m’, ‘p’, ‘ps’, ‘qs’, ‘ts’, ‘FRONT bs’, ‘FRONT σs’] assume_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
   >> gvs[ADD1]
   >> qpat_x_assum ‘l + 1 = LENGTH bs’ (fn th => assume_tac (GSYM th))
   >> Cases_on ‘σs = []’ >- gvs[]
@@ -3259,13 +3295,61 @@ Proof
   (* We've applied the inductive hypothesis and no longer need it. *)
   >> qpat_x_assum ‘ind_term_assum = _’ kall_tac
   >> Q.UNABBREV_TAC ‘ind_term_goal’ >> Q.UNABBREV_TAC ‘ind_term_assum’
-  (* *)
-  >> 
+  (* Break apart the RHS to reduce to a smaller bs and σs, to match the LHS *)
+  >> qmatch_abbrev_tac ‘LHS = _’
+  >> Q.SUBGOAL_THEN ‘bs = SNOC (LAST bs) (FRONT bs)’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[SNOC_LAST_FRONT]
+  >> Q.SUBGOAL_THEN ‘σs = SNOC (LAST σs) (FRONT σs)’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[SNOC_LAST_FRONT]
+  >> simp[event_state_sequence_starts_with_snoc, LENGTH_FRONT, PRE_SUB1]
+  (* Want to prove:
+     P(σs | bs) = P(FRONT σs | FRONT bs) * P(LAST σs | SND_LAST σs, SND_LAST bs)
+     P(σs | bs) = P(FRONT σs | bs) * P(LAST σs | FRONT σs, bs)
+     P(σs | bs) = P(FRONT σs, LAST σs | bs)       <- we are here
+                = P(σs | bs)
+.
+     So we see our method for proving what we want to prove.
+.
+     SND_LAST means "second last", or just before last. *)
+  >> qmatch_abbrev_tac ‘LHS = cond_prob _ (A ∩ B) C’
+  >> Cases_on ‘prob (ecc_bsc_prob_space n m p) (B ∩ C) = 0’
+              
+  >- (MAP_EVERY Q.UNABBREV_TAC [‘A’, ‘B’, ‘C’]
+      >> simp[SNOC_LAST_FRONT]
+      >> CCONTR_TAC
+      >> qpat_x_assum ‘prob _ _ = 0’ mp_tac >> PURE_REWRITE_TAC[IMP_CLAUSES]
+      >> simp[SNOC_LAST_FRONT]
+      >> simp[prob_event_state_takes_value_inter_event_input_string_starts_with_zero]
+      >> CCONTR_TAC
+      >> qpat_x_assum ‘LHS ≠ _’ mp_tac
+      >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+      >> 
+      (* *)
+      >> 
+      >> cheat
+     )
+  >> MAP_EVERY Q.UNABBREV_TAC [‘A’, ‘B’, ‘C’]
+  >> simp[COND_PROB_INTER_SPLIT]
+  (* Now we remove unnecssary information from the denominator *)
+         
+
+         
+  >> conj_tac
+
+  >- (
+  >> simp[]
+         
+  
+  >> simp[]
+  >> cheat
+  )
 
 
 
   (* Reduce to smaller l on the RHS *)
-  >> 
+  >>
   >> cheat
 QED
 
@@ -3294,7 +3378,7 @@ Theorem rcc_factor_graph_compute:
       n m p ds
 
 Proof
-  
+
   rpt strip_tac
   >> ‘0 ≤ p ∧ p ≤ 1’ by simp[lt_imp_le]
   (* Handle the special case of n = 0 *)
@@ -3344,12 +3428,12 @@ Proof
   (* *)
   >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
   >> rpt conj_tac
-  >- simp[]         
+  >- simp[]
   >- (disj1_tac
       >> gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
       >> simp[]
-      >> qmatch_abbrev_tac ‘x1 * x2 * x3 * x4 ≠ −∞’                           
+      >> qmatch_abbrev_tac ‘x1 * x2 * x3 * x4 ≠ −∞’
       (* The case where the starting state of σs is incorrect is a special
          case that we have to handle separately, because then our expression
          is invalid and we have denominator 0. *)
@@ -3367,7 +3451,7 @@ Proof
                  ‘σs = encode_recursive_parity_equation_state_sequence
                        (ps,qs) ts bs’
       >- (‘x2 = 0’ suffices_by simp[] (* In this case, x2 = 0 *)
-          >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]                       
+          >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]
           >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input]
           >> conj_tac
           >- gvs[mdr_summed_out_values_2_def]
@@ -3377,7 +3461,7 @@ Proof
           >- (irule event_input_string_starts_with_nonzero_prob
               >> simp[]
               >> gvs[mdr_summed_out_values_2_def]
-             )             
+             )
           >> simp[prob_ecc_bsc_prob_space_zero, EVENTS_INTER]
           >> irule (iffRL EXTENSION) >> gen_tac >> simp[]
           >> CCONTR_TAC >> gvs[]
@@ -3398,9 +3482,9 @@ Proof
           x3 ≠ −∞ ∧ x3 ≠ +∞ ∧
           x4 ≠ −∞ ∧ x4 ≠ +∞’ suffices_by (strip_tac >> simp[mul_not_infty2])
       >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]
-      >> rpt conj_tac 
+      >> rpt conj_tac
       >- simp[mul_not_infty2, EXTREAL_PROD_IMAGE_NOT_INFTY, PROB_FINITE]
-      >- simp[mul_not_infty2, EXTREAL_PROD_IMAGE_NOT_INFTY, PROB_FINITE]             
+      >- simp[mul_not_infty2, EXTREAL_PROD_IMAGE_NOT_INFTY, PROB_FINITE]
       >- (irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
           >> simp[]
           >> gen_tac >> strip_tac
@@ -3433,7 +3517,7 @@ Proof
           >> qexists ‘bs’
           >> gvs[mdr_summed_out_values_2_def]
           >> simp[el_encode_recursive_parity_equation_state_sequence]
-         )         
+         )
       >- (irule (cj 2 EXTREAL_PROD_IMAGE_NOT_INFTY)
           >> simp[]
           >> gen_tac >> strip_tac
@@ -3444,7 +3528,7 @@ Proof
           >> qexists ‘bs’
           >> gvs[mdr_summed_out_values_2_def]
           >> simp[el_encode_recursive_parity_equation_state_sequence]
-         )   
+         )
       >- (irule (cj 1 EXTREAL_PROD_IMAGE_NOT_INFTY)
           >> simp[]
           >> gen_tac >> strip_tac
@@ -3460,7 +3544,7 @@ Proof
       >> simp[]
       >> simp[prob_event_sent_bit_takes_value_nonzero]
       >> gvs[mdr_summed_out_values_2_def]
-     )     
+     )
   >> qexists ‘λ(bs,σs,cs_p).
                 FUN_FMAP (λx.
                             if OUTR x ∈ range 0 n
@@ -3471,7 +3555,7 @@ Proof
                          )
                          (IMAGE INR (range 0 (3 * n + 1)))’
   >> conj_tac
-     
+
   >- (gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
       >> simp[]
@@ -3531,7 +3615,7 @@ Proof
       >- (simp[DISJOINT_ALT, range_def]
           >> rpt conj_tac
           >> (gen_tac >> strip_tac >> gen_tac >> strip_tac >> gvs[]))
-      >> PURE_REWRITE_TAC[mul_assoc]                         
+      >> PURE_REWRITE_TAC[mul_assoc]
       (* We need to prove the equivalence of like terms on the LHS and RHS *)
       >> qmatch_abbrev_tac
          ‘input_probs * initial_state_prob * transition_probs * encoded_probs *
@@ -3546,7 +3630,7 @@ Proof
           ’ suffices_by
         (rpt (pop_assum kall_tac) >> strip_tac >> gvs[AC mul_comm mul_assoc])
       >> rpt conj_tac
-             
+
       (* Equivalence of expressions for systematic component *)
       >- (cheat
          )
@@ -3560,14 +3644,14 @@ Proof
       >> cheat
      )
   >> simp[BIJ_IFF_INV]
-  >> conj_tac         
+  >> conj_tac
   >- (gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
       >> simp[]
       >> simp[val_map_assignments_def]
       >> rpt conj_tac
       >- (simp[range_def, EXTENSION]
-          >> gen_tac >> EQ_TAC >> strip_tac >> simp[])             
+          >> gen_tac >> EQ_TAC >> strip_tac >> simp[])
       >- (gen_tac >> strip_tac
           >> simp[cj 2 FUN_FMAP_DEF]
           >> rw[]
@@ -3616,7 +3700,7 @@ Proof
       (* We don't need this, and repeatedly attempting to rewrite anything of
          the form LENGTH σ causes slowdown *)
       >> qpat_x_assum ‘∀σ. MEM σ σs ⇒ LENGTH σ = LENGTH ts’ kall_tac
-      >> rpt conj_tac             
+      >> rpt conj_tac
       >- (simp[MAP_COUNT_LIST]
           >> gen_tac >> strip_tac
           >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
