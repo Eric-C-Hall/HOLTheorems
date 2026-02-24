@@ -3226,6 +3226,65 @@ Proof
   >> simp[]
 QED
 
+Theorem neg_extreal_inv:
+  ∀x.
+    x ≠ 0 ⇒
+    -x⁻¹ = (-x)⁻¹
+Proof
+  gen_tac >> strip_tac
+  >> Cases_on ‘x’ >> simp[extreal_inv_def, extreal_ainv_def]
+  >> ‘r ≠ 0’ by (disch_tac >> gvs[])
+  >> simp[extreal_inv_def, extreal_ainv_def, REAL_NEG_INV']
+QED
+
+Theorem infty_div_alt:
+  ∀r.
+    r ≠ 0 ⇒
+    +∞ / Normal r = (if 0 < r then +∞ else −∞) ∧
+    −∞ / Normal r = (if 0 < r then −∞ else +∞)
+Proof
+  rpt gen_tac >> strip_tac
+  >> Cases_on ‘0 < r’ >> simp[]
+  >- simp[infty_div]
+  >> simp[extreal_div_def]
+  >> PURE_ONCE_REWRITE_TAC[mul_comm]
+  >> simp[cj 3 (extreal_inv_def)]
+  >> simp[extreal_mul_def]
+QED
+
+Theorem div_eq_zero:
+  ∀x y.
+    y ≠ 0 ∧
+    (x ≠ +∞ ∧ x ≠ −∞ ∨ y ≠ +∞ ∧ y ≠ −∞) ⇒
+    (x / y = 0 ⇔ x = 0 ∨ y = +∞ ∨ y = −∞)
+Proof
+  rpt gen_tac >> disch_tac
+  >> Cases_on ‘x = 0’ >> simp[zero_div]
+  >> Cases_on ‘y’
+  >- (Cases_on ‘x’
+      >- gvs[]
+      >- gvs[]
+      >- simp[extreal_div_def]
+     )
+  >- (Cases_on ‘x’
+      >- gvs[]
+      >- gvs[]
+      >- simp[extreal_div_def]
+     )
+  >- (Cases_on ‘x’
+      >- (Cases_on ‘0 < r’
+          >- simp[infty_div]
+          >> 
+          gvs[infty_div]
+         )
+     )
+
+  >> sg ‘1 / +∞ = ARB’
+  >- simp[extreal_div_def]
+
+         DEP_PURE_ONCE_REWRITE_TAC[extreal_div_def]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Split the probability of the states taking a particular sequence of values *)
 (*                                                                            *)
@@ -3295,11 +3354,8 @@ Proof
   (* We've applied the inductive hypothesis and no longer need it. *)
   >> qpat_x_assum ‘ind_term_assum = _’ kall_tac
   >> Q.UNABBREV_TAC ‘ind_term_goal’ >> Q.UNABBREV_TAC ‘ind_term_assum’
-  (* Break apart the RHS to reduce to a smaller bs and σs, to match the LHS *)
+  (* Break apart the RHS to reduce to a smaller σs, to match the LHS *)
   >> qmatch_abbrev_tac ‘LHS = _’
-  >> Q.SUBGOAL_THEN ‘bs = SNOC (LAST bs) (FRONT bs)’
-      (fn th => PURE_ONCE_REWRITE_TAC[th])
-  >- simp[SNOC_LAST_FRONT]
   >> Q.SUBGOAL_THEN ‘σs = SNOC (LAST σs) (FRONT σs)’
       (fn th => PURE_ONCE_REWRITE_TAC[th])
   >- simp[SNOC_LAST_FRONT]
@@ -3307,16 +3363,64 @@ Proof
   (* Want to prove:
      P(σs | bs) = P(FRONT σs | FRONT bs) * P(LAST σs | SND_LAST σs, SND_LAST bs)
      P(σs | bs) = P(FRONT σs | bs) * P(LAST σs | FRONT σs, bs)
-     P(σs | bs) = P(FRONT σs, LAST σs | bs)       <- we are here
-                = P(σs | bs)
+     P(σs | bs) = P(FRONT σs, LAST σs | bs)     <- we are here, working upwards
+                = P(σs | bs)                        
 .
      So we see our method for proving what we want to prove.
 .
-     SND_LAST means "second last", or just before last. *)
-  >> qmatch_abbrev_tac ‘LHS = cond_prob _ (A ∩ B) C’
-  >> Cases_on ‘prob (ecc_bsc_prob_space n m p) (B ∩ C) = 0’
-              
+     So we want to apply apply COND_PROB_INTER_SPLIT to split up our
+     probability as indicated by the above working. We first rename our events
+     to nicer names, prove useful statements about these events, and handle the
+     special case in which we cannot apply COND_PROB_INTER_SPLIT.
+   *)
+  >> qmatch_abbrev_tac ‘LHS = cond_prob _ (B ∩ A) C’
+  (* Swap A and B to get the appropriate ordering for COND_PROB_INTER_SPLIT *)
+  >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
+  (* Generally useful theorems about A, B, and C *)
+  >> ‘A ∈ events (ecc_bsc_prob_space n m p)’ by simp[Abbr ‘A’]
+  >> ‘B ∈ events (ecc_bsc_prob_space n m p)’ by simp[Abbr ‘B’]
+  >> ‘C ∈ events (ecc_bsc_prob_space n m p)’ by simp[Abbr ‘C’]
+  >> sg ‘prob (ecc_bsc_prob_space n m p) C ≠ 0’
   >- (MAP_EVERY Q.UNABBREV_TAC [‘A’, ‘B’, ‘C’]
+      >> irule event_input_string_starts_with_nonzero_prob
+      >> simp[LENGTH_FRONT, GSYM ADD1])
+  (* Consider the special case where we can't split P(A ∩ B | C) into
+     P(A | B ∩ C) * P(B | C) because B ∩ C is empty and hence P(A | B ∩ C) has
+     denominator zero.
+.
+     On the right hand side, we get P(A ∩ B ∩ C) / P (C). The numerator
+     is zero because P(B ∩ C) = 0, while the denominator is nonzero.
+.
+     On the left hand side, *)                                                    
+  >> Cases_on ‘prob (ecc_bsc_prob_space n m p) (B ∩ C) = 0’              
+
+  >- (sg ‘prob (ecc_bsc_prob_space n m p) (A ∩ B ∩ C) = 0’
+      >- (irule (iffLR le_antisym)
+          >> REVERSE conj_tac
+          >- (irule PROB_POSITIVE
+              >> simp[EVENTS_INTER, Abbr ‘A’, Abbr ‘B’, Abbr ‘C’])
+          >> qpat_x_assum ‘prob _ (B ∩ C) = 0’
+                          (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+          >> irule PROB_INCREASING
+          >> simp[EVENTS_INTER]
+          >> simp[SUBSET_DEF]
+         )
+      >> simp[cond_prob_def, zero_div]
+      (* Now we simplify the LHS *)
+      >> Q.UNABBREV_TAC ‘LHS’             
+      >> qmatch_abbrev_tac ‘cond_prob _ A_lhs C_lhs_sing * cond_prob _ B_lhs C_lhs_mul = 0’
+      >> gvs[SNOC_LAST_FRONT]
+      >> simp[cond_prob_def]
+      >> sg ‘prob (ecc_bsc_prob_space n m p) C_lhs_mul ≠ 0’
+      >- (Q.UNABBREV_TAC ‘C_lhs_mul’
+          >> irule event_input_string_starts_with_nonzero_prob
+          >> simp[LENGTH_FRONT])
+      >> simp[zero_div]
+      
+      >> 
+
+
+      MAP_EVERY Q.UNABBREV_TAC [‘A’, ‘B’, ‘C’]
       >> simp[SNOC_LAST_FRONT]
       >> CCONTR_TAC
       >> qpat_x_assum ‘prob _ _ = 0’ mp_tac >> PURE_REWRITE_TAC[IMP_CLAUSES]
@@ -3325,17 +3429,23 @@ Proof
       >> CCONTR_TAC
       >> qpat_x_assum ‘LHS ≠ _’ mp_tac
       >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
-      (* *) 
-      >> cheat
+      (* *)
+      >> 
+        >> cheat
      )
-  >> MAP_EVERY Q.UNABBREV_TAC [‘A’, ‘B’, ‘C’]
-  >> simp[COND_PROB_INTER_SPLIT]
-  (* Now we remove unnecssary information from the denominator *)
+  (* We can now split our probability into a product of the probability of the
+     current step multiplied by the probability of all the previous steps, as
+     per our plan, because we have handled the special case in which the
+     precondition of this theorem fails. *)
+        >> DEP_PURE_ONCE_REWRITE_TAC[COND_PROB_INTER_SPLIT]
+        >> conj_tac
+        >- simp[Abbr ‘A’, Abbr ‘B’, Abbr ‘C’]
+        (* Now we remove unnecssary information from the denominator, as planned *)
 
 
 
-  (* Reduce to smaller l on the RHS *)
-  >> cheat
+        (* Reduce to smaller l on the RHS *)
+        >> cheat
 QED
 
 Theorem zero_div_alt:

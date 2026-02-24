@@ -543,7 +543,7 @@ Theorem event_input_string_starts_with_nonzero_prob[simp]:
   ∀n m bs p.
     0 < p ∧
     p < 1 ∧
-    LENGTH bs = n ⇒
+    LENGTH bs ≤ n ⇒
     prob (ecc_bsc_prob_space n m p)
          (event_input_string_starts_with n m bs) ≠ 0
 Proof
@@ -551,7 +551,7 @@ Proof
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
   >> gvs[event_input_string_starts_with_is_event]
   >> gvs[EXTENSION] >> rw[event_input_string_starts_with_def]
-  >> qexistsl [‘bs’, ‘REPLICATE m F’]
+  >> qexistsl [‘bs ++ REPLICATE (n - LENGTH bs) F’, ‘REPLICATE m F’]
   >> gvs[]
 QED
 
