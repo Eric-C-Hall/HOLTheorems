@@ -3240,8 +3240,8 @@ QED
 Theorem infty_div_alt:
   ∀r.
     r ≠ 0 ⇒
-    +∞ / Normal r = (if 0 < r then +∞ else −∞) ∧
-    −∞ / Normal r = (if 0 < r then −∞ else +∞)
+    −∞ / Normal r = (if 0 < r then −∞ else +∞) ∧
+    +∞ / Normal r = (if 0 < r then +∞ else −∞)
 Proof
   rpt gen_tac >> strip_tac
   >> Cases_on ‘0 < r’ >> simp[]
@@ -3255,9 +3255,9 @@ QED
 Theorem div_eq_zero:
   ∀x y.
     y ≠ 0 ∧
-    (x ≠ +∞ ∧ x ≠ −∞ ∨ y ≠ +∞ ∧ y ≠ −∞) ⇒
-    (x / y = 0 ⇔ x = 0 ∨ y = +∞ ∨ y = −∞)
-Proof  
+    (x ≠ −∞ ∧ x ≠ +∞ ∨ y ≠ −∞ ∧ y ≠ +∞) ⇒
+    (x / y = 0 ⇔ x = 0 ∨ y = −∞ ∨ y = +∞)
+Proof
   rpt gen_tac >> disch_tac
   >> Cases_on ‘x = 0’ >> simp[zero_div]
   >> Cases_on ‘y’
@@ -3278,11 +3278,264 @@ Proof
   >> simp[extreal_div_def, extreal_inv_def]
 QED
 
+Theorem event_input_string_starts_with_subset:
+  ∀n m bs1 bs2.
+    bs1 ≼ bs2 ⇒
+    event_input_string_starts_with n m bs2 ⊆
+                                   event_input_string_starts_with n m bs1
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> simp[event_input_string_starts_with_def, SUBSET_DEF]
+  >> gen_tac >> strip_tac
+  >> Cases_on ‘x’ >> gvs[]
+  >> irule isPREFIX_TRANS
+  >> qexists ‘bs2’ >> simp[]
+QED
+
 (* -------------------------------------------------------------------------- *)
-(* Split the probability of the states taking a particular sequence of values *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
+(* The probability of each subsequent step being valid, when comparing the    *)
+(* given choice of σs to the given choice of σs, will be zero if and only if  *)
+(* the overall probability of all the steps combined is zero.                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem extreal_prod_image_state_given_input_zero:
+  ∀n m p ps qs ts bs σs l.
+    0 < p ∧
+    p < 1 ∧
+    HD σs = ts ∧
+    LENGTH σs = LENGTH bs + 1 ∧
+    l = LENGTH bs ∧
+    LENGTH bs ≤ n ⇒
+    (∏ (λi.
+          cond_prob (ecc_bsc_prob_space n m p)
+                   (event_state_takes_value n m (ps,qs) ts (i + 1) (EL (i + 1) σs))
+                   ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
+                    ∩ event_input_bit_takes_value n m i (EL i bs))
+      ) (count l) = 0 ⇔
+      cond_prob (ecc_bsc_prob_space n m p)
+              (event_state_sequence_starts_with n m (ps,qs) ts σs)
+              (event_input_string_starts_with n m bs) = 0)
+
+Proof
+
+  Induct_on ‘l’
+  >- (rpt gen_tac >> rpt disch_tac
+      >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
+      >> gvs[]
+      >> Cases_on ‘σs’ >> gvs[]
+      >> simp[event_state_sequence_starts_with_sing]
+     )
+  >> rpt gen_tac >> strip_tac
+  (* Reduce to smaller l on the LHS *)
+  >> PURE_ONCE_REWRITE_TAC[COUNT_SUC]
+  >> simp[cj 2 EXTREAL_PROD_IMAGE_THM]
+  (* Apply the inductive hypothesis to transform the LHS towards the RHS *)
+  >> last_x_assum $ qspecl_then [‘n’, ‘m’, ‘p’, ‘ps’, ‘qs’, ‘ts’, ‘FRONT bs’, ‘FRONT σs’] assume_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
+  >> gvs[ADD1]
+  >> Cases_on ‘σs = []’ >- gvs[]
+  >> Cases_on ‘bs = []’ >- gvs[]
+  >> qpat_x_assum ‘l + 1 = LENGTH bs’ (fn th => assume_tac (GSYM th))
+  >> gvs[HD_FRONT, LENGTH_FRONT, PRE_SUB1]
+  (* Rewrite the inductive term in the goal to match the inductive term in the
+     inductive hypothesis, so we can apply it to transform the LHS towards the
+     RHS. *)
+  >> qmatch_abbrev_tac ‘(_ = 0 ∨ ind_term_goal = 0 : extreal) ⇔ _’
+  >> qmatch_asmsub_abbrev_tac ‘ind_term_assum = 0 ⇔ cond_prob _ _ _ = 0’
+  >> Q.SUBGOAL_THEN ‘ind_term_goal = ind_term_assum’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (Q.UNABBREV_TAC ‘ind_term_goal’ >> Q.UNABBREV_TAC ‘ind_term_assum’
+      >> irule EXTREAL_PROD_IMAGE_EQ
+      >> gen_tac >> strip_tac
+      >> simp[EL_FRONT, LENGTH_FRONT, NULL_EQ_NIL]
+      >> pop_assum mp_tac >> simp[] >> disch_tac
+      >> simp[EL_FRONT, NULL_EQ_NIL, LENGTH_FRONT, PRE_SUB1]
+     )
+  >> simp[]
+  (* We've applied the inductive hypothesis and no longer need it. *)
+  >> qpat_x_assum ‘ind_term_assum = 0 ⇔ _’ kall_tac
+  >> Q.UNABBREV_TAC ‘ind_term_goal’ >> Q.UNABBREV_TAC ‘ind_term_assum’
+  (* Break apart the RHS to reduce to a smaller σs, to match the LHS *)
+  >> qmatch_abbrev_tac ‘LHS = _’
+  >> Q.SUBGOAL_THEN ‘σs = SNOC (LAST σs) (FRONT σs)’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[SNOC_LAST_FRONT]
+  >> simp[event_state_sequence_starts_with_snoc, LENGTH_FRONT, PRE_SUB1]
+  (* *)
+  >> PURE_REWRITE_TAC[cond_prob_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[div_eq_zero]
+  >> conj_tac
+  >- (conj_tac
+      >- (irule event_input_string_starts_with_nonzero_prob
+          >> simp[])
+      >> disj2_tac
+      >> irule PROB_FINITE
+      >> simp[])
+  >> simp[PROB_FINITE, SNOC_LAST_FRONT]
+  (* *)
+  >> Q.UNABBREV_TAC ‘LHS’
+  >> qmatch_abbrev_tac ‘ldisj ∨ _ ⇔ _’
+  >> PURE_REWRITE_TAC[cond_prob_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[div_eq_zero]
+  >> conj_tac
+  >- (conj_tac
+      >- (irule event_input_string_starts_with_nonzero_prob
+          >> simp[LENGTH_FRONT])
+      >> disj2_tac
+      >> irule PROB_FINITE
+      >> simp[]
+     )
+  >> simp[PROB_FINITE]
+  (* Handle the case where there is an inconsistency between bs and σs within
+     the front of bs. In this case, the LHS is true, and this is clearly a
+     subcase of the RHS so the RHS is also true.
+     The only remaining cases are that there is an inconsistency between them
+     in the last of bs, or that there is no inconsistency. *)
+  >> Cases_on ‘prob (ecc_bsc_prob_space n m p)
+               ((event_state_sequence_starts_with n m (ps,qs) (HD σs) (FRONT σs))
+                ∩ event_input_string_starts_with n m (FRONT bs)) = 0’ >> simp[]
+  >- (irule (iffLR le_antisym)
+      >> REVERSE conj_tac
+      >- (irule PROB_POSITIVE
+          >> simp[EVENTS_INTER])
+      >> qpat_x_assum ‘prob _ (_ ∩ _) = 0’
+                      (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+      >> irule PROB_INCREASING
+      >> simp[EVENTS_INTER]
+      >> conj_tac
+      >- simp[SUBSET_DEF]
+      >> irule INTER_SUBSET_ALT
+      >> disj2_tac
+      >> irule event_input_string_starts_with_subset
+      >> simp[IS_PREFIX_BUTLAST'])
+  (* *)
+  >> Q.UNABBREV_TAC ‘ldisj’
+  (* We now know that bs and σs are valid if we fix all but the last bits of
+     bs and σs.
+.
+     Therefore, if we fix the second last bit of σs and the last bit of bs, then
+     this is possible and has probability nonzero (using the prior choice of
+     all but the last of bs and σs, and we may fix an additional bit of bs
+     without any problems).
+.
+     Therefore, we may safely cancel out the denominator of the conditional
+     probability. *)
+  >> PURE_ONCE_REWRITE_TAC[cond_prob_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[div_eq_zero]
+  >> conj_tac
+  >- (simp[EVENTS_INTER]
+      >> conj_tac
+      >- (gvs[prob_ecc_bsc_prob_space_zero, EVENTS_INTER]
+          >> gvs[EXTENSION]
+          >> namedCases_on ‘x’ ["bs_given ns"]
+          (* bs_given starts with the front of bs and creates the front of σs *)
+          >> gvs[event_state_sequence_starts_with_def,
+                 event_input_string_starts_with_def,
+                 event_state_takes_value_def,
+                 event_input_bit_takes_value_def]
+          (* We now need our bits to be fixed to start with the entirety of bs,
+             and ns doesn't matter. *)
+          >> qexists ‘(bs ++ REPLICATE (LENGTH bs_given - LENGTH bs) F, ns)’
+          >> simp[]
+          >> REVERSE conj_tac
+          >- simp[EL_APPEND]
+          >> simp[GSYM el_encode_recursive_parity_equation_state_sequence]
+          (* We want to use is_prefix_el_better, so rewrite our lists to be in
+             the appropriate form so that our precondition matches our existing
+             assumption after applying that. *)
+          >> SYM_TAC
+          >> Q.SUBGOAL_THEN ‘EL l σs = EL l (FRONT σs)’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- (DEP_PURE_ONCE_REWRITE_TAC[FRONT_EL]
+              >> simp[LENGTH_FRONT])
+          >> qmatch_abbrev_tac ‘_ = EL _ σs_goal’
+          >> qmatch_asmsub_abbrev_tac ‘FRONT σs ≼ σs_asm’
+          >> Q.SUBGOAL_THEN ‘EL l σs_goal = EL l σs_asm’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >> Q.UNABBREV_TAC ‘σs_goal’ >> Q.UNABBREV_TAC ‘σs_asm’
+          >- (simp[el_encode_recursive_parity_equation_state_sequence]
+              >> cong_tac (SOME 1)
+              >> simp[TAKE_EQ_TAKE_EL]
+              >> gen_tac >> strip_tac
+              >> simp[EL_APPEND]
+              >> Q.SUBGOAL_THEN ‘EL i bs = EL i (FRONT bs)’
+                  (fn th => PURE_ONCE_REWRITE_TAC[th])
+              >- (DEP_PURE_ONCE_REWRITE_TAC[FRONT_EL]
+                  >> simp[LENGTH_FRONT])
+              >> irule is_prefix_el_better
+              >> simp[LENGTH_FRONT]
+             )
+          >> irule is_prefix_el_better
+          >> simp[LENGTH_FRONT]
+         )
+      >> disj1_tac
+      >> irule PROB_FINITE
+      >> simp[EVENTS_INTER]
+     )
+  >> simp[PROB_FINITE, EVENTS_INTER]  
+  (* First, prove that if the front of the sequence is valid but the last step
+     of the sequence is invalid, then the overall sequence is invalid. *)
+  >> EQ_TAC >> strip_tac                       
+  >- (qpat_x_assum ‘prob _ _ ≠ 0’ kall_tac
+      >> gvs[prob_ecc_bsc_prob_space_zero, EVENTS_INTER, EXTENSION]
+      >> gen_tac
+      >> namedCases_on ‘x’ ["bs2 ns2"]
+      >> pop_assum $ qspec_then ‘(bs2, ns2)’ mp_tac >> strip_tac
+      >- (disj1_tac >> disj2_tac
+          >> simp[LAST_EL, PRE_SUB1])         
+      >- (disj1_tac >> disj1_tac
+          >> gvs[event_state_takes_value_def,
+                 event_state_sequence_starts_with_def]
+          >> rpt strip_tac >> gvs[]
+          >> drule is_prefix_el
+          >> disch_then $ qspec_then ‘l’ mp_tac
+          >> simp[LENGTH_FRONT]
+          >> simp[FRONT_EL, LENGTH_FRONT]
+          >> simp[el_encode_recursive_parity_equation_state_sequence]
+         )
+      >> disj2_tac
+      >> gvs[event_input_bit_takes_value_def,
+             event_input_string_starts_with_def]
+      >> rpt strip_tac >> gvs[]
+      >> drule is_prefix_el
+      >> disch_then $ qspec_then ‘l’ mp_tac
+      >> simp[]
+     )
+  (* Now we prove that if the front of the sequence is valid and the last
+     step of the sequence is valid, then the sequence as a whole is valid. *)
+  >> CCONTR_TAC
+  >> qpat_x_assum ‘prob _ _ = 0’ mp_tac
+  >> PURE_ONCE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+  >> gvs[prob_ecc_bsc_prob_space_zero, EVENTS_INTER]
+  >> gvs[EXTENSION]
+  >> namedCases_on ‘x’ ["bs2 ns2"]
+  >> namedCases_on ‘x'’ ["bs3 ns3"]
+  >> qexists ‘(bs ++ REPLICATE (n - LENGTH bs) F, REPLICATE m F)’
+  >> gvs[event_state_sequence_starts_with_def,
+         event_input_string_starts_with_def,
+         event_state_takes_value_def,
+         event_input_bit_takes_value_def]
+        
+  >> conj_tac
+  >- (qpat_x_assum ‘FRONT σs ≼ _’ mp_tac
+      >> sg ‘FRONT σs ≼
+             encode_recursive_parity_equation_state_sequence (ps,qs) (HD σs) (FRONT bs2)’
+      >> encode_recursive_parity_equation_state_sequence_prefix_mono
+      >> cheat
+     )
+  >> gvs[LAST_EL, PRE_SUB1]
+  >> qpat_assum ‘encode_recursive_parity_equation_state _ _ _ = EL (l + 1) σs’
+                (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  >> cong_tac (SOME 1)
+  >> simp[TAKE_APPEND]
+  
+  
+  >> cheat
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A version of extreal_prod_image_state_given_input which works even for     *)
+(* probabilities other than zero.                                             *)
 (*                                                                            *)
 (* Possible improvement: could allow this theorem to work when producting     *)
 (* only up to a part of the state sequence, rather than the entire state      *)
@@ -3290,7 +3543,7 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: Finish this                                                          *)
 (* -------------------------------------------------------------------------- *)
-Theorem extreal_prod_image_state_given_input:
+(*Theorem extreal_prod_image_state_given_input:
   ∀n m p ps qs ts bs σs l.
     0 < p ∧
     p < 1 ∧
@@ -3299,10 +3552,16 @@ Theorem extreal_prod_image_state_given_input:
     l = LENGTH bs ∧
     LENGTH bs ≤ n ⇒
     ∏ (λi.
+         (* TODO: consider uncommenting this if and else *)
+         (*if (event_state_takes_value n m (ps,qs) ts i (EL i σs))
+             ∩ event_input_bit_takes_value n m i (EL i bs) ≠ ∅
+         then*)
          cond_prob (ecc_bsc_prob_space n m p)
                    (event_state_takes_value n m (ps,qs) ts (i + 1) (EL (i + 1) σs))
                    ((event_state_takes_value n m (ps,qs) ts i (EL i σs))
                     ∩ event_input_bit_takes_value n m i (EL i bs))
+      (* else
+           0*)
       ) (count l) =
     cond_prob (ecc_bsc_prob_space n m p)
               (event_state_sequence_starts_with n m (ps,qs) ts σs)
@@ -3357,7 +3616,7 @@ Proof
      P(σs | bs) = P(FRONT σs | FRONT bs) * P(LAST σs | SND_LAST σs, SND_LAST bs)
      P(σs | bs) = P(FRONT σs | bs) * P(LAST σs | FRONT σs, bs)
      P(σs | bs) = P(FRONT σs, LAST σs | bs)     <- we are here, working upwards
-                = P(σs | bs)                        
+                = P(σs | bs)
 .
      So we see our method for proving what we want to prove.
 .
@@ -3365,7 +3624,7 @@ Proof
      probability as indicated by the above working. We first rename our events
      to nicer names, prove useful statements about these events, and handle the
      special case in which we cannot apply COND_PROB_INTER_SPLIT.
-   *)
+ *)
   >> qmatch_abbrev_tac ‘LHS = cond_prob _ (B ∩ A) C’
   (* Swap A and B to get the appropriate ordering for COND_PROB_INTER_SPLIT *)
   >> PURE_ONCE_REWRITE_TAC[INTER_COMM]
@@ -3384,8 +3643,12 @@ Proof
      On the right hand side, we get P(A ∩ B ∩ C) / P (C). The numerator
      is zero because P(B ∩ C) = 0, while the denominator is nonzero.
 .
-     On the left hand side, *)                                                    
-  >> Cases_on ‘prob (ecc_bsc_prob_space n m p) (B ∩ C) = 0’              
+     On the left hand side, *)
+  >> Cases_on ‘prob (ecc_bsc_prob_space n m p) (B ∩ C) = 0’
+  (* ---
+     Note: here I could possibly use extreal_prod_image_state_given_input_zero,
+     the version fo this theorem that holds for probability zero?
+     --- *)
 
   >- (sg ‘prob (ecc_bsc_prob_space n m p) (A ∩ B ∩ C) = 0’
       >- (irule (iffLR le_antisym)
@@ -3400,46 +3663,57 @@ Proof
          )
       >> simp[cond_prob_def, zero_div]
       (* Now we simplify the LHS *)
-      >> Q.UNABBREV_TAC ‘LHS’             
+      >> Q.UNABBREV_TAC ‘LHS’
       >> qmatch_abbrev_tac ‘cond_prob _ A_lhs C_lhs_sing * cond_prob _ B_lhs C_lhs_mul = 0’
+      >> ‘C_lhs_mul ∈ events (ecc_bsc_prob_space n m p)’ by simp[Abbr ‘C_lhs_mul’]
       >> gvs[SNOC_LAST_FRONT]
       >> simp[cond_prob_def]
       >> sg ‘prob (ecc_bsc_prob_space n m p) C_lhs_mul ≠ 0’
       >- (Q.UNABBREV_TAC ‘C_lhs_mul’
           >> irule event_input_string_starts_with_nonzero_prob
           >> simp[LENGTH_FRONT])
-      >> simp[zero_div]
-      
-      >> 
+      >> qmatch_abbrev_tac ‘disj1 ∨ _’
+      >> DEP_PURE_ONCE_REWRITE_TAC[div_eq_zero]
+      >> conj_tac
+      >- (simp[]
+          >> disj1_tac
+          >> irule PROB_FINITE
+          >> simp[EVENTS_INTER, Abbr ‘B’, Abbr ‘C_lhs_mul’]
+         )
+      >> simp[PROB_FINITE, Abbr ‘disj1’]
+      (* Since P(B, C) = 0, the bs are incompatible with the front of the σs.
+         Either the front of the bs is incompatible with the front of the σs, or
+         the front of the bs is compatible with the front of the σs and the last
+         of the bs is incompatible with the front of the σs.
+.
+         In the first case, our second disjunct holds.
+         In the second case, our first disjunct holds.
+ *)
+      >> Cases_on ‘prob (ecc_bsc_prob_space n m p) (B ∩ C_lhs_mul) = 0’ >> simp[]
 
-
-      MAP_EVERY Q.UNABBREV_TAC [‘A’, ‘B’, ‘C’]
-      >> simp[SNOC_LAST_FRONT]
-      >> CCONTR_TAC
-      >> qpat_x_assum ‘prob _ _ = 0’ mp_tac >> PURE_REWRITE_TAC[IMP_CLAUSES]
-      >> simp[SNOC_LAST_FRONT]
-      >> simp[prob_event_state_takes_value_inter_event_input_string_starts_with_zero]
-      >> CCONTR_TAC
-      >> qpat_x_assum ‘LHS ≠ _’ mp_tac
-      >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
       (* *)
-      >> 
-        >> cheat
+      >> DEP_PURE_ONCE_REWRITE_TAC[div_eq_zero]
+      >> conj_tac
+      >- (conj_tac
+          >- cheat
+         )
+      >>
+      >> cheat
      )
   (* We can now split our probability into a product of the probability of the
      current step multiplied by the probability of all the previous steps, as
      per our plan, because we have handled the special case in which the
      precondition of this theorem fails. *)
-        >> DEP_PURE_ONCE_REWRITE_TAC[COND_PROB_INTER_SPLIT]
-        >> conj_tac
-        >- simp[Abbr ‘A’, Abbr ‘B’, Abbr ‘C’]
-        (* Now we remove unnecssary information from the denominator, as planned *)
+  >> DEP_PURE_ONCE_REWRITE_TAC[COND_PROB_INTER_SPLIT]
+  >> conj_tac
+  >- simp[Abbr ‘A’, Abbr ‘B’, Abbr ‘C’]
+  (* Now we remove unnecssary information from the denominator, as planned *)
 
 
 
         (* Reduce to smaller l on the RHS *)
         >> cheat
-QED
+QED*)
 
 Theorem zero_div_alt:
   ∀x y.
@@ -3535,6 +3809,7 @@ Proof
   >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
   >> rpt conj_tac
   >- simp[]
+
   >- (disj1_tac
       >> gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
@@ -3556,9 +3831,10 @@ Proof
       >> REVERSE $ Cases_on
                  ‘σs = encode_recursive_parity_equation_state_sequence
                        (ps,qs) ts bs’
+
       >- (‘x2 = 0’ suffices_by simp[] (* In this case, x2 = 0 *)
           >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]
-          >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input]
+          >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input_zero]
           >> conj_tac
           >- gvs[mdr_summed_out_values_2_def]
           >> simp[cond_prob_def]
@@ -3661,7 +3937,7 @@ Proof
                          )
                          (IMAGE INR (range 0 (3 * n + 1)))’
   >> conj_tac
-     
+
   >- (gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
       >> simp[]
@@ -3739,8 +4015,8 @@ Proof
       (* Equivalence of expressions for systematic component *)
       >- (unabbrev_all_tac
           >> cheat
-         )         
-      (* Equivalence of expressions for initial state component *)         
+         )
+      (* Equivalence of expressions for initial state component *)
       >- (unabbrev_all_tac
           >> simp[]
           >> simp[get_function_map_rcc_factor_graph]
@@ -3784,7 +4060,7 @@ Proof
           >> simp[event_state_takes_value_def] >> rw[]
          )
       (* Equivalence of expressions for non-initial state components *)
-         
+
       >- (unabbrev_all_tac
           >> simp[Cong EXTREAL_PROD_IMAGE_CONG,
                   DRESTRICT_FUN_FMAP]
