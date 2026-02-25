@@ -3257,7 +3257,7 @@ Theorem div_eq_zero:
     y ≠ 0 ∧
     (x ≠ +∞ ∧ x ≠ −∞ ∨ y ≠ +∞ ∧ y ≠ −∞) ⇒
     (x / y = 0 ⇔ x = 0 ∨ y = +∞ ∨ y = −∞)
-Proof
+Proof  
   rpt gen_tac >> disch_tac
   >> Cases_on ‘x = 0’ >> simp[zero_div]
   >> Cases_on ‘y’
@@ -3271,18 +3271,11 @@ Proof
       >- gvs[]
       >- simp[extreal_div_def]
      )
-  >- (Cases_on ‘x’
-      >- (Cases_on ‘0 < r’
-          >- simp[infty_div]
-          >> 
-          gvs[infty_div]
-         )
-     )
-
-  >> sg ‘1 / +∞ = ARB’
-  >- simp[extreal_div_def]
-
-         DEP_PURE_ONCE_REWRITE_TAC[extreal_div_def]
+  >> gvs[]
+  >> Cases_on ‘x’
+  >- (simp[infty_div_alt] >> rw[])
+  >- (simp[infty_div_alt] >> rw[])
+  >> simp[extreal_div_def, extreal_inv_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
