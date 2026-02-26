@@ -46,6 +46,7 @@ val _ = hide "equiv_class"
 (*   (join_overlapping_paths_mem)                                             *)
 (* - If we have two nonequal paths that start with the same value, there is   *)
 (*   a point at which they diverge (exists_point_of_divergence)               *)
+(*   (exists_point_of_divergence_nonequal_list)                               *)
 (* - If we have two paths that start at different values but end in the same  *)
 (*   value, there's a point at which they converge                            *)
 (*   (exists_point_of_convergence)                                            *)
@@ -1698,6 +1699,35 @@ Proof
   >> gvs[]
   >> rpt strip_tac
   >> Cases_on ‘k’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: create a version of this theorem for points of convergence           *)
+(* -------------------------------------------------------------------------- *)
+Theorem exists_point_of_divergence_nonequal_list:
+  ∀vs1 vs2.
+    LENGTH vs1 = LENGTH vs2 ∧
+    HD vs1 = HD vs2 ∧
+    vs1 ≠ vs2 ⇒
+    ∃j.
+      (∀k. k ≤ j ⇒ EL k vs1 = EL k vs2) ∧
+      EL (j + 1) vs1 ≠ EL (j + 1) vs2 ∧
+      j < LENGTH vs1 - 1
+Proof
+  rpt gen_tac >> strip_tac
+  >> CCONTR_TAC
+  >> qpat_x_assum ‘vs1 ≠ vs2’ mp_tac
+  >> PURE_ONCE_REWRITE_TAC[LIST_EQ_REWRITE]
+  >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+  >> conj_tac >- simp[]
+  >> gen_tac >> strip_tac
+  >> CCONTR_TAC
+  >> qpat_x_assum ‘¬∃j._’ mp_tac
+  >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+  >> qspecl_then [‘vs1’, ‘vs2’, ‘x’] assume_tac exists_point_of_divergence
+  >> gvs[]
+  >> qexists ‘j’
+  >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
