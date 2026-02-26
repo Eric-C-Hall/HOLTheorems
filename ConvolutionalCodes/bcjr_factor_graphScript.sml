@@ -3339,7 +3339,7 @@ QED
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: Move to appropriate location                                         *)
-(* -------------------------------------------------------------------------- *)        
+(* -------------------------------------------------------------------------- *)
 Theorem encode_recursive_parity_equation_state_sequence_append:
   ∀ps qs ts bs1 bs2.
     encode_recursive_parity_equation_state_sequence (ps,qs) ts (bs1 ++ bs2) =
@@ -3548,17 +3548,17 @@ Proof
       >> irule PROB_FINITE
       >> simp[EVENTS_INTER]
      )
-  >> simp[PROB_FINITE, EVENTS_INTER]  
+  >> simp[PROB_FINITE, EVENTS_INTER]
   (* First, prove that if the front of the sequence is valid but the last step
      of the sequence is invalid, then the overall sequence is invalid. *)
-  >> EQ_TAC >> strip_tac                       
+  >> EQ_TAC >> strip_tac
   >- (qpat_x_assum ‘prob _ _ ≠ 0’ kall_tac
       >> gvs[prob_ecc_bsc_prob_space_zero, EVENTS_INTER, EXTENSION]
       >> gen_tac
       >> namedCases_on ‘x’ ["bs2 ns2"]
       >> pop_assum $ qspec_then ‘(bs2, ns2)’ mp_tac >> strip_tac
       >- (disj1_tac >> disj2_tac
-          >> simp[LAST_EL, PRE_SUB1])         
+          >> simp[LAST_EL, PRE_SUB1])
       >- (disj1_tac >> disj1_tac
           >> gvs[event_state_takes_value_def,
                  event_state_sequence_starts_with_def]
@@ -3590,8 +3590,8 @@ Proof
   >> gvs[event_state_sequence_starts_with_def,
          event_input_string_starts_with_def,
          event_state_takes_value_def,
-         event_input_bit_takes_value_def]        
-  >> conj_tac     
+         event_input_bit_takes_value_def]
+  >> conj_tac
   >- (qsuff_tac ‘FRONT σs ≼ encode_recursive_parity_equation_state_sequence
                  (ps,qs) (HD σs) (FRONT bs) ∧
                  encode_recursive_parity_equation_state_sequence
@@ -3834,10 +3834,10 @@ Proof
       >> DEP_PURE_ONCE_REWRITE_TAC[div_eq_zero]
       >> conj_tac
       >- (conj_tac
-          >- 
+          >-
          )
       >>
-      >> 
+      >>
      )
   (* We can now split our probability into a product of the probability of the
      current step multiplied by the probability of all the previous steps, as
@@ -3851,7 +3851,7 @@ Proof
 
 
         (* Reduce to smaller l on the RHS *)
-        >> 
+        >>
 QED*)
 
 (* -------------------------------------------------------------------------- *)
@@ -3937,6 +3937,22 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* TODO: Move to better file                                                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem el_encode_recursive_parity_equation:
+  ∀ps qs ts bs i.
+    i + 1 ≤ LENGTH bs ⇒
+    EL i (encode_recursive_parity_equation (ps,qs) ts bs) =
+    HD (encode_recursive_parity_equation
+        (ps,qs)
+        (encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs))
+        [EL i bs])
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[encode_recursive_parity_equation_take_el_sing]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)
 (* map_decoder_bitwise_encode_recursive_parity_equation_with_systematic       *)
@@ -3944,6 +3960,10 @@ QED
 (* TODO: Can any theorems be extracted from here? e.g., if we have a valid    *)
 (* bs σs cs_p, then certain events take probability 1? if we have an invalid  *)
 (* bs σs cs_p, then certain events take probability 0?                        *)
+(* In particular, would be nice to have a general theorem relating            *)
+(* probabilities in the factor graph world to probabilities in the            *)
+(* sum of products world.                                                     *)
+(* Similar working is repeated several times in here                          *)
 (* -------------------------------------------------------------------------- *)
 Theorem rcc_factor_graph_compute:
   ∀n m p ps qs ts prior ds.
@@ -3954,7 +3974,7 @@ Theorem rcc_factor_graph_compute:
     = map_decoder_bitwise
       (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
       n m p ds
-      
+
 Proof
   
   rpt strip_tac
@@ -4013,10 +4033,10 @@ Proof
        ∑ f ((mdr_summed_out_values_2 n ts i b)
             ∩ {(bs, σs, cs_p) | cs_p = encode_recursive_parity_equation
                                        (ps,qs) ts bs})’
-      (fn th => PURE_ONCE_REWRITE_TAC[th])      
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
   >- (SYM_TAC
       >> irule EXTREAL_SUM_IMAGE_INTER_ELIM
-      >> REVERSE conj_tac                 
+      >> REVERSE conj_tac
       >- (simp[]
           >> disj1_tac
           >> gen_tac >> strip_tac
@@ -4158,7 +4178,7 @@ Proof
                          )
                          (IMAGE INR (range 0 (3 * n + 1)))’
   >> conj_tac
-     
+
   >- (gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
       >> simp[]
@@ -4225,7 +4245,7 @@ Proof
           encoded_noise_probs * systematic_noise_probs
           =
           systematic_node_probs * encoded_node_probs * initial_state_node_prob
-          * state_node_probs : extreal’         
+          * state_node_probs : extreal’
       >>  ‘input_probs * systematic_noise_probs = systematic_node_probs ∧
            initial_state_prob = initial_state_node_prob ∧
            (if input_state_parity_valid (ps,qs) ts (bs, σs, cs_p)
@@ -4344,7 +4364,7 @@ Proof
               >> simp[adjacent_rcc_factor_graph])
           >> simp[range_def]
           >> simp[event_state_takes_value_def] >> rw[]
-         )         
+         )
       (* Special case where the head of σs is invalid *)
       >> REVERSE $ Cases_on ‘HD σs = ts’
       >- (sg ‘¬input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
@@ -4356,14 +4376,14 @@ Proof
           >> conj_tac
           >- simp[event_state_takes_value_def]
           >> irule EXTREAL_PROD_IMAGE_0
-          >> simp[]                 
+          >> simp[]
           >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
           >> conj_tac
           >- (simp[]
               >> irule SUBSET_FINITE
               >> qexists ‘IMAGE INR (count (6 * n + 2))’
               >> simp[SUBSET_DEF]
-             )          
+             )
           >> qmatch_abbrev_tac ‘_ ' (FUN_FMAP _ cur_adj_nodes) = _’
           >> Q.SUBGOAL_THEN ‘cur_adj_nodes = {INR (2 * n)}’
               (fn th => PURE_ONCE_REWRITE_TAC[th])
@@ -4398,11 +4418,11 @@ Proof
           >> rw[]
           >> simp[cj 2 FUN_FMAP_DEF]
           >> simp[range_def]
-         )         
+         )
       (* Special case where the rest of σs is invalid *)
       >> REVERSE $ Cases_on
                  ‘σs = encode_recursive_parity_equation_state_sequence
-                       (ps,qs) ts bs’                 
+                       (ps,qs) ts bs’
       >- (simp[input_state_parity_valid_def]
           >> disj1_tac
           >> conj_tac
@@ -4536,73 +4556,194 @@ Proof
        (* Special case where cs_p is invalid *)
        >> REVERSE $ Cases_on ‘cs_p =
                               encode_recursive_parity_equation (ps,qs) ts bs’
-       >- (‘¬input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
-             by simp[input_state_parity_valid_def]
-           >> simp[]
-           >> disj1_tac
-           >> conj_tac >> unabbrev_all_tac
-           >- (DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input_zero]
-               >> conj_tac
-               >- (simp[]
-                   >> gvs[mdr_summed_out_values_2_def])
-               (* >> irule EXTREAL_PROD_IMAGE_0*)
-               >> simp[]
-               >> cheat
-              )
-           >> cheat
-          )
-       (* The above cases combine to tell us that the input, state, and parity
+      >- (‘¬input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
+            by simp[input_state_parity_valid_def]
+          >> simp[]
+          >> disj1_tac
+          >> conj_tac >> unabbrev_all_tac
+          >- (disj2_tac
+              >> irule EXTREAL_PROD_IMAGE_0
+              >> simp[]
+              >> CCONTR_TAC
+              >> qpat_x_assum ‘cs_p ≠ _’ mp_tac
+              >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+              >> simp[LIST_EQ_REWRITE]
+              >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+              >> gen_tac >> strip_tac
+              >> CCONTR_TAC
+              >> qpat_x_assum ‘¬∃x._’ mp_tac
+              >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+              >> qexists ‘x’
+              >> sg ‘x < n’
+              >- gvs[mdr_summed_out_values_2_def]
+              >> qpat_x_assum
+                 ‘σs = encode_recursive_parity_equation_state_sequence _ _ _’
+                 (fn th => assume_tac (GSYM th))
+              >> simp[cond_prob_def]
+              >> DEP_PURE_ONCE_REWRITE_TAC[div_eq_zero]
+              >> conj_tac
+              >- (conj_tac
+                  >- (simp[]
+                      >> irule event_state_takes_value_inter_event_input_bit_takes_value_nonzero_prob
+                      >> simp[]
+                      >> qexists ‘bs’
+                      >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+                      >> simp[]
+                      >> qpat_x_assum ‘_ = σs’ (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+                      >> DEP_PURE_ONCE_REWRITE_TAC[el_encode_recursive_parity_equation_state_sequence]
+                      >> gvs[mdr_summed_out_values_2_def]
+                     )
+                  >> disj1_tac
+                  >> irule PROB_FINITE
+                  >> simp[EVENTS_INTER]
+                 )
+              >> disj1_tac
+              >> simp[prob_ecc_bsc_prob_space_zero, EVENTS_INTER]
+              >> simp[EXTENSION]
+              >> gen_tac
+              >> simp[event_srcc_parity_bit_takes_value_def,
+                      event_state_takes_value_def,
+                      event_input_bit_takes_value_def]
+              >> CCONTR_TAC >> gvs[]
+              (* Now we find a contradiction in the two equations involving
+                 EL x cs_p *)
+              >> qpat_x_assum ‘EL x cs_p ⇎ _’ mp_tac
+              >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+              >> qpat_x_assum ‘_ ⇔ EL x cs_p’
+                              (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+              >> simp[el_encode_recursive_parity_equation]
+              (* Taking x of bs' brings us to EL x σs. Taking x of bs brings us
+                 to EL x σs. Then the subsequent element of bs' is equal to the
+                 corresponding element of bs, so we have our result. *)
+              >> ‘x + 1 ≤ LENGTH bs’ by gvs[mdr_summed_out_values_2_def]
+              >> simp[el_encode_recursive_parity_equation]
+              >> qpat_x_assum ‘_ = σs’ (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+              >> simp[el_encode_recursive_parity_equation_state_sequence]
+             )
+          >> irule EXTREAL_PROD_IMAGE_0
+          >> simp[]
+          (* The node which returns 0 will be the one for which cs_p is not
+             equal to the encoding of bs. *)
+          >> CCONTR_TAC
+          >> qpat_x_assum ‘cs_p ≠ _’ mp_tac
+          >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+          >> simp[LIST_EQ_REWRITE]
+          >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+          >> gen_tac >> strip_tac
+          >> CCONTR_TAC
+          >> qpat_x_assum ‘¬∃x._’ mp_tac
+          >> PURE_REWRITE_TAC[IMP_CLAUSES, NOT_CLAUSES]
+          >> qexists ‘INR (5 * n + 2 + x)’
+          >> simp[]
+          >> sg ‘x < n’
+          >- gvs[mdr_summed_out_values_2_def]
+          >> conj_tac >- simp[range_def]
+          >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
+          >> conj_tac
+          >- (simp[]
+              >> irule SUBSET_FINITE
+              >> qexists ‘IMAGE INR (count (6 * n + 2))’
+              >> simp[]
+              >> simp[SUBSET_DEF]
+             )
+           >> qmatch_abbrev_tac ‘_ ' (FUN_FMAP _ s) = 0’
+          >> Q.SUBGOAL_THEN
+              ‘s = {INR x; INR (n + x); INR (2 * n + x); INR (2 * n + 1 + x)}’
+              (fn th => PURE_ONCE_REWRITE_TAC[th]) >> Q.UNABBREV_TAC ‘s’
+          >- (simp[EXTENSION]
+              >> gen_tac
+              >> Cases_on ‘x' = INR x’
+              >- (simp[adjacent_rcc_factor_graph] >> simp[range_def])
+              >> Cases_on ‘x' = INR (n + x)’
+              >- (simp[adjacent_rcc_factor_graph] >> simp[range_def])
+              >> Cases_on ‘x' = INR (2 * n + x)’
+              >- (simp[adjacent_rcc_factor_graph] >> simp[range_def])
+              >> Cases_on ‘x' = INR (2 * n + (x + 1))’
+              >- (simp[adjacent_rcc_factor_graph] >> simp[range_def])
+              >> simp[]
+              >> CCONTR_TAC >> gvs[]
+              >> gvs[adjacent_rcc_factor_graph]
+             )
+          >> simp[get_function_map_rcc_factor_graph]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- simp[range_def]
+          >> simp[]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac             
+          >- (simp[]
+              >> simp[var_assignments_def]
+              >> conj_tac
+              >- simp[func_node_state_adjacent_nodes_def]
+              >> gen_tac
+              >> simp[FUN_FMAP_DEF]
+              >> simp[range_def]
+              >> strip_tac >> simp[]
+              >> simp[FUN_FMAP_DEF] (*HERE *)
+              >> DEP_PURE_ONCE_REWRITE_TAC[el_encode_recursive_parity_equation_state_sequence]
+              >> conj_tac >- gvs[mdr_summed_out_values_2_def]
+              >> simp[]
+              >> gvs[mdr_summed_out_values_2_def]
+             )
+          >> simp[func_node_state_fn_def]
+          >> simp[cj 2 FUN_FMAP_DEF]
+          >> simp[range_def]
+          >> sg ‘x + 1 ≤ LENGTH bs’
+          >- gvs[mdr_summed_out_values_2_def]
+          >> simp[el_encode_recursive_parity_equation_state_sequence]
+          >> simp[encode_recursive_parity_equation_take_el_sing]
+         )
+         
+      (* The above cases combine to tell us that the input, state, and parity
          bits are valid *)
-       >> REVERSE $ Cases_on ‘input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
-       >- (simp[]
-           >> cheat
-          )
-       >> simp[]
-       >> conj_tac
-       (* Equivalence of expressions for non-initial state components *)
-          
-       >- (unabbrev_all_tac
-           >> simp[EXTREAL_PROD_IMAGE_MUL]
-           >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
-           >> simp[]
-           >> qexists ‘λx. INR (x + 5 * n + 2)’
-           >> conj_tac
-           >- (simp[BIJ_THM]
-               >> simp[range_def]
-               >> gen_tac >> strip_tac
-               >> Cases_on ‘y’ >> gvs[]
-               >> simp[EXISTS_UNIQUE_DEF]
-               >> qexists ‘x - 5 * n - 2’
-               >> simp[]
-              )
-           >> gen_tac
-           >> strip_tac
-           >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
-           >> conj_tac
-           >- (simp[]
-               >> irule SUBSET_FINITE
-               >> qexists ‘IMAGE INR (count (6 * n + 2))’
-               >> simp[SUBSET_DEF]
-              )
-           >> simp[]
-           >> qmatch_abbrev_tac ‘_ = _ ' (FUN_FMAP _ cur_adj_nodes)’
-           >> Q.SUBGOAL_THEN ‘cur_adj_nodes = {INR x; INR (n + x);
-                              INR (2 * n + x); INR (2 * n + 1 + x)}’
-               (fn th => PURE_ONCE_REWRITE_TAC[th])              
-           >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
-               >> simp[EXTENSION]
-               >> gen_tac
-               >> simp[range_def]
-               >> Cases_on ‘x' = INR x’
-               >- simp[adjacent_rcc_factor_graph]
-               >> Cases_on ‘x' = INR (n + x)’
-               >- simp[adjacent_rcc_factor_graph]
-               >> Cases_on ‘x' = INR (2 * n + x)’
-               >- simp[adjacent_rcc_factor_graph]
-               >> Cases_on ‘x' = INR (2 * n + 1 + x)’
-               >- simp[adjacent_rcc_factor_graph]
-               >> gvs[]
-               >> CCONTR_TAC
+      >> sg ‘input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
+      >- simp[input_state_parity_valid_def]
+      >> simp[]
+      >> conj_tac
+      (* Equivalence of expressions for non-initial state components *)
+
+      >- (unabbrev_all_tac
+          >> simp[EXTREAL_PROD_IMAGE_MUL]
+          >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
+          >> simp[]
+          >> qexists ‘λx. INR (x + 5 * n + 2)’
+          >> conj_tac
+          >- (simp[BIJ_THM]
+              >> simp[range_def]
+              >> gen_tac >> strip_tac
+              >> Cases_on ‘y’ >> gvs[]
+              >> simp[EXISTS_UNIQUE_DEF]
+              >> qexists ‘x - 5 * n - 2’
+              >> simp[]
+             )
+          >> gen_tac
+          >> strip_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
+          >> conj_tac
+          >- (simp[]
+              >> irule SUBSET_FINITE
+              >> qexists ‘IMAGE INR (count (6 * n + 2))’
+              >> simp[SUBSET_DEF]
+             )
+          >> simp[]
+          >> qmatch_abbrev_tac ‘_ = _ ' (FUN_FMAP _ cur_adj_nodes)’
+          >> Q.SUBGOAL_THEN ‘cur_adj_nodes = {INR x; INR (n + x);
+                             INR (2 * n + x); INR (2 * n + 1 + x)}’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
+              >> simp[EXTENSION]
+              >> gen_tac
+              >> simp[range_def]
+              >> Cases_on ‘x' = INR x’
+              >- simp[adjacent_rcc_factor_graph]
+              >> Cases_on ‘x' = INR (n + x)’
+              >- simp[adjacent_rcc_factor_graph]
+              >> Cases_on ‘x' = INR (2 * n + x)’
+              >- simp[adjacent_rcc_factor_graph]
+              >> Cases_on ‘x' = INR (2 * n + 1 + x)’
+              >- simp[adjacent_rcc_factor_graph]
+              >> gvs[]
+              >> CCONTR_TAC
               >> gvs[]
               >> gvs[adjacent_rcc_factor_graph]
              )
@@ -4643,10 +4784,10 @@ Proof
              simplifies to 1, resulting in the desired outcome *)
           >> cheat
 
-         (* (* The case where our step and output bit are valid *)             
+         (* (* The case where our step and output bit are valid *)
                >- (PURE_REWRITE_TAC[cond_prob_def]
                (* Because valid, all of these events will turn out to have probability 1, thus proving equals 1. *)
-               >> cheat                  
+               >> cheat
                   (* Because valid, state ∩ input has prob 1.
               state, input, parity has prob 1.*)
                   qmatch_abbrev_tac ‘n1 * n2 = 1’
@@ -4684,7 +4825,7 @@ Proof
                >- cheat
                >> simp[zero_div]
               )
-           >> gvs[]*)                             
+           >> gvs[]*)
          )
       (* Equivalence of expressions for encoded component.
          Working based on that used for equivalence of expressions for
