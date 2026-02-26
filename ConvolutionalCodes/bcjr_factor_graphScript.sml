@@ -4148,7 +4148,7 @@ Proof
       >> conj_tac
       >- gvs[mdr_summed_out_values_2_def]
       >> simp[]
-      (* Now we split the RHS up so as to match the RHS, according to the
+      (* Now we split the RHS up so as to match the LHS, according to the
          working above *)
       >> Q.SUBGOAL_THEN ‘fun_node_set =
                          IMAGE INR (range (3 * n + 1) (4 * n + 1)) ∪
@@ -4281,11 +4281,9 @@ Proof
           >> simp[event_state_takes_value_def] >> rw[]
          )
       (* Equivalence of expressions for non-initial state components *)
-
       >- (unabbrev_all_tac
           >> simp[Cong EXTREAL_PROD_IMAGE_CONG,
                   DRESTRICT_FUN_FMAP]
-
           >> qmatch_abbrev_tac ‘_ * _ = prod_to_simplify : extreal’
           >> sg ‘prod_to_simplify =
                  ∏ (ARB : unit + num -> extreal)
@@ -4306,8 +4304,68 @@ Proof
              )
           >> cheat
          )
-      (* Equivalence of expressions for encoded component *)
-      >> cheat
+      (* Equivalence of expressions for encoded component.
+         Working based on that used for equivalence of expressions for
+         systematic component. *)
+         
+      >> unabbrev_all_tac
+      >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
+      >> simp[]
+      >> qexists ‘λx. INR (4 * n + 1 + x)’
+      >> conj_tac
+      >- (simp[BIJ_THM]
+          >> conj_tac >> simp[range_def]
+          >> gen_tac >> strip_tac
+          >> simp[EXISTS_UNIQUE_THM]
+          >> qexists ‘x - 1 - 4 * n’
+          >> simp[]
+         )
+      >> gen_tac >> strip_tac
+      >> simp[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
+      >> conj_tac
+      >- (simp[]
+          >> irule SUBSET_FINITE
+          >> qexists ‘IMAGE INR (count (6 * n + 2))’
+          >> simp[SUBSET_DEF])
+      >> qmatch_abbrev_tac ‘_ = _ ' (FUN_FMAP _ cur_adj_nodes)’
+      >> Q.SUBGOAL_THEN ‘cur_adj_nodes = {INR (n + x)}’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
+          >> simp[EXTENSION]
+          >> gen_tac
+          >> Cases_on ‘x'’ >> simp[range_def]
+          >> Cases_on ‘y = n + x’ >> gvs[]
+          >- simp[adjacent_rcc_factor_graph]
+          >> CCONTR_TAC >> gvs[]
+          >> gvs[adjacent_rcc_factor_graph]
+         )
+      >> qpat_x_assum ‘Abbrev (cur_adj_nodes = _)’ kall_tac
+      >> simp[get_function_map_rcc_factor_graph]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- simp[range_def]
+      >> simp[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+      >> conj_tac
+      >- (simp[var_assignments_def]
+          >> simp[cj 2 FUN_FMAP_DEF]
+          >> rw[]
+          >> gvs[range_def])
+      >> simp[cj 2 FUN_FMAP_DEF]
+      >> simp[range_def]
+      >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value]
+      >> conj_tac
+      >- (simp[]
+          >> qexists ‘bs’
+          >> simp[]
+          >> gvs[mdr_summed_out_values_2_def])
+      >> simp[EL_TAKE]
+      >> simp[EL_DROP]
+      >> simp[sym_noise_mass_func_def]
+      >> gvs[mdr_summed_out_values_2_def]
+      >> simp[IFF_SYM]
+             
      )
   >> simp[BIJ_IFF_INV]
   >> conj_tac
