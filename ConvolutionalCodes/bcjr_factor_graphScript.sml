@@ -287,9 +287,9 @@ Definition rcc_bcjr_fg_decode_def:
   let
     m = LENGTH ds;
     n = m DIV 2;
-    ds_s = TAKE n ds;
-    ds_p = DROP n ds;
-    prior = REPLICATE n (1 / &n);
+    ds_s = DROP n ds;
+    ds_p = TAKE n ds;
+    prior = REPLICATE n (1 / 2);
     fg = rcc_factor_graph n p (ps,qs) ts prior (ds_s,ds_p);
   in
     MAP
@@ -3834,10 +3834,10 @@ Proof
       >> DEP_PURE_ONCE_REWRITE_TAC[div_eq_zero]
       >> conj_tac
       >- (conj_tac
-          >- cheat
+          >- 
          )
       >>
-      >> cheat
+      >> 
      )
   (* We can now split our probability into a product of the probability of the
      current step multiplied by the probability of all the previous steps, as
@@ -3851,9 +3851,12 @@ Proof
 
 
         (* Reduce to smaller l on the RHS *)
-        >> cheat
+        >> 
 QED*)
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
 Theorem zero_div_alt:
   ∀x y.
     x = 0 ∧
@@ -3881,6 +3884,32 @@ Proof
   >> simp[FDOM_DRESTRICT]
 QED
 
+Theorem EXTREAL_PROD_IMAGE_MUL:
+  ∀s f g.
+    FINITE s ⇒
+    ∏ f s * ∏ g s = ∏ (λx. f x * g x) s
+Proof
+  rpt gen_tac >> strip_tac
+  >> Induct_on ‘s’ using FINITE_INDUCT
+  >> conj_tac
+  >- simp[]
+  >> gen_tac >> strip_tac >> gen_tac >> strip_tac
+  >> simp[EXTREAL_PROD_IMAGE_PROPERTY]
+  >> simp[DELETE_NON_ELEMENT_RWT]
+  >> simp[AC mul_assoc mul_comm]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to other file                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem IFF_SYM:
+  ∀a b.
+    (a ⇔ b) ⇔ (b ⇔ a)
+Proof
+  rpt gen_tac
+  >> Cases_on ‘a’ >> simp[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)
@@ -3895,9 +3924,9 @@ Theorem rcc_factor_graph_compute:
     = map_decoder_bitwise
       (encode_recursive_parity_equation_with_systematic (ps, qs) ts)
       n m p ds
-
+      
 Proof
-
+  
   rpt strip_tac
   >> ‘0 ≤ p ∧ p ≤ 1’ by simp[lt_imp_le]
   (* Handle the special case of n = 0 *)
@@ -3948,7 +3977,6 @@ Proof
   >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
   >> rpt conj_tac
   >- simp[]
-
   >- (disj1_tac
       >> gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
@@ -3970,7 +3998,6 @@ Proof
       >> REVERSE $ Cases_on
                  ‘σs = encode_recursive_parity_equation_state_sequence
                        (ps,qs) ts bs’
-
       >- (‘x2 = 0’ suffices_by simp[] (* In this case, x2 = 0 *)
           >> MAP_EVERY Q.UNABBREV_TAC [‘x1’, ‘x2’, ‘x3’, ‘x4’]
           >> DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input_zero]
@@ -4076,7 +4103,7 @@ Proof
                          )
                          (IMAGE INR (range 0 (3 * n + 1)))’
   >> conj_tac
-
+     
   >- (gen_tac >> strip_tac
       >> namedCases_on ‘x’ ["bs σs cs_p"]
       >> simp[]
@@ -4153,7 +4180,62 @@ Proof
       >> rpt conj_tac
       (* Equivalence of expressions for systematic component *)
       >- (unabbrev_all_tac
-          >> cheat
+          >> simp[EXTREAL_PROD_IMAGE_MUL]
+          >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
+          >> simp[]
+          >> qexists ‘λx. INR (3 * n + 1 + x)’
+          >> conj_tac
+          >- (simp[BIJ_THM]
+              >> conj_tac >> simp[range_def]
+              >> gen_tac >> strip_tac
+              >> simp[EXISTS_UNIQUE_THM]
+              >> qexists ‘x - 1 - 3 * n’
+              >> simp[]
+             )
+          >> gen_tac >> strip_tac
+          >> simp[]
+          >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
+          >> conj_tac
+          >- (simp[]
+              >> irule SUBSET_FINITE
+              >> qexists ‘IMAGE INR (count (6 * n + 2))’
+              >> simp[SUBSET_DEF])
+          >> qmatch_abbrev_tac ‘_ = _ ' (FUN_FMAP _ cur_adj_nodes)’
+          >> Q.SUBGOAL_THEN ‘cur_adj_nodes = {INR x}’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
+              >> simp[EXTENSION]
+              >> gen_tac
+              >> Cases_on ‘x'’ >> simp[range_def]
+              >> Cases_on ‘y = x’ >> gvs[]
+              >- simp[adjacent_rcc_factor_graph]
+              >> CCONTR_TAC >> gvs[]
+              >> gvs[adjacent_rcc_factor_graph]
+             )
+          >> qpat_x_assum ‘Abbrev (cur_adj_nodes = _)’ kall_tac
+          >> simp[get_function_map_rcc_factor_graph]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- simp[range_def]
+          >> simp[]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- (simp[var_assignments_def]
+              >> simp[cj 2 FUN_FMAP_DEF]
+              >> rw[]
+              >> gvs[range_def])
+          >> simp[cj 2 FUN_FMAP_DEF]
+          >> simp[range_def]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cond_prob_event_received_bit_takes_value_event_sent_bit_takes_value]
+          >> conj_tac
+          >- (simp[]
+              >> qexists ‘bs’
+              >> simp[]
+              >> gvs[mdr_summed_out_values_2_def])
+          >> simp[EL_TAKE]
+          >> simp[EL_DROP]
+          >> simp[sym_noise_mass_func_def]
+          >> simp[IFF_SYM]
          )
       (* Equivalence of expressions for initial state component *)
       >- (unabbrev_all_tac
