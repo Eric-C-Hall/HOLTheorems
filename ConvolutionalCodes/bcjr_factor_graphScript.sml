@@ -4692,8 +4692,7 @@ Proof
           >- gvs[mdr_summed_out_values_2_def]
           >> simp[el_encode_recursive_parity_equation_state_sequence]
           >> simp[encode_recursive_parity_equation_take_el_sing]
-         )
-         
+         )         
       (* The above cases combine to tell us that the input, state, and parity
          bits are valid *)
       >> sg ‘input_state_parity_valid (ps,qs) ts (bs,σs,cs_p)’
@@ -4777,55 +4776,21 @@ Proof
              precondition holds *)
           >> qmatch_abbrev_tac ‘_ = if cond then 1 else 0’
           >> sg ‘cond’ >> Q.UNABBREV_TAC ‘cond’
-          >- cheat
-          >> simp[]
+          >- (sg ‘x + 1 ≤ LENGTH bs’ >- gvs[mdr_summed_out_values_2_def]
+              >> conj_tac
+              >- (simp[el_encode_recursive_parity_equation_state_sequence]
+                  >> simp[encode_recursive_parity_equation_state_encode_recursive_parity_equation_state]
+                  >> simp[TAKE_EL_SNOC])
+              >> simp[el_encode_recursive_parity_equation_state_sequence]
+              >> simp[encode_recursive_parity_equation_take_el_sing]
+             )
+          >> simp[]                 
           >> PURE_REWRITE_TAC[cond_prob_def]
+                             
           (* Because our bs, σs, and cs_p are valid, each of these probabilities
              simplifies to 1, resulting in the desired outcome *)
+                             
           >> cheat
-
-         (* (* The case where our step and output bit are valid *)
-               >- (PURE_REWRITE_TAC[cond_prob_def]
-               (* Because valid, all of these events will turn out to have probability 1, thus proving equals 1. *)
-               >> cheat
-                  (* Because valid, state ∩ input has prob 1.
-              state, input, parity has prob 1.*)
-                  qmatch_abbrev_tac ‘n1 * n2 = 1’
-               >> ‘n1 = 1 ∧ n2 = 1’ suffices_by simp[]
-               >> conj_tac >> Q.UNABBREV_TAC ‘n1’ >> Q.UNABBREV_TAC ‘n2’
-               >- (PURE_REWRITE_TAC[cond_prob_def]
-                   >> qmatch_abbrev_tac ‘num / den = 1’
-                   >> ‘num = den ∧ den ≠ −∞ ∧ den ≠ +∞ ∧ den ≠ 0’ suffices_by simp[div_refl]
-                   >> Q.UNABBREV_TAC ‘num’ >> Q.UNABBREV_TAC ‘den’
-                   >> REVERSE $ rpt conj_tac
-                   >- (cheat
-                      )
-                   >- simp[PROB_FINITE, EVENTS_INTER]
-                   >- simp[PROB_FINITE, EVENTS_INTER]
-                   >> cong_tac (SOME 1)
-                   >> simp[EXTENSION]
-                   >> gen_tac
-                   >> simp[event_state_takes_value_def,
-                           event_input_bit_takes_value_def]
-                   >> EQ_TAC >> simp[]
-                   >> strip_tac
-                   >> cheat
-                  )
-               >> cheat
-              )
-           (* The case where our step or output bit is invalid. *)
-           (* First, case where step is invalid *)
-           >> Cases_on ‘encode_recursive_parity_equation_state
-                        (ps,qs) σs❲x❳ [bs❲x❳] ≠ σs❲x + 1❳’
-           >- (disj1_tac
-               >> gvs[]
-               >> PURE_REWRITE_TAC[cond_prob_def]
-               >> qmatch_abbrev_tac ‘num / _ = 0’
-               >> sg ‘num = 0’
-               >- cheat
-               >> simp[zero_div]
-              )
-           >> gvs[]*)
          )
       (* Equivalence of expressions for encoded component.
          Working based on that used for equivalence of expressions for
