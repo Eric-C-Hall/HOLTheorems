@@ -3910,6 +3910,16 @@ Proof
   >> Cases_on ‘a’ >> simp[]
 QED
 
+(* TODO: Finish something along these lines *)
+(*Theorem cond_prob_event_state_sequence_starts_with_event_input_string_starts_with:
+  ∀n m p ps qs ts bs σs.
+    cond_prob (ecc_bsc_prob_space n m p)
+              (event_state_sequence_starts_with n m (ps,qs) ts σs)
+              (event_input_string_starts_with n m bs) = 0 ⇔
+      σs = encode_recursive_parity_equation_state_sequence (ps,qs) ts bs
+Proof
+QED*)
+
 (* -------------------------------------------------------------------------- *)
 (* The BCJR decoding process is equal to the expression for the MAP decoder   *)
 (* given by                                                                   *)
@@ -4367,54 +4377,99 @@ Proof
           >> rw[]
           >> simp[cj 2 FUN_FMAP_DEF]
           >> simp[range_def]
-         )
-         
+         )         
       (* Special case where cs_p is invalid *)
       >> REVERSE $ Cases_on ‘cs_p =
                              encode_recursive_parity_equation (ps,qs) ts bs’
-                 
       >- (simp[]
+          >> disj1_tac
           >> conj_tac >> unabbrev_all_tac
           >- (DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input_zero]
               >> conj_tac
               >- (simp[]
-                  >> gvs[mdr_summed_out_values_2_def]
-                 )
-                 irule EXTREAL_PROD_IMAGE_0
+                  >> gvs[mdr_summed_out_values_2_def])
+              (* >> irule EXTREAL_PROD_IMAGE_0*)
               >> simp[]
+              >> cheat
              )
           >> cheat
-         )
+         )         
       >> simp[]
       >> conj_tac
       (* Equivalence of expressions for non-initial state components *)
-       >- (unabbrev_all_tac
-           >> simp[Cong EXTREAL_PROD_IMAGE_CONG,
-                   DRESTRICT_FUN_FMAP]
-           >> qmatch_abbrev_tac ‘_ * _ = prod_to_simplify : extreal’
-           >> sg ‘prod_to_simplify =
-                  ∏ (ARB : unit + num -> extreal)
-                    (IMAGE INR (range (5 * n + 2) (6 * n + 2)))’
-           >- (Q.UNABBREV_TAC ‘prod_to_simplify’
-               >> irule EXTREAL_PROD_IMAGE_EQ
-               >> gen_tac >> strip_tac
-               >> simp[]
-               >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
-               >> conj_tac
-               >- (simp[]
-                   >> irule SUBSET_FINITE
-                   >> qexists ‘IMAGE INR (count (6 * n + 2))’
-                   >> simp[]
-                   >> simp[SUBSET_DEF]
-                  )
-               >> cheat
-              )
-           >> cheat
-          )
-       (* Equivalence of expressions for encoded component.
+         
+      >- (unabbrev_all_tac
+          >> simp[EXTREAL_PROD_IMAGE_MUL]
+          >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
+          >> simp[]
+          >> qexists ‘λx. INR (x + 5 * n + 2)’
+          >> conj_tac
+          >- (simp[BIJ_THM]
+              >> simp[range_def]
+              >> gen_tac >> strip_tac
+              >> Cases_on ‘y’ >> gvs[]
+              >> simp[EXISTS_UNIQUE_DEF]
+              >> qexists ‘x - 5 * n - 2’
+              >> simp[]
+             )
+          >> gen_tac
+          >> strip_tac
+          >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
+          >> conj_tac
+          >- (simp[]
+              >> irule SUBSET_FINITE
+              >> qexists ‘IMAGE INR (count (6 * n + 2))’
+              >> simp[SUBSET_DEF]
+             )
+          >> simp[]
+          >> qmatch_abbrev_tac ‘_ = _ ' (FUN_FMAP _ cur_adj_nodes)’
+          >> Q.SUBGOAL_THEN ‘cur_adj_nodes = {INR x; INR (n + x);
+                             INR (2 * n + x); INR (2 * n + 1 + x)}’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])              
+          >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
+              >> simp[EXTENSION]
+              >> gen_tac
+              >> simp[range_def]
+              >> Cases_on ‘x' = INR x’
+              >- simp[adjacent_rcc_factor_graph]
+              >> Cases_on ‘x' = INR (n + x)’
+              >- simp[adjacent_rcc_factor_graph]
+              >> Cases_on ‘x' = INR (2 * n + x)’
+              >- simp[adjacent_rcc_factor_graph]
+              >> Cases_on ‘x' = INR (2 * n + 1 + x)’
+              >- simp[adjacent_rcc_factor_graph]
+              >> gvs[]
+              >> CCONTR_TAC
+              >> gvs[]
+              >> gvs[adjacent_rcc_factor_graph]
+             )
+          >> qpat_x_assum ‘Abbrev (cur_adj_nodes = _)’ kall_tac
+          (* *)
+          >> simp[get_function_map_rcc_factor_graph]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- simp[range_def]
+          >> simp[]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- (simp[]
+              >> simp[var_assignments_def]
+              >> conj_tac
+              >- simp[func_node_state_adjacent_nodes_def]
+              >> gen_tac >> strip_tac
+              >> simp[cj 2 FUN_FMAP_DEF]
+              >> simp[range_def]
+              >> gvs[mdr_summed_out_values_2_def]
+              >> first_x_assum irule
+              >> simp[EL_MEM]
+             )
+             
+          >> simp[func_node_state_fn_def]
+          >> cheat
+         )
+      (* Equivalence of expressions for encoded component.
          Working based on that used for equivalence of expressions for
          systematic component. *)
-         
       >> unabbrev_all_tac
       >> irule EXTREAL_PROD_IMAGE_CONG_DIFF_SETS
       >> simp[]
