@@ -3973,6 +3973,31 @@ Proof
   (* *)
   >> simp[nodes_rcc_factor_graph]
   >> simp[sum_prod_def]
+  (* TODO: Probably a bad idea to do this, because I would have to do this
+     on the right hand side as well. *)
+  (* Get rid of all the terms with invalid cs_p on the left hand side: in these
+     cases, our sum will be zero *)
+  (*>> qmatch_abbrev_tac ‘∑ f _ = RHS : extreal’
+  >> Q.SUBGOAL_THEN
+      ‘∑ f (mdr_summed_out_values_2 n ts i b) =
+       ∑ f ((mdr_summed_out_values_2 n ts i b)
+            ∩ {(bs, σs, cs_p) | cs_p = encode_recursive_parity_equation
+                                       (ps,qs) ts bs})’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])      
+  >- (SYM_TAC
+      >> irule EXTREAL_SUM_IMAGE_INTER_ELIM
+      >> REVERSE conj_tac                 
+      >- (simp[]
+          >> disj1_tac
+          >> gen_tac >> strip_tac
+          >> Q.UNABBREV_TAC ‘f’
+          >> namedCases_on ‘x’ ["bs', σs', cs_p'"]
+          >> simp[]
+         )
+         EXTREAL_SUM_IMAGE_INTER_NONZERO
+         EXTREAL_SUM_IMAGE_INTER_ELIM
+     )
+  >> Q.UNABBREV_TAC ‘f’ >> Q.UNABBREV_TAC ‘RHS’*)
   (* *)
   >> irule EXTREAL_SUM_IMAGE_CHANGE_SET
   >> rpt conj_tac
@@ -4170,13 +4195,20 @@ Proof
           encoded_noise_probs * systematic_noise_probs
           =
           systematic_node_probs * encoded_node_probs * initial_state_node_prob
-          * state_node_probs : extreal’
+          * state_node_probs : extreal’         
       >>  ‘input_probs * systematic_noise_probs = systematic_node_probs ∧
            initial_state_prob = initial_state_node_prob ∧
-           transition_probs * encoded_probs = state_node_probs ∧
-           encoded_noise_probs = encoded_node_probs
+           (if cs_p = encode_recursive_parity_equation (ps,qs) ts bs
+            then
+              transition_probs * encoded_probs = state_node_probs ∧
+              encoded_noise_probs = encoded_node_probs
+            else
+              encoded_probs = 0 ∧ state_node_probs = 0
+           )
           ’ suffices_by
-        (rpt (pop_assum kall_tac) >> strip_tac >> gvs[AC mul_comm mul_assoc])
+        (Cases_on ‘cs_p = encode_recursive_parity_equation (ps,qs) ts bs’
+         >> simp[]
+         >> rpt (pop_assum kall_tac) >> strip_tac >> gvs[AC mul_comm mul_assoc])
       >> rpt conj_tac
       (* Equivalence of expressions for systematic component *)
       >- (unabbrev_all_tac
@@ -4280,6 +4312,21 @@ Proof
           >> simp[range_def]
           >> simp[event_state_takes_value_def] >> rw[]
          )
+      (* Special case where cs_p is invalid *)
+      >> REVERSE $ Cases_on ‘cs_p =
+                             encode_recursive_parity_equation (ps,qs) ts bs’
+      >- (simp[]
+          >> unabbrev_all_tac
+          >> conj_tac
+          >- (
+           DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input_zero]
+                                    irule EXTREAL_PROD_IMAGE_0
+           >> simp[]
+           )
+          >> cheat
+         )
+      >> simp[]
+      >> conj_tac
       (* Equivalence of expressions for non-initial state components *)
       >- (unabbrev_all_tac
           >> simp[Cong EXTREAL_PROD_IMAGE_CONG,
@@ -4365,7 +4412,6 @@ Proof
       >> simp[sym_noise_mass_func_def]
       >> gvs[mdr_summed_out_values_2_def]
       >> simp[IFF_SYM]
-             
      )
   >> simp[BIJ_IFF_INV]
   >> conj_tac

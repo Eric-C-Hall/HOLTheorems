@@ -80,3 +80,5 @@ val bury_assumption = pop_assum (fn th => bury_asusmption_helper th)
 (* REFL_TAC: solves a = a *)
 
 (* C+S+M++ gives you ⁺. That is, control-shift-alt-plussign*)
+
+(* backslash followed by minus followed by 1 gives you ⁻¹. Using right arrow after the aforementioned gives you ₋₁ *)
