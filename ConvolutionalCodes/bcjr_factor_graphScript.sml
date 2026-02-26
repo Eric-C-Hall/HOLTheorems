@@ -4198,17 +4198,22 @@ Proof
           * state_node_probs : extreal’         
       >>  ‘input_probs * systematic_noise_probs = systematic_node_probs ∧
            initial_state_prob = initial_state_node_prob ∧
-           (if cs_p = encode_recursive_parity_equation (ps,qs) ts bs
+           (if HD σs = ts ∧
+               cs_p = encode_recursive_parity_equation (ps,qs) ts bs
             then
               transition_probs * encoded_probs = state_node_probs ∧
               encoded_noise_probs = encoded_node_probs
             else
-              encoded_probs = 0 ∧ state_node_probs = 0
+              transition_probs * encoded_probs = 0 ∧ state_node_probs = 0 ∨
+              initial_state_prob = 0 ∧ initial_state_node_prob = 0
            )
           ’ suffices_by
-        (Cases_on ‘cs_p = encode_recursive_parity_equation (ps,qs) ts bs’
-         >> simp[]
-         >> rpt (pop_assum kall_tac) >> strip_tac >> gvs[AC mul_comm mul_assoc])
+        (REVERSE $ Cases_on ‘HD σs = ts ∧
+                             cs_p = encode_recursive_parity_equation
+                                    (ps,qs) ts bs’ >> simp[]
+         >- (rpt (pop_assum kall_tac) >> strip_tac >> simp[])
+         >> rpt (pop_assum kall_tac) >> strip_tac >> gvs[AC mul_comm mul_assoc]
+        )
       >> rpt conj_tac
       (* Equivalence of expressions for systematic component *)
       >- (unabbrev_all_tac
@@ -4311,47 +4316,102 @@ Proof
               >> simp[adjacent_rcc_factor_graph])
           >> simp[range_def]
           >> simp[event_state_takes_value_def] >> rw[]
+         )         
+      (* Special case where the head of σs is invalid *)
+      >> REVERSE $ Cases_on ‘HD σs = ts’
+      >- (simp[]
+          >> disj2_tac
+          >> unabbrev_all_tac
+          >> conj_tac
+          >- simp[event_state_takes_value_def]
+          >> irule EXTREAL_PROD_IMAGE_0
+          >> simp[]                 
+          >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
+          >> conj_tac
+          >- (simp[]
+              >> irule SUBSET_FINITE
+              >> qexists ‘IMAGE INR (count (6 * n + 2))’
+              >> simp[SUBSET_DEF]
+             )          
+          >> qmatch_abbrev_tac ‘_ ' (FUN_FMAP _ cur_adj_nodes) = _’
+          >> Q.SUBGOAL_THEN ‘cur_adj_nodes = {INR (2 * n)}’
+              (fn th => PURE_ONCE_REWRITE_TAC[th])
+          >- (Q.UNABBREV_TAC ‘cur_adj_nodes’
+              >> simp[EXTENSION]
+              >> gen_tac
+              >> Cases_on ‘x’ >> gvs[]
+              >> simp[range_def]
+              >> Cases_on ‘y = 2 * n’ >> gvs[]
+              >- simp[adjacent_rcc_factor_graph]
+              >> CCONTR_TAC
+              >> gvs[]
+              >> gvs[adjacent_rcc_factor_graph]
+             )
+          >> qpat_x_assum ‘Abbrev (cur_adj_nodes = _)’ kall_tac
+          >> simp[get_function_map_rcc_factor_graph]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- simp[range_def]
+          >> simp[]
+          >> DEP_PURE_ONCE_REWRITE_TAC[cj 2 FUN_FMAP_DEF]
+          >> conj_tac
+          >- (simp[]
+              >> simp[var_assignments_def]
+              >> simp[cj 2 FUN_FMAP_DEF]
+              >> simp[range_def]
+              >> gvs[mdr_summed_out_values_2_def]
+              >> first_x_assum irule
+              >> Cases_on ‘σs’ >- gvs[]
+              >> simp[]
+             )
+          >> rw[]
+          >> simp[cj 2 FUN_FMAP_DEF]
+          >> simp[range_def]
          )
+         
       (* Special case where cs_p is invalid *)
       >> REVERSE $ Cases_on ‘cs_p =
                              encode_recursive_parity_equation (ps,qs) ts bs’
+                 
       >- (simp[]
-          >> unabbrev_all_tac
-          >> conj_tac
-          >- (
-           DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input_zero]
-                                    irule EXTREAL_PROD_IMAGE_0
-           >> simp[]
-           )
+          >> conj_tac >> unabbrev_all_tac
+          >- (DEP_PURE_ONCE_REWRITE_TAC[extreal_prod_image_state_given_input_zero]
+              >> conj_tac
+              >- (simp[]
+                  >> gvs[mdr_summed_out_values_2_def]
+                 )
+                 irule EXTREAL_PROD_IMAGE_0
+              >> simp[]
+             )
           >> cheat
          )
       >> simp[]
       >> conj_tac
       (* Equivalence of expressions for non-initial state components *)
-      >- (unabbrev_all_tac
-          >> simp[Cong EXTREAL_PROD_IMAGE_CONG,
-                  DRESTRICT_FUN_FMAP]
-          >> qmatch_abbrev_tac ‘_ * _ = prod_to_simplify : extreal’
-          >> sg ‘prod_to_simplify =
-                 ∏ (ARB : unit + num -> extreal)
-                   (IMAGE INR (range (5 * n + 2) (6 * n + 2)))’
-          >- (Q.UNABBREV_TAC ‘prod_to_simplify’
-              >> irule EXTREAL_PROD_IMAGE_EQ
-              >> gen_tac >> strip_tac
-              >> simp[]
-              >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
-              >> conj_tac
-              >- (simp[]
-                  >> irule SUBSET_FINITE
-                  >> qexists ‘IMAGE INR (count (6 * n + 2))’
-                  >> simp[]
-                  >> simp[SUBSET_DEF]
-                 )
-              >> cheat
-             )
-          >> cheat
-         )
-      (* Equivalence of expressions for encoded component.
+       >- (unabbrev_all_tac
+           >> simp[Cong EXTREAL_PROD_IMAGE_CONG,
+                   DRESTRICT_FUN_FMAP]
+           >> qmatch_abbrev_tac ‘_ * _ = prod_to_simplify : extreal’
+           >> sg ‘prod_to_simplify =
+                  ∏ (ARB : unit + num -> extreal)
+                    (IMAGE INR (range (5 * n + 2) (6 * n + 2)))’
+           >- (Q.UNABBREV_TAC ‘prod_to_simplify’
+               >> irule EXTREAL_PROD_IMAGE_EQ
+               >> gen_tac >> strip_tac
+               >> simp[]
+               >> DEP_PURE_ONCE_REWRITE_TAC[DRESTRICT_FUN_FMAP]
+               >> conj_tac
+               >- (simp[]
+                   >> irule SUBSET_FINITE
+                   >> qexists ‘IMAGE INR (count (6 * n + 2))’
+                   >> simp[]
+                   >> simp[SUBSET_DEF]
+                  )
+               >> cheat
+              )
+           >> cheat
+          )
+       (* Equivalence of expressions for encoded component.
          Working based on that used for equivalence of expressions for
          systematic component. *)
          
