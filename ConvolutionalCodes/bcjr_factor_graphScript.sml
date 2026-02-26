@@ -3294,6 +3294,84 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* If two strings are both prefixes of the same string then they are          *)
+(* prefixes of each other, if the lengths work out that way.                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem IS_PREFIX_TRANS_SWAPPED:
+  ∀x y z.
+    x ≼ y ∧
+    z ≼ y ∧
+    LENGTH x ≤ LENGTH z ⇒
+    x ≼ z
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[IS_PREFIX_EQ_TAKE]
+  >> qexists ‘n’
+  >> simp[TAKE_TAKE]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to appropriate location                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem encode_recursive_parity_equation_state_snoc:
+  ∀ps qs ts b bs.
+    encode_recursive_parity_equation_state (ps,qs) ts (SNOC b bs) =
+    encode_recursive_parity_equation_state
+    (ps,qs) (encode_recursive_parity_equation_state (ps,qs) ts bs) [b]
+Proof
+  rpt gen_tac
+  >> simp[SNOC_APPEND, GSYM encode_recursive_parity_equation_state_encode_recursive_parity_equation_state]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to appropriate location                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem encode_recursive_parity_equation_state_sequence_cons:
+  ∀ps qs ts b bs.
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts (b::bs) =
+    ts::encode_recursive_parity_equation_state_sequence
+      (ps,qs) (encode_recursive_parity_equation_state (ps,qs) ts [b]) bs
+Proof
+  rpt gen_tac
+  >> simp[encode_recursive_parity_equation_state_sequence_def,
+          encode_recursive_parity_equation_state_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to appropriate location                                         *)
+(* -------------------------------------------------------------------------- *)        
+Theorem encode_recursive_parity_equation_state_sequence_append:
+  ∀ps qs ts bs1 bs2.
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts (bs1 ++ bs2) =
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts bs1 ++
+    TL (encode_recursive_parity_equation_state_sequence
+        (ps,qs) (encode_recursive_parity_equation_state (ps,qs) ts bs1) bs2)
+Proof
+  Induct_on ‘bs1’
+  >- (rpt gen_tac
+      >> simp[]
+      >> Cases_on ‘bs2’ >> simp[encode_recursive_parity_equation_state_sequence_def]
+     )
+  >> rpt gen_tac
+  >> simp[encode_recursive_parity_equation_state_sequence_cons]
+  >> simp[encode_recursive_parity_equation_state_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: Move to appropriate location                                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem encode_recursive_parity_equation_state_sequence_snoc:
+  ∀ps qs ts b bs.
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts (SNOC b bs) =
+    (encode_recursive_parity_equation_state_sequence (ps,qs) ts bs) ++
+    TL (encode_recursive_parity_equation_state_sequence
+        (ps,qs) (encode_recursive_parity_equation_state (ps,qs) ts bs) [b])
+Proof
+  rpt gen_tac
+  >> simp[SNOC_APPEND, encode_recursive_parity_equation_state_sequence_append]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* The probability of each subsequent step being valid, when comparing the    *)
 (* given choice of σs to the given choice of σs, will be zero if and only if  *)
 (* the overall probability of all the steps combined is zero.                 *)
@@ -3315,9 +3393,7 @@ Theorem extreal_prod_image_state_given_input_zero:
       cond_prob (ecc_bsc_prob_space n m p)
               (event_state_sequence_starts_with n m (ps,qs) ts σs)
               (event_input_string_starts_with n m bs) = 0)
-
 Proof
-
   Induct_on ‘l’
   >- (rpt gen_tac >> rpt disch_tac
       >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
@@ -3514,23 +3590,86 @@ Proof
   >> gvs[event_state_sequence_starts_with_def,
          event_input_string_starts_with_def,
          event_state_takes_value_def,
-         event_input_bit_takes_value_def]
-        
-  >> conj_tac
-  >- (qpat_x_assum ‘FRONT σs ≼ _’ mp_tac
-      >> sg ‘FRONT σs ≼
-             encode_recursive_parity_equation_state_sequence (ps,qs) (HD σs) (FRONT bs2)’
-      >> encode_recursive_parity_equation_state_sequence_prefix_mono
-      >> cheat
+         event_input_bit_takes_value_def]        
+  >> conj_tac     
+  >- (qsuff_tac ‘FRONT σs ≼ encode_recursive_parity_equation_state_sequence
+                 (ps,qs) (HD σs) (FRONT bs) ∧
+                 encode_recursive_parity_equation_state_sequence
+                 (ps,qs) (HD σs) (FRONT bs) ≼
+                 encode_recursive_parity_equation_state_sequence (ps,qs) (HD σs)
+                 (bs ⧺ REPLICATE (LENGTH bs2 − (l + 1)) F)’
+      >- (strip_tac
+          >> irule isPREFIX_TRANS
+          >> qexists ‘encode_recursive_parity_equation_state_sequence
+                      (ps,qs) (HD σs) (FRONT bs)’
+          >> simp[]
+         )
+      >> conj_tac
+      >- (irule IS_PREFIX_TRANS_SWAPPED
+          >> simp[LENGTH_FRONT]
+          >> qexists ‘encode_recursive_parity_equation_state_sequence
+                      (ps,qs) (HD σs) bs2’
+          >> simp[encode_recursive_parity_equation_state_sequence_prefix_mono]
+         )
+      >> irule encode_recursive_parity_equation_state_sequence_prefix_mono
+      >> irule isPREFIX_TRANS
+      >> qexists ‘bs’
+      >> simp[IS_PREFIX_BUTLAST']
      )
-  >> gvs[LAST_EL, PRE_SUB1]
-  >> qpat_assum ‘encode_recursive_parity_equation_state _ _ _ = EL (l + 1) σs’
-                (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  >> simp[TAKE_APPEND, TAKE_LENGTH_TOO_LONG, LAST_EL, PRE_SUB1]
+  (* The second to last element of σs is reached through the process of applying
+     bs2, which matches with the front of bs. The last element is reached
+     through the process of applying the appropriate element of bs3, which
+     starts from the same state as applying the front of bs.
+.
+     1. Rewrite σs[l + 1] as the state reached via bs3
+     2. Break down the state reached via bs3 into all the first steps followed
+        by the last step
+     3. Rewrite all the first steps as σs[l]
+     4. Similarly break down the left hand side into all the first steps of bs
+        followed by the last step of bs
+     5. The first steps of bs matches with σs[l]. The last step of bs matches
+        with the same step of bs3.
+   *)
+  (* Step 1 *)
+  >> qpat_x_assum ‘_ = EL (l + 1) σs’ (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  (* Step 2 *)
+  >> simp[TAKE_EL_SNOC]
+  >> simp[encode_recursive_parity_equation_state_snoc]
+  (* Step 3 (automatically performed already) *)
+  (* Step 4 *)
+  >> Q.SUBGOAL_THEN ‘bs = SNOC (LAST bs) (FRONT bs)’
+      (fn th => simp[Once th, Cong LHS_CONG])
+  >- simp[SNOC_LAST_FRONT]
+  >> simp[encode_recursive_parity_equation_state_snoc]
+  (* Step 5 *)
+  >> simp[LAST_EL, PRE_SUB1]
   >> cong_tac (SOME 1)
-  >> simp[TAKE_APPEND]
-  
-  
-  >> cheat
+  >> simp[FRONT_BY_TAKE]
+  >> simp[GSYM el_encode_recursive_parity_equation_state_sequence]
+  >> Q.SUBGOAL_THEN ‘EL l σs = EL l (FRONT σs)’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[FRONT_EL, LENGTH_FRONT]
+  >> Q.SUBGOAL_THEN
+      ‘EL l (encode_recursive_parity_equation_state_sequence
+             (ps,qs) (HD σs) bs) =
+       EL l (encode_recursive_parity_equation_state_sequence
+             (ps,qs) (HD σs) (FRONT bs))’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (SYM_TAC
+      >> irule is_prefix_el_better
+      >> simp[LENGTH_FRONT]
+      >> irule encode_recursive_parity_equation_state_sequence_prefix_mono
+      >> simp[IS_PREFIX_BUTLAST'])
+  >> irule is_prefix_el_better
+  >> simp[LENGTH_FRONT]
+  >> irule IS_PREFIX_TRANS_SWAPPED
+  >> simp[LENGTH_FRONT]
+  >> qexists ‘encode_recursive_parity_equation_state_sequence
+              (ps,qs) (HD σs) bs2’
+  >> simp[]
+  >> irule encode_recursive_parity_equation_state_sequence_prefix_mono
+  >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
