@@ -144,6 +144,12 @@ val _ = hide "equiv_class"
 (*   (adjacent_is_first_step)                                                 *)
 (*                                                                            *)
 (* exists_path_adjacent_tc                                                    *)
+(*                                                                            *)
+(* TODO: Helpful to prove that a graph is a tree by proving that the number   *)
+(* of edges is one less than the number of nodes (this is an if and only if)  *)
+(* More general: 1 + number of nodes = number of tree + number of edges       *)
+(*                                                                            *)
+(* Number of edges is number of nodes minus one                               *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
