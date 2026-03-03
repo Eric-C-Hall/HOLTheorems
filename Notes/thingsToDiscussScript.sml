@@ -6,6 +6,11 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* The new visuals for EL don't work in the HOL munger
+ \HOLTokenLeftELbracket, \HOLTokenRightELbracket *)
+
+(* ------------------- *)
+
 (* What happened to buildheap? It's no longer present *)
 
 (* How does transferlib work? in particular, xfer_back_tac *)
