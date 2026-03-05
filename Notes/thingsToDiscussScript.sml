@@ -6,8 +6,26 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* I'm not sure what I should be focussing on saying. I'm not sure what my story is *)
+
+(* I'm not sure what is important to a reader. *)
+
+(* Honestly, I feel like the only thing tha ta reader would really care about is:
+   I have formalized such and such an algorithm! here is the code! I'm not sure
+   anyone would be actually interested in the paper itself, because I don't have
+   much to say really *)
+
+(* I'm not sure what to put in my paper. *)
+
+(* The one thing I do appreciate about continuing in this vein is that it has a clear application and a clear story *)
+
+(* Where is the new KNOWLEDGE contributed by me? I have contributed a
+   formalization, but no new knowledge *)
+
 (* The new visuals for EL don't work in the HOL munger
  \HOLTokenLeftELbracket, \HOLTokenRightELbracket *)
+
+(* Treating datatype theorem as definition fails: surely it should be a definition? *)
 
 (* ------------------- *)
 
