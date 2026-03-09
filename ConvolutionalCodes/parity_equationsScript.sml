@@ -7,9 +7,9 @@ Libs dep_rewrite ConseqConv useful_tacticsLib;
 (* logroot: LOG2_LE_MONO *)
 (* numposrep: LENGTH_n2l *)
 
-(* TODO: In many instances, it may be possible to remove or weaken the
-   precondition 0 < MAX_LIST (MAP LENGTH ps) - 1. This is because this
-   precondition has been weakened to 0 < LENGTH ps in the proof of the
+(* TODO: In many instances, it may be possible to remove or
+   weaken the precondition 0 < MAX_LIST (MAP LENGTH ps) - 1. This is because
+   this precondition has been weakened to 0 < LENGTH ps in the proof of the
    well-formedness of the state machine derived from parity equations. This was
    possible due to a weakening of the definition of well-formedness, where we
    no longer require that the transitions from a state arrive at different

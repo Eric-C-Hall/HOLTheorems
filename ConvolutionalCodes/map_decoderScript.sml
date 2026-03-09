@@ -17,6 +17,16 @@ val _ = hide "S";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
+(* Important theorems:                                                        *)
+(* - Blockwise map decoding is equivalent to finding the choice of decoded    *)
+(*   string that minimizes the hamming distance between its encoding and the  *)
+(*   received string (blockwise_map_decoding_hamming)                         *)
+(* -                                                                          *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* We define the generic bitwise MAP decoder, and transform it into a form    *)
 (* which is closer to a factor graph.                                         *)
 (*                                                                            *)
@@ -3420,3 +3430,11 @@ Proof
   >> gvs[]
 QED
  *)
+
+(* TODO: Add this theorem to comment about theorems in this file at the top of
+         this file. *)
+Theorem is_optimal_blockwise_map_decoding_:
+∀n m p bs ds.
+  is_optimal_blockwise_map_decoding enc n m p bs ds
+Proof
+QED

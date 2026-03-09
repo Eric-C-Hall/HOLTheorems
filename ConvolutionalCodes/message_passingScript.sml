@@ -112,11 +112,6 @@ val _ = hide "S";
 (* - adjacent_nodes_delete_comprehension                                      *)
 (* -------------------------------------------------------------------------- *)
 
-
-(* -------------------------------------------------------------------------- *)
-(* TODO: Consider moving generalised distributive law into its own file?      *)
-(* -------------------------------------------------------------------------- *)
-
 (* -------------------------------------------------------------------------- *)
 (* The code in obsolete_message_passing seems relatively useful: it allows    *)
 (* for a more computational and less mathematical perspective on message      *)
