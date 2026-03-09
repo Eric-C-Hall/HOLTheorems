@@ -6,7 +6,14 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
-(* TODO:  *)
+(* Discuss my notation for paths in a tree *)
+
+(* I don't like the duplication between the HOL4 code and the English
+ language explanation of what the HOL4 code means *)
+
+(* Is there a better way to print an overload? See event_universal *)
+
+(* TODO: replace <<<was interrupted, forgot what I was going to write here>>> *)
 
 (* ----------------------------------------------------------------------- *)
 

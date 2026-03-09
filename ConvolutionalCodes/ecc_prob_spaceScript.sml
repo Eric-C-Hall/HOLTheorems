@@ -10,6 +10,8 @@ val _ = hide "S";
 
 Overload length_n_codes = “λn. {c : bool list | LENGTH c = n}”;
 
+(* TODO: Should I move event definitions to this file? *)
+
 (* -------------------------------------------------------------------------- *)
 (* A uniform distribution on the possible binary strings of length n.         *)
 (*                                                                            *)
