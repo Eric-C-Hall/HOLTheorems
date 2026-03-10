@@ -6,6 +6,11 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* I feel like there is no amount of work that can make me happy with my
+   paper because on some fundamental level it's not something that I'm happy
+   with. I'm not happy with it, but I'm also not sure how to make it into
+   something that I am happy with. *)
+
 (* Discuss my notation for paths in a tree *)
 
 (* I don't like the duplication between the HOL4 code and the English

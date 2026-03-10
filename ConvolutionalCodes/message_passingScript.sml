@@ -591,9 +591,14 @@ Definition sum_prod_def:
 End
 
 (* -------------------------------------------------------------------------- *)
-(* A finite map corresponding to sum_prod which takes a specific value for    *)
-(* the excluded node and returns the sum_prod when the excluded node takes    *)
-(* that value.                                                                *)
+(* A map which takes as input a map from the excluded nodes to the specific   *)
+(* values taken by those excluded nodes, and returns the sum of products of   *)
+(* a particular set of nodes when the excluded nodes are fixed to those       *)
+(* specific values.                                                           *)
+(*                                                                            *)
+(* - fg: the factor graph                                                     *)
+(* - ns: the nodes to take the sum of products over                           *)
+(* - excl_nodes: the nodes which have fixed values in the sum of products.    *)
 (* -------------------------------------------------------------------------- *)
 Definition sum_prod_map_def:
   sum_prod_map fg ns excl_nodes =
