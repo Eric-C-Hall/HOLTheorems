@@ -3433,8 +3433,8 @@ QED
 
 (* TODO: Add this theorem to comment about theorems in this file at the top of
          this file. *)
-Theorem is_optimal_blockwise_map_decoding_:
+(*Theorem is_optimal_blockwise_map_decoding_:
 ∀n m p bs ds.
   is_optimal_blockwise_map_decoding enc n m p bs ds
 Proof
-QED
+QED*)
