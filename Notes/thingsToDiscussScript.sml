@@ -6,10 +6,10 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
-(* I feel like there is no amount of work that can make me happy with my
-   paper because on some fundamental level it's not something that I'm happy
-   with. I'm not happy with it, but I'm also not sure how to make it into
-   something that I am happy with. *)
+(* I installed drivers again: this time it worked without breaking my
+   computer! Now it can see my computer. *)
+
+(* ----------------------------------------------------------------------- *)
 
 (* Discuss my notation for paths in a tree *)
 
