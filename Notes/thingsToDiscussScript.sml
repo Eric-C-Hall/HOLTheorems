@@ -6,6 +6,12 @@ Ancestors extreal probability
 
 Libs dep_rewrite;
 
+(* Unsure how to clearly show operation of convolutional code in diagram without time dimension
+
+ Still unclear that 3 parity equations are being applied: reader could think that only $c_{13}$ is being produced in this step, rather than $c_{12}, c_{13}$ and $c_{14}$ *)
+
+(* ----------------------------------------------------------------------- *)
+
 (* I installed drivers again: this time it worked without breaking my
    computer! Now it can see my computer. *)
 
