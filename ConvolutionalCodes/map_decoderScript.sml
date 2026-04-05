@@ -3105,10 +3105,37 @@ Proof
   >> CCONTR_TAC >> gvs[]
 QED
 
+Theorem one_minus_one_half[simp]:
+  1 - 1 / 2 = 1 / 2 : extreal
+Proof
+  simp[SF EXTREAL_NORMFRAG_SS]
+QED
+
+Theorem compl_lt_half:
+  ∀p : extreal.
+    p < 1 / 2 ⇔ 1 / 2 < 1 - p
+Proof
+  simp[SF EXTREAL_NORMFRAG_SS]
+  >> rpt gen_tac
+  >> simp[REAL_SUB_LDISTRIB]
+  >> simp[REAL_LT_SUB_LADD]
+  >> PURE_ONCE_REWRITE_TAC[REAL_ADD_COMM]
+  >> simp[GSYM REAL_LT_SUB_LADD]
+QED
+
+Theorem lt_compl_iff:
+  ∀p : extreal.
+    p < 1 - p ⇔ p < 1 / 2
+Proof
+  simp[SF EXTREAL_NORMFRAG_SS]
+  >> rpt gen_tac
+  >> simp[REAL_LT_SUB_LADD, REAL_DOUBLE]
+QED
+
 Theorem blockwise_map_decoding_hamming:
   ∀enc n m p bs ds.
     0 < p ∧ p < 1 ∧
-    p < 1 - p ∧
+    p < 1 / 2 ∧
     LENGTH bs = n ∧
     LENGTH ds = m ∧
     (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
@@ -3122,6 +3149,8 @@ Proof
   rw[]
   (* More useful expression for probabilities *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
+  (* *)
+  >> drule_then assume_tac (iffRL lt_compl_iff)
   (* Expand out definitions *)
   >> gvs[is_optimal_blockwise_map_decoding_def]
   >> gvs[prob_input_string_given_received_string_def]
