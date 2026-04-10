@@ -241,7 +241,7 @@ End
 (*                 o cp_0            o cp_1                     o cp_{n-1}    *)
 (*                 |                 |                          |             *)
 (*                 #                 #                          #             *)
-(*            P(dp_0|cp_0)        P(cp_1|b_1)             P(cp_{n-1}|b_{n-1}) *)
+(*            P(dp_0|cp_0)      P(dp_1|cp_1)           P(dp_{n-1}|cp_{n-1})   *)
 (*                                                                            *)
 (*                                                                            *)
 (* The following ranges are inclusive:                                        *)
