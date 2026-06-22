@@ -65,7 +65,6 @@ QED
 (* Where we output a probability space, denoting the distribution over output *)
 (* bits                                                                       *)
 (* -------------------------------------------------------------------------- *)
-<<<<<<< HEAD
 Definition wf_binary_discrete_memoryless_channel_def:
   wf_binary_discrete_memoryless_channel (W : bool -> α m_space) = ∀b. prob_space (W b)
 End
@@ -75,17 +74,6 @@ Theorem wf_binary_discrete_memoryless_channels_exist[local]:
 Proof  
   qexists ‘λb. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
   >> simp[wf_binary_discrete_memoryless_channel_def]
-=======
-Definition wf_bdmc_def:
-  wf_bdmc (W : bool -> α m_space) = ∀b. prob_space (W b)
-End
-
-Theorem wf_bdmcs_exist[local]:
-  ∃x. wf_bdmc x
-Proof  
-  qexists ‘λb. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
-  >> simp[wf_bdmc_def]
->>>>>>> 2e72d257dbf6ebb9c5f74e4432bc743693ec26ba
   >> simp[prob_space_def]
   >> simp[measure_space_def]
   >> rpt conj_tac         
@@ -227,7 +215,8 @@ Proof
 QED
 
 Definition binary_erasure_channel_def:
-  binary_erasure_channel p : binary_discrete_memoryless_channel = 
+  binary_erasure_channel p : binary_discrete_memoryless_channel =
+  
 End
 
 Definition binary_symmetric_channel_def:
