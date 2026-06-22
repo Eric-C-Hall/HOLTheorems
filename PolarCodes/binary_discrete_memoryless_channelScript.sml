@@ -65,6 +65,7 @@ QED
 (* Where we output a probability space, denoting the distribution over output *)
 (* bits                                                                       *)
 (* -------------------------------------------------------------------------- *)
+<<<<<<< HEAD
 Definition wf_binary_discrete_memoryless_channel_def:
   wf_binary_discrete_memoryless_channel (W : bool -> α m_space) = ∀b. prob_space (W b)
 End
@@ -74,6 +75,17 @@ Theorem wf_binary_discrete_memoryless_channels_exist[local]:
 Proof  
   qexists ‘λb. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
   >> simp[wf_binary_discrete_memoryless_channel_def]
+=======
+Definition wf_bdmc_def:
+  wf_bdmc (W : bool -> α m_space) = ∀b. prob_space (W b)
+End
+
+Theorem wf_bdmcs_exist[local]:
+  ∃x. wf_bdmc x
+Proof  
+  qexists ‘λb. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
+  >> simp[wf_bdmc_def]
+>>>>>>> 2e72d257dbf6ebb9c5f74e4432bc743693ec26ba
   >> simp[prob_space_def]
   >> simp[measure_space_def]
   >> rpt conj_tac         
@@ -183,8 +195,7 @@ QED
 Theorem RDOM_binary_discrete_memoryless_channel_AR[transfer_simp]:
   RDOM binary_discrete_memoryless_channel_AR = {gr | wf_binary_discrete_memoryless_channel gr}
 Proof
-  simp[relationTheory.RDOM_DEF, Once FUN_EQ_THM, binary_discrete_memoryless_channel_AR_def, SF CONJ_ss,
-       #termP_term_REP tydefrec] >>
+  simp[relationTheory.RDOM_DEF, Once FUN_EQ_THM, binary_discrete_memoryless_channel_AR_def, SF CONJ_ss, #termP_term_REP tydefrec] >>
   metis_tac[#termP_term_REP tydefrec, #repabs_pseudo_id tydefrec]
 QED
 
@@ -196,8 +207,7 @@ Theorem Qt_binary_discrete_memoryless_channel[liftQt]:
 Proof
   simp[Qt_alt, binary_discrete_memoryless_channel_AR_def, #absrep_id tydefrec, binary_discrete_memoryless_channelequiv_def, #termP_term_REP tydefrec] >>
   simp[SF CONJ_ss, #term_ABS_pseudo11 tydefrec] >>
-  simp[SF CONJ_ss, FUN_EQ_THM, binary_discrete_memoryless_channel_AR_def, #termP_term_REP tydefrec,
-       CONJ_COMM]
+  simp[SF CONJ_ss, FUN_EQ_THM, binary_discrete_memoryless_channel_AR_def, #termP_term_REP tydefrec, CONJ_COMM]
   (* Because our representation type is a function, FUN_EQ_THM was accidentally
      applied to the function, breaking the old working from genericGraphScript.
      So I patch it up here by unapplying FUN_EQ_THM where it isn't needed. *)
@@ -223,7 +233,5 @@ End
 Definition binary_symmetric_channel_def:
   binary_symmetric_channel
 End
-
-
 
 
