@@ -66,7 +66,9 @@ QED
 (* bits                                                                       *)
 (* -------------------------------------------------------------------------- *)
 Definition wf_binary_memoryless_channel_def:
-  wf_binary_memoryless_channel (W : bool -> α m_space) = ∀b. prob_space (W b)
+  wf_binary_memoryless_channel (W : bool -> α m_space) =
+  (∀b. measurable_sets (W b) = POW (m_space (W b)) ∧
+       prob_space (W b))
 End
 
 Theorem wf_binary_memoryless_channels_exist[local]:
@@ -74,6 +76,15 @@ Theorem wf_binary_memoryless_channels_exist[local]:
 Proof  
   qexists ‘λb. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
   >> simp[wf_binary_memoryless_channel_def]
+  >> conj_tac
+  >- (simp[POW_DEF, EXTENSION]
+      >> gen_tac >> EQ_TAC >> strip_tac
+      >- (Cases_on ‘x’ >> gvs[] >> metis_tac[])
+      >- (Cases_on ‘x’ >> gvs[]
+          >> Cases_on ‘t’ >> gvs[]
+          >> Cases_on ‘t'’ >> gvs[]
+          >> metis_tac[])
+      >> Cases_on ‘x’ >> gvs[])
   >> simp[prob_space_def]
   >> simp[measure_space_def]
   >> rpt conj_tac         
@@ -93,10 +104,10 @@ Proof
       >> Cases_on ‘c’ >> gvs[]
       >> Cases_on ‘t’ >> gvs[]     
       >> Cases_on ‘t'’ >> gvs[]
-     >- (last_assum $ qspec_then ‘x'’ assume_tac
-         >> last_x_assum $ qspec_then ‘x’ assume_tac
-         >> gvs[]
-        )
+      >- (last_assum $ qspec_then ‘x'’ assume_tac
+          >> last_x_assum $ qspec_then ‘x’ assume_tac
+          >> gvs[]
+         )
       (* We have 3 distinct elements, but {∅;{ARB}} only has 2 *)
       >> last_assum $ qspec_then ‘x’ assume_tac
       >> last_assum $ qspec_then ‘x'’ assume_tac
