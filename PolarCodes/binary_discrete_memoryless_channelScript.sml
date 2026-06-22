@@ -54,9 +54,9 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* A binary discrete memoryless channel                                       *)
+(* A binary memoryless channel                                                *)
 (* - Takes a bit as input                                                     *)
-(* - Returns a discrete value (with type α) as output                         *)
+(* - Returns a value of type α as output                                      *)
 (* - For each input bit, the distribution over output bits is a probability   *)
 (*   distribution.                                                            *)
 (*                                                                            *)
@@ -65,15 +65,15 @@ QED
 (* Where we output a probability space, denoting the distribution over output *)
 (* bits                                                                       *)
 (* -------------------------------------------------------------------------- *)
-Definition wf_binary_discrete_memoryless_channel_def:
-  wf_binary_discrete_memoryless_channel (W : bool -> α m_space) = ∀b. prob_space (W b)
+Definition wf_binary_memoryless_channel_def:
+  wf_binary_memoryless_channel (W : bool -> α m_space) = ∀b. prob_space (W b)
 End
 
-Theorem wf_binary_discrete_memoryless_channels_exist[local]:
-  ∃x. wf_binary_discrete_memoryless_channel x
+Theorem wf_binary_memoryless_channels_exist[local]:
+  ∃x. wf_binary_memoryless_channel x
 Proof  
   qexists ‘λb. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
-  >> simp[wf_binary_discrete_memoryless_channel_def]
+  >> simp[wf_binary_memoryless_channel_def]
   >> simp[prob_space_def]
   >> simp[measure_space_def]
   >> rpt conj_tac         
@@ -117,10 +117,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Create new abstract type consisting of well-formed state machines          *)
 (* -------------------------------------------------------------------------- *)
-val tydefrec = newtypeTools.rich_new_type { tyname = "binary_discrete_memoryless_channel",
-exthm  = wf_binary_discrete_memoryless_channels_exist,
-ABS = "binary_discrete_memoryless_channel_ABS",
-REP = "binary_discrete_memoryless_channel_REP"};
+val tydefrec = newtypeTools.rich_new_type { tyname = "binary_memoryless_channel",
+exthm  = wf_binary_memoryless_channels_exist,
+ABS = "binary_memoryless_channel_ABS",
+REP = "binary_memoryless_channel_REP"};
 
 (* -------------------------------------------------------------------------- *)
 (* Something used in the lifting process, not sure about the details.         *)
@@ -129,79 +129,79 @@ REP = "binary_discrete_memoryless_channel_REP"};
 (* their abstract counterpart: thus, non-well-formed state machines are not   *)
 (* equivalent, as they cannot be considered to be their abstract counterpart  *)
 (* -------------------------------------------------------------------------- *)
-Definition binary_discrete_memoryless_channelequiv_def:
-  binary_discrete_memoryless_channelequiv m1 m2 ⇔ m1 = m2 ∧ wf_binary_discrete_memoryless_channel m2
+Definition binary_memoryless_channelequiv_def:
+  binary_memoryless_channelequiv m1 m2 ⇔ m1 = m2 ∧ wf_binary_memoryless_channel m2
 End
 
 (* -------------------------------------------------------------------------- *)
 (* A relation which relates a well-formed representative of a state machine   *)
 (* to its corresponding abstract value.                                       *)
 (* -------------------------------------------------------------------------- *)
-Definition binary_discrete_memoryless_channel_AR_def:
-  binary_discrete_memoryless_channel_AR r a ⇔ wf_binary_discrete_memoryless_channel r ∧ r = binary_discrete_memoryless_channel_REP a
+Definition binary_memoryless_channel_AR_def:
+  binary_memoryless_channel_AR r a ⇔ wf_binary_memoryless_channel r ∧ r = binary_memoryless_channel_REP a
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem binary_discrete_memoryless_channel_relates[transfer_rule]:
-  (binary_discrete_memoryless_channel_AR ===> (=)) wf_binary_discrete_memoryless_channel (K T)
+Theorem binary_memoryless_channel_relates[transfer_rule]:
+  (binary_memoryless_channel_AR ===> (=)) wf_binary_memoryless_channel (K T)
 Proof
-  simp[FUN_REL_def, binary_discrete_memoryless_channel_AR_def]
+  simp[FUN_REL_def, binary_memoryless_channel_AR_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem binary_discrete_memoryless_channel_AReq_relates[transfer_rule]:
-  (binary_discrete_memoryless_channel_AR ===> binary_discrete_memoryless_channel_AR ===> (=)) (=) (=)
+Theorem binary_memoryless_channel_AReq_relates[transfer_rule]:
+  (binary_memoryless_channel_AR ===> binary_memoryless_channel_AR ===> (=)) (=) (=)
 Proof
-  simp[binary_discrete_memoryless_channel_AR_def, FUN_REL_def, #termP_term_REP tydefrec, #term_REP_11 tydefrec]
+  simp[binary_memoryless_channel_AR_def, FUN_REL_def, #termP_term_REP tydefrec, #term_REP_11 tydefrec]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem right_unique_binary_discrete_memoryless_channel_AR[transfer_simp]:
-  right_unique binary_discrete_memoryless_channel_AR
+Theorem right_unique_binary_memoryless_channel_AR[transfer_simp]:
+  right_unique binary_memoryless_channel_AR
 Proof
-  simp[right_unique_def, binary_discrete_memoryless_channel_AR_def, #term_REP_11 tydefrec]
+  simp[right_unique_def, binary_memoryless_channel_AR_def, #term_REP_11 tydefrec]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem surj_binary_discrete_memoryless_channel_AR[transfer_simp]:
-  surj binary_discrete_memoryless_channel_AR
+Theorem surj_binary_memoryless_channel_AR[transfer_simp]:
+  surj binary_memoryless_channel_AR
 Proof
-  simp[surj_def, binary_discrete_memoryless_channel_AR_def, #termP_term_REP tydefrec]
+  simp[surj_def, binary_memoryless_channel_AR_def, #termP_term_REP tydefrec]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem RDOM_binary_discrete_memoryless_channel_AR[transfer_simp]:
-  RDOM binary_discrete_memoryless_channel_AR = {gr | wf_binary_discrete_memoryless_channel gr}
+Theorem RDOM_binary_memoryless_channel_AR[transfer_simp]:
+  RDOM binary_memoryless_channel_AR = {gr | wf_binary_memoryless_channel gr}
 Proof
-  simp[relationTheory.RDOM_DEF, Once FUN_EQ_THM, binary_discrete_memoryless_channel_AR_def, SF CONJ_ss, #termP_term_REP tydefrec] >>
+  simp[relationTheory.RDOM_DEF, Once FUN_EQ_THM, binary_memoryless_channel_AR_def, SF CONJ_ss, #termP_term_REP tydefrec] >>
   metis_tac[#termP_term_REP tydefrec, #repabs_pseudo_id tydefrec]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem Qt_binary_discrete_memoryless_channel[liftQt]:
-  Qt binary_discrete_memoryless_channelequiv binary_discrete_memoryless_channel_ABS binary_discrete_memoryless_channel_REP binary_discrete_memoryless_channel_AR
+Theorem Qt_binary_memoryless_channel[liftQt]:
+  Qt binary_memoryless_channelequiv binary_memoryless_channel_ABS binary_memoryless_channel_REP binary_memoryless_channel_AR
 Proof
-  simp[Qt_alt, binary_discrete_memoryless_channel_AR_def, #absrep_id tydefrec, binary_discrete_memoryless_channelequiv_def, #termP_term_REP tydefrec] >>
+  simp[Qt_alt, binary_memoryless_channel_AR_def, #absrep_id tydefrec, binary_memoryless_channelequiv_def, #termP_term_REP tydefrec] >>
   simp[SF CONJ_ss, #term_ABS_pseudo11 tydefrec] >>
-  simp[SF CONJ_ss, FUN_EQ_THM, binary_discrete_memoryless_channel_AR_def, #termP_term_REP tydefrec, CONJ_COMM]
+  simp[SF CONJ_ss, FUN_EQ_THM, binary_memoryless_channel_AR_def, #termP_term_REP tydefrec, CONJ_COMM]
   (* Because our representation type is a function, FUN_EQ_THM was accidentally
      applied to the function, breaking the old working from genericGraphScript.
      So I patch it up here by unapplying FUN_EQ_THM where it isn't needed. *)
   >> rpt gen_tac
   >> simp[GSYM FUN_EQ_THM]
-  >> ‘c = (λx. binary_discrete_memoryless_channel_REP a x) ⇔ c = binary_discrete_memoryless_channel_REP a’ by simp[FUN_EQ_THM]
+  >> ‘c = (λx. binary_memoryless_channel_REP a x) ⇔ c = binary_memoryless_channel_REP a’ by simp[FUN_EQ_THM]
   >> simp[]
   >> pop_assum kall_tac
   (* Continue with old working *)
@@ -214,9 +214,26 @@ Proof
   >> simp[#repabs_pseudo_id tydefrec]
 QED
 
+Datatype:
+  erasure_bit = E_T | E_F | Erasure
+End
+
+Definition bool_to_erasure_bit_def:
+  bool_to_erasure_bit b = if b then E_T else E_F
+End
+
 Definition binary_erasure_channel_def:
-  binary_erasure_channel p : binary_discrete_memoryless_channel =
-  
+  binary_erasure_channel p : erasure_bit binary_memoryless_channel =
+  binary_memoryless_channel_ABS
+  (λinput.
+     (𝕌(:erasure_bit),
+      POW (𝕌(:erasure_bit)),
+      EXTREAL_SUM_IMAGE (λoutput. if output = Erasure
+                                  then p
+                                  else
+                                    if output = bool_to_erasure_bit input
+                                    then 1 - p
+                                    else 0)))
 End
 
 Definition binary_symmetric_channel_def:
