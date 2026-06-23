@@ -252,7 +252,7 @@ Definition binary_erasure_channel_def:
 End
 
 Definition binary_symmetric_channel_rep_def:
-  binary_symmetric_channel_rep (p : extreal) : bool binary_memoryless_channel =
+  binary_symmetric_channel_rep (p : extreal) : bool -> bool m_space =
   (λinput.
      (𝕌(:bool),
       POW (𝕌(:bool)),
