@@ -4,12 +4,14 @@ Theory binary_discrete_memoryless_channel
 
 Ancestors arithmetic lifting pred_set measure sigma_algebra transfer probability
 
-Libs liftLib transferLib;
+Libs dep_rewrite liftLib transferLib;
 
 (* -------------------------------------------------------------------------- *)
 (* Possible improvement: extract this to library                              *)
+(*                                                                            *)
+(* See also: probabilityTheory.prob_on_finite_set                             *)
 (* -------------------------------------------------------------------------- *)
-Theorem finite_countably_additive_finite_additive:
+(*Theorem finite_countably_additive_finite_additive:
   ∀m.
     FINITE (m_space m) ∧
     positive m ∧
@@ -30,12 +32,14 @@ Proof
   >> gvs[FUNSET]
   >> cheat (* TODO Ask Chun *)
   
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Possible improvement: extract this to library                              *)
+(*                                                                            *)
+(* See also: probabilityTheory.prob_on_finite_set                             *)
 (* -------------------------------------------------------------------------- *)
-Theorem finite_countably_additive:
+(*Theorem finite_countably_additive:
   ∀m.
     FINITE (m_space m) ∧
     (∀S T. S ∈ measurable_sets m ∧
@@ -51,7 +55,7 @@ Proof
   >> gen_tac >> strip_tac
   
   >> cheat (* TODO Ask Chun *)
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* A binary memoryless channel                                                *)
@@ -73,11 +77,12 @@ End
 
 Theorem wf_binary_memoryless_channels_exist[local]:
   ∃x. wf_binary_memoryless_channel x
-Proof  
+Proof   
   qexists ‘λb. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
   >> simp[wf_binary_memoryless_channel_def]
-  >> conj_tac
-  >- (simp[POW_DEF, EXTENSION]
+  >> sg ‘POW {ARB} = {∅; {ARB}}’
+  >- (irule EQ_SYM
+      >> simp[POW_DEF, EXTENSION]
       >> gen_tac >> EQ_TAC >> strip_tac
       >- (Cases_on ‘x’ >> gvs[] >> metis_tac[])
       >- (Cases_on ‘x’ >> gvs[]
@@ -85,44 +90,46 @@ Proof
           >> Cases_on ‘t'’ >> gvs[]
           >> metis_tac[])
       >> Cases_on ‘x’ >> gvs[])
-  >> simp[prob_space_def]
-  >> simp[measure_space_def]
-  >> rpt conj_tac         
-  >- (simp[sigma_algebra_def]
-      >> conj_tac         
-      >- (simp[algebra_def]
-          >> rpt conj_tac
-          >- (simp[subset_class_def]
-              >> gen_tac >> disch_tac
-              >> gvs[])
-          >> rpt gen_tac
-          >> disch_tac
-          >> gvs[]
-         )
-      >> rpt strip_tac
-      >> gvs[SUBSET_DEF]
-      >> Cases_on ‘c’ >> gvs[]
-      >> Cases_on ‘t’ >> gvs[]     
-      >> Cases_on ‘t'’ >> gvs[]
-      >- (last_assum $ qspec_then ‘x'’ assume_tac
-          >> last_x_assum $ qspec_then ‘x’ assume_tac
-          >> gvs[]
-         )
-      (* We have 3 distinct elements, but {∅;{ARB}} only has 2 *)
-      >> last_assum $ qspec_then ‘x’ assume_tac
-      >> last_assum $ qspec_then ‘x'’ assume_tac
-      >> last_x_assum $ qspec_then ‘x''’ assume_tac
-      >> gvs[]
-     )
+  >> simp[]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_on_finite_set]
+  >> simp[]
+  >> rpt conj_tac
   >- (simp[positive_def]
       >> gen_tac
-      >> disch_tac
+      >> Cases_on ‘s’ >> gvs[])
+  >- rw[prob_def, p_space_def]
+  >> simp[additive_def]
+  >> rpt gen_tac
+  >> Cases_on ‘s’ >> simp[]
+  >> REVERSE $ Cases_on ‘x = ARB’
+  >- (sg ‘x INSERT t' ≠ {ARB}’
+      >- (CCONTR_TAC >> gvs[]
+          >> sg ‘x ∈ {ARB}’
+          >- ASM_SET_TAC[]
+          >> gvs[])
+      >> simp[]
+     )
+  >> simp[]
+  >> REVERSE $ Cases_on ‘t'’
+  >- (Cases_on ‘x' = ARB’
+      >- (‘F’ suffices_by strip_tac >> gvs[])
+      >> sg ‘ARB INSERT x' INSERT t'' ≠ {ARB}’
+      >- (simp[EXTENSION]
+          >> qexists ‘x'’
+          >> simp[])
+      >> simp[]
+     )
+  >> simp[]
+  >> Cases_on ‘t’ >> simp[]
+  >> strip_tac
+  >> ‘F’ suffices_by strip_tac
+  >> sg ‘x' = ARB’
+  >- (pop_assum mp_tac
+      >> rpt $ pop_assum kall_tac
+      >> simp[EXTENSION]
+      >> disch_then $ qspec_then ‘x'’ assume_tac
       >> gvs[])
-  >> irule finite_countably_additive
-  >> REVERSE conj_tac
-  >- simp[]
-  >> rpt gen_tac >> strip_tac
-  >> gvs[]
+  >> simp[]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -264,15 +271,24 @@ Definition binary_symmetric_channel_rep_def:
   )
 End
 
+uniform_distribution_prob_space
+
 Definition binary_symmetric_channel_def:
   binary_symmetric_channel p : bool binary_memoryless_channel =
   binary_memoryless_channel_ABS (binary_symmetric_channel_rep p)
 End
 
-
 Theorem wf_binary_erasure_channel:
-
+  ∀p.
+    wf_binary_memoryless_channel (binary_symmetric_channel_rep p)
 Proof
+
+  gen_tac
+  >> simp[wf_binary_memoryless_channel_def]
+  >> gen_tac >> strip_tac
+  >> simp[binary_symmetric_channel_rep_def]
+  >> sim
+  
 QED
 
 
