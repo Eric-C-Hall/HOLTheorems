@@ -1,10 +1,11 @@
+
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 Theory binary_discrete_memoryless_channel
 
-Ancestors arithmetic lifting pred_set measure sigma_algebra transfer probability
+Ancestors arithmetic extreal lifting pred_set real measure sigma_algebra transfer probability
 
-Libs dep_rewrite liftLib transferLib;
+Libs dep_rewrite liftLib transferLib realLib;
 
 (* -------------------------------------------------------------------------- *)
 (* Possible improvement: extract this to library                              *)
@@ -271,25 +272,86 @@ Definition binary_symmetric_channel_rep_def:
   )
 End
 
-uniform_distribution_prob_space
-
 Definition binary_symmetric_channel_def:
   binary_symmetric_channel p : bool binary_memoryless_channel =
   binary_memoryless_channel_ABS (binary_symmetric_channel_rep p)
 End
 
+(* mathcal_2 represents {T;F} *)
+Theorem POW_mathcal_2:
+  POW 𝟚 = {∅; {T}; {F}; {T; F}}
+Proof
+  simp[EXTENSION]
+  >> gen_tac
+  >> simp[POW_DEF, SUBSET_DEF]
+  >> Cases_on ‘x’ >> simp[]
+  >> Cases_on ‘x'’ >> simp[]
+  >> (Cases_on ‘t’ >> simp[]
+      >> Cases_on ‘x’ >> simp[]
+      >> ASM_SET_TAC[])
+QED
+
+Theorem finite_mathcal_2:
+  FINITE 𝟚
+Proof
+  simp[]
+QED
+
 Theorem wf_binary_erasure_channel:
   ∀p.
+    0 ≤ p ∧ p ≤ 1 ⇒
     wf_binary_memoryless_channel (binary_symmetric_channel_rep p)
 Proof
-
-  gen_tac
+  gen_tac >> strip_tac
+  >> Cases_on ‘p’ >> gvs[]
   >> simp[wf_binary_memoryless_channel_def]
   >> gen_tac >> strip_tac
   >> simp[binary_symmetric_channel_rep_def]
-  >> sim
-  
+  >> simp[prob_space_def]
+  >> REVERSE conj_tac
+  >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
+      >> sg ‘(∀x. f x ≠ +∞)’
+      >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
+          >> irule (cj 2 sub_not_infty)
+          >> simp[])
+      >> simp[EXTREAL_SUM_IMAGE_INSERT]
+      >> simp[DELETE_NON_ELEMENT_RWT]
+      >> Q.UNABBREV_TAC ‘f’
+      >> simp[]
+      >> rw[]
+      >> simp[sub_add2]
+     )
+  >> irule finite_additivity_sufficient_for_finite_spaces2
+  >> simp[m_space_def]
+  >> rpt conj_tac         
+  >- (simp[additive_def]
+      >> rpt gen_tac >> strip_tac
+      >> sg ‘FINITE s ∧ FINITE t’
+      >- (gvs[POW_DEF]
+          >> metis_tac[SUBSET_FINITE, finite_mathcal_2])
+      >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
+      >> conj_tac
+      >- (simp[]
+          >> disj2_tac
+          >> gen_tac >> strip_tac
+          >> rw[]
+          >> irule (cj 2 sub_not_infty)
+          >> simp[])
+      >> rw[]
+      >> irule (cj 2 sub_not_infty)
+      >> simp[]
+     )
+  >- (simp[positive_def]
+      >> gen_tac >> strip_tac
+      >> irule EXTREAL_SUM_IMAGE_POS
+      >> gvs[POW_DEF]
+      >> REVERSE conj_tac
+      >- metis_tac[SUBSET_FINITE, finite_mathcal_2]
+      >> gen_tac >> strip_tac
+      >> rw[]
+      >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
+      >> simp[REAL_SUB_LE]
+     )
+  >> irule POW_SIGMA_ALGEBRA             
 QED
-
-
 

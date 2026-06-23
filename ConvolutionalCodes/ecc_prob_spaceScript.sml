@@ -13,6 +13,17 @@ Overload length_n_codes = “λn. {c : bool list | LENGTH c = n}”;
 (* TODO: Should I move event definitions to this file? *)
 
 (* -------------------------------------------------------------------------- *)
+(* TODO: make general theorem that helps us to prove that a finite            *)
+(* probability space is a probability space, without having to prove          *)
+(* countable additivity, because only finite additivity is necessary in the   *)
+(* case of a finite space, and it is much simpler to work with.               *)
+(*                                                                            *)
+(* This should be based on the way I prove that the noise probability space   *)
+(* is a probability space. Perhaps replace prob_space_on_finite_set, which    *)
+(* only works with the uniform distribution on finite sets?                   *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* A uniform distribution on the possible binary strings of length n.         *)
 (*                                                                            *)
 (* We expect the initial message that was sent to have this kind of           *)
