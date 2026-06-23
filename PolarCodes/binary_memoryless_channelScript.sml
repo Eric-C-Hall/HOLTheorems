@@ -1,4 +1,3 @@
-
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
 Theory binary_discrete_memoryless_channel
@@ -297,7 +296,79 @@ Proof
   simp[]
 QED
 
+Theorem UNIV_ERASURE_BIT[simp]:
+  𝕌(:erasure_bit) = {E_T;E_F;Erasure}
+Proof
+  simp[EXTENSION]
+  >> gen_tac
+  >> Cases_on ‘x’ >> simp[]
+QED
+
+Theorem FINITE_UNIV_ERASURE_BIT:
+  FINITE (𝕌(:erasure_bit))
+Proof
+  simp[]
+QED
+
+Theorem FINITE_UNIV_ERASURE_BIT_ALT:
+  FINITE {E_T;E_F;Erasure}
+Proof
+  simp[]
+QED
+
 Theorem wf_binary_erasure_channel:
+  ∀p.
+    0 ≤ p ∧ p ≤ 1 ⇒
+    wf_binary_memoryless_channel (binary_erasure_channel_rep p)
+Proof  
+  gen_tac >> strip_tac
+  >> Cases_on ‘p’ >> gvs[]
+  >> simp[wf_binary_memoryless_channel_def]
+  >> gen_tac >> strip_tac >> simp[binary_erasure_channel_rep_def]
+  >> simp[prob_space_def]
+  >> REVERSE conj_tac             
+  >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
+      >> sg ‘(∀x. f x ≠ +∞)’
+      >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
+          >> irule (cj 2 sub_not_infty)
+          >> simp[])
+      >> simp[EXTREAL_SUM_IMAGE_INSERT, DELETE_NON_ELEMENT_RWT]
+      >> Q.UNABBREV_TAC ‘f’
+      >> simp[]
+      >> Cases_on ‘b’ >> simp[bool_to_erasure_bit_def]
+     )
+  >> irule finite_additivity_sufficient_for_finite_spaces2
+  >> simp[m_space_def]
+  >> rpt conj_tac
+  >- (simp[additive_def]
+      >> rpt gen_tac >> strip_tac
+      >> sg ‘FINITE s ∧ FINITE t’
+      >- (gvs[POW_DEF]
+          >> metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT])
+      >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
+      >> conj_tac
+      >- (simp[]
+          >> disj2_tac
+          >> gen_tac >> strip_tac
+          >> rw[]
+          >> irule (cj 2 sub_not_infty)
+          >> simp[])
+      >> rw[])     
+  >- (simp[positive_def]
+      >> gen_tac >> strip_tac
+      >> irule EXTREAL_SUM_IMAGE_POS
+      >> gvs[POW_DEF]
+      >> REVERSE conj_tac
+      >- metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT]
+      >> gen_tac >> strip_tac
+      >> rw[]
+      >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
+      >> simp[REAL_SUB_LE]
+     )
+  >> irule POW_SIGMA_ALGEBRA
+QED
+
+Theorem wf_binary_symmetric_channel:
   ∀p.
     0 ≤ p ∧ p ≤ 1 ⇒
     wf_binary_memoryless_channel (binary_symmetric_channel_rep p)
@@ -305,8 +376,7 @@ Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
   >> simp[wf_binary_memoryless_channel_def]
-  >> gen_tac >> strip_tac
-  >> simp[binary_symmetric_channel_rep_def]
+  >> gen_tac >> strip_tac >> simp[binary_symmetric_channel_rep_def]
   >> simp[prob_space_def]
   >> REVERSE conj_tac
   >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
@@ -354,4 +424,3 @@ Proof
      )
   >> irule POW_SIGMA_ALGEBRA             
 QED
-
