@@ -233,9 +233,8 @@ Definition bool_to_erasure_bit_def:
   bool_to_erasure_bit b = if b then E_T else E_F
 End
 
-Definition binary_erasure_channel_def:
-  binary_erasure_channel p : erasure_bit binary_memoryless_channel =
-  binary_memoryless_channel_ABS
+Definition binary_erasure_channel_rep_def:
+  binary_erasure_channel_rep (p : extreal) : bool -> erasure_bit m_space =
   (λinput.
      (𝕌(:erasure_bit),
       POW (𝕌(:erasure_bit)),
@@ -247,8 +246,34 @@ Definition binary_erasure_channel_def:
                                     else 0)))
 End
 
-Definition binary_symmetric_channel_def:
-  binary_symmetric_channel
+Definition binary_erasure_channel_def:
+  binary_erasure_channel p : erasure_bit binary_memoryless_channel =
+  binary_memoryless_channel_ABS (binary_erasure_channel_rep p)
 End
+
+Definition binary_symmetric_channel_rep_def:
+  binary_symmetric_channel_rep (p : extreal) : bool binary_memoryless_channel =
+  (λinput.
+     (𝕌(:bool),
+      POW (𝕌(:bool)),
+      EXTREAL_SUM_IMAGE (λoutput. if output ≠ input
+                                  then p
+                                  else 1 - p
+                        )
+     )
+  )
+End
+
+Definition binary_symmetric_channel_def:
+  binary_symmetric_channel p : bool binary_memoryless_channel =
+  binary_memoryless_channel_ABS (binary_symmetric_channel_rep p)
+End
+
+
+Theorem wf_binary_erasure_channel:
+
+Proof
+QED
+
 
 
