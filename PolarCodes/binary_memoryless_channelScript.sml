@@ -422,5 +422,6 @@ Proof
       >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
       >> simp[REAL_SUB_LE]
      )
-  >> irule POW_SIGMA_ALGEBRA             
+  >> irule POW_SIGMA_ALGEBRA
 QED
+
