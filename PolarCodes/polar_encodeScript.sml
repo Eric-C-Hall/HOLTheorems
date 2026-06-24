@@ -1,6 +1,6 @@
 Theory polar_encode
 
-Ancestors arithmetic
+Ancestors arithmetic interleave
 
 Libs dep_rewrite realLib;
 
@@ -23,16 +23,19 @@ Libs dep_rewrite realLib;
 (* Polar encoding:                                                            *)
 (* polar_encode = polar_encode (even_inputs bitwise_XOR odd_inputs) ++        *)
 (*                polar_encode odd_inputs                                     *)
+(*                                                                            *)
+(* Undefined behaviour if length of input is not a power of two.              *)
 (* -------------------------------------------------------------------------- *)
 Definition polar_encode_def:
   polar_encode (inputs : bool list) =
   if LENGTH inputs = 1 then inputs
   else
     let
-      even_inputs = ;
-      odd_inputs = ;
+      even_odd_inputs = deinterleave 2 inputs;
+      even_inputs = EL 0 even_odd_inputs;
+      odd_inputs = EL 1 even_odd_inputs;
     in
-      polar_encode () ++ polar_encode ()
+      polar_encode (bxor even_inputs odd_inputs) ++ polar_encode odd_inputs
 End
 
 
