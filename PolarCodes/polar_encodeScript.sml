@@ -1,6 +1,6 @@
 Theory polar_encode
 
-Ancestors arithmetic interleave
+Ancestors arithmetic bitstring interleave
 
 Libs dep_rewrite realLib;
 
@@ -28,7 +28,7 @@ Libs dep_rewrite realLib;
 (* -------------------------------------------------------------------------- *)
 Definition polar_encode_def:
   polar_encode (inputs : bool list) =
-  if LENGTH inputs = 1 then inputs
+  if LENGTH inputs ≤ 1 then inputs
   else
     let
       even_odd_inputs = deinterleave 2 inputs;
@@ -36,6 +36,11 @@ Definition polar_encode_def:
       odd_inputs = EL 1 even_odd_inputs;
     in
       polar_encode (bxor even_inputs odd_inputs) ++ polar_encode odd_inputs
-End
+Termination
+  WF_REL_TAC ‘measure (LENGTH)’
+  >> conj_tac
+  >- (gen_tac >> strip_tac
+      >> 
+     )
 
 

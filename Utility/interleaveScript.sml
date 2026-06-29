@@ -1,6 +1,6 @@
 Theory interleave
 
-Ancestors list rich_list arithmetic divides
+Ancestors arithmetic divides list marker rich_list
 
 Libs ConseqConv;
 
@@ -156,3 +156,22 @@ QED*)
 
 Proof
 QED*)
+
+Theorem length_el_deinterleave[simp]:
+  ∀n ls.
+    m < n ⇒
+    LENGTH (EL m (deinterleave n ls)) = LENGTH ls DIV n +
+                                        (if m + 1 ≤ LENGTH ls MOD n then 1 else 0) 
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> qabbrev_tac ‘length_ls = LENGTH ls’
+  >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
+  >> pop_assum mp_tac
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘length_ls’
+  >- (gen_tac >> strip_tac
+      >> gvs[]
+      >> simp[EL_REPLICATE])
+  >> gen_tac >> strip_tac
+  >> 
