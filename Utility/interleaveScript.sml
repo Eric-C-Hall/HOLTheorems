@@ -2,7 +2,7 @@ Theory interleave
 
 Ancestors arithmetic divides list marker rich_list
 
-Libs ConseqConv;
+Libs ConseqConv dep_rewrite;
 
 (* ConseqConv: SPEC_ALL_TAC *)
 
@@ -43,6 +43,14 @@ End
 (* i: an offset to start getting every nth element from. 0 if we want to      *)
 (*    include the 0th element of the list, 1 if we want to start from the     *)
 (*    1st element of the list, and so on.                                     *)
+(*                                                                            *)
+(* Be careful of behaviour when n = 0. This is an unexpected input. The       *)
+(* practical behaviour in this case is defined by                             *)
+(* get_every_nth_element_zero_n                                               *)
+(*                                                                            *)
+(* get_every_nth_element_alt is a particularly useful alternate definition    *)
+(* which helps with induction, allowing us to instead perform the operation   *)
+(* dropping the first n elmenets and taking the mth at each step.             *)
 (* -------------------------------------------------------------------------- *)
 Definition get_every_nth_element_def:
   get_every_nth_element [] _ _ = [] ∧
@@ -157,14 +165,242 @@ QED*)
 Proof
 QED*)
 
-Theorem length_el_deinterleave[simp]:
-  ∀n ls.
-    m < n ⇒
-    LENGTH (EL m (deinterleave n ls)) = LENGTH ls DIV n +
-                                        (if m + 1 ≤ LENGTH ls MOD n then 1 else 0) 
+(*Theorem length_get_every_nth_element_zero[local]:
+  ∀ls n m.
+    LENGTH (get_every_nth_element ls n 0) =
+    (LENGTH ls) DIV n
+Proof
+QED*)
+
+Theorem get_every_nth_element_sing_m_1[simp]:
+  ∀l n.
+    get_every_nth_element [l] n 1 = []
 Proof
   rpt gen_tac
-  >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[ONE]
+  >> simp[get_every_nth_element_def]
+QED
+
+Theorem get_every_nth_element_suc_m:
+  ∀ls n m.
+    get_every_nth_element ls n (SUC m) = get_every_nth_element (TL ls) n m
+Proof
+  Cases_on ‘ls’ >> rpt gen_tac
+  >- simp[]
+  >> simp[get_every_nth_element_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The case of n = 0 is a special case, with no clear expected behaviour      *)
+(* (perhaps it should be an infinite string of the element at index m?        *)
+(*                                                                            *)
+(* This theorem makes it more clear what the behaviour precisely is in the    *)
+(* definition I use.                                                          *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_every_nth_element_zero_n:
+  ∀ls m.
+    get_every_nth_element ls 0 m = DROP m ls
+Proof
+  Induct_on ‘ls’
+  >- simp[]
+  >> rpt gen_tac
+  >> Cases_on ‘m’
+  >- simp[get_every_nth_element_def]
+  >> simp[]
+  >> simp[get_every_nth_element_suc_m]
+QED
+
+Theorem get_every_nth_element_alt_zero_m[local]:
+  ∀ls n.
+    get_every_nth_element ls n 0 =
+    if ls = []
+    then
+      []
+    else
+      if n = 0
+      then
+        ls
+      else
+        (HD ls)::(get_every_nth_element (DROP n ls) n 0)
+
+Proof
+  rpt gen_tac
+  >> rw[]
+  >- (Induct_on ‘ls’
+      >- gvs[get_every_nth_element_def]
+      >> simp[get_every_nth_element_def]
+      >> Cases_on ‘ls’ >> simp[])
+  >> Induct_on ‘ls’
+  >- simp[]
+  >> Cases_on ‘ls’
+  >- (gvs[]
+      >> gen_tac
+      >> simp[get_every_nth_element_def])
+  >> gen_tac >> strip_tac
+  >> gvs[]
+  >> simp[get_every_nth_element_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* An alternate definition of get_every_nth_element.                          *)
+(*                                                                            *)
+(* Takes off the first n elements and chooses the mth one.                    *)
+(*                                                                            *)
+(* Particularly useful for induction, as in each step, we perform the same    *)
+(* action (taking off the first n elements), whereas the steps vary in the    *)
+(* other definition (either counting down by 1, or adding the element and     *)
+(* resetting the counter)                                                     *)
+(*                                                                            *)
+(* The process of taking off the first n elements never terminates in the     *)
+(* case of n = 0, so we have to treat that case specially. We define it to    *)
+(* take the same value as in the original definition.                         *)
+(* -------------------------------------------------------------------------- *)
+Theorem get_every_nth_element_alt:
+  ∀ls n m.
+    get_every_nth_element ls n m =
+    if LENGTH ls ≤ m
+    then
+      []
+    else
+      if n = 0
+      then
+        DROP m ls
+      else
+        (EL m ls)::(get_every_nth_element (DROP n ls) n m)
+Proof
+  (* Strong induct on the length of the list ls *)
+  rpt gen_tac
+  >> qabbrev_tac ‘len_ls = LENGTH ls’
+  >> pop_assum mp_tac >> PURE_ONCE_REWRITE_TAC[Abbrev_def]
+  >> SPEC_ALL_TAC
+  >> completeInduct_on ‘len_ls’
+  (* *)
+  >> rpt gen_tac >> strip_tac
+  (* The case where m = 0, and hence get_every_nth_element wraps around, is
+     different in nature to the case where m ≠ 0 *)
+  >> Cases_on ‘m = 0’              
+  >- (gvs[]
+      >> Cases_on ‘ls’
+      >- simp[]
+      >> PURE_ONCE_REWRITE_TAC[get_every_nth_element_def]
+      (* Avoid infinite loop due to repeated application of inductive hypothesis *)
+      >> pop_assum (fn th => assume_tac (REWRITE_RULE [Once (GSYM Abbrev_def)] th))
+      (* *)
+      >> simp[]
+      >> rw[]
+      >- (simp[get_every_nth_element_def] >> rw[])
+      (* Apply inductive hypothesis once on the left hand side, which has been
+         reduced: this should drop n elements from t, bringing it more in line
+         with the RHS *)
+      >> last_x_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
+      >> pop_assum $ qspec_then ‘LENGTH t’ assume_tac
+      >> gvs[]
+      (* We have now applied the inductive hypothesis
+         Split over cases *)
+      >> rw[]
+      >- (sg ‘DROP (n - 1) t = []’
+          >- simp[]
+          >> simp[])
+      (* The LHS is currently one below the RHS: bring the RHS one down to
+         match the LHS *)
+      >> Cases_on ‘DROP (n - 1) t’
+      >- gvs[]
+      >> simp[get_every_nth_element_def]
+      >> conj_tac
+      >- (sg ‘HD (DROP (n - 1) t) = h’
+          >- simp[]
+          >> qpat_x_assum ‘DROP _ _ = _’ kall_tac
+          >> gvs[]
+          >> simp[HD_DROP])
+      >> sg ‘DROP n t = t'’
+      >- (sg ‘TL (DROP (n - 1) t) = t'’
+          >- simp[]
+          >> qpat_x_assum ‘DROP _ _ = _’ kall_tac
+          >> gvs[]
+          >> simp[TAIL_BY_DROP]
+          >> simp[DROP_DROP])
+      >> simp[]
+     )
+  (* Case where m ≠ 0 *)
+  >> simp[]
+  (* Reduce to smaller ls to apply induction *)
+  >> Cases_on ‘ls’
+  >- simp[]
+  (* Break down m so we can use the definition of get_every_nth_element, to
+     reduce to a smaller case *)
+  >> Cases_on ‘m’
+  >- simp[]
+  (* Apply definition of get_every_nth_element to get to a smaller case *)
+  >> simp[get_every_nth_element_def]
+  (* Apply the inductive hypothesis *)
+  >> last_x_assum $ qspec_then ‘len_ls - 1’ assume_tac
+  >> gvs[]
+  (* Inductive hypothesis has been applied, no need for it any more *)
+  >> last_x_assum kall_tac
+  (* Split into cases and automatically solve where possible *)
+  >> rw[]
+  (* *)
+  >> simp[get_every_nth_element_suc_m]
+  (* Consider the case where we can swap TL and DROP *)
+  >> Cases_on ‘n - 1 < LENGTH t’
+  >- (simp[TL_DROP] >> Cases_on ‘t’ >> simp[])
+  >> gvs[]
+  (* If we can't swap TL and DROP, then certainly the DROP must be [] *)
+  >> sg ‘DROP (n - 1) t = []’
+  >- simp[]
+  (* Apply this *)
+  >> simp[]
+  (* If DROP (n - 1) t = [], then certainly DROP n t = [] *)
+  >> sg ‘DROP n t = []’
+  >- simp[]
+  >> simp[]
+QED
+
+Theorem length_get_every_nth_element:
+  ∀ls n m.
+    m < n ⇒
+    LENGTH (get_every_nth_element ls n m) =
+    (LENGTH ls) DIV n + if m < (LENGTH ls MOD n) then 1 else 0
+Proof
+  
+  rpt gen_tac >> strip_tac
+  >> 
+  
+QED
+
+Theorem el_deinterleave:
+  ∀m n ls.
+    m < n ⇒
+    EL m (deinterleave n ls) = get_every_nth_element ls n m
+Proof
+  rpt gen_tac
+  >> simp[deinterleave_def]
+  >> simp[el_map_count]
+QED
+
+Theorem el_deinterleave_snoc:
+  ∀n m l ls.
+    m < n ⇒
+    EL m (deinterleave n (SNOC l ls))
+    = if (LENGTH ls) MOD n = m
+      then SNOC l (EL m (deinterleave n ls))
+      else EL m (deinterleave n ls)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[el_deinterleave]
+  >> 
+QED
+
+Theorem length_el_deinterleave[simp]:
+  ∀n m ls.
+    m < n ⇒
+    LENGTH (EL m (deinterleave n ls)) =
+    LENGTH ls DIV n +
+    (if m + 1 ≤ LENGTH ls MOD n then 1 else 0) 
+
+Proof
+
+  rpt gen_tac >> strip_tac
   >> qabbrev_tac ‘length_ls = LENGTH ls’
   >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
   >> pop_assum mp_tac
@@ -174,4 +410,7 @@ Proof
       >> gvs[]
       >> simp[EL_REPLICATE])
   >> gen_tac >> strip_tac
+  >> Cases_on ‘ls’ using SNOC_CASES
+  >- simp[EL_REPLICATE]
+  >> gvs[LENGTH_SNOC]
   >> 
