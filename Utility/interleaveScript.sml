@@ -210,37 +210,6 @@ Proof
   >> simp[get_every_nth_element_suc_m]
 QED
 
-Theorem get_every_nth_element_alt_zero_m[local]:
-  ∀ls n.
-    get_every_nth_element ls n 0 =
-    if ls = []
-    then
-      []
-    else
-      if n = 0
-      then
-        ls
-      else
-        (HD ls)::(get_every_nth_element (DROP n ls) n 0)
-
-Proof
-  rpt gen_tac
-  >> rw[]
-  >- (Induct_on ‘ls’
-      >- gvs[get_every_nth_element_def]
-      >> simp[get_every_nth_element_def]
-      >> Cases_on ‘ls’ >> simp[])
-  >> Induct_on ‘ls’
-  >- simp[]
-  >> Cases_on ‘ls’
-  >- (gvs[]
-      >> gen_tac
-      >> simp[get_every_nth_element_def])
-  >> gen_tac >> strip_tac
-  >> gvs[]
-  >> simp[get_every_nth_element_def]
-QED
-
 (* -------------------------------------------------------------------------- *)
 (* An alternate definition of get_every_nth_element.                          *)
 (*                                                                            *)
