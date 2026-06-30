@@ -331,10 +331,80 @@ Theorem length_get_every_nth_element:
     LENGTH (get_every_nth_element ls n m) =
     (LENGTH ls) DIV n + if m < (LENGTH ls MOD n) then 1 else 0
 Proof
-  
   rpt gen_tac >> strip_tac
-  >> 
-  
+  (* Special case of n = 0 *)
+  >> Cases_on ‘n = 0’
+  >- simp[]
+  (* Do complete induction on the length of ls: we want to apply
+     get_every_nth_element_alt and use the inductive hypothesis on the
+     smaller version with the first n elements removed *)
+  >> qabbrev_tac ‘len_ls = LENGTH ls’
+  >> pop_assum mp_tac >> PURE_ONCE_REWRITE_TAC[Abbrev_def]
+  >> rpt (pop_assum mp_tac)
+  >> SPEC_ALL_TAC
+  >> completeInduct_on ‘len_ls’                       
+  >> rpt gen_tac >> rpt disch_tac
+  (* Apply get_every_nth_element_alt once to simplify get_every_nth_element to
+     remove the first n elements of the list *)
+  >> simp[Once get_every_nth_element_alt]
+  (* Handle various cases *)
+  >> Cases_on ‘LENGTH ls ≤ m’
+  >- (simp[]
+      >> simp[DIV_EQUAL_0])
+  >> simp[]
+  (* Apply inductive hypothesis *)
+  >> gvs[]
+  (* Now inductive hypothesis has been applied it is no longer necessary *)
+  >> last_x_assum kall_tac
+  (* *)
+  >> simp[ADD1]
+  >> gvs[NOT_LE]
+  (* The case where LENGTH ls ≤ n seems like a special case, so lets handle
+     that case. *)
+  >> Cases_on ‘LENGTH ls ≤ n’
+  >- (simp[]
+      >> sg ‘LENGTH ls - n = 0’
+      >- simp[]
+      >> simp[]
+      >> Cases_on ‘LENGTH ls < n’
+      >- (sg ‘LENGTH ls MOD n = LENGTH ls’
+          >- simp[]
+          >> simp[]
+          >> simp[DIV_EQUAL_0])
+      >> sg ‘LENGTH ls = n’
+      >- simp[]
+      >> simp[]
+     )
+  (* Simplify NOT of ≤ *)
+  >> gvs[NOT_LE]
+  (* Now we can apply SUB_DIV *)
+  >> simp[SUB_DIV]
+  (* *)
+  >> Cases_on ‘m < (LENGTH ls - n) MOD n’
+  >- (simp[]
+      >> simp[SUB_RIGHT_ADD]
+      >> Cases_on ‘LENGTH ls DIV n ≤ 1’
+      >- (Cases_on ‘LENGTH ls DIV n = 0’
+          >- (simp[] >> gvs[DIV_EQUAL_0])
+          >> sg ‘LENGTH ls DIV n = 1’
+          >- simp[]
+          >> simp[]
+          >> rw[]
+          >> gvs[NOT_LT]
+          >> gvs[SUB_MOD])
+      >> simp[]
+      >> gvs[NOT_LE]
+      >> rw[]
+      >> gvs[NOT_LT]
+      >> gvs[SUB_MOD]
+     )
+  (* *)
+  >> gvs[NOT_LT]
+  >> gvs[SUB_MOD]
+  >> Cases_on ‘1 ≤ LENGTH ls DIV n’
+  >- simp[SUB_ADD]
+  >> gvs[NOT_LE]
+  >> gvs[DIV_EQUAL_0]
 QED
 
 Theorem el_deinterleave:
