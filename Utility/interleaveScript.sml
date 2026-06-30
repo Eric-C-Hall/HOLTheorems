@@ -512,3 +512,13 @@ Proof
   >> simp[el_deinterleave]
   >> simp[length_get_every_nth_element]
 QED
+
+Theorem hd_deinterleave:
+  ∀n m ls.
+    n ≠ 0 ⇒
+    HD (deinterleave n ls) = get_every_nth_element ls n 0
+Proof
+  rpt gen_tac >> strip_tac
+  >> PURE_ONCE_REWRITE_TAC[GSYM EL]
+  >> simp[el_deinterleave, Excl "EL_restricted"]
+QED
