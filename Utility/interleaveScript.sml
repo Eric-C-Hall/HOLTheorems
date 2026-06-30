@@ -501,26 +501,14 @@ Proof
   >> simp[MODEQ_THM]
 QED
 
-Theorem length_el_deinterleave[simp]:
+Theorem length_el_deinterleave:
   ∀n m ls.
     m < n ⇒
     LENGTH (EL m (deinterleave n ls)) =
     LENGTH ls DIV n +
     (if m + 1 ≤ LENGTH ls MOD n then 1 else 0) 
-
 Proof
-
   rpt gen_tac >> strip_tac
-  >> qabbrev_tac ‘length_ls = LENGTH ls’
-  >> pop_assum (fn th => assume_tac (REWRITE_RULE [Abbrev_def] th))
-  >> pop_assum mp_tac
-  >> SPEC_ALL_TAC
-  >> Induct_on ‘length_ls’
-  >- (gen_tac >> strip_tac
-      >> gvs[]
-      >> simp[EL_REPLICATE])
-  >> gen_tac >> strip_tac
-  >> Cases_on ‘ls’ using SNOC_CASES
-  >- simp[EL_REPLICATE]
-  >> gvs[LENGTH_SNOC]
-  >> 
+  >> simp[el_deinterleave]
+  >> simp[length_get_every_nth_element]
+QED
