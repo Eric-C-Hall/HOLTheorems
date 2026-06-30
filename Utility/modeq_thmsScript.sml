@@ -57,3 +57,26 @@ Proof
   metis_tac[MODEQ_ADD_MULT_BASE_LEFT, MODEQ_SYM]
 QED
 
+Theorem MODEQ_ADD_ONE_BOTH_SIDES:
+  ∀n a b.
+    MODEQ n a b ⇔ MODEQ n (a + 1) (b + 1)
+Proof
+  rpt gen_tac
+  >> simp[MODEQ_THM]
+  >> EQ_TAC >> rw[] >> simp[]
+  >- simp[ADD_MOD]
+  >> gvs[ADD_MOD]
+QED
+
+Theorem MODEQ_ADD_BOTH_SIDES:
+  ∀n a b c.
+    MODEQ n a b ⇔ MODEQ n (a + c) (b + c)
+Proof
+  Induct_on ‘c’
+  >- simp[]
+  >> rpt gen_tac
+  >> pop_assum $ qspecl_then [‘n’, ‘a’, ‘b’] assume_tac
+  >> pop_assum (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >> simp[ADD1]
+  >> simp[Cong LHS_CONG, Once MODEQ_ADD_ONE_BOTH_SIDES]
+QED
