@@ -1,4 +1,4 @@
-Theory bxorLemmas
+Theory bxor_lemmas
 
 Ancestors arithmetic bitstring list rich_list
 
