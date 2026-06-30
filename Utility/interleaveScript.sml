@@ -1,6 +1,6 @@
 Theory interleave
 
-Ancestors arithmetic divides list marker rich_list
+Ancestors arithmetic divides list marker modeq_thms rich_list
 
 Libs ConseqConv dep_rewrite;
 
@@ -424,10 +424,81 @@ Theorem el_deinterleave_snoc:
     = if (LENGTH ls) MOD n = m
       then SNOC l (EL m (deinterleave n ls))
       else EL m (deinterleave n ls)
-Proof
+Proof  
   rpt gen_tac >> strip_tac
   >> simp[el_deinterleave]
-  >> 
+  >> pop_assum mp_tac
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘ls’
+  >- (rpt gen_tac
+      >> simp[]
+      >> rw[] >> simp[get_every_nth_element_def]
+      >> Cases_on ‘m’ >> simp[get_every_nth_element_def])
+  >> rpt gen_tac >> strip_tac
+  >> simp[]
+  >> Cases_on ‘m’
+  >- (simp[get_every_nth_element_def]
+      >> rw[]
+      >- (simp[GSYM SNOC_APPEND]
+          (* Inductive hypothesis was automatically applied here, get rid of
+             it *)
+          >> last_x_assum kall_tac
+          >> rw[]
+          >> gvs[ADD1]
+          >> pop_assum mp_tac
+          >> simp[]
+          (* Convert assumption and goal to MODEQ *)
+          >> sg ‘MODEQ n (LENGTH ls + 1) 0’
+          >- simp[MODEQ_NONZERO_MODEQUALITY]
+          >> qpat_x_assum ‘_ = 0’ kall_tac
+          >> qsuff_tac ‘MODEQ n (LENGTH ls) (n - 1)’
+          >- simp[]
+          (* *)
+          >> gvs[Once MODEQ_ADD_BASE_RIGHT]
+          >> simp[Once MODEQ_ADD_ONE_BOTH_SIDES]
+         )
+      (* Apply the inductive hypothesis to the LHS *)
+      >> last_x_assum $ qspecl_then [‘l’, ‘n - 1’, ‘n’] assume_tac
+      >> gvs[]
+      >> simp[GSYM SNOC_APPEND]
+      >> pop_assum kall_tac
+      (* *)
+      >> rw[]
+      >> gvs[ADD1]
+      >> qpat_x_assum ‘_ ≠ _’ mp_tac >> simp[]
+      (* Convert to MODEQ form *)
+      >> sg ‘MODEQ n (LENGTH ls) (n - 1)’
+      >- simp[MODEQ_THM]
+      >> qpat_x_assum ‘_ = n - 1’ kall_tac
+      >> qsuff_tac ‘MODEQ n (LENGTH ls + 1) 0’
+      >- simp[]
+      (* *)
+      >> qspecl_then [‘n’, ‘LENGTH ls + 1’, ‘0’, ‘n - 1’] 
+                     (fn th => PURE_ONCE_REWRITE_TAC[th]) MODEQ_ADD_BOTH_SIDES
+      >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[ADD_COMM]
+      >> simp[GSYM MODEQ_ADD_BASE_LEFT]
+     )
+  >> simp[get_every_nth_element_def]
+  (* Apply the inductive hypothesis to the LHS *)
+  >> simp[GSYM SNOC_APPEND]
+  (* Remove the inductive hypothesis now that it has been applied *)
+  >> last_x_assum kall_tac
+  (* *)
+  >> rw[]
+  >- (gvs[ADD1]
+      >> qpat_x_assum ‘_ ≠ _’ mp_tac >> simp[]
+      >> PURE_ONCE_REWRITE_TAC[GSYM MOD_PLUS]
+      >> simp[X_MOD_Y_EQ_X])
+  >> qpat_x_assum ‘_ ≠ _’ mp_tac >> simp[]
+  >> rpt (pop_assum mp_tac) >> PURE_ONCE_REWRITE_TAC[ADD1] >> rpt disch_tac
+  (* Convert to MODEQ *)
+  >> qsuff_tac ‘MODEQ n (LENGTH ls) n'’
+  >- simp[]
+  (* Add one to both sides *)
+  >> PURE_ONCE_REWRITE_TAC[MODEQ_ADD_ONE_BOTH_SIDES]
+  (* Convert back to mod *)
+  >> simp[MODEQ_THM]
 QED
 
 Theorem length_el_deinterleave[simp]:
