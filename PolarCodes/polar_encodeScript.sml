@@ -1,6 +1,6 @@
 Theory polar_encode
 
-Ancestors arithmetic bitstring interleave
+Ancestors arithmetic bitstring bxor_lemmas interleave
 
 Libs dep_rewrite realLib;
 
@@ -40,7 +40,55 @@ Termination
   WF_REL_TAC ‘measure (LENGTH)’
   >> conj_tac
   >- (gen_tac >> strip_tac
-      >> 
+      >> simp[length_el_deinterleave]
+      >> rw[]
+      (* 2 ≤ LENGTH inputs MOD 2 is a contradiction because anything mod 2 is
+         less than 2. *)
+      >> ‘F’ suffices_by strip_tac
+      >> sg ‘LENGTH inputs MOD 2 < 2’
+      >- simp[]
+      >> simp[])
+  >> gen_tac >> strip_tac
+  >> pop_assum mp_tac >> PURE_ONCE_REWRITE_TAC[NOT_LE] >> disch_tac
+  >> simp[bxor_length]
+  >> simp[hd_deinterleave, el_deinterleave]
+  >> simp[length_get_every_nth_element]
+  >> Cases_on ‘LENGTH inputs MOD 2 = 0’
+  >- simp[]
+  >> Cases_on ‘LENGTH inputs MOD 2 = 1’              
+  >- (simp[]
+      (* It turns out to be easier to prove if we manually prove some small
+         cases, which turn out to be kinda special cases. In particular, note
+         that for LENGTH inputs = 2, we have
+         LENGTH inputs DIV 2 + 1 ≤ LENGTH inputs, whereas we will end up
+         wanting LENGTH inputs DIV 2 + 1 < LENGTH inputs *)
+      >> Cases_on ‘LENGTH inputs = 2’
+      >- gvs[]
+      >> Cases_on ‘LENGTH inputs = 3’
+      >- simp[]
+      (* We want to prove that 1 < LENGTH inputs DIV 2, which will then get us
+         LENGTH inputs DIV 2 + 1 < LENGTH inputs.
+         This is easier to represent by breaking down the inequality we are
+         trying to prove into two inqualities *)
+      >> qsuff_tac ‘LENGTH inputs DIV 2 + 1 <
+                    LENGTH inputs DIV 2 + LENGTH inputs DIV 2 ∧
+                    LENGTH inputs DIV 2 + LENGTH inputs DIV 2 ≤
+                    LENGTH inputs’
+      >- simp[]
+      >> conj_tac
+      >- (simp[LT_ADD_LCANCEL]
+          >> ‘3 < LENGTH inputs’ by simp[]
+          >> gvs[]
+          >> qsuff_tac ‘2 * 1 < 2 * (LENGTH inputs DIV 2)’
+          >- simp[]
+          >> PURE_ONCE_REWRITE_TAC[bitTheory.DIV_MULT_THM2]
+          >> simp[])
+      >> simp[GSYM TIMES2]
+      >> simp[bitTheory.DIV_MULT_THM2]
      )
-
+  >> ‘F’ suffices_by strip_tac
+  >> sg ‘LENGTH inputs MOD 2 < 2’
+  >- simp[]
+  >> simp[]
+End
 
