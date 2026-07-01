@@ -17,8 +17,6 @@ Libs dep_rewrite liftLib transferLib realLib;
 (* α -> β m_space                                                             *)
 (* -------------------------------------------------------------------------- *)
 
-
-
 (* -------------------------------------------------------------------------- *)
 (* A binary memoryless channel                                                *)
 (* - Takes a bit as input                                                     *)
@@ -33,8 +31,8 @@ Libs dep_rewrite liftLib transferLib realLib;
 (* -------------------------------------------------------------------------- *)
 Definition wf_binary_memoryless_channel_def:
   wf_binary_memoryless_channel (W : bool -> α m_space) =
-  (∀b. measurable_sets (W b) = POW (m_space (W b)) ∧
-       (FINITE (m_space (W b)) ⇒ prob_space (W b)))
+  (∀b. (FINITE (m_space (W b)) ⇒ measurable_sets (W b) = POW (m_space (W b))) ∧
+       prob_space (W b))
 End
 
 Theorem wf_binary_memoryless_channels_exist[local]:
