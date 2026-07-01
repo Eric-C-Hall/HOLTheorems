@@ -92,3 +92,15 @@ Termination
   >> simp[]
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Hand-written calculations indicate that polar_encode with the input:       *)
+(*   [T;F;F;F;T;F;T;T]                                                        *)
+(* Should have the output:                                                    *)
+(*   [F;T;F;F;T;T;T;T]                                                        *)
+(* Double check consistency of formal definition with hand calculations.      *)
+(* -------------------------------------------------------------------------- *)
+Theorem polar_encode_unit_test_1:
+  polar_encode [T;F;F;F;T;F;T;T] = [F;T;F;F;T;T;T;T]
+Proof
+  EVAL_TAC
+QED
