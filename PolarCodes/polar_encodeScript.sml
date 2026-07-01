@@ -102,6 +102,14 @@ Termination
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Combines polar encoding with a channel, resulting in                       *)
+(* -------------------------------------------------------------------------- *)
+(*Definition polar_encode_channel_def:
+  polar_encode_channel num_inputs = 
+End*)
+
+
+(* -------------------------------------------------------------------------- *)
 (* Hand-written calculations indicate that polar_encode with the input:       *)
 (*   [T;F;F;F;T;F;T;T]                                                        *)
 (* Should have the output:                                                    *)
