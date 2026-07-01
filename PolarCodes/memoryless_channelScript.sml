@@ -7,17 +7,12 @@ Ancestors arithmetic extreal lifting pred_set real measure sigma_algebra transfe
 Libs dep_rewrite liftLib transferLib realLib;
 
 (* -------------------------------------------------------------------------- *)
-(* A channel underlyingly has the representation:                             *)
-(* α -> β m_space                                                             *)
-(* -------------------------------------------------------------------------- *)
-
-(* -------------------------------------------------------------------------- *)
 (* A memoryless channel                                                       *)
 (* - Takes an input                                                           *)
 (* - Returns a probability distribution over output bits.                     *)
 (*                                                                            *)
-(* We express this as                                                         *)
-(*   α -> β m_space                                                           *)
+(* A channel underlyingly has the representation:                             *)
+(* α -> β m_space                                                             *)
 (* -------------------------------------------------------------------------- *)
 Definition wf_memoryless_channel_def:
   wf_memoryless_channel (W : α -> β m_space) =
