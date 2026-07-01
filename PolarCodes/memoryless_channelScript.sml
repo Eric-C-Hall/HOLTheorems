@@ -1,16 +1,10 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-Theory binary_memoryless_channel
+Theory memoryless_channel
 
 Ancestors arithmetic extreal lifting pred_set real measure sigma_algebra transfer probability
 
 Libs dep_rewrite liftLib transferLib realLib;
-
-(* -------------------------------------------------------------------------- *)
-(* Defines:                                                                   *)
-(* - binary_memoryless_channel (and wf_binary_memoryless_channel)             *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
 (* A channel underlyingly has the representation:                             *)
@@ -18,29 +12,25 @@ Libs dep_rewrite liftLib transferLib realLib;
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* A binary memoryless channel                                                *)
-(* - Takes a bit as input                                                     *)
-(* - Returns a value of type α as output                                      *)
-(* - For each input bit, the distribution over output bits is a probability   *)
-(*   distribution.                                                            *)
+(* A memoryless channel                                                       *)
+(* - Takes an input                                                           *)
+(* - Returns a probability distribution over output bits.                     *)
 (*                                                                            *)
 (* We express this as                                                         *)
-(*   bool -> α m_space                                                        *)
-(* Where we output a probability space, denoting the distribution over output *)
-(* bits                                                                       *)
+(*   α -> β m_space                                                           *)
 (* -------------------------------------------------------------------------- *)
-Definition wf_binary_memoryless_channel_def:
-  wf_binary_memoryless_channel (W : bool -> α m_space) =
-  (∀b. (FINITE (m_space (W b)) ⇒ measurable_sets (W b) = POW (m_space (W b))) ∧
-       prob_space (W b))
+Definition wf_memoryless_channel_def:
+  wf_memoryless_channel (W : α -> β m_space) =
+  (∀x. (FINITE (m_space (W x)) ⇒ measurable_sets (W x) = POW (m_space (W x))) ∧
+       prob_space (W x))
 End
 
-Theorem wf_binary_memoryless_channels_exist[local]:
-  ∃x. wf_binary_memoryless_channel x
-Proof   
-  qexists ‘λb. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
-  >> simp[wf_binary_memoryless_channel_def]
-  >> sg ‘POW {ARB} = {∅; {ARB}}’
+Theorem wf_memoryless_channels_exist[local]:
+  ∃x. wf_memoryless_channel x
+Proof
+  qexists ‘λx. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
+  >> simp[wf_memoryless_channel_def]
+  >> sg ‘POW {ARB : β} = {∅; {ARB}}’
   >- (irule EQ_SYM
       >> simp[POW_DEF, EXTENSION]
       >> gen_tac >> EQ_TAC >> strip_tac
@@ -95,10 +85,10 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* Create new abstract type consisting of well-formed state machines          *)
 (* -------------------------------------------------------------------------- *)
-val tydefrec = newtypeTools.rich_new_type { tyname = "binary_memoryless_channel",
-exthm  = wf_binary_memoryless_channels_exist,
-ABS = "binary_memoryless_channel_ABS",
-REP = "binary_memoryless_channel_REP"};
+val tydefrec = newtypeTools.rich_new_type { tyname = "memoryless_channel",
+exthm  = wf_memoryless_channels_exist,
+ABS = "memoryless_channel_ABS",
+REP = "memoryless_channel_REP"};
 
 (* -------------------------------------------------------------------------- *)
 (* Something used in the lifting process, not sure about the details.         *)
@@ -107,79 +97,79 @@ REP = "binary_memoryless_channel_REP"};
 (* their abstract counterpart: thus, non-well-formed state machines are not   *)
 (* equivalent, as they cannot be considered to be their abstract counterpart  *)
 (* -------------------------------------------------------------------------- *)
-Definition binary_memoryless_channelequiv_def:
-  binary_memoryless_channelequiv m1 m2 ⇔ m1 = m2 ∧ wf_binary_memoryless_channel m2
+Definition memoryless_channelequiv_def:
+  memoryless_channelequiv m1 m2 ⇔ m1 = m2 ∧ wf_memoryless_channel m2
 End
 
 (* -------------------------------------------------------------------------- *)
 (* A relation which relates a well-formed representative of a state machine   *)
 (* to its corresponding abstract value.                                       *)
 (* -------------------------------------------------------------------------- *)
-Definition binary_memoryless_channel_AR_def:
-  binary_memoryless_channel_AR r a ⇔ wf_binary_memoryless_channel r ∧ r = binary_memoryless_channel_REP a
+Definition memoryless_channel_AR_def:
+  memoryless_channel_AR r a ⇔ wf_memoryless_channel r ∧ r = memoryless_channel_REP a
 End
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem binary_memoryless_channel_relates[transfer_rule]:
-  (binary_memoryless_channel_AR ===> (=)) wf_binary_memoryless_channel (K T)
+Theorem memoryless_channel_relates[transfer_rule]:
+  (memoryless_channel_AR ===> (=)) wf_memoryless_channel (K T)
 Proof
-  simp[FUN_REL_def, binary_memoryless_channel_AR_def]
+  simp[FUN_REL_def, memoryless_channel_AR_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem binary_memoryless_channel_AReq_relates[transfer_rule]:
-  (binary_memoryless_channel_AR ===> binary_memoryless_channel_AR ===> (=)) (=) (=)
+Theorem memoryless_channel_AReq_relates[transfer_rule]:
+  (memoryless_channel_AR ===> memoryless_channel_AR ===> (=)) (=) (=)
 Proof
-  simp[binary_memoryless_channel_AR_def, FUN_REL_def, #termP_term_REP tydefrec, #term_REP_11 tydefrec]
+  simp[memoryless_channel_AR_def, FUN_REL_def, #termP_term_REP tydefrec, #term_REP_11 tydefrec]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem right_unique_binary_memoryless_channel_AR[transfer_simp]:
-  right_unique binary_memoryless_channel_AR
+Theorem right_unique_memoryless_channel_AR[transfer_simp]:
+  right_unique memoryless_channel_AR
 Proof
-  simp[right_unique_def, binary_memoryless_channel_AR_def, #term_REP_11 tydefrec]
+  simp[right_unique_def, memoryless_channel_AR_def, #term_REP_11 tydefrec]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem surj_binary_memoryless_channel_AR[transfer_simp]:
-  surj binary_memoryless_channel_AR
+Theorem surj_memoryless_channel_AR[transfer_simp]:
+  surj memoryless_channel_AR
 Proof
-  simp[surj_def, binary_memoryless_channel_AR_def, #termP_term_REP tydefrec]
+  simp[surj_def, memoryless_channel_AR_def, #termP_term_REP tydefrec]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem RDOM_binary_memoryless_channel_AR[transfer_simp]:
-  RDOM binary_memoryless_channel_AR = {gr | wf_binary_memoryless_channel gr}
+Theorem RDOM_memoryless_channel_AR[transfer_simp]:
+  RDOM memoryless_channel_AR = {gr | wf_memoryless_channel gr}
 Proof
-  simp[relationTheory.RDOM_DEF, Once FUN_EQ_THM, binary_memoryless_channel_AR_def, SF CONJ_ss, #termP_term_REP tydefrec] >>
+  simp[relationTheory.RDOM_DEF, Once FUN_EQ_THM, memoryless_channel_AR_def, SF CONJ_ss, #termP_term_REP tydefrec] >>
   metis_tac[#termP_term_REP tydefrec, #repabs_pseudo_id tydefrec]
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* Not sure what this does, copy/pasted and modified from genericGraphScript  *)
 (* -------------------------------------------------------------------------- *)
-Theorem Qt_binary_memoryless_channel[liftQt]:
-  Qt binary_memoryless_channelequiv binary_memoryless_channel_ABS binary_memoryless_channel_REP binary_memoryless_channel_AR
+Theorem Qt_memoryless_channel[liftQt]:
+  Qt memoryless_channelequiv memoryless_channel_ABS memoryless_channel_REP memoryless_channel_AR
 Proof
-  simp[Qt_alt, binary_memoryless_channel_AR_def, #absrep_id tydefrec, binary_memoryless_channelequiv_def, #termP_term_REP tydefrec] >>
+  simp[Qt_alt, memoryless_channel_AR_def, #absrep_id tydefrec, memoryless_channelequiv_def, #termP_term_REP tydefrec] >>
   simp[SF CONJ_ss, #term_ABS_pseudo11 tydefrec] >>
-  simp[SF CONJ_ss, FUN_EQ_THM, binary_memoryless_channel_AR_def, #termP_term_REP tydefrec, CONJ_COMM]
+  simp[SF CONJ_ss, FUN_EQ_THM, memoryless_channel_AR_def, #termP_term_REP tydefrec, CONJ_COMM]
   (* Because our representation type is a function, FUN_EQ_THM was accidentally
      applied to the function, breaking the old working from genericGraphScript.
      So I patch it up here by unapplying FUN_EQ_THM where it isn't needed. *)
   >> rpt gen_tac
   >> simp[GSYM FUN_EQ_THM]
-  >> ‘c = (λx. binary_memoryless_channel_REP a x) ⇔ c = binary_memoryless_channel_REP a’ by simp[FUN_EQ_THM]
+  >> ‘c = (λx. memoryless_channel_REP a x) ⇔ c = memoryless_channel_REP a’ by simp[FUN_EQ_THM]
   >> simp[]
   >> pop_assum kall_tac
   (* Continue with old working *)
@@ -214,8 +204,8 @@ Definition binary_erasure_channel_rep_def:
 End
 
 Definition binary_erasure_channel_def:
-  binary_erasure_channel p : erasure_bit binary_memoryless_channel =
-  binary_memoryless_channel_ABS (binary_erasure_channel_rep p)
+  erasure_channel p : (bool, erasure_bit) memoryless_channel =
+  memoryless_channel_ABS (binary_erasure_channel_rep p)
 End
 
 Definition binary_symmetric_channel_rep_def:
@@ -232,8 +222,8 @@ Definition binary_symmetric_channel_rep_def:
 End
 
 Definition binary_symmetric_channel_def:
-  binary_symmetric_channel p : bool binary_memoryless_channel =
-  binary_memoryless_channel_ABS (binary_symmetric_channel_rep p)
+  binary_symmetric_channel p : (bool, bool) memoryless_channel =
+  memoryless_channel_ABS (binary_symmetric_channel_rep p)
 End
 
 (* mathcal_2 represents {T;F} *)
@@ -279,11 +269,11 @@ QED
 Theorem wf_binary_erasure_channel:
   ∀p.
     0 ≤ p ∧ p ≤ 1 ⇒
-    wf_binary_memoryless_channel (binary_erasure_channel_rep p)
+    wf_memoryless_channel (binary_erasure_channel_rep p)
 Proof  
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
-  >> simp[wf_binary_memoryless_channel_def]
+  >> simp[wf_memoryless_channel_def]
   >> gen_tac >> strip_tac >> simp[binary_erasure_channel_rep_def]
   >> simp[prob_space_def]
   >> REVERSE conj_tac             
@@ -295,7 +285,7 @@ Proof
       >> simp[EXTREAL_SUM_IMAGE_INSERT, DELETE_NON_ELEMENT_RWT]
       >> Q.UNABBREV_TAC ‘f’
       >> simp[]
-      >> Cases_on ‘b’ >> simp[bool_to_erasure_bit_def]
+      >> Cases_on ‘x’ >> simp[bool_to_erasure_bit_def]
      )
   >> irule finite_additivity_sufficient_for_finite_spaces2
   >> simp[m_space_def]
@@ -331,11 +321,11 @@ QED
 Theorem wf_binary_symmetric_channel:
   ∀p.
     0 ≤ p ∧ p ≤ 1 ⇒
-    wf_binary_memoryless_channel (binary_symmetric_channel_rep p)
+    wf_memoryless_channel (binary_symmetric_channel_rep p)
 Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
-  >> simp[wf_binary_memoryless_channel_def]
+  >> simp[wf_memoryless_channel_def]
   >> gen_tac >> strip_tac >> simp[binary_symmetric_channel_rep_def]
   >> simp[prob_space_def]
   >> REVERSE conj_tac
