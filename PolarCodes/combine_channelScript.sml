@@ -1,6 +1,6 @@
 Theory combine_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave polar_encode repeat_channel
+Ancestors arithmetic bitstring bxor_lemmas interleave polar_encode
 
 Libs dep_rewrite realLib;
 
@@ -50,6 +50,6 @@ End*)
 (* -------------------------------------------------------------------------- *)
 Definition combine_channel_direct_def:
   combine_channel_direct (W : (bool, β) memoryless_channel) num_inputs inputs
-  = repeat_channel W num_inputs (polar_encode inputs)
+  = MAP (memoryless_channel_REP W) (polar_encode inputs)
     : (β list) m_space
 End

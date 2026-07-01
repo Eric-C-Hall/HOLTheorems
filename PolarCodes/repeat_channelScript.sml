@@ -13,7 +13,22 @@ Libs dep_rewrite realLib;
                                                 : (β list) mspace
                                                            End*)
 
+(* -------------------------------------------------------------------------- *)
+(* Given a memoryless channel, transform it into                              *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition repeat_channel0_def:
+
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Given a memoryless channel                                                 *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
 Definition repeat_channel_def:
-  repeat_channel (W : (bool, β) memoryless_channel) (input : bool list)
-  = MAP (memoryless_channel_REP W)
+  repeat_channel (W : (α, β) memoryless_channel) [] = [] ∧
+  repeat_channel (W : (α, β) memoryless_channel) (x::xs : α list)
+  = () × repeat_channel W xs
 End
