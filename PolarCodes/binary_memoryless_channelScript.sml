@@ -1,6 +1,6 @@
 (* Written by Eric Hall, under the guidance of Michael Norrish *)
 
-Theory binary_discrete_memoryless_channel
+Theory binary_memoryless_channel
 
 Ancestors arithmetic extreal lifting pred_set real measure sigma_algebra transfer probability
 
