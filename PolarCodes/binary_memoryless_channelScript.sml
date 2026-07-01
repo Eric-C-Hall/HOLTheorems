@@ -7,6 +7,13 @@ Ancestors arithmetic extreal lifting pred_set real measure sigma_algebra transfe
 Libs dep_rewrite liftLib transferLib realLib;
 
 (* -------------------------------------------------------------------------- *)
+(* Defines:                                                                   *)
+(* - binary_memoryless_channel (and wf_binary_memoryless_channel)             *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+
+(* -------------------------------------------------------------------------- *)
 (* Possible improvement: extract this to library                              *)
 (*                                                                            *)
 (* See also: probabilityTheory.prob_on_finite_set                             *)
@@ -424,4 +431,3 @@ Proof
      )
   >> irule POW_SIGMA_ALGEBRA
 QED
-

@@ -20,6 +20,15 @@ Libs dep_rewrite realLib;
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
+(* Important theorems:                                                        *)
+(* - Theorem 1: the channels polarize                                         *)
+(* - Proposition 2: bound on probability of block error                       *)
+(* - Theorem 4: asymptotic bound on block error probability with respect to N *)
+(* - Encoding and decoding are both O(n log n)                                *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* Polar encoding:                                                            *)
 (* polar_encode = polar_encode (even_inputs bitwise_XOR odd_inputs) ++        *)
 (*                polar_encode odd_inputs                                     *)
@@ -104,3 +113,6 @@ Theorem polar_encode_unit_test_1:
 Proof
   EVAL_TAC
 QED
+
+
+
