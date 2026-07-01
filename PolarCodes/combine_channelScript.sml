@@ -1,6 +1,6 @@
 Theory combine_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave
+Ancestors arithmetic bitstring bxor_lemmas interleave polar_encode repeat_channel
 
 Libs dep_rewrite realLib;
 
@@ -17,7 +17,7 @@ Libs dep_rewrite realLib;
 (* Combines channels as in polar encoding.                                    *)
 (* -------------------------------------------------------------------------- *)
 (*Definition combine_channel_def:
-  polar_encode_channel (W : binary_memoryless_channel) num_inputs
+  combine_channel (W : (α, β) memoryless_channel) num_inputs
   = if num_inputs ≤ 1
     then
       λinputs.
@@ -39,3 +39,17 @@ Libs dep_rewrite realLib;
                                                                    (λbs. )
                                                                    polar_encode_channel
 End*)
+
+(* -------------------------------------------------------------------------- *)
+(* The combined channel used in Polar encoding.                               *)
+(*                                                                            *)
+(* We can't output a memoryless_channel type because the number of inputs is  *)
+(* dependent on num_inputs, but a type can't be chosen based on the values of *)
+(* inputs. Thus, we output a bool list -> (β list) m_space, which is the      *)
+(* underlying representative type.                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition combine_channel_direct_def:
+  combine_channel_direct (W : (bool, β) memoryless_channel) num_inputs inputs
+  = repeat_channel W num_inputs (polar_encode inputs)
+    : (β list) m_space
+End

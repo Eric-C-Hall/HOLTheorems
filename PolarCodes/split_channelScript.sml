@@ -1,4 +1,4 @@
-Theory channel_splitting
+Theory split_channel
 
 Ancestors arithmetic bitstring bxor_lemmas interleave
 
@@ -13,6 +13,7 @@ Libs dep_rewrite realLib;
 (* Emanuele Viterbo                                                           *)
 (* -------------------------------------------------------------------------- *)
 
-Definition channel_split_def:
-  channel_split W i = 
+Definition split_channel_def:
+  split_channel (W : α -> β memoryless_channel) i =
+  extreal_sum_image TODO ((1 / 2 ** TODO) * )
 End
