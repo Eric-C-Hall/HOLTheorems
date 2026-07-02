@@ -237,8 +237,8 @@ Definition bool_to_erasure_bit_def:
   bool_to_erasure_bit b = if b then E_T else E_F
 End
 
-Definition binary_erasure_channel_rep_def:
-  binary_erasure_channel_rep (p : extreal)
+Definition binary_erasure_channel0_def:
+  binary_erasure_channel0 (p : extreal)
   : ((bool -> bool) # (bool -> erasure_bit m_space)) =
   ({T; F},
    (λinput.
@@ -253,13 +253,8 @@ Definition binary_erasure_channel_rep_def:
   )
 End
 
-Definition binary_erasure_channel_def:
-  binary_erasure_channel p : (bool, erasure_bit) memoryless_channel =
-  memoryless_channel_ABS (binary_erasure_channel_rep p)
-End
-
-Definition binary_symmetric_channel_rep_def:
-  binary_symmetric_channel_rep (p : extreal)
+Definition binary_symmetric_channel0_def:
+  binary_symmetric_channel0 (p : extreal)
   : (bool -> bool) # (bool -> bool m_space) =
   ({T;F},
    (λinput.
@@ -272,11 +267,6 @@ Definition binary_symmetric_channel_rep_def:
       )
    )
   )
-End
-
-Definition binary_symmetric_channel_def:
-  binary_symmetric_channel p : (bool, bool) memoryless_channel =
-  memoryless_channel_ABS (binary_symmetric_channel_rep p)
 End
 
 (* mathcal_2 represents {T;F} *)
@@ -319,15 +309,15 @@ Proof
   simp[]
 QED
 
-Theorem wf_binary_erasure_channel:
+Theorem wf_binary_erasure_channel0:
   ∀p.
     0 ≤ p ∧ p ≤ 1 ⇒
-    wf_memoryless_channel (binary_erasure_channel_rep p)
+    wf_memoryless_channel (binary_erasure_channel0 p)
 Proof  
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
   >> simp[wf_memoryless_channel_def, mcdomain0_def, mcchannel0_def]
-  >> gen_tac >> strip_tac >> simp[binary_erasure_channel_rep_def]
+  >> gen_tac >> strip_tac >> simp[binary_erasure_channel0_def]
   >> simp[prob_space_def]
   >> REVERSE conj_tac             
   >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
@@ -371,15 +361,15 @@ Proof
   >> irule POW_SIGMA_ALGEBRA
 QED
 
-Theorem wf_binary_symmetric_channel:
+Theorem wf_binary_symmetric_channel0:
   ∀p.
     0 ≤ p ∧ p ≤ 1 ⇒
-    wf_memoryless_channel (binary_symmetric_channel_rep p)
+    wf_memoryless_channel (binary_symmetric_channel0 p)
 Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
   >> simp[wf_memoryless_channel_def, mcchannel0_def, mcdomain0_def]
-  >> gen_tac >> strip_tac >> simp[binary_symmetric_channel_rep_def]
+  >> gen_tac >> strip_tac >> simp[binary_symmetric_channel0_def]
   >> simp[prob_space_def]
   >> REVERSE conj_tac
   >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
@@ -428,4 +418,27 @@ Proof
   >> irule POW_SIGMA_ALGEBRA
 QED
 
+(* I attempted to lift binary_erasure_channel0 and binary_symmetric_channel0,
+but they are only well-formed if 0 ≤ p ≤ 1, and I don't know how to deal with that
+Theorem binary_erasure_channel0_respects:
+  ((=) ===> memoryless_channelequiv) binary_erasure_channel0 binary_erasure_channel0
+Proof
+  simp[FUN_REL_def]
+  >> rpt gen_tac
+  >> simp[probequiv_def, memoryless_channelequiv_def, wf_binary_erasure_channel0]
+QED
 
+val (binary_erasure_channel_def, binary_erasure_channel_relates)
+= liftdef binary_erasure_channel0_respects "binary_erasure_channel";
+
+val (binary_symmetric_channel_def, binary_symmetric_channel_relates)
+= liftdef binary_symmetric_channel0_respects "binary_symmetric_channel";
+*)
+
+Definition binary_erasure_channel_def:
+  binary_erasure_channel p = memoryless_channel_ABS (binary_erasure_channel0 p)
+End
+
+Definition binary_symmetric_channel_def:
+  binary_symmetric_channel p = memoryless_channel_ABS (binary_symmetric_channel0 p)
+End
