@@ -2,29 +2,54 @@
 
 Theory memoryless_channel
 
-Ancestors arithmetic extreal lifting pred_set real measure sigma_algebra transfer probability
+Ancestors arithmetic extreal lifting pair pred_set real measure sigma_algebra transfer probability
 
 Libs dep_rewrite liftLib transferLib realLib;
 
 (* -------------------------------------------------------------------------- *)
-(* A memoryless channel                                                       *)
-(* - Takes an input                                                           *)
-(* - Returns a probability distribution over output bits.                     *)
+(* Important definitions:                                                     *)
 (*                                                                            *)
-(* A channel underlyingly has the representation:                             *)
-(* α -> β m_space                                                             *)
+(* memoryless_channel (abstract type)                                         *)
+(* wf_memoryless_channel: is memoryless channel well-formed                   *)
+(* mcdomain: get domain of memoryless channel                                 *)
+(* mcchannel: get channel of memoryless channel                               *)
+(* -------------------------------------------------------------------------- *)
+
+Definition mcdomain0_def:
+  mcdomain0 (W : (α -> bool) # (α -> β m_space)) = FST W
+End
+
+Definition mcchannel0_def:
+  mcchannel0 (W : (α -> bool) # (α -> β m_space)) = SND W
+End
+
+(* -------------------------------------------------------------------------- *)
+(* A memoryless channel                                                       *)
+(* - Has a set representing the domain, of type α -> bool.                    *)
+(* - Maps each input in that domain to a probability distribution over        *)
+(*   outputs, of type α -> β m_space                                          *)
+(*                                                                            *)
+(* We require:                                                                *)
+(* - The output distribution associated with every input in the domain is a   *)
+(*   probability distribution.                                                *)
+(* -------------------------------------------------------------------------- *)
+(* Old: (FINITE (m_space (W x)) ⇒ measurable_sets (W x) =                     *)
+(* POW (m_space (W x))) ∧                                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition wf_memoryless_channel_def:
-  wf_memoryless_channel (W : α -> β m_space) =
-  (∀x. (FINITE (m_space (W x)) ⇒ measurable_sets (W x) = POW (m_space (W x))) ∧
-       prob_space (W x))
+  wf_memoryless_channel (W : (α -> bool) # (α -> β m_space)) =
+  (∀x. (x ∈ mcdomain0 W) ⇒ prob_space ((mcchannel0 W) x))
 End
 
 Theorem wf_memoryless_channels_exist[local]:
   ∃x. wf_memoryless_channel x
 Proof
-  qexists ‘λx. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0)’
+  qexists ‘({ARB},
+            λx. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0))’
   >> simp[wf_memoryless_channel_def]
+  (* This was useful with old definition of a well-formed memoryless channel,
+     but it less useful now. However, it doesn't hurt, and it is a potentially
+     useful assumption (not sure if it is being used) *)
   >> sg ‘POW {ARB : β} = {∅; {ARB}}’
   >- (irule EQ_SYM
       >> simp[POW_DEF, EXTENSION]
@@ -36,8 +61,9 @@ Proof
           >> metis_tac[])
       >> Cases_on ‘x’ >> gvs[])
   >> simp[]
+  >> gen_tac >> strip_tac
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_on_finite_set]
-  >> simp[]
+  >> simp[mcchannel0_def]
   >> rpt conj_tac
   >- (simp[positive_def]
       >> gen_tac
@@ -46,21 +72,21 @@ Proof
   >> simp[additive_def]
   >> rpt gen_tac
   >> Cases_on ‘s’ >> simp[]
-  >> REVERSE $ Cases_on ‘x = ARB’
-  >- (sg ‘x INSERT t' ≠ {ARB}’
+  >> REVERSE $ Cases_on ‘x' = ARB’
+  >- (sg ‘x' INSERT t' ≠ {ARB}’
       >- (CCONTR_TAC >> gvs[]
-          >> sg ‘x ∈ {ARB}’
+          >> sg ‘x' ∈ {ARB}’
           >- ASM_SET_TAC[]
           >> gvs[])
       >> simp[]
-     )
+     )     
   >> simp[]
   >> REVERSE $ Cases_on ‘t'’
-  >- (Cases_on ‘x' = ARB’
+  >- (Cases_on ‘x'' = ARB’
       >- (‘F’ suffices_by strip_tac >> gvs[])
-      >> sg ‘ARB INSERT x' INSERT t'' ≠ {ARB}’
+      >> sg ‘ARB INSERT x'' INSERT t'' ≠ {ARB}’
       >- (simp[EXTENSION]
-          >> qexists ‘x'’
+          >> qexists ‘x''’
           >> simp[])
       >> simp[]
      )
@@ -68,11 +94,11 @@ Proof
   >> Cases_on ‘t’ >> simp[]
   >> strip_tac
   >> ‘F’ suffices_by strip_tac
-  >> sg ‘x' = ARB’
+  >> sg ‘x'' = ARB’
   >- (pop_assum mp_tac
       >> rpt $ pop_assum kall_tac
       >> simp[EXTENSION]
-      >> disch_then $ qspec_then ‘x'’ assume_tac
+      >> disch_then $ qspec_then ‘x''’ assume_tac
       >> gvs[])
   >> simp[]
 QED
@@ -159,6 +185,12 @@ Proof
   simp[Qt_alt, memoryless_channel_AR_def, #absrep_id tydefrec, memoryless_channelequiv_def, #termP_term_REP tydefrec] >>
   simp[SF CONJ_ss, #term_ABS_pseudo11 tydefrec] >>
   simp[SF CONJ_ss, FUN_EQ_THM, memoryless_channel_AR_def, #termP_term_REP tydefrec, CONJ_COMM]
+  >> simp[EQ_IMP_THM, #termP_term_REP tydefrec, #absrep_id tydefrec,
+          #repabs_pseudo_id tydefrec]
+(* The following code needed to be used when the representation type was a
+   function, but now that it is no longer a function, it is no longer
+   neceesary.*)
+(*
   (* Because our representation type is a function, FUN_EQ_THM was accidentally
      applied to the function, breaking the old working from genericGraphScript.
      So I patch it up here by unapplying FUN_EQ_THM where it isn't needed. *)
@@ -174,8 +206,28 @@ Proof
      help with one direction, so I patch it up by proving this myself *)
   >> strip_tac
   >> gvs[]
-  >> simp[#repabs_pseudo_id tydefrec]
+  >> simp[#repabs_pseudo_id tydefrec]*)
 QED
+
+Theorem mcdomain0_respects:
+  (memoryless_channelequiv ===> (=)) mcdomain0 mcdomain0
+Proof
+  simp[FUN_REL_def]
+  >> rpt gen_tac
+  >> simp[memoryless_channelequiv_def]
+QED
+
+val (mcdomain_def, mcdomain_relates) = liftdef mcdomain0_respects "mcdomain";
+
+Theorem mcchannel0_respects:
+  (memoryless_channelequiv ===> (=)) mcchannel0 mcchannel0
+Proof
+  simp[FUN_REL_def]
+  >> rpt gen_tac
+  >> simp[memoryless_channelequiv_def]
+QED
+
+val (mcchannel_def, mcchannel_relates) = liftdef mcchannel0_respects "mcchannel";
 
 Datatype:
   erasure_bit = E_T | E_F | Erasure
@@ -186,33 +238,39 @@ Definition bool_to_erasure_bit_def:
 End
 
 Definition binary_erasure_channel_rep_def:
-  binary_erasure_channel_rep (p : extreal) : bool -> erasure_bit m_space =
-  (λinput.
-     (𝕌(:erasure_bit),
-      POW (𝕌(:erasure_bit)),
-      EXTREAL_SUM_IMAGE (λoutput. if output = Erasure
-                                  then p
-                                  else
-                                    if output = bool_to_erasure_bit input
-                                    then 1 - p
-                                    else 0)))
+  binary_erasure_channel_rep (p : extreal)
+  : ((bool -> bool) # (bool -> erasure_bit m_space)) =
+  ({T; F},
+   (λinput.
+      (𝕌(:erasure_bit),
+       POW (𝕌(:erasure_bit)),
+       EXTREAL_SUM_IMAGE (λoutput. if output = Erasure
+                                   then p
+                                   else
+                                     if output = bool_to_erasure_bit input
+                                     then 1 - p
+                                     else 0)))
+  )
 End
 
 Definition binary_erasure_channel_def:
-  erasure_channel p : (bool, erasure_bit) memoryless_channel =
+  binary_erasure_channel p : (bool, erasure_bit) memoryless_channel =
   memoryless_channel_ABS (binary_erasure_channel_rep p)
 End
 
 Definition binary_symmetric_channel_rep_def:
-  binary_symmetric_channel_rep (p : extreal) : bool -> bool m_space =
-  (λinput.
-     (𝕌(:bool),
-      POW (𝕌(:bool)),
-      EXTREAL_SUM_IMAGE (λoutput. if output ≠ input
-                                  then p
-                                  else 1 - p
-                        )
-     )
+  binary_symmetric_channel_rep (p : extreal)
+  : (bool -> bool) # (bool -> bool m_space) =
+  ({T;F},
+   (λinput.
+      (𝕌(:bool),
+       POW (𝕌(:bool)),
+       EXTREAL_SUM_IMAGE (λoutput. if output ≠ input
+                                   then p
+                                   else 1 - p
+                         )
+      )
+   )
   )
 End
 
@@ -268,7 +326,7 @@ Theorem wf_binary_erasure_channel:
 Proof  
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
-  >> simp[wf_memoryless_channel_def]
+  >> simp[wf_memoryless_channel_def, mcdomain0_def, mcchannel0_def]
   >> gen_tac >> strip_tac >> simp[binary_erasure_channel_rep_def]
   >> simp[prob_space_def]
   >> REVERSE conj_tac             
@@ -320,7 +378,7 @@ Theorem wf_binary_symmetric_channel:
 Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
-  >> simp[wf_memoryless_channel_def]
+  >> simp[wf_memoryless_channel_def, mcchannel0_def, mcdomain0_def]
   >> gen_tac >> strip_tac >> simp[binary_symmetric_channel_rep_def]
   >> simp[prob_space_def]
   >> REVERSE conj_tac

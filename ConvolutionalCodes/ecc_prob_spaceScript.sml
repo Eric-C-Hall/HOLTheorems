@@ -2,7 +2,7 @@
 
 Theory ecc_prob_space
 
-Ancestors arithmetic real list pred_set probability bitstring bxorLemmas metric measure sigma_algebra extreal_base cardinal extreal combin iterate realax real_sigma rich_list pair relation wellorder martingale lebesgue prim_rec divides bit jared_yeager_prob_space_product_space
+Ancestors arithmetic real list pred_set probability bitstring bxor_lemmas metric measure sigma_algebra extreal_base cardinal extreal combin iterate realax real_sigma rich_list pair relation wellorder martingale lebesgue prim_rec divides bit jared_yeager_prob_space_product_space
 
 Libs extreal_to_realLib ConseqConv dep_rewrite simpLib realLib;
 
@@ -19,8 +19,10 @@ Overload length_n_codes = “λn. {c : bool list | LENGTH c = n}”;
 (* case of a finite space, and it is much simpler to work with.               *)
 (*                                                                            *)
 (* This should be based on the way I prove that the noise probability space   *)
-(* is a probability space. Perhaps replace prob_space_on_finite_set, which    *)
-(* only works with the uniform distribution on finite sets?                   *)
+(* is a probability space. See sym_noise_prob_space_is_prob_space.            *)
+(*                                                                            *)
+(* Perhaps this should replace prob_space_on_finite_set, which                *)
+(* only works with the uniform distribution?                                  *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
