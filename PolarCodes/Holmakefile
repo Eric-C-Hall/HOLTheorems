@@ -1,4 +1,4 @@
-INCLUDES = ../Utility $(HOLDIR)/examples/generic_graphs
+INCLUDES = ../Utility ../../HOL4-Theorem-Library/fundamental $(HOLDIR)/examples/generic_graphs
 
 all: $(DEFAULT_TARGETS)
 .PHONY: all
