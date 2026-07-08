@@ -1,6 +1,6 @@
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave pispace polar_encode
+Ancestors arithmetic bitstring bxor_lemmas interleave pispace polar_encode memoryless_channel
 
 Libs dep_rewrite realLib;
 
@@ -17,8 +17,8 @@ End
 (* pispace$pi_measure_space by Jared Yeager) into a list-based product of     *)
 (* measure spaces                                                             *)
 (* -------------------------------------------------------------------------- *)
-Definition pi_measure_space_to_pi_list_measure_space_def:
-  pi_measure_space_to_pi_list_measure_space
+Definition pi_measure_space_to_pi_measure_space_list_def:
+  pi_measure_space_to_pi_measure_space_list
   (n : num) (m : (num -> α) m_space) =
   ({xs | list_to_function xs ∈ m_space m},
    {xss | IMAGE list_to_function xss ∈ measurable_sets m},
@@ -39,9 +39,9 @@ End
 (* of the list given as input, so we cannot just apply prod_measure_space     *)
 (* naively.                                                                   *)
 (* -------------------------------------------------------------------------- *)
-Definition pi_list_measure_space_def:
-  pi_list_measure_space (ms : (α m_space) list) =
-  pi_measure_space_to_pi_list_measure_space
+Definition pi_measure_space_list_def:
+  pi_measure_space_list (ms : (α m_space) list) =
+  pi_measure_space_to_pi_measure_space_list
   (LENGTH ms) (pi_measure_space (LENGTH ms) (λn. EL n ms))
   : (α list) m_space
 End
@@ -54,7 +54,7 @@ Definition repeat_channel0_def:
   repeat_channel0 (W : (α -> bool) # (α -> β m_space)) (n : num) =
   ({xs | LENGTH xs = n},
    λrepeated_inputs.
-     (MAP (mcchannel W) repeated_inputs)
+     pi_measure_space_list (MAP (mcchannel0 W) repeated_inputs)
   )
   : (α list -> bool) # (α list -> β list m_space)
 End
