@@ -1,8 +1,13 @@
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave pispace polar_encode memoryless_channel
+Ancestors arithmetic bitstring bxor_lemmas interleave lifting pispace polar_encode probability measure memoryless_channel transfer
 
-Libs dep_rewrite realLib;
+Libs dep_rewrite realLib liftLib transferLib;
+
+val _ = hide "W";
+
+(* TODO: move the definitions that help to define pi_measure_space_list based on
+   pi_measure_space into their own file, perhaps *)
 
 (* -------------------------------------------------------------------------- *)
 (* Convert a list to an alternative representation as a function, where the   *)
@@ -58,6 +63,88 @@ Definition repeat_channel0_def:
   )
   : (α list -> bool) # (α list -> β list m_space)
 End
+
+Theorem measure_space_pi_measure_space_to_pi_measure_space_list:
+  ∀n m.
+    measure_space m ⇒
+    measure_space (pi_measure_space_to_pi_measure_space_list n m)
+Proof
+  rpt gen_tac
+  >> 
+  >> cheat
+QED
+
+Theorem pi_measure_space_to_pi_measure_space_list_measure_entire_space:
+  ∀m.
+    measure m (m_space m) = 1 ⇒
+    measure (pi_measure_space_to_pi_measure_space_list n m)
+            (m_space (pi_measure_space_to_pi_measure_space_list n m)) =
+    1
+Proof
+  gen_tac
+  >> simp[pi_measure_space_to_pi_measure_space_list_def]
+  >> ‘IMAGE list_to_function {xs | list_to_function xs ∈ m_space m}
+                                   = m_space m’ suffices_by simp[]
+  >> simp[FUN_EQ_THM]
+  >> gen_tac
+  >> EQ_TAC
+  >- (strip_tac
+      >> ASM_SET_TAC[])
+  >> strip_tac
+  >> qexists ‘list_to_function x’
+QED
+
+Theorem prob_space_pi_measure_space_to_pi_measure_space_list:
+  ∀n m.
+    prob_space m ⇒
+    prob_space (pi_measure_space_to_pi_measure_space_list n m)
+Proof
+  rpt gen_tac
+  >> simp[prob_space_def, measure_space_pi_measure_space_to_pi_measure_space_list]
+  >> 
+  >> gs[prob_space_def]
+  >> simp[pi_measure_space_to_pi_measure_space_list_def]
+  >> gs[prob_space_def]
+  >> conj_tac
+  >- (simp[measure_space_def]
+     )
+QED
+
+Theorem prob_space_pi_measure_space_list:
+  ∀ms.
+    (∀m. MEM m ms ⇒ prob_space m) ⇒
+    prob_space (pi_measure_space_list ms)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[pi_measure_space_list_def]
+QED
+
+Theorem wf_memoryless_channel_repeat_channel0:
+  ∀W n.
+    wf_memoryless_channel W ⇒
+    wf_memoryless_channel (repeat_channel0 W n)
+Proof
+  rpt gen_tac
+  >> namedCases_on ‘W’ ["channel_dom channel_func"]
+  >> simp[wf_memoryless_channel_def, mcdomain0_def, mcchannel0_def]
+  >> strip_tac
+  >> gen_tac
+  >> simp[repeat_channel0_def, mcchannel0_def]
+  >> strip_tac
+  >> 
+  
+  >> 
+QED
+
+Theorem repeat_channel0_respects:
+  (memoryless_channelequiv ===> (=) ===> (memoryless_channelequiv)) repeat_channel0 repeat_channel0
+Proof
+  simp[FUN_REL_def]
+  >> rpt gen_tac
+  >> simp[memoryless_channelequiv_def, wf_memoryless_channel_repeat_channel0]
+QED
+
+val (repeat_channel_def, repeat_channel_relates) = liftdef repeat_channel0_respects "repeat_channel";
 
 (* -------------------------------------------------------------------------- *)
 (* Given a memoryless channel                                                 *)
