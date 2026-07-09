@@ -187,9 +187,9 @@ Proof
         simp[extreal_mul_def,extreal_lt_simps])
 QED
 
-Definition list_measure_space_def:
-    list_measure_space [] = ({[]}, POW {[]}, C 𝟙 []) ∧
-    list_measure_space (mh::mt) = general_prod_measure_space CONS mh (list_measure_space mt)
+Definition pi_measure_space_list_def:
+  pi_measure_space_list [] = ({[]}, POW {[]}, C 𝟙 []) ∧
+  pi_measure_space_list (mh::mt) = general_prod_measure_space CONS mh (pi_measure_space_list mt)
 End
 
 Theorem sigma_finite_measure_space_dirac_measure:
@@ -201,14 +201,14 @@ Proof
     rw[EXTENSION,IN_BIGUNION_IMAGE]
 QED
 
-Theorem sigma_finite_measure_space_list_measure_space:
-    ∀ml. EVERY sigma_finite_measure_space ml ⇒ sigma_finite_measure_space (list_measure_space ml)
+Theorem sigma_finite_measure_space_pi_measure_space_list:
+  ∀ml. EVERY sigma_finite_measure_space ml ⇒ sigma_finite_measure_space (pi_measure_space_list ml)
 Proof
     Induct_on ‘ml’
-    >- (rw[EVERY_DEF,list_measure_space_def] >>
+    >- (rw[EVERY_DEF,pi_measure_space_list_def] >>
         qspec_then ‘{[]}’ assume_tac POW_SIGMA_ALGEBRA >>
         dxrule sigma_finite_measure_space_dirac_measure >> simp[]) >>
-    rw[EVERY_DEF,list_measure_space_def] >> rename [‘_ CONS mh (_ mt)’] >>
+    rw[EVERY_DEF,pi_measure_space_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
     irule sigma_finite_measure_space_general_prod_measure >> gs[] >>
     irule_at Any pair_operation_CONS
 QED
