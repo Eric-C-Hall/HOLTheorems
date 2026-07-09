@@ -1,6 +1,6 @@
 (* -------------------------------------------------------------------------- *)
-(* Code sent to me by Jared Yeager (I'm pretty sure he wrote it, too)         *)
-(* Minor edits by Eric Hall                                                   *)
+(* Written by Jared Yeager                                                    *)
+(* Edits and additions by Eric Hall                                           *)
 (* -------------------------------------------------------------------------- *)
 
 open HolKernel Parse boolLib bossLib;
@@ -227,16 +227,50 @@ Proof
   >> simp[indicator_fn_def]
 QED
 
-(* Written by Eric based on code by Jared Yeager *)
+(* TODO: Add this to canon *)
+Theorem prob_space_sigma_finite_measure_space:
+  ∀p.
+    prob_space p ⇒ sigma_finite_measure_space p
+Proof
+  gen_tac
+  >> strip_tac
+  >> simp[sigma_finite_measure_space_def]
+  >> gvs[prob_space_def]
+  >> simp[sigma_finite_def]
+  >> qexists ‘λn. m_space p’
+  >> rpt conj_tac
+  >- simp[IN_FUNSET, MEASURE_SPACE_SPACE]
+  >- (gen_tac >> simp[SUBSET_DEF])
+  >- (simp[EXTENSION]
+      >> gen_tac
+      >> EQ_TAC
+      >- (strip_tac >> metis_tac[])
+      >> strip_tac
+      >> qexists ‘m_space p’
+      >> simp[])
+  >> gen_tac
+  >> simp[]
+QED
+
 Theorem prob_space_pi_measure_space_list:
   ∀ml.
     EVERY prob_space ml ⇒
     prob_space (pi_measure_space_list ml)
 Proof
-  Induct_on ‘ml’
-  >- (rw[EVERY_DEF,pi_measure_space_list_def]
+  gen_tac >> strip_tac
+  >> simp[prob_space_def]
+  >> conj_tac
+  >- (
+  )
+   
+     Induct_on ‘ml’
+  >- (simp[prob_space_def]
+
+          rw[EVERY_DEF,pi_measure_space_list_def]
       >> simp[prob_space_def]
-             qspec_then ‘{[]}’ assume_tac POW_SIGMA_ALGEBRA >>
+      >> 
+      
+      qspec_then ‘{[]}’ assume_tac POW_SIGMA_ALGEBRA >>
       dxrule sigma_finite_measure_space_dirac_measure >> simp[]) >>
   rw[EVERY_DEF,pi_measure_space_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
   irule sigma_finite_measure_space_general_prod_measure >> gs[] >>
