@@ -1,8 +1,10 @@
 Theory pi_measure_space_list_alt
 
-Ancestors arithmetic bitstring bxor_lemmas interleave lifting measure pred_set probability sigma_algebra transfer
+Ancestors arithmetic bitstring bxor_lemmas lifting measure pispace pred_set probability sigma_algebra transfer trivial
 
 Libs dep_rewrite realLib liftLib transferLib;
+
+val _ = hide "S";
 
 (* -------------------------------------------------------------------------- *)
 (* Convert a list to an alternative representation as a function, where the   *)
@@ -147,7 +149,7 @@ Proof
   >> rw[]
 QED
 
-Theorem sigma_algebra_measurable_space_pi_measure_space_to_pi_measure_space_list:
+(*Theorem sigma_algebra_measurable_space_pi_measure_space_to_pi_measure_space_list:
   ∀n m.
     sigma_algebra (measurable_space m) ∧
     (∀f. f ∈ m_space m ⇒ (∀i. n ≤ i ⇒ f i = ARB)) ⇒
@@ -168,14 +170,14 @@ Proof
            )
         >> gen_tac
         >> strip_tac
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Converting a measure space from function form to list form will result in  *)
 (* an isomorphic result if the initial measure space in function form is      *)
 (* valid: i.e. all values after the final index n are ARB.                    *)
 (* -------------------------------------------------------------------------- *)
-Theorem isomorphic_pi_measure_space_to_pi_measure_space_list:
+(*Theorem isomorphic_pi_measure_space_to_pi_measure_space_list:
   ∀n m.
     measure_space m ∧
     (∀f. f ∈ m_space m ⇒ (∀i. n ≤ i ⇒ f i = ARB)) ⇒
@@ -192,8 +194,8 @@ Proof
       >- (simp[pi_measure_space_to_pi_measure_space_list_def]
           >> simp[sigma_algebra_def]
           >> conj_tac
-          >- (
-           )
+          >- (cheat
+             )
          )
       >- (simp[pi_measure_space_to_pi_measure_space_list_def]
           >> simp[BIJ_DEF]
@@ -230,9 +232,9 @@ Proof
       >> simp[]
      ) 
   >> simp[pi_measure_space_to_pi_measure_space_list_def]
-QED
+QED*)
 
-Theorem measure_space_pi_measure_space_to_pi_measure_space_list:
+(*Theorem measure_space_pi_measure_space_to_pi_measure_space_list:
   ∀n m.
     measure_space m ⇒
     measure_space (pi_measure_space_to_pi_measure_space_list n m)
@@ -241,8 +243,9 @@ Proof
   >> simp[pi_measure_space_to_pi_measure_space_list_def]
   >> simp[measure_space_def]
   >> cheat
-QED
+QED*)
 
+(*
 Theorem pi_measure_space_to_pi_measure_space_list_measure_entire_space:
   ∀m.
     measure m (m_space m) = 1 ⇒
@@ -252,18 +255,19 @@ Theorem pi_measure_space_to_pi_measure_space_list_measure_entire_space:
 Proof
   gen_tac
   >> simp[pi_measure_space_to_pi_measure_space_list_def]
-  >> ‘IMAGE list_to_function {xs | list_to_function xs ∈ m_space m}
-                                   = m_space m’ suffices_by simp[]
-  >> simp[FUN_EQ_THM]
+  >> qmatch_goalsub_abbrev_tac ‘_ ⇒ measure _ (IMAGE _ S) = _’
+  >> ‘IMAGE list_to_function S = m_space m’ suffices_by simp[]
+  >> simp[FUN_EQ_THM, Abbr ‘S’]
   >> gen_tac
   >> EQ_TAC
   >- (strip_tac
       >> ASM_SET_TAC[])
   >> strip_tac
-  >> qexists ‘list_to_function x’
+  >> cheat (* >> qexists ‘list_to_function x’*)
 QED
+*)
 
-Theorem prob_space_pi_measure_space_to_pi_measure_space_list:
+(*Theorem prob_space_pi_measure_space_to_pi_measure_space_list:
   ∀n m.
     prob_space m ⇒
     prob_space (pi_measure_space_to_pi_measure_space_list n m)
@@ -277,9 +281,9 @@ Proof
   >> conj_tac
   >- (simp[measure_space_def]
      )
-QED
+QED*)
 
-Theorem prob_space_pi_measure_space_list:
+(*Theorem prob_space_pi_measure_space_list:
   ∀ms.
     (∀m. MEM m ms ⇒ prob_space m) ⇒
     prob_space (pi_measure_space_list ms)
@@ -287,3 +291,4 @@ Proof
   rpt gen_tac >> strip_tac
   >> simp[pi_measure_space_list_def]
 QED
+*)
