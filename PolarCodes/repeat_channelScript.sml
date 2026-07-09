@@ -1,6 +1,6 @@
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave lifting measure memoryless_channel pispace polar_encode pred_set probability sigma_algebra transfer
+Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_listspace lifting measure memoryless_channel pispace polar_encode pred_set probability sigma_algebra transfer trivial
 
 Libs dep_rewrite realLib liftLib transferLib;
 
@@ -164,9 +164,39 @@ Proof
   >> rw[]
 QED
 
+Theorem sigma_algebra_measurable_space_pi_measure_space_to_pi_measure_space_list:
+  ∀n m.
+    sigma_algebra (measurable_space m) ∧
+    (∀f. f ∈ m_space m ⇒ (∀i. n ≤ i ⇒ f i = ARB)) ⇒
+    sigma_algebra (measurable_space
+                   (pi_measure_space_to_pi_measure_space_list n m))
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[pi_measure_space_to_pi_measure_space_list_def]
+  >>
+  TRACE_SIGMA_ALGEBRA probably not useful,
+        
+
+  
+        >> gvs[measure_space_def]
+        >> simp[sigma_algebra_def]
+        >> conj_tac
+        >- (cheat
+           )
+        >> gen_tac
+        >> strip_tac
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* Converting a measure space from function form to list form will result in  *)
+(* an isomorphic result if the initial measure space in function form is      *)
+(* valid: i.e. all values after the final index n are ARB.                    *)
+(* -------------------------------------------------------------------------- *)
 Theorem isomorphic_pi_measure_space_to_pi_measure_space_list:
   ∀n m.
-    measure_space m ⇒
+    measure_space m ∧
+    (∀f. f ∈ m_space m ⇒ (∀i. n ≤ i ⇒ f i = ARB)) ⇒
     isomorphic m (pi_measure_space_to_pi_measure_space_list n m)
 Proof
   rpt gen_tac >> strip_tac
@@ -178,7 +208,10 @@ Proof
   >- (simp[measurability_preserving_def]
       >> rpt conj_tac
       >- (simp[pi_measure_space_to_pi_measure_space_list_def]
-          >> cheat
+          >> simp[sigma_algebra_def]
+          >> conj_tac
+          >- (
+           )
          )
       >- (simp[pi_measure_space_to_pi_measure_space_list_def]
           >> simp[BIJ_DEF]
@@ -188,9 +221,32 @@ Proof
               >> simp[list_to_function_inj])
           >> simp[SURJ_DEF]
           >> gen_tac >> strip_tac
-          >> 
+          >> qspecl_then [‘x’, ‘n’] assume_tac list_to_function_surj
+          >> metis_tac[]
          )
-     )
+      >- (gen_tac >> simp[pi_measure_space_to_pi_measure_space_list_def])
+      >> simp[pi_measure_space_to_pi_measure_space_list_def]
+      >> gen_tac >> strip_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[BIJ_IMAGE_PREIMAGE]
+      >> conj_tac
+      >- (qexists ‘m_space m’
+          >> REVERSE conj_tac
+          >- (Cases_on ‘m’ >> Cases_on ‘r’ >> gvs[]
+              >> gvs[measure_space_def]
+              >> qspecl_then [‘(q,q')’, ‘s’] assume_tac SIGMA_ALGEBRA_SUBSET_SPACE
+              >> gvs[]
+             )
+          >> simp[BIJ_DEF]
+          >> conj_tac
+          >- (simp[INJ_DEF]
+              >> rpt gen_tac >> rpt strip_tac
+              >> simp[list_to_function_inj])
+          >> simp[SURJ_DEF]
+          >> gen_tac >> strip_tac
+          >> metis_tac[list_to_function_surj]
+         )
+      >> simp[]
+     ) 
   >> simp[pi_measure_space_to_pi_measure_space_list_def]
 QED
 
