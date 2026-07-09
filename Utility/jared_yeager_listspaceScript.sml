@@ -1,3 +1,7 @@
+(* -------------------------------------------------------------------------- *)
+(* Code sent to me by Jared Yeager (I'm pretty sure he wrote it, too)         *)
+(* -------------------------------------------------------------------------- *)
+
 open HolKernel Parse boolLib bossLib;
 open simpLib;
 open markerTheory;
