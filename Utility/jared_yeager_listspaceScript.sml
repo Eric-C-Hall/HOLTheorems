@@ -24,7 +24,7 @@ open lebesgueTheory;
 open martingaleTheory;
 open probabilityTheory;
 
-val _ = new_theory "listspace";
+val _ = new_theory "jared_yeager_listspace";
 
 val _ = reveal "C";
 
