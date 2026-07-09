@@ -1,1 +1,11 @@
-INCLUDES = $(HOLDIR)/examples/generic_graphs
+INCLUDES = $(HOLDIR)/examples/generic_graphs ../../HOL4-Theorem-Library/fundamental
+
+all: $(DEFAULT_TARGETS)
+.PHONY: all
+
+probheap: $(SIGOBJ)/probabilityTheory.uo $(SIGOBJ)/bitstringTheory.uo
+	$(HOLDIR)/bin/hol buildheap $< $(SIGOBJ)/bitstringTheory.uo -o $@
+
+HOLHEAP = probheap
+
+EXTRA_CLEANS = probheap
