@@ -1,6 +1,6 @@
 Theory pi_measure_space_list_alt
 
-Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_listspace lifting measure memoryless_channel pispace polar_encode pred_set probability sigma_algebra transfer trivial
+Ancestors arithmetic bitstring bxor_lemmas interleave lifting measure pred_set probability sigma_algebra transfer
 
 Libs dep_rewrite realLib liftLib transferLib;
 
