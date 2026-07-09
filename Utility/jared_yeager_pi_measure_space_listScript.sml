@@ -214,4 +214,33 @@ Proof
     irule_at Any pair_operation_CONS
 QED
 
+(* Written by Eric based on code by Jared Yeager *)
+Theorem prob_space_dirac_measure:
+  ∀sa x.
+    sigma_algebra sa ∧
+    x ∈ space sa ⇒
+    prob_space (space sa,subsets sa,C 𝟙 x)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[prob_space_def]
+  >> simp[measure_space_dirac_measure]
+  >> simp[indicator_fn_def]
+QED
+
+(* Written by Eric based on code by Jared Yeager *)
+Theorem prob_space_pi_measure_space_list:
+  ∀ml.
+    EVERY prob_space ml ⇒
+    prob_space (pi_measure_space_list ml)
+Proof
+  Induct_on ‘ml’
+  >- (rw[EVERY_DEF,pi_measure_space_list_def]
+      >> simp[prob_space_def]
+             qspec_then ‘{[]}’ assume_tac POW_SIGMA_ALGEBRA >>
+      dxrule sigma_finite_measure_space_dirac_measure >> simp[]) >>
+  rw[EVERY_DEF,pi_measure_space_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
+  irule sigma_finite_measure_space_general_prod_measure >> gs[] >>
+  irule_at Any pair_operation_CONS
+QED
+
 val _ = export_theory();

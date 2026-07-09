@@ -1,6 +1,6 @@
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_listspace lifting measure memoryless_channel pispace polar_encode pred_set probability sigma_algebra transfer trivial
+Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_pi_measure_space_list lifting measure memoryless_channel pispace polar_encode pred_set probability sigma_algebra transfer trivial
 
 Libs dep_rewrite realLib liftLib transferLib;
 
@@ -30,10 +30,10 @@ Proof
   rpt gen_tac
   >> namedCases_on ‘W’ ["channel_dom channel_func"]
   >> simp[wf_memoryless_channel_def, mcdomain0_def, mcchannel0_def]
-  >> strip_tac
-  >> gen_tac
+  >> strip_tac >> gen_tac
   >> simp[repeat_channel0_def, mcchannel0_def]
   >> strip_tac
+  >> irule sigma_finite_measure_space_pi_measure_space_list
   >> 
   
   >> 
