@@ -1,5 +1,6 @@
 (* -------------------------------------------------------------------------- *)
 (* Code sent to me by Jared Yeager (I'm pretty sure he wrote it, too)         *)
+(* Minor edits by Eric Hall                                                   *)
 (* -------------------------------------------------------------------------- *)
 
 open HolKernel Parse boolLib bossLib;
