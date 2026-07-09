@@ -214,7 +214,6 @@ Proof
     irule_at Any pair_operation_CONS
 QED
 
-(* Written by Eric based on code by Jared Yeager *)
 Theorem prob_space_dirac_measure:
   ∀sa x.
     sigma_algebra sa ∧
@@ -252,6 +251,13 @@ Proof
   >> simp[]
 QED
 
+Theorem measure_pi_measure_space_list_m_space:
+  ∀ml.
+    EVERY prob_space ml ⇒
+    measure (pi_measure_space ml) (m_space pi_measure_space_list ml) = 1
+Proof
+QED
+
 Theorem prob_space_pi_measure_space_list:
   ∀ml.
     EVERY prob_space ml ⇒
@@ -260,21 +266,16 @@ Proof
   gen_tac >> strip_tac
   >> simp[prob_space_def]
   >> conj_tac
-  >- (
-  )
-   
-     Induct_on ‘ml’
-  >- (simp[prob_space_def]
-
-          rw[EVERY_DEF,pi_measure_space_list_def]
-      >> simp[prob_space_def]
-      >> 
-      
-      qspec_then ‘{[]}’ assume_tac POW_SIGMA_ALGEBRA >>
-      dxrule sigma_finite_measure_space_dirac_measure >> simp[]) >>
-  rw[EVERY_DEF,pi_measure_space_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
-  irule sigma_finite_measure_space_general_prod_measure >> gs[] >>
-  irule_at Any pair_operation_CONS
+  >- (sg ‘EVERY sigma_finite_measure_space ml’
+      >- (gvs[EVERY_MEM]
+          >> gen_tac >> strip_tac
+          >> last_x_assum dxrule
+          >> simp[prob_space_sigma_finite_measure_space])
+      >> dxrule sigma_finite_measure_space_pi_measure_space_list
+      >> simp[sigma_finite_measure_space_def]
+     )
+  >> 
+  
 QED
 
 val _ = export_theory();
