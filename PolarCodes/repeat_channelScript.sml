@@ -1,6 +1,6 @@
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_pi_measure_space_list lifting measure memoryless_channel pispace polar_encode pred_set probability sigma_algebra transfer trivial
+Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_pi_measure_space_list lifting list measure memoryless_channel pispace polar_encode pred_set probability rich_list sigma_algebra transfer trivial
 
 Libs dep_rewrite realLib liftLib transferLib;
 
@@ -15,7 +15,7 @@ val _ = hide "W";
 (* -------------------------------------------------------------------------- *)
 Definition repeat_channel0_def:
   repeat_channel0 (W : (α -> bool) # (α -> β m_space)) (n : num) =
-  ({xs | LENGTH xs = n},
+  ({xs | LENGTH xs = n ∧ EVERY (combin$C (IN) (mcdomain0 W)) xs},
    λrepeated_inputs.
      pi_measure_space_list (MAP (mcchannel0 W) repeated_inputs)
   )
@@ -33,10 +33,14 @@ Proof
   >> strip_tac >> gen_tac
   >> simp[repeat_channel0_def, mcchannel0_def]
   >> strip_tac
-  >> irule sigma_finite_measure_space_pi_measure_space_list
-  >> 
-  
-  >> 
+  >> irule prob_space_pi_measure_space_list
+  >> simp[ALL_EL_MAP]
+  >> simp[EVERY_MEM]
+  >> gen_tac >> strip_tac
+  >> last_x_assum irule
+  >> gvs[EVERY_MEM]
+  >> last_x_assum dxrule
+  >> simp[mcdomain0_def]
 QED
 
 Theorem repeat_channel0_respects:
