@@ -4,8 +4,8 @@ Ancestors arithmetic bitstring bxor_lemmas degenerate_distribution memoryless_ch
 
 Libs dep_rewrite realLib;
 
-Definition deterministic_channel_def:
-  deterministic_channel (f : α -> β) (S : α -> bool) =
+Definition deterministic_channel0_def:
+  deterministic_channel0 (f : α -> β) (S : α -> bool) =
   (S, λx. degenerate_distribution (f x))
   : (α -> bool) # (α -> β m_space)
 End
