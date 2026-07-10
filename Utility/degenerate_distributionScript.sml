@@ -4,13 +4,24 @@ Ancestors combin extreal list measure pred_set probability rich_list sigma_algeb
 
 Libs ConseqConv dep_rewrite simpLib realLib;
 
-(* -------------------------------------------------------------------------- *)
-(* This is equivalent to dirac_measure from Jared Yeager's                    *)
-(* pi_measure_space_list, which is combin$C 𝟙 x                               *)
-(* -------------------------------------------------------------------------- *)
 Definition degenerate_distribution_def:
   degenerate_distribution (x : α) = (λs : α -> bool. if x ∈ s then 1 : extreal else 0 : extreal)
 End
+
+(* -------------------------------------------------------------------------- *)
+(* degenerate_distribution is equivalent to dirac_measure from Jared Yeager's *)
+(* pi_measure_space_list, which is combin$C 𝟙 x                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem degenerate_distribution_dirac_measure:
+  ∀x.
+    degenerate_distribution x = combin$C 𝟙 x
+Proof
+  gen_tac
+  >> simp[C_DEF, degenerate_distribution_def]
+  >> simp[FUN_EQ_THM]
+  >> gen_tac
+  >> simp[indicator_fn_def]
+QED
 
 Theorem DISJOINT_IN:
   ∀s t : α -> bool.
