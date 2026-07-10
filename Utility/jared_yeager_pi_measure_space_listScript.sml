@@ -251,7 +251,7 @@ Proof
   >> simp[]
 QED
 
-Theorem measure_pi_measure_space_list_m_space:
+(*Theorem measure_pi_measure_space_list_m_space:
   ∀ml.
     EVERY prob_space ml ⇒
     measure (pi_measure_space ml) (m_space pi_measure_space_list ml) = 1
@@ -277,5 +277,37 @@ Proof
   >> 
   
 QED
+ *)
+
+(*
+HAVE: measure_space_general_prod_measure
+*)
+(* Should be canon *)
+Theorem prob_space_general_prod_measure:
+  ∀(cons: α -> β -> γ) car cdr m1 m2. pair_operation cons car cdr ∧
+                                      prob_space m1 ∧ prob_space m2 ⇒
+                                      prob_space (general_prod_measure_space cons m1 m2)
+Proof
+  rw[] >> simp[prob_space_def] >>
+  simp[measure_space_general_prod_measure,prob_space_sigma_finite_measure_space,SF SFY_ss] >>
+  gs[prob_space_def] >>
+  simp[general_prod_measure_space_def,GSYM general_prod_measure_def] >>
+  resolve_then Any irule general_prod_measure_rect EQ_TRANS >>
+  last_x_assum $ irule_at Any >> simp[MEASURE_SPACE_SPACE]
+QED
+
+Theorem prob_space_pi_measure_space_list:
+  ∀ml. EVERY prob_space ml ⇒ prob_space (pi_measure_space_list ml)
+Proof
+  Induct_on ‘ml’
+  >- (rw[EVERY_DEF,pi_measure_space_list_def] >>
+      qspec_then ‘{[]}’ assume_tac POW_SIGMA_ALGEBRA >>
+      dxrule prob_space_dirac_measure >> simp[]) >>
+  rw[EVERY_DEF,pi_measure_space_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
+  irule prob_space_general_prod_measure >> gs[] >>
+  irule_at Any pair_operation_CONS
+QED
+
+
 
 val _ = export_theory();
