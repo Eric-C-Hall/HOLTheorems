@@ -2,7 +2,7 @@
 
 Theory map_decoder
 
-Ancestors ecc_prob_space argmin_extreal arithmetic bitstring bxorLemmas pair pred_set probability extreal real rich_list sigma_algebra lebesgue list martingale measure topology fundamental
+Ancestors ecc_prob_space argmin_extreal arithmetic bitstring bxor_lemmas pair pred_set probability extreal real rich_list sigma_algebra lebesgue list martingale measure topology fundamental
 
 Libs extreal_to_realLib donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
 

@@ -9,6 +9,6 @@ Libs dep_rewrite realLib;
 Definition deterministic_channel_def:
   deterministic_channel (f : α -> β) (S : α -> bool) =
   (S, λx. combin$C 𝟙 (f x))
-  : (α -> bool) # (α -> β measure)
+  : (α -> bool) # (α -> β m_space)
 End
 
