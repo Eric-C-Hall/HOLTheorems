@@ -52,14 +52,3 @@ Proof
 QED
 
 val (repeat_channel_def, repeat_channel_relates) = liftdef repeat_channel0_respects "repeat_channel";
-
-(* -------------------------------------------------------------------------- *)
-(* Given a memoryless channel                                                 *)
-(*                                                                            *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-Definition repeat_channel_def:
-  repeat_channel (W : (α, β) memoryless_channel) [] = [] ∧
-  repeat_channel (W : (α, β) memoryless_channel) (x::xs : α list)
-  = () × repeat_channel W xs
-End
