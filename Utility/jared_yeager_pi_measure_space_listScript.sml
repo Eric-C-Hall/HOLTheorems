@@ -226,7 +226,8 @@ Proof
   >> simp[indicator_fn_def]
 QED
 
-(* TODO: Add this to canon *)
+(* TODO: Add this to canon
+   Edit: apparently this may already be somewhere in HOL4-Theorem-Library? *)
 Theorem prob_space_sigma_finite_measure_space:
   ∀p.
     prob_space p ⇒ sigma_finite_measure_space p
@@ -307,7 +308,5 @@ Proof
   irule prob_space_general_prod_measure >> gs[] >>
   irule_at Any pair_operation_CONS
 QED
-
-
 
 val _ = export_theory();
