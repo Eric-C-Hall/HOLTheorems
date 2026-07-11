@@ -106,7 +106,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition polar_encode_channel_def:
   polar_encode_channel (W : (α,β) memoryless_channel) num_inputs
-  = () ∘ (repeat_channel W num_inputs)
+  = concat_channel () (repeat_channel W num_inputs)
 End
 
 

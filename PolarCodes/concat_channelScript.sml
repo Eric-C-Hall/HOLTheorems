@@ -40,6 +40,8 @@ QED
 val (concat_channel_def, concat_channel_relates) =
 liftdef concat_channel0_respects "concat_channel";
 
+Overload "o" = “concat_channel”;
+
 (* mcrange might be helpful in checking that the output of the first channel is
    in the domain of the second channel *)
 
