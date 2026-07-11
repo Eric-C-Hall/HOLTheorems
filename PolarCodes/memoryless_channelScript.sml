@@ -23,6 +23,11 @@ Definition mcchannel0_def:
   mcchannel0 (W : (α -> bool) # (α -> β m_space)) = SND W
 End
 
+Definition mcrange0_def:
+  mcrange0 (W : (α -> bool) # (α -> β m_space)) =
+  IMAGE (mcchannel0 W) (mcdomain0 W)
+End
+
 (* -------------------------------------------------------------------------- *)
 (* A memoryless channel                                                       *)
 (* - Has a set representing the domain, of type α -> bool.                    *)
@@ -228,6 +233,16 @@ Proof
 QED
 
 val (mcchannel_def, mcchannel_relates) = liftdef mcchannel0_respects "mcchannel";
+
+Theorem mcrange0_respects:
+  (memoryless_channelequiv ===> (=)) mcrange0 mcrange0
+Proof
+  simp[FUN_REL_def]
+  >> rpt gen_tac
+  >> simp[memoryless_channelequiv_def]
+QED
+
+val (mcrange_def, mcrange_relates) = liftdef mcrange0_respects "mcrange";
 
 Datatype:
   erasure_bit = E_T | E_F | Erasure
