@@ -5,7 +5,13 @@ Ancestors combin extreal list measure pred_set probability rich_list sigma_algeb
 Libs ConseqConv dep_rewrite simpLib realLib;
 
 Definition degenerate_distribution_def:
-  degenerate_distribution (x : α) = (λs : α -> bool. if x ∈ s then 1 : extreal else 0 : extreal)
+  degenerate_distribution (x : α) =
+  (λs : α -> bool. if x ∈ s then 1 : extreal else 0 : extreal)
+End
+
+Definition degenerate_prob_space_def:
+  degenerate_prob_space (x : α) (s : α -> bool) =
+  (s, POW s, degenerate_distribution x) : α p_space
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -173,4 +179,13 @@ Proof
       >> first_x_assum drule >> strip_tac
       >> gvs[Abbr `g`])
   >> gvs[FINITE_COUNT]
+QED
+
+Theorem degenerate_prob_space_is_prob_space:
+  ∀x s.
+    x ∈ s ⇒
+    prob_space (degenerate_prob_space x s)
+Proof
+  rpt gen_tac
+  >> simp[degenerate_prob_space_def, degenerate_distribution_is_prob_space]
 QED
