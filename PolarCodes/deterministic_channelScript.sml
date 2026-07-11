@@ -6,7 +6,7 @@ Libs dep_rewrite realLib;
 
 Definition deterministic_channel0_def:
   deterministic_channel0 (f : α -> β) (S : α -> bool) =
-  (S, λx. degenerate_distribution (f x))
+  (S, λx. degenerate_prob_space (f x) 𝕌(:β))
   : (α -> bool) # (α -> β m_space)
 End
 
