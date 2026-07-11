@@ -1,6 +1,6 @@
 Theory polar_encode
 
-Ancestors arithmetic bitstring bxor_lemmas interleave
+Ancestors arithmetic bitstring bxor_lemmas concat_channel interleave repeat_channel
 
 Libs dep_rewrite realLib;
 
@@ -106,7 +106,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition polar_encode_channel_def:
   polar_encode_channel (W : (α,β) memoryless_channel) num_inputs
-  = concat_channel () (repeat_channel W num_inputs)
+  = () ∘ (repeat_channel W num_inputs)
 End
 
 

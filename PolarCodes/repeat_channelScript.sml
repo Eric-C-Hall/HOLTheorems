@@ -1,6 +1,6 @@
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_pi_measure_space_list lifting list measure memoryless_channel pispace polar_encode pred_set probability rich_list sigma_algebra transfer trivial
+Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_pi_measure_space_list lifting list measure memoryless_channel pispace pred_set probability rich_list sigma_algebra transfer trivial
 
 Libs dep_rewrite realLib liftLib transferLib;
 
