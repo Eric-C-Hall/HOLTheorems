@@ -12,5 +12,7 @@ Definition concat_channel0_def:
                             mcchannel0 W2)
 End
 
+(* mcrange might be helpful in checking that the output of the first channel is
+   in the domain of the second channel *)
 
 

@@ -23,9 +23,10 @@ Definition mcchannel0_def:
   mcchannel0 (W : (α -> bool) # (α -> β m_space)) = SND W
 End
 
+(* Help from ChatGPT used for this definition *)
 Definition mcrange0_def:
   mcrange0 (W : (α -> bool) # (α -> β m_space)) =
-  IMAGE (mcchannel0 W) (mcdomain0 W)
+  {y | ∃x. prob (mcchannel0 W x) {y} ≠ 0}
 End
 
 (* -------------------------------------------------------------------------- *)
