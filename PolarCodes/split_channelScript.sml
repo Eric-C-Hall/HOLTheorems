@@ -13,7 +13,22 @@ Libs dep_rewrite realLib;
 (* Emanuele Viterbo                                                           *)
 (* -------------------------------------------------------------------------- *)
 
+
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: find this definition somewhere                                       *)
+(* Probably apply general_cross from martingaleTheory?                        *)
+(* -------------------------------------------------------------------------- *)
+Definition TODO_prod_set_def:
+  TODO_prod_set (set : α -> bool) (num_prod : num) = ARB : α list -> bool
+End
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
 Definition split_channel_def:
   split_channel (W : α -> β memoryless_channel) i =
-  extreal_sum_image TODO ((1 / 2 ** TODO) * )
+  EXTREAL_SUM_IMAGE (λ(1 / 2 ** TODO) * ) (TODO_prod_set (mcdomain W) ())
 End

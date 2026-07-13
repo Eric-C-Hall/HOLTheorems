@@ -39,3 +39,16 @@ Libs dep_rewrite realLib;
                                                                    (λbs. )
                                                                    polar_encode_channel
 End*)
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: when combine_channel def has been defined, this should be a theorem  *)
+(* rather than a definition                                                   *)
+(* TODO: when defining combine_channel directly, can this be defined as an    *)
+(* (α list, β list) memoryless_channel rather than a                          *)
+(* (bool list, β list) memoryless_channel                                     *)
+(* -------------------------------------------------------------------------- *)
+Definition combine_channel_alt:
+  combine_channel (W : (bool, β) memoryless_channel) (num_inputs : num)
+  = polar_encode_channel W num_inputs
+    : (bool list, β list) memoryless_channel
+End

@@ -107,7 +107,7 @@ End
 (* Does not handle any bit-freezing                                           *)
 (* -------------------------------------------------------------------------- *)
 Definition polar_encode_channel_def:
-  polar_encode_channel (W : (bool,β) memoryless_channel) num_inputs
+  polar_encode_channel (W : (bool,β) memoryless_channel) (num_inputs : num)
   = (deterministic_channel polar_encode (length_n_codes num_inputs))
     ∘ (repeat_channel W num_inputs)
 End
