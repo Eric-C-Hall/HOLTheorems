@@ -39,17 +39,3 @@ Libs dep_rewrite realLib;
                                                                    (λbs. )
                                                                    polar_encode_channel
 End*)
-
-(* -------------------------------------------------------------------------- *)
-(* The combined channel used in Polar encoding.                               *)
-(*                                                                            *)
-(* We can't output a memoryless_channel type because the number of inputs is  *)
-(* dependent on num_inputs, but a type can't be chosen based on the values of *)
-(* inputs. Thus, we output a bool list -> (β list) m_space, which is the      *)
-(* underlying representative type.                                            *)
-(* -------------------------------------------------------------------------- *)
-Definition combine_channel_direct_def:
-  combine_channel_direct (W : (bool, β) memoryless_channel) num_inputs inputs
-  = MAP (memoryless_channel_REP W) (polar_encode inputs)
-    : (β list) m_space
-End
