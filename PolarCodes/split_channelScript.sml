@@ -26,6 +26,20 @@ Definition TODO_prod_set_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* TODO: the reason we need these definitions, and can't just use the         *)
+(* standard probability space product, is because the probability measure is  *)
+(* defined with a specific measure, but we need to use a different measure.   *)
+(* Could we avoid this by defining the split channel using a random variable  *)
+(* on the combined channel?                                                   *)
+(*                                                                            *)
+(* TODO: I'm not fully sure how the product sigma algebra should be defined.  *)
+(* -------------------------------------------------------------------------- *)
+Definition TODO_prod_sigma_algebra_def:
+  TODO_prod_sigma_algebra (A : α -> bool -> bool) (num_prod : num) =
+  ARB : α list -> bool -> bool
+End
+
+(* -------------------------------------------------------------------------- *)
 (* The split channel step in Polar Coding                                     *)
 (*                                                                            *)
 (* Not produced through straightforward operations on simpler channels so we  *)
