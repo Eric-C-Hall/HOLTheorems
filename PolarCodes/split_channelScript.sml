@@ -26,23 +26,47 @@ Definition TODO_prod_set_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* The split channel step in Polar Coding                                     *)
 (*                                                                            *)
+(* Not produced through straightforward operations on simpler channels so we  *)
+(* need to define it using the underlying representation type.                *)
 (*                                                                            *)
+(* Initial channel input: bool                                                *)
+(* Initial channel output: β                                                  *)
 (*                                                                            *)
+(* Split channel input: bool                                                  *)
+(* Split channel output: β list # bool list                                   *)
+(*                                                                            *)
+(* Channel is a (domain, transition function) pair.                           *)
+(*                                                                            *)
+(* Split channel domain:                                                      *)
+(* TODO: are these comments necessary? Improve htem?                          *)
+(*                                                                            *)
+(* Inputs:                                                                    *)
+(* - W: the underlying channel                                                *)
+(* - num_inputs: the combined channel size N                                  *)
+(* - i: the index of the current split channel                                *)
 (* -------------------------------------------------------------------------- *)
 Definition split_channel0_def:
   split_channel0 (W : (bool -> bool) # (bool -> β m_space))
   (num_inputs : num) (i : num) =
   (TODO_prod_set (mcdomain W) i,
    λcurrent_chosen_value.
-     EXTREAL_SUM_IMAGE
-     (λprior_chosen_values.
-        (1 / 2 ** (num_inputs - 1)) *
-        (mcchannel (combine_channel W num_inputs) (prior_chosen_values ++ [current_chosen_value]))
+     (TODO_PROD (TODO_prod_set () ()) (TODO_prod_set () ()),
+      (Product sigma algebra on left) (Product sigma algebra on right),
+      λ(, later_chosen_values).
+        EXTREAL_SUM_IMAGE
+        (λprior_chosen_values.
+           (1 / 2 ** (num_inputs - 1)) *
+           (mcchannel (combine_channel W num_inputs)
+                      (prior_chosen_values ++ [current_chosen_value] ++
+                       later_chosen_values)
+           )
+        )
      ) 
-     (TODO_prod_set (mcdomain W) (num_inputs - i - 1))
+      (TODO_prod_set (mcdomain W) (num_inputs - i - 1))
   )
-  : (bool list -> bool) # (bool list -> (β list) m_space)
+  : (bool list -> bool) # (bool -> ((β list) # (bool list)) m_space)
 End
 
 Theorem wf_memoryless_channel_split_channel0:
