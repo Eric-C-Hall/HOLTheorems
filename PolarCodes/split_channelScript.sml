@@ -53,34 +53,55 @@ End
 (*                                                                            *)
 (* Channel is a (domain, transition function) pair.                           *)
 (*                                                                            *)
-(* Split channel domain:                                                      *)
-(* TODO: are these comments necessary? Improve htem?                          *)
+(* Split channel domain: {T;F}                                                *)
+(* Split channel transition function:                                         *)
+(* - Takes the current input bit                                              *)
+(* - Returns a probability distribution over the outputs and the prior inputs *)
+(* - Averages over the future inputs.                                         *)
+(*                                                                            *)
+(* The probability distribution has                                           *)
+(* - event space equal to product of event spaces of the noisy channel with   *)
+(*   the event space of the future inputs                                     *)
+(* - sigma algebra equal to the product of the sigma algebra of the noisy     *)
+(*   channel with the sigma algebra of the future inputs                      *)
+(* -                                                                          *)
 (*                                                                            *)
 (* Inputs:                                                                    *)
 (* - W: the underlying channel                                                *)
 (* - num_inputs: the combined channel size N                                  *)
 (* - i: the index of the current split channel                                *)
 (* -------------------------------------------------------------------------- *)
+(* THE FOLLOWING IS UNTRUE AS THE DISTRIBUTION SHOULD ALSO CONTAIN ADDITIONAL *)
+(* PROBABILITIES UNIFORMLY DISTRIBUTED OVER THE FUTURE INPUTS                 *)
+(* The split channel probability distribution may be represented as the       *)
+(* distribution of a random variable. The random variable takes the event of  *)
+(* the combined channel (which should represent the noise added by the        *)
+(* channel, and combining this with the input which we already know when      *)
+(* constructing the distribution, the output of our random variable is the    *)
+(* output                                                                     *)
+(* -------------------------------------------------------------------------- *)
 Definition split_channel0_def:
   split_channel0 (W : (bool -> bool) # (bool -> β m_space))
   (num_inputs : num) (i : num) =
-  (TODO_prod_set (mcdomain W) i,
-   λcurrent_chosen_value.
-     (TODO_PROD (TODO_prod_set () ()) (TODO_prod_set () ()),
-      (Product sigma algebra on left) (Product sigma algebra on right),
-      λ(, later_chosen_values).
-        EXTREAL_SUM_IMAGE
-        (λprior_chosen_values.
-           (1 / 2 ** (num_inputs - 1)) *
-           (mcchannel (combine_channel W num_inputs)
-                      (prior_chosen_values ++ [current_chosen_value] ++
-                       later_chosen_values)
-           )
-        )
-     ) 
-      (TODO_prod_set (mcdomain W) (num_inputs - i - 1))
-  )
-  : (bool list -> bool) # (bool -> ((β list) # (bool list)) m_space)
+  let
+    combined_channel = combine_channel W num_inputs
+  in
+    (𝕌(:bool),
+     λcurrent_chosen_value.
+       ((TODO_prod_set () ()) × (TODO_prod_set () ()),
+        (TODO_prod_sigma_algebra ) × (TODO_prod_sigma_algebra),
+        λ(noise, later_chosen_values).
+          EXTREAL_SUM_IMAGE
+          (λprior_chosen_values.
+             (1 / 2 ** (num_inputs - 1)) *
+             (mcchannel (combine_channel W num_inputs)
+                        (prior_chosen_values ++ [current_chosen_value] ++
+                         later_chosen_values)
+             )
+          ) (TODO_prod_set (mcdomain W) (num_inputs - i - 1))
+       ) 
+    )
+    : (bool -> bool) # (bool -> ((β list) # (bool list)) m_space)
 End
 
 Theorem wf_memoryless_channel_split_channel0:

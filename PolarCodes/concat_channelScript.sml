@@ -4,6 +4,14 @@ Ancestors arithmetic bitstring bxor_lemmas lifting memoryless_channel transfer
 
 Libs dep_rewrite realLib liftLib transferLib;
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: maybe it would be more sensible to perform the pushforward in order  *)
+(* to get the polar encoding channel, rather than the stronger technology     *)
+(* of using the concatenation of channels. The weaker technology should       *)
+(* suffice and should have stronger theorems available because it is more     *)
+(* restricted.                                                                *)
+(* -------------------------------------------------------------------------- *)
+
 Definition concat_channel0_def:
   concat_channel0
   (W1 : (α -> bool) # (α -> β m_space))
