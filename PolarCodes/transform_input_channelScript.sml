@@ -1,36 +1,42 @@
 Theory transform_input_channel
 
-Ancestors arithmetic list rich_list probability
+Ancestors arithmetic lifting list memoryless_channel probability rich_list transfer
 
-Libs dep_rewrite realLib;
+Libs dep_rewrite liftLib realLib transferLib;
 
 (* -------------------------------------------------------------------------- *)
 (* Concat channel is more general, but that also makes it more complicated,   *)
 (* harder to define and probably harder to write theorems about.              *)
 (* -------------------------------------------------------------------------- *)
 Definition transform_input_channel0_def:
-  transform_input_channel0 f (W : (α -> bool) # (α -> β m_space)) =
-  (mcdomain0 W,
-   
-  )
+  transform_input_channel0 (f : α -> β) (S : α -> bool) (W : (β -> bool) # (β -> γ m_space)) =
+  (S ∩ PREIMAGE f (mcdomain0 W),
+   (mcchannel0 W) ∘ f
+  ) : (α -> bool) # (α -> γ m_space)
 End
 
-Theorem wf_memoryless_transform_input_channel0:
-  ∀f W.
+Theorem wf_memoryless_channel_transform_input_channel0:
+  ∀f S W.
     wf_memoryless_channel W ⇒
-    wf_memoryless_channel (transform_input_channel0 f W)
+    wf_memoryless_channel (transform_input_channel0 f S W)
 Proof
-  cheat
+  rpt gen_tac >> strip_tac
+  >> gvs[wf_memoryless_channel_def]
+  >> gen_tac >> strip_tac
+  >> gvs[transform_input_channel0_def, mcchannel0_def, mcdomain0_def]
 QED
 
 Theorem transform_input_channel0_respects:
-  ((memoryless_channelequiv) ===> (=) ===> (memoryless_channelequiv))
+  ((=) ===> (=) ===> (memoryless_channelequiv) ===> (memoryless_channelequiv))
   transform_input_channel0 transform_input_channel0
 Proof
+  simp[FUN_REL_def]
+  >> rpt gen_tac
+  >> simp[memoryless_channelequiv_def, wf_memoryless_channel_transform_input_channel0]
 QED
 
-val (concat_channel_def, concat_channel_relates) =
-liftdef concat_channel0_respects "concat_channel";
+val (transform_input_channel_def, transform_input_channel_relates) =
+liftdef transform_input_channel0_respects "transform_input_channel";
 
 (*
 (* -------------------------------------------------------------------------- *)
