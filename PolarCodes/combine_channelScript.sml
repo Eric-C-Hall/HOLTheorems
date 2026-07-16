@@ -40,8 +40,6 @@ Libs dep_rewrite realLib;
                                                                    polar_encode_channel
 End*)
 
-
-
 (* -------------------------------------------------------------------------- *)
 (* TODO: when combine_channel def has been defined, this should be a theorem  *)
 (* rather than a definition                                                   *)

@@ -38,13 +38,20 @@ End
 (* We require:                                                                *)
 (* - The output distribution associated with every input in the domain is a   *)
 (*   probability distribution.                                                *)
+(* - All output distributions have the same sample space and sigma algebra,   *)
+(*   i.e. the set of possible outputs is the same regardless of input         *)
+(*   (although some may have probability zero for some inputs)                *)
 (* -------------------------------------------------------------------------- *)
 (* Old: (FINITE (m_space (W x)) ⇒ measurable_sets (W x) =                     *)
 (* POW (m_space (W x))) ∧                                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition wf_memoryless_channel_def:
-  wf_memoryless_channel (W : (α -> bool) # (α -> β m_space)) =
-  (∀x. (x ∈ mcdomain0 W) ⇒ prob_space ((mcchannel0 W) x))
+  wf_memoryless_channel (W : (α -> bool) # (α -> β m_space)) ⇔
+    (∀x. (x ∈ mcdomain0 W) ⇒ prob_space ((mcchannel0 W) x)) ∧
+    (∀x y. (x ∈ mcdomain0 W) ∧ (y ∈ mcdomain0 W) ⇒
+           m_space ((mcchannel0 W) x) = m_space ((mcchannel0 W) y) ∧
+           measurable_sets ((mcchannel0 W) x) = measurable_sets ((mcchannel0 W) y)
+    )
 End
 
 Theorem wf_memoryless_channels_exist[local]:
@@ -66,47 +73,54 @@ Proof
           >> Cases_on ‘t'’ >> gvs[]
           >> metis_tac[])
       >> Cases_on ‘x’ >> gvs[])
-  >> simp[]
-  >> gen_tac >> strip_tac
-  >> DEP_PURE_ONCE_REWRITE_TAC[prob_on_finite_set]
-  >> simp[mcchannel0_def]
-  >> rpt conj_tac
-  >- (simp[positive_def]
-      >> gen_tac
-      >> Cases_on ‘s’ >> gvs[])
-  >- rw[prob_def, p_space_def]
-  >> simp[additive_def]
-  >> rpt gen_tac
-  >> Cases_on ‘s’ >> simp[]
-  >> REVERSE $ Cases_on ‘x' = ARB’
-  >- (sg ‘x' INSERT t' ≠ {ARB}’
-      >- (CCONTR_TAC >> gvs[]
-          >> sg ‘x' ∈ {ARB}’
-          >- ASM_SET_TAC[]
+  >> conj_tac
+  (* First conjunct of wf_memoryless_channel: each output distribution is a
+     probabilitiy distribution *)
+  >- (simp[]
+      >> gen_tac >> strip_tac
+      >> DEP_PURE_ONCE_REWRITE_TAC[prob_on_finite_set]
+      >> simp[mcchannel0_def]
+      >> rpt conj_tac
+      >- (simp[positive_def]
+          >> gen_tac
+          >> Cases_on ‘s’ >> gvs[])
+      >- rw[prob_def, p_space_def]
+      >> simp[additive_def]
+      >> rpt gen_tac
+      >> Cases_on ‘s’ >> simp[]
+      >> REVERSE $ Cases_on ‘x' = ARB’
+      >- (sg ‘x' INSERT t' ≠ {ARB}’
+          >- (CCONTR_TAC >> gvs[]
+              >> sg ‘x' ∈ {ARB}’
+              >- ASM_SET_TAC[]
+              >> gvs[])
+          >> simp[]
+         )     
+      >> simp[]
+      >> REVERSE $ Cases_on ‘t'’
+      >- (Cases_on ‘x'' = ARB’
+          >- (‘F’ suffices_by strip_tac >> gvs[])
+          >> sg ‘ARB INSERT x'' INSERT t'' ≠ {ARB}’
+          >- (simp[EXTENSION]
+              >> qexists ‘x''’
+              >> simp[])
+          >> simp[]
+         )
+      >> simp[]
+      >> Cases_on ‘t’ >> simp[]
+      >> strip_tac
+      >> ‘F’ suffices_by strip_tac
+      >> sg ‘x'' = ARB’
+      >- (pop_assum mp_tac
+          >> rpt $ pop_assum kall_tac
+          >> simp[EXTENSION]
+          >> disch_then $ qspec_then ‘x''’ assume_tac
           >> gvs[])
-      >> simp[]
-     )     
-  >> simp[]
-  >> REVERSE $ Cases_on ‘t'’
-  >- (Cases_on ‘x'' = ARB’
-      >- (‘F’ suffices_by strip_tac >> gvs[])
-      >> sg ‘ARB INSERT x'' INSERT t'' ≠ {ARB}’
-      >- (simp[EXTENSION]
-          >> qexists ‘x''’
-          >> simp[])
-      >> simp[]
      )
-  >> simp[]
-  >> Cases_on ‘t’ >> simp[]
-  >> strip_tac
-  >> ‘F’ suffices_by strip_tac
-  >> sg ‘x'' = ARB’
-  >- (pop_assum mp_tac
-      >> rpt $ pop_assum kall_tac
-      >> simp[EXTENSION]
-      >> disch_then $ qspec_then ‘x''’ assume_tac
-      >> gvs[])
-  >> simp[]
+  (* Conjunct 2 of wf_memoryless_channel: all output distributions have the
+     same sample space and sigma algebra *)
+  >> rpt gen_tac >> strip_tac
+  >> simp[mcchannel0_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -329,52 +343,58 @@ Theorem wf_binary_erasure_channel0:
   ∀p.
     0 ≤ p ∧ p ≤ 1 ⇒
     wf_memoryless_channel (binary_erasure_channel0 p)
-Proof  
+Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
   >> simp[wf_memoryless_channel_def, mcdomain0_def, mcchannel0_def]
-  >> gen_tac >> strip_tac >> simp[binary_erasure_channel0_def]
-  >> simp[prob_space_def]
-  >> REVERSE conj_tac             
-  >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
-      >> sg ‘(∀x. f x ≠ +∞)’
-      >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
-          >> irule (cj 2 sub_not_infty)
-          >> simp[])
-      >> simp[EXTREAL_SUM_IMAGE_INSERT, DELETE_NON_ELEMENT_RWT]
-      >> Q.UNABBREV_TAC ‘f’
-      >> simp[]
-      >> Cases_on ‘x’ >> simp[bool_to_erasure_bit_def]
-     )
-  >> irule finite_additivity_sufficient_for_finite_spaces2
-  >> simp[m_space_def]
-  >> rpt conj_tac
-  >- (simp[additive_def]
-      >> rpt gen_tac >> strip_tac
-      >> sg ‘FINITE s ∧ FINITE t’
-      >- (gvs[POW_DEF]
-          >> metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT])
-      >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
-      >> conj_tac
-      >- (simp[]
-          >> disj2_tac
+  >> conj_tac
+  (* Each output is a probability space *)
+  >- (gen_tac >> strip_tac >> simp[binary_erasure_channel0_def]
+      >> simp[prob_space_def]
+      >> REVERSE conj_tac             
+      >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
+          >> sg ‘(∀x. f x ≠ +∞)’
+          >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
+              >> irule (cj 2 sub_not_infty)
+              >> simp[])
+          >> simp[EXTREAL_SUM_IMAGE_INSERT, DELETE_NON_ELEMENT_RWT]
+          >> Q.UNABBREV_TAC ‘f’
+          >> simp[]
+          >> Cases_on ‘x’ >> simp[bool_to_erasure_bit_def]
+         )
+      >> irule finite_additivity_sufficient_for_finite_spaces2
+      >> simp[m_space_def]
+      >> rpt conj_tac
+      >- (simp[additive_def]
+          >> rpt gen_tac >> strip_tac
+          >> sg ‘FINITE s ∧ FINITE t’
+          >- (gvs[POW_DEF]
+              >> metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT])
+          >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
+          >> conj_tac
+          >- (simp[]
+              >> disj2_tac
+              >> gen_tac >> strip_tac
+              >> rw[]
+              >> irule (cj 2 sub_not_infty)
+              >> simp[])
+          >> rw[])     
+      >- (simp[positive_def]
+          >> gen_tac >> strip_tac
+          >> irule EXTREAL_SUM_IMAGE_POS
+          >> gvs[POW_DEF]
+          >> REVERSE conj_tac
+          >- metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT]
           >> gen_tac >> strip_tac
           >> rw[]
-          >> irule (cj 2 sub_not_infty)
-          >> simp[])
-      >> rw[])     
-  >- (simp[positive_def]
-      >> gen_tac >> strip_tac
-      >> irule EXTREAL_SUM_IMAGE_POS
-      >> gvs[POW_DEF]
-      >> REVERSE conj_tac
-      >- metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT]
-      >> gen_tac >> strip_tac
-      >> rw[]
-      >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
-      >> simp[REAL_SUB_LE]
+          >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
+          >> simp[REAL_SUB_LE]
+         )
+      >> irule POW_SIGMA_ALGEBRA
      )
-  >> irule POW_SIGMA_ALGEBRA
+  (* Each probability space has the same sample set and sigma algebra *)
+  >> rpt gen_tac >> strip_tac
+  >> gvs[binary_erasure_channel0_def]
 QED
 
 Theorem wf_binary_symmetric_channel0:
@@ -385,53 +405,59 @@ Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
   >> simp[wf_memoryless_channel_def, mcchannel0_def, mcdomain0_def]
-  >> gen_tac >> strip_tac >> simp[binary_symmetric_channel0_def]
-  >> simp[prob_space_def]
-  >> REVERSE conj_tac
-  >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
-      >> sg ‘(∀x. f x ≠ +∞)’
-      >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
-          >> irule (cj 2 sub_not_infty)
-          >> simp[])
-      >> simp[EXTREAL_SUM_IMAGE_INSERT]
-      >> simp[DELETE_NON_ELEMENT_RWT]
-      >> Q.UNABBREV_TAC ‘f’
-      >> simp[]
-      >> rw[]
-      >> simp[sub_add2]
-     )
-  >> irule finite_additivity_sufficient_for_finite_spaces2
-  >> simp[m_space_def]
-  >> rpt conj_tac         
-  >- (simp[additive_def]
-      >> rpt gen_tac >> strip_tac
-      >> sg ‘FINITE s ∧ FINITE t’
-      >- (gvs[POW_DEF]
-          >> metis_tac[SUBSET_FINITE, finite_mathcal_2])
-      >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
-      >> conj_tac
-      >- (simp[]
-          >> disj2_tac
-          >> gen_tac >> strip_tac
+  >> conj_tac
+  (* Each output is a probability space *)
+  >- (gen_tac >> strip_tac >> simp[binary_symmetric_channel0_def]
+      >> simp[prob_space_def]
+      >> REVERSE conj_tac
+      >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
+          >> sg ‘(∀x. f x ≠ +∞)’
+          >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
+              >> irule (cj 2 sub_not_infty)
+              >> simp[])
+          >> simp[EXTREAL_SUM_IMAGE_INSERT]
+          >> simp[DELETE_NON_ELEMENT_RWT]
+          >> Q.UNABBREV_TAC ‘f’
+          >> simp[]
+          >> rw[]
+          >> simp[sub_add2]
+         )
+      >> irule finite_additivity_sufficient_for_finite_spaces2
+      >> simp[m_space_def]
+      >> rpt conj_tac         
+      >- (simp[additive_def]
+          >> rpt gen_tac >> strip_tac
+          >> sg ‘FINITE s ∧ FINITE t’
+          >- (gvs[POW_DEF]
+              >> metis_tac[SUBSET_FINITE, finite_mathcal_2])
+          >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
+          >> conj_tac
+          >- (simp[]
+              >> disj2_tac
+              >> gen_tac >> strip_tac
+              >> rw[]
+              >> irule (cj 2 sub_not_infty)
+              >> simp[])
           >> rw[]
           >> irule (cj 2 sub_not_infty)
-          >> simp[])
-      >> rw[]
-      >> irule (cj 2 sub_not_infty)
-      >> simp[]
+          >> simp[]
+         )
+      >- (simp[positive_def]
+          >> gen_tac >> strip_tac
+          >> irule EXTREAL_SUM_IMAGE_POS
+          >> gvs[POW_DEF]
+          >> REVERSE conj_tac
+          >- metis_tac[SUBSET_FINITE, finite_mathcal_2]
+          >> gen_tac >> strip_tac
+          >> rw[]
+          >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
+          >> simp[REAL_SUB_LE]
+         )
+      >> irule POW_SIGMA_ALGEBRA
      )
-  >- (simp[positive_def]
-      >> gen_tac >> strip_tac
-      >> irule EXTREAL_SUM_IMAGE_POS
-      >> gvs[POW_DEF]
-      >> REVERSE conj_tac
-      >- metis_tac[SUBSET_FINITE, finite_mathcal_2]
-      >> gen_tac >> strip_tac
-      >> rw[]
-      >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
-      >> simp[REAL_SUB_LE]
-     )
-  >> irule POW_SIGMA_ALGEBRA
+  (* Each probability space has the same sample set and sigma algebra *)
+  >> rpt gen_tac >> strip_tac
+  >> gvs[binary_symmetric_channel0_def]
 QED
 
 (* I attempted to lift binary_erasure_channel0 and binary_symmetric_channel0,

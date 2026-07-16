@@ -10,12 +10,41 @@ val _ = hide "W";
    pi_measure_space into their own file, perhaps *)
 
 (* -------------------------------------------------------------------------- *)
+(* TODO: find this definition somewhere                                       *)
+(* Probably apply general_cross from martingaleTheory?                        *)
+(*                                                                            *)
+(* See {xs | LENGTH xs = n ∧ EVERY (combin$C (IN) (mcdomain0 W)) xs}. This    *)
+(* how it's defined in repeatChannel. If this is different, probably also     *)
+(* change it there.                                                           *)
+(*                                                                            *)
+(* TODO: ensure that there must be exactly num_prod elements in each list in  *)
+(* the output, no more, and no less.                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition TODO_prod_set_def:
+  TODO_prod_set (set : α -> bool) (num_prod : num) = ARB : α list -> bool
+End
+
+(* -------------------------------------------------------------------------- *)
+(* TODO: the reason we need these definitions, and can't just use the         *)
+(* standard probability space product, is because the probability measure is  *)
+(* defined with a specific measure, but we need to use a different measure.   *)
+(* Could we avoid this by defining the split channel using a random variable  *)
+(* on the combined channel?                                                   *)
+(*                                                                            *)
+(* TODO: I'm not fully sure how the product sigma algebra should be defined.  *)
+(* -------------------------------------------------------------------------- *)
+Definition TODO_prod_sigma_algebra_def:
+  TODO_prod_sigma_algebra (A : α -> bool -> bool) (num_prod : num) =
+  ARB : α list -> bool -> bool
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Given a memoryless channel, transform it into n parallel instances of that *)
 (* channel.                                                                   *)
 (* -------------------------------------------------------------------------- *)
 Definition repeat_channel0_def:
   repeat_channel0 (W : (α -> bool) # (α -> β m_space)) (n : num) =
-  ({xs | LENGTH xs = n ∧ EVERY (combin$C (IN) (mcdomain0 W)) xs},
+  (TODO_prod_set (mcdomain0 W) n,
    λrepeated_inputs.
      pi_measure_space_list (MAP (mcchannel0 W) repeated_inputs)
   )
@@ -30,17 +59,25 @@ Proof
   rpt gen_tac
   >> namedCases_on ‘W’ ["channel_dom channel_func"]
   >> simp[wf_memoryless_channel_def, mcdomain0_def, mcchannel0_def]
-  >> strip_tac >> gen_tac
+  >> disch_tac
+  >> conj_tac
+  (* Each input is mapped to a probability distribution *)
+  >- (gen_tac
+      >> simp[repeat_channel0_def, mcchannel0_def]
+      >> strip_tac
+      >> irule prob_space_pi_measure_space_list
+      >> simp[ALL_EL_MAP]
+      >> simp[EVERY_MEM]
+      >> gen_tac >> strip_tac
+      >> last_x_assum (fn th => irule (cj 1 th))
+      >> cheat
+     (*>> gvs[EVERY_MEM]
+      >> last_x_assum dxrule
+      >> simp[mcdomain0_def]*)
+     )
+  >> rpt gen_tac >> strip_tac
   >> simp[repeat_channel0_def, mcchannel0_def]
-  >> strip_tac
-  >> irule prob_space_pi_measure_space_list
-  >> simp[ALL_EL_MAP]
-  >> simp[EVERY_MEM]
-  >> gen_tac >> strip_tac
-  >> last_x_assum irule
-  >> gvs[EVERY_MEM]
-  >> last_x_assum dxrule
-  >> simp[mcdomain0_def]
+  >> cheat
 QED
 
 Theorem repeat_channel0_respects:

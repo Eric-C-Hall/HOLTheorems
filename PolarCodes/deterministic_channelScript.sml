@@ -16,9 +16,15 @@ Theorem wf_memoryless_channel_deterministic_channel0:
 Proof
   rpt gen_tac
   >> simp[deterministic_channel0_def, wf_memoryless_channel_def]
-  >> simp[mcchannel0_def, mcdomain0_def]
-  >> gen_tac >> strip_tac
-  >> simp[degenerate_prob_space_is_prob_space]
+  >> conj_tac
+  (* Each output is a probability space *)
+  >- (simp[mcchannel0_def, mcdomain0_def]
+      >> gen_tac >> strip_tac
+      >> simp[degenerate_prob_space_is_prob_space])
+  (* Each output probability space has the same sample space and sigma algebra *)
+  >> rpt gen_tac
+  >> strip_tac
+  >> simp[mcchannel0_def, degenerate_prob_space_def]
 QED
 
 Theorem deterministic_channel0_respects:

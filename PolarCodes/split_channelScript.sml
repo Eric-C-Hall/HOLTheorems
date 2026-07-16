@@ -14,32 +14,6 @@ Libs dep_rewrite realLib;
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: find this definition somewhere                                       *)
-(* Probably apply general_cross from martingaleTheory?                        *)
-(*                                                                            *)
-(* See {xs | LENGTH xs = n ∧ EVERY (combin$C (IN) (mcdomain0 W)) xs}. This    *)
-(* how it's defined in repeatChannel. If this is different, probably also     *)
-(* change it there.                                                           *)
-(* -------------------------------------------------------------------------- *)
-Definition TODO_prod_set_def:
-  TODO_prod_set (set : α -> bool) (num_prod : num) = ARB : α list -> bool
-End
-
-(* -------------------------------------------------------------------------- *)
-(* TODO: the reason we need these definitions, and can't just use the         *)
-(* standard probability space product, is because the probability measure is  *)
-(* defined with a specific measure, but we need to use a different measure.   *)
-(* Could we avoid this by defining the split channel using a random variable  *)
-(* on the combined channel?                                                   *)
-(*                                                                            *)
-(* TODO: I'm not fully sure how the product sigma algebra should be defined.  *)
-(* -------------------------------------------------------------------------- *)
-Definition TODO_prod_sigma_algebra_def:
-  TODO_prod_sigma_algebra (A : α -> bool -> bool) (num_prod : num) =
-  ARB : α list -> bool -> bool
-End
-
-(* -------------------------------------------------------------------------- *)
 (* The split channel step in Polar Coding                                     *)
 (*                                                                            *)
 (* Not produced through straightforward operations on simpler channels so we  *)
@@ -60,8 +34,15 @@ End
 (* - Averages over the future inputs.                                         *)
 (*                                                                            *)
 (* The probability distribution has                                           *)
+(* - event space consists of all possible outputs and prior inputs:           *)
+(*                                                                            *)
+(*                                                                            *)
+(* - probability equal to the weighted sum over all possible future inputs    *)
+(*   of the                                                                   *)
+(*                                                                            *)
 (* - event space equal to product of event spaces of the noisy channel with   *)
 (*   the event space of the future inputs                                     *)
+(*   the event space of the noisy channel may change                          *)
 (* - sigma algebra equal to the product of the sigma algebra of the noisy     *)
 (*   channel with the sigma algebra of the future inputs                      *)
 (* -                                                                          *)
@@ -88,8 +69,9 @@ Definition split_channel0_def:
   in
     (𝕌(:bool),
      λcurrent_chosen_value.
-       ((TODO_prod_set () ()) × (TODO_prod_set () ()),
-        (TODO_prod_sigma_algebra ) × (TODO_prod_sigma_algebra),
+       ((TODO_prod_set (mcdomain W) num_inputs)
+        × (TODO_prod_set 𝕌(:bool) (num_inputs - 1)),
+        (TODO_prod_sigma_algebra ()) × (TODO_prod_sigma_algebra () ),
         λ(noise, later_chosen_values).
           EXTREAL_SUM_IMAGE
           (λprior_chosen_values.
