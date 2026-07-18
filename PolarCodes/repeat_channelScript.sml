@@ -1,12 +1,12 @@
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_pi_measure_space_list lifting list measure memoryless_channel pispace pred_set probability rich_list sigma_algebra transfer trivial
+Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_prod_list lifting list measure memoryless_channel pispace pred_set probability rich_list sigma_algebra transfer trivial
 
 Libs dep_rewrite liftLib realLib transferLib;
 
 val _ = hide "W";
 
-(* TODO: move the definitions that help to define pi_measure_space_list based on
+(* TODO: move the definitions that help to define prod_list based on
    pi_measure_space into their own file, perhaps *)
 
 (* -------------------------------------------------------------------------- *)
@@ -59,7 +59,7 @@ Definition repeat_channel0_def:
   repeat_channel0 (W : (α -> bool) # (α -> β m_space)) (n : num) =
   (TODO_prod_set (mcdomain0 W) n,
    λrepeated_inputs.
-     pi_measure_space_list (MAP (mcchannel0 W) repeated_inputs)
+     prod_list (MAP (mcchannel0 W) repeated_inputs)
   )
   : (α list -> bool) # (α list -> β list m_space)
 End
@@ -77,7 +77,7 @@ Proof
   >- (gen_tac
       >> gvs[repeat_channel0_def, mcchannel0_def, mcdomain0_def]
       >> strip_tac
-      >> irule prob_space_pi_measure_space_list
+      >> irule prob_space_prod_list
       >> simp[ALL_EL_MAP]
       >> simp[EVERY_MEM]
       >> gen_tac >> strip_tac

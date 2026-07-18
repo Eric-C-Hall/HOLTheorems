@@ -25,7 +25,7 @@ open lebesgueTheory;
 open martingaleTheory;
 open probabilityTheory;
 
-val _ = new_theory "jared_yeager_pi_measure_space_list";
+val _ = new_theory "jared_yeager_prod_list";
 
 val _ = reveal "C";
 
@@ -188,12 +188,9 @@ Proof
         simp[extreal_mul_def,extreal_lt_simps])
 QED
 
-(* TODO: Rename to prod_list for consistency with cross_list, sigma_list, and
-         general_cross, general_prod, and general_sigma?
-         Perhaps rename to list_prod, list_cross, list_sigma? *)
-Definition pi_measure_space_list_def:
-  pi_measure_space_list [] = ({[]}, POW {[]}, C 𝟙 []) ∧
-  pi_measure_space_list (mh::mt) = general_prod_measure_space CONS mh (pi_measure_space_list mt)
+Definition prod_list_def:
+  prod_list [] = ({[]}, POW {[]}, C 𝟙 []) ∧
+  prod_list (mh::mt) = general_prod_measure_space CONS mh (prod_list mt)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -225,14 +222,14 @@ Proof
     rw[EXTENSION,IN_BIGUNION_IMAGE]
 QED
 
-Theorem sigma_finite_measure_space_pi_measure_space_list:
-  ∀ml. EVERY sigma_finite_measure_space ml ⇒ sigma_finite_measure_space (pi_measure_space_list ml)
+Theorem sigma_finite_measure_space_prod_list:
+  ∀ml. EVERY sigma_finite_measure_space ml ⇒ sigma_finite_measure_space (prod_list ml)
 Proof
     Induct_on ‘ml’
-    >- (rw[EVERY_DEF,pi_measure_space_list_def] >>
+    >- (rw[EVERY_DEF,prod_list_def] >>
         qspec_then ‘{[]}’ assume_tac POW_SIGMA_ALGEBRA >>
         dxrule sigma_finite_measure_space_dirac_measure >> simp[]) >>
-    rw[EVERY_DEF,pi_measure_space_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
+    rw[EVERY_DEF,prod_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
     irule sigma_finite_measure_space_general_prod_measure >> gs[] >>
     irule_at Any pair_operation_CONS
 QED
@@ -275,17 +272,17 @@ Proof
   >> simp[]
 QED
 
-(*Theorem measure_pi_measure_space_list_m_space:
+(*Theorem measure_prod_list_m_space:
   ∀ml.
     EVERY prob_space ml ⇒
-    measure (pi_measure_space ml) (m_space pi_measure_space_list ml) = 1
+    measure (pi_measure_space ml) (m_space prod_list ml) = 1
 Proof
 QED
 
-Theorem prob_space_pi_measure_space_list:
+Theorem prob_space_prod_list:
   ∀ml.
     EVERY prob_space ml ⇒
-    prob_space (pi_measure_space_list ml)
+    prob_space (prod_list ml)
 Proof
   gen_tac >> strip_tac
   >> simp[prob_space_def]
@@ -295,7 +292,7 @@ Proof
           >> gen_tac >> strip_tac
           >> last_x_assum dxrule
           >> simp[prob_space_sigma_finite_measure_space])
-      >> dxrule sigma_finite_measure_space_pi_measure_space_list
+      >> dxrule sigma_finite_measure_space_prod_list
       >> simp[sigma_finite_measure_space_def]
      )
   >> 
@@ -320,14 +317,14 @@ Proof
   last_x_assum $ irule_at Any >> simp[MEASURE_SPACE_SPACE]
 QED
 
-Theorem prob_space_pi_measure_space_list:
-  ∀ml. EVERY prob_space ml ⇒ prob_space (pi_measure_space_list ml)
+Theorem prob_space_prod_list:
+  ∀ml. EVERY prob_space ml ⇒ prob_space (prod_list ml)
 Proof
   Induct_on ‘ml’
-  >- (rw[EVERY_DEF,pi_measure_space_list_def] >>
+  >- (rw[EVERY_DEF,prod_list_def] >>
       qspec_then ‘{[]}’ assume_tac POW_SIGMA_ALGEBRA >>
       dxrule prob_space_dirac_measure >> simp[]) >>
-  rw[EVERY_DEF,pi_measure_space_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
+  rw[EVERY_DEF,prod_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
   irule prob_space_general_prod_measure >> gs[] >>
   irule_at Any pair_operation_CONS
 QED
