@@ -197,6 +197,9 @@ End
 (* Input: list of sets                                                        *)
 (* Output: cross product of each set, represented as a list where the ith     *)
 (*         element is an element from the ith set                             *)
+(* TODO: Don't you think general_cross should be instead called general_cart? *)
+(*       it's a cartesian prodcut, not a cross product. Also find naming of   *)
+(*       general_sigma a bit dubious.                                         *)
 (* -------------------------------------------------------------------------- *)
 Definition cross_list_def:
   cross_list [] = {[]} ∧
@@ -295,8 +298,8 @@ Proof
       >> dxrule sigma_finite_measure_space_prod_list
       >> simp[sigma_finite_measure_space_def]
      )
-  >> 
-  
+  >>
+
 QED
  *)
 
@@ -327,6 +330,51 @@ Proof
   rw[EVERY_DEF,prod_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
   irule prob_space_general_prod_measure >> gs[] >>
   irule_at Any pair_operation_CONS
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* The ith element of any list in the cross of a bunch of lists will be in    *)
+(* the ith list that was crossed.                                             *)
+(*                                                                            *)
+(* ds: domains of the respective elements of the list                         *)
+(* ls: chosen list in the product                                             *)
+(* i: index                                                                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem cross_list_el:
+  ∀ds ls i.
+    ls ∈ cross_list ds ∧
+    i < LENGTH ls ⇒
+    EL i ls ∈ EL i ds
+Proof
+  Induct_on ‘ds’
+  >- simp[cross_list_def]
+  >> rpt gen_tac >> strip_tac
+  >> Cases_on ‘i’
+  >- (simp[]
+      >> Cases_on ‘ls’
+      >- gvs[]
+      >> gvs[cross_list_def, general_cross_def]
+     )
+  >> gvs[cross_list_def, general_cross_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Extend cross_list_el to the situation where you don't know at which index  *)
+(* in the list your element is at                                             *)
+(* -------------------------------------------------------------------------- *)
+Theorem cross_list_mem:
+  ∀ds ls l.
+    ls ∈ cross_list ds ∧
+    MEM l ls ⇒
+    ∃i.
+      EL i ls = l ∧
+      l ∈ EL i ds
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[MEM_EL]
+  >> qexists ‘n’
+  >> simp[]
+  >> simp[cross_list_el]
 QED
 
 val _ = export_theory();
