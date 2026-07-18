@@ -188,9 +188,32 @@ Proof
         simp[extreal_mul_def,extreal_lt_simps])
 QED
 
+(* TODO: Rename to prod_list for consistency with cross_list, sigma_list, and
+         general_cross, general_prod, and general_sigma?
+         Perhaps rename to list_prod, list_cross, list_sigma? *)
 Definition pi_measure_space_list_def:
   pi_measure_space_list [] = ({[]}, POW {[]}, C 𝟙 []) ∧
   pi_measure_space_list (mh::mt) = general_prod_measure_space CONS mh (pi_measure_space_list mt)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Input: list of sets                                                        *)
+(* Output: cross product of each set, represented as a list where the ith     *)
+(*         element is an element from the ith set                             *)
+(* -------------------------------------------------------------------------- *)
+Definition cross_list_def:
+  cross_list [] = {[]} ∧
+  cross_list (h::t) = general_cross CONS h (cross_list t)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Input: list of sigma algebras                                              *)
+(* Output: product sigma algebra, where the underlying spaces are combined    *)
+(*         using cross_list                                                   *)
+(* -------------------------------------------------------------------------- *)
+Definition sigma_list_def:
+  sigma_list [] = ({[]}, {{}; {[]}}) ∧
+  sigma_list (h::t) = general_sigma CONS h (sigma_list t)
 End
 
 Theorem sigma_finite_measure_space_dirac_measure:
