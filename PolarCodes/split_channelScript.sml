@@ -69,9 +69,9 @@ Definition split_channel0_def:
   in
     (𝕌(:bool),
      λcurrent_chosen_value.
-       ((TODO_prod_set (mcdomain W) num_inputs)
-        × (TODO_prod_set 𝕌(:bool) (num_inputs - 1)),
-        (TODO_prod_sigma_algebra ()) × (TODO_prod_sigma_algebra () ),
+       ((cross_list (REPLICATE num_inputs (mcdomain W)))
+        × (cross_list (REPLICATE (num_inputs - 1) 𝕌(:bool))),
+        (sigma_list ()) × (sigma_list () ),
         λ(noise, later_chosen_values).
           EXTREAL_SUM_IMAGE
           (λprior_chosen_values.
@@ -80,7 +80,7 @@ Definition split_channel0_def:
                         (prior_chosen_values ++ [current_chosen_value] ++
                          later_chosen_values)
              )
-          ) (TODO_prod_set (mcdomain W) (num_inputs - i - 1))
+          ) (cross_list (REPLICATE (num_inputs - i - 1) (mcdomain W)))
        ) 
     )
     : (bool -> bool) # (bool -> ((β list) # (bool list)) m_space)

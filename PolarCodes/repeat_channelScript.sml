@@ -10,54 +10,12 @@ val _ = hide "W";
    pi_measure_space into their own file, perhaps *)
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: find this definition somewhere                                       *)
-(* Probably apply general_cross from martingaleTheory?                        *)
-(*                                                                            *)
-(* TODO: redefine this as                                                     *)
-(*                                                                            *)
-(*                                                                            *)
-(* See {xs | LENGTH xs = n ∧ EVERY (combin$C (IN) (mcdomain0 W)) xs}. This    *)
-(* how it's defined in repeatChannel. If this is different, probably also     *)
-(* change it there.                                                           *)
-(*                                                                            *)
-(* TODO: ensure that there must be exactly num_prod elements in each list in  *)
-(* the output, no more, and no less.                                          *)
-(* -------------------------------------------------------------------------- *)
-Definition TODO_prod_set_def:
-  TODO_prod_set (set : α -> bool) (num_prod : num) =
-  {xs | LENGTH xs = num_prod ∧
-        EVERY (combin$C (IN) set) xs} : α list -> bool
-End
-
-(*
-Theorem TODO_prod_set_alt:
-  ∀set num_prod.
-    TODO_prod_set set num_prod =  xs | LENGTH xs = n ∧ EVERY (combin$C (IN) (mcdomain0 W)) xs}
-Proof
-QED
-*)
-
-(* -------------------------------------------------------------------------- *)
-(* TODO: the reason we need these definitions, and can't just use the         *)
-(* standard probability space product, is because the probability measure is  *)
-(* defined with a specific measure, but we need to use a different measure.   *)
-(* Could we avoid this by defining the split channel using a random variable  *)
-(* on the combined channel?                                                   *)
-(*                                                                            *)
-(* TODO: I'm not fully sure how the product sigma algebra should be defined.  *)
-(* -------------------------------------------------------------------------- *)
-Definition TODO_prod_sigma_algebra_def:
-  TODO_prod_sigma_algebra (A : α -> bool -> bool) (num_prod : num) =
-  ARB : α list -> bool -> bool
-End
-
-(* -------------------------------------------------------------------------- *)
 (* Given a memoryless channel, transform it into n parallel instances of that *)
 (* channel.                                                                   *)
 (* -------------------------------------------------------------------------- *)
 Definition repeat_channel0_def:
   repeat_channel0 (W : (α -> bool) # (α -> β m_space)) (n : num) =
-  (TODO_prod_set (mcdomain0 W) n,
+  (cross_list (REPLICATE n (mcdomain0 W)),
    λrepeated_inputs.
      prod_list (MAP (mcchannel0 W) repeated_inputs)
   )
@@ -82,10 +40,8 @@ Proof
       >> simp[EVERY_MEM]
       >> gen_tac >> strip_tac
       >> last_x_assum (fn th => irule (cj 1 th))
-      >> gvs[TODO_prod_set_def]
-      >> gvs[EVERY_MEM]
-      >> last_x_assum dxrule
-      >> simp[mcdomain0_def]
+      >> qpat_x_assum ‘∀x y. _ ∧ _ ⇒ m_space _ = m_space _ ∧ _’ kall_tac
+      >> cheat
      )
   (* Each probability distribution has the same sample space and sigma algebra *)
   >> rpt gen_tac >> strip_tac
