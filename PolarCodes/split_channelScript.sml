@@ -76,14 +76,43 @@ Definition split_channel0_def:
     ) : (bool -> bool) # (bool -> (β list # bool list) m_space)
 End
 
-
 Theorem mcdomain0_split_channel0[simp]:
   ∀W : (bool,β) memoryless_channel n i.
     mcdomain0 (split_channel0 W n i) = {T;F}
 Proof
   rpt gen_tac
-  >> gvs[split_channel0_def, mcdomain0_def]
+  >> simp[split_channel0_def, mcdomain0_def]
   >> qmatch_abbrev_tac ‘FST (_ argument) = _’
+  >> Cases_on ‘argument’
+  >> simp[]
+QED
+
+Theorem mcchannel0_split_channel0:
+  ∀W n i.
+    mcchannel0 (split_channel0 W n i) =
+    let
+      (output_sample_space, output_sigma_algebra) =
+      sigma_list (REPLICATE n (mcoutput_space W,mcoutput_sigma_algebra W)) ×
+                 sigma_list (REPLICATE i (mcdomain W,POW (mcdomain W)))
+    in
+      λcurrent_chosen_value.
+        (output_sample_space,
+         output_sigma_algebra,
+         ∑ (λ(output,prior_chosen_values).
+              ∑ (λlater_chosen_values.
+                   1 / 2 pow (n − 1)
+                   * prob (mcchannel (combine_channel W n)
+                                     (prior_chosen_values
+                                      ⧺ [current_chosen_value]
+                                      ⧺ later_chosen_values)
+                          ) {output}
+                ) (cross_list (REPLICATE (n − (i + 1)) (mcdomain W)))
+           )
+        )
+Proof
+  rpt gen_tac
+  >> simp[split_channel0_def, mcchannel0_def]
+  >> qmatch_abbrev_tac ‘SND (_ argument) = _’
   >> Cases_on ‘argument’
   >> simp[]
 QED
@@ -97,7 +126,12 @@ Proof
   >> conj_tac
   (* Every output space is a probability space *)
   >- (gen_tac
-      >> gvs[mcdomain0_def, split_channel0_def]
+      >> gvs[mcchannel0_def, split_channel0_def]
+      >> qmatch_goalsub_abbrev_tac ‘SND (_ argument)’
+      >> Cases_on ‘argument’
+      >> simp[]
+      >> gvs[]
+      >> 
      )
 QED
 
