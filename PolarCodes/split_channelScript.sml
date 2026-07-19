@@ -4,6 +4,8 @@ Ancestors arithmetic bitstring bxor_lemmas combine_channel interleave memoryless
 
 Libs dep_rewrite realLib;
 
+val _ = hide "W";
+
 (* -------------------------------------------------------------------------- *)
 (* Based on "Channel polarization: A method for constructing                  *)
 (* capacity-achieving codes for symmetric binary-input memoryless channels    *)
@@ -50,9 +52,8 @@ Definition split_channel0_def:
   (num_inputs : num) (i : num) =
   let
     (output_sample_space, output_sigma_algebra) =
-    (prod_sigma
-     (sigma_list (REPLICATE num_inputs (mcoutput_space W, mcoutput_sigma_algebra W)))
-     (sigma_list (REPLICATE i (mcdomain W, POW (mcdomain W))))
+    (sigma_list (REPLICATE num_inputs (mcoutput_space W, mcoutput_sigma_algebra W))
+                × sigma_list (REPLICATE i (mcdomain W, POW (mcdomain W)))
     ) : (β list # bool list) algebra
   in
     (𝕌(:bool),
@@ -75,11 +76,29 @@ Definition split_channel0_def:
     ) : (bool -> bool) # (bool -> (β list # bool list) m_space)
 End
 
+
+Theorem mcdomain0_split_channel0[simp]:
+  ∀W : (bool,β) memoryless_channel n i.
+    mcdomain0 (split_channel0 W n i) = {T;F}
+Proof
+  rpt gen_tac
+  >> gvs[split_channel0_def, mcdomain0_def]
+  >> qmatch_abbrev_tac ‘FST (_ argument) = _’
+  >> Cases_on ‘argument’
+  >> simp[]
+QED
+
 Theorem wf_memoryless_channel_split_channel0:
-  ∀W n.
-    wf_memoryless_channel W ⇒
+  ∀W n i.
     wf_memoryless_channel (split_channel0 W n i)
 Proof
+  rpt gen_tac
+  >> simp[wf_memoryless_channel_def]
+  >> conj_tac
+  (* Every output space is a probability space *)
+  >- (gen_tac
+      >> gvs[mcdomain0_def, split_channel0_def]
+     )
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -97,3 +116,12 @@ QED
 
 val (repeat_channel_def, repeat_channel_relates) = liftdef repeat_channel0_respects "repeat_channel";
 
+
+
+Theorem mcoutput_space_split_channel:
+  ∀.
+    mcoutput_space (split_channel W n i) =
+    cross_list (REPLICATE num_inputs (mcoutput_space W))
+               × (cross_list (REPLICATE i (mcdomain W)))
+Proof
+QED
