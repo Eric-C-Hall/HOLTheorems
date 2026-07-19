@@ -41,7 +41,6 @@ Proof
       >> gen_tac >> strip_tac
       >> last_x_assum (fn th => irule (cj 1 th))
       >> qpat_x_assum ‘∀x y. _ ∧ _ ⇒ m_space _ = m_space _ ∧ _’ kall_tac
-      >> 
                       
       >> cheat
      )

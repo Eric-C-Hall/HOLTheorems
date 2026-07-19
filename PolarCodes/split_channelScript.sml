@@ -33,57 +33,46 @@ Libs dep_rewrite realLib;
 (* - Returns a probability distribution over the outputs and the prior inputs *)
 (* - Averages over the future inputs.                                         *)
 (*                                                                            *)
-(* The probability distribution has                                           *)
-(* - event space consists of all possible outputs and prior inputs:           *)
+(* We assume that the input channel's domain is finite, so that we may use    *)
+(* the power set of the domain as the sigma algebra.                          *)
 (*                                                                            *)
-(*                                                                            *)
-(* - probability equal to the weighted sum over all possible future inputs    *)
-(*   of the                                                                   *)
-(*                                                                            *)
-(* - event space equal to product of event spaces of the noisy channel with   *)
-(*   the event space of the future inputs                                     *)
-(*   the event space of the noisy channel may change                          *)
-(* - sigma algebra equal to the product of the sigma algebra of the noisy     *)
-(*   channel with the sigma algebra of the future inputs                      *)
-(* -                                                                          *)
+(* We assume that the output's sigma algebra includes any singleton set       *)
+(* containing an output, so that we may determine the probability of any      *)
+(* individual output.                                                         *)
 (*                                                                            *)
 (* Inputs:                                                                    *)
 (* - W: the underlying channel                                                *)
 (* - num_inputs: the combined channel size N                                  *)
 (* - i: the index of the current split channel                                *)
 (* -------------------------------------------------------------------------- *)
-(* THE FOLLOWING IS UNTRUE AS THE DISTRIBUTION SHOULD ALSO CONTAIN ADDITIONAL *)
-(* PROBABILITIES UNIFORMLY DISTRIBUTED OVER THE FUTURE INPUTS                 *)
-(* The split channel probability distribution may be represented as the       *)
-(* distribution of a random variable. The random variable takes the event of  *)
-(* the combined channel (which should represent the noise added by the        *)
-(* channel, and combining this with the input which we already know when      *)
-(* constructing the distribution, the output of our random variable is the    *)
-(* output                                                                     *)
-(* -------------------------------------------------------------------------- *)
 Definition split_channel0_def:
-  split_channel0 (W : (bool -> bool) # (bool -> β m_space))
+  split_channel0 (W : (bool, β) memoryless_channel)
   (num_inputs : num) (i : num) =
   let
-    combined_channel = combine_channel W num_inputs
+    (output_sample_space, output_sigma_algebra) =
+    (prod_sigma
+     (sigma_list (REPLICATE num_inputs (mcoutput_space W, mcoutput_sigma_algebra W)))
+     (sigma_list (REPLICATE i (mcdomain W, POW (mcdomain W))))
+    ) : (β list # bool list) algebra
   in
     (𝕌(:bool),
      λcurrent_chosen_value.
-       ((cross_list (REPLICATE num_inputs (mcdomain W)))
-        × (cross_list (REPLICATE (num_inputs - 1) 𝕌(:bool))),
-        (sigma_list ()) × (sigma_list () ),
-        λ(noise, later_chosen_values).
-          EXTREAL_SUM_IMAGE
-          (λprior_chosen_values.
-             (1 / 2 ** (num_inputs - 1)) *
-             (mcchannel (combine_channel W num_inputs)
-                        (prior_chosen_values ++ [current_chosen_value] ++
-                         later_chosen_values)
-             )
-          ) (cross_list (REPLICATE (num_inputs - i - 1) (mcdomain W)))
-       ) 
-    )
-    : (bool -> bool) # (bool -> ((β list) # (bool list)) m_space)
+       (output_sample_space,
+        output_sigma_algebra,
+        EXTREAL_SUM_IMAGE
+        (λ(output, prior_chosen_values).
+           EXTREAL_SUM_IMAGE
+           (λlater_chosen_values.
+              (1 / 2 pow (num_inputs - 1)) *
+              (prob (mcchannel (combine_channel W num_inputs)
+                               (prior_chosen_values ++ [current_chosen_value] ++
+                                later_chosen_values))
+                    {output}
+              )
+           ) (cross_list (REPLICATE (num_inputs - i - 1) (mcdomain W)))
+        ) : (β list # bool list) measure
+       ) : (β list # bool list) m_space
+    ) : (bool -> bool) # (bool -> (β list # bool list) m_space)
 End
 
 Theorem wf_memoryless_channel_split_channel0:
