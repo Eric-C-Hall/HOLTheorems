@@ -264,13 +264,13 @@ val (mcrange_def, mcrange_relates) = liftdef mcrange0_respects "mcrange";
 (* The sample space of the output of the memoryless channel *)
 Definition mcoutput_space_def:
   mcoutput_space (W : (α,β) memoryless_channel) =
-  m_space (mcchannel W) (CHOICE (mcdomain W))
+  m_space (mcchannel W (CHOICE (mcdomain W)))
 End
 
 (* The sigma algebra of the output of the memoryless channel *)
-Definition mcoutput_sigma_algebra0_def:
-  mcoutput_sigma_algebra0 (W : (α -> bool) # (α -> β m_space)) =
-  measurable_sets (mcchannel W) (CHOICE (mcdomain W))
+Definition mcoutput_sigma_algebra_def:
+  mcoutput_sigma_algebra (W : (α,β) memoryless_channel) =
+  measurable_sets (mcchannel W (CHOICE (mcdomain W)))
 End
 
 Datatype:
