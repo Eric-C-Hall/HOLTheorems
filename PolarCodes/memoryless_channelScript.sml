@@ -23,11 +23,13 @@ Definition mcchannel0_def:
   mcchannel0 (W : (α -> bool) # (α -> β m_space)) = SND W
 End
 
-(* Help from ChatGPT used for this definition *)
+(* Help from ChatGPT used for this definition (mcrange0) *)
 Definition mcrange0_def:
   mcrange0 (W : (α -> bool) # (α -> β m_space)) =
   {y | ∃x. prob (mcchannel0 W x) {y} ≠ 0}
 End
+
+(* See also mcoutput_space_def and mcoutput_sigma_algebra0_def below *)
 
 (* -------------------------------------------------------------------------- *)
 (* A memoryless channel                                                       *)
@@ -258,6 +260,18 @@ Proof
 QED
 
 val (mcrange_def, mcrange_relates) = liftdef mcrange0_respects "mcrange";
+
+(* The sample space of the output of the memoryless channel *)
+Definition mcoutput_space_def:
+  mcoutput_space (W : (α,β) memoryless_channel) =
+  m_space (mcchannel W) (CHOICE (mcdomain W))
+End
+
+(* The sigma algebra of the output of the memoryless channel *)
+Definition mcoutput_sigma_algebra0_def:
+  mcoutput_sigma_algebra0 (W : (α -> bool) # (α -> β m_space)) =
+  measurable_sets (mcchannel W) (CHOICE (mcdomain W))
+End
 
 Datatype:
   erasure_bit = E_T | E_F | Erasure
