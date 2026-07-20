@@ -367,6 +367,7 @@ Theorem cross_list_mem:
     ls ∈ cross_list ds ∧
     MEM l ls ⇒
     ∃i.
+      i < LENGTH ls ∧
       EL i ls = l ∧
       l ∈ EL i ds
 Proof
@@ -375,6 +376,17 @@ Proof
   >> qexists ‘n’
   >> simp[]
   >> simp[cross_list_el]
+QED
+
+Theorem length_in_cross_list:
+  ∀ls ds.
+    ls ∈ cross_list ds ⇒
+    LENGTH ls = LENGTH ds
+Proof
+  Induct_on ‘ds’
+  >- simp[cross_list_def]
+  >> rpt gen_tac >> strip_tac
+  >> gvs[cross_list_def, general_cross_def]
 QED
 
 val _ = export_theory();
