@@ -41,12 +41,16 @@ Proof
       >> gen_tac >> strip_tac
       >> last_x_assum (fn th => irule (cj 1 th))
       >> qpat_x_assum ‘∀x y. _ ∧ _ ⇒ m_space _ = m_space _ ∧ _’ kall_tac
-                      
-      >> cheat
+      >> drule_all cross_list_mem >> strip_tac
+      >> gvs[]
+      >> ‘LENGTH x = n’ by (drule length_in_cross_list >> simp[])
+      >> gvs[]
+      >> gvs[EL_REPLICATE]
      )
   (* Each probability distribution has the same sample space and sigma algebra *)
   >> rpt gen_tac >> strip_tac
   >> simp[repeat_channel0_def, mcchannel0_def]
+  >> conj_tac
   >> cheat
 QED
 
