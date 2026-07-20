@@ -25,6 +25,10 @@ open lebesgueTheory;
 open martingaleTheory;
 open probabilityTheory;
 
+open fundamentalTheory;
+
+open ConseqConv;
+
 val _ = new_theory "jared_yeager_prod_list";
 
 val _ = reveal "C";
@@ -188,6 +192,11 @@ Proof
         simp[extreal_mul_def,extreal_lt_simps])
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: The name fails to mention that we are taking the product of          *)
+(* probability spaces. This name could refer to any product over a list, e.g. *)
+(* a product of sets, sigma algebras, or numbers                              *)
+(* -------------------------------------------------------------------------- *)
 Definition prod_list_def:
   prod_list [] = ({[]}, POW {[]}, C 𝟙 []) ∧
   prod_list (mh::mt) = general_prod_measure_space CONS mh (prod_list mt)
@@ -198,7 +207,7 @@ End
 (* Output: cross product of each set, represented as a list where the ith     *)
 (*         element is an element from the ith set                             *)
 (* TODO: Don't you think general_cross should be instead called general_cart? *)
-(*       it's a cartesian prodcut, not a cross product. Also find naming of   *)
+(*       it's a cartesian product, not a cross product. Also find naming of   *)
 (*       general_sigma a bit dubious.                                         *)
 (* -------------------------------------------------------------------------- *)
 Definition cross_list_def:
@@ -397,6 +406,170 @@ Proof
   >- simp[prod_list_def, cross_list_def]
   >> gen_tac
   >> gvs[prod_list_def, cross_list_def, general_cross_def, general_prod_measure_space_def]
+QED
+
+Theorem cross_list_empty[simp]:
+  cross_list [] = {[]}
+Proof
+  simp[cross_list_def]
+QED
+
+Theorem cross_list_cons_eq_empty:
+  ∀l ls.
+    cross_list (l::ls) = ∅ ⇔ l = ∅ ∨ cross_list ls = ∅
+Proof
+  rpt gen_tac
+  >> simp[cross_list_def, general_cross_def]
+  >> EQ_TAC
+  >- (simp[EXTENSION]
+      >> CCONTR_TAC >> gvs[]
+      >> last_x_assum mp_tac >> simp[]
+      >> qexistsl [‘x’, ‘x'’] >> simp[])
+  >> strip_tac
+  >- simp[]
+  >> simp[]
+QED
+
+Theorem cross_list_eq_empty:
+  ∀ls.
+    cross_list ls = ∅ ⇔ MEM ∅ ls
+Proof
+  gen_tac
+  >> Induct_on ‘ls’
+  >- simp[]
+  >> gen_tac
+  >> simp[cross_list_cons_eq_empty]
+QED
+
+Theorem cross_list_sing:
+  ∀l.
+    cross_list [l] = {[x] | x ∈ l}
+Proof
+  gen_tac
+  >> simp[cross_list_def, general_cross_def]
+  >> simp[EXTENSION]
+QED
+
+Theorem cross_list_sing_alt:
+  ∀l.
+    cross_list [l] = IMAGE (combin$C CONS []) l
+Proof
+  gen_tac
+  >> simp[cross_list_def, general_cross_def, EXTENSION]
+QED
+
+Theorem cross_list_cons_eq:
+  ∀l1 ls1 l2 ls2.
+    cross_list (l1::ls1) = cross_list (l2::ls2) ⇔
+      (l1 = l2 ∧ cross_list ls1 = cross_list ls2) ∨
+      (MEM ∅ (l1::ls1) ∧ MEM ∅ (l2::ls2))
+Proof
+  rpt gen_tac
+  (* Handle the special case in which either list contains the empty set *)
+  >> Cases_on ‘MEM ∅ (l1::ls1) ∨ MEM ∅ (l2::ls2)’
+  >- (gvs[GSYM cross_list_eq_empty]
+      >> (EQ_TAC >> simp[]
+          >> strip_tac
+          >> gvs[cross_list_cons_eq_empty])
+     )
+  >> gvs[]
+  (* *)
+  >> simp[cross_list_def, general_cross_def]
+  >> REVERSE EQ_TAC
+  >- simp[]
+  >> cheat
+QED
+
+Theorem boolean_rearrangement_lemma_1[local]:
+  ∀b1 b2.
+    (b1 ∨ b2 ⇔ b1) ⇔ b1 ∨ ¬b2
+Proof
+  metis_tac[]
+QED
+
+Theorem cross_list_eq:
+  ∀ls1 ls2.
+    (cross_list ls1 = cross_list ls2 ⇔
+       ls1 = ls2 ∨ (MEM ∅ ls1 ∧ MEM ∅ ls2)
+    )
+Proof
+  rpt gen_tac
+  (* Handle the special case in which either list contains the empty set *)
+  >> Cases_on ‘MEM ∅ ls1 ∨ MEM ∅ ls2’
+  >- (gvs[GSYM cross_list_eq_empty]
+      >> (EQ_TAC >> simp[]
+          >> strip_tac
+          >> gvs[])
+     )
+  >> gvs[]
+  (* Thus, neither cross can be empty *)
+  >> gvs[GSYM cross_list_eq_empty]
+  (* We prove that the lists have the same length by way of contradiction.
+     If they had different lengths then the RHS is clearly F, so we need to
+     disprove the LHS. Take an element of ls1, since it is nonempty. This
+     element has the same length of ls1 by length_in_cross_list, and thus it
+     cannot be in ls2 because then it would have to have the same length as
+     ls2, and we are assuming by way of contradiction that the length of ls1 is
+     not the length of ls2. *)
+  >> Cases_on ‘LENGTH ls1 ≠ LENGTH ls2’
+  >- (‘ls1 ≠ ls2’ by (strip_tac >> gvs[])
+      >> simp[]
+      >> qpat_x_assum ‘ls1 ≠ ls2’ kall_tac
+      >> qpat_x_assum ‘cross_list ls2 ≠ ∅’ kall_tac
+      >> gvs[EXTENSION]
+      >> qexists ‘x’
+      >> simp[]
+      >> metis_tac[length_in_cross_list]
+     )
+  >> pop_assum mp_tac >> PURE_REWRITE_TAC[NOT_CLAUSES,IMP_CLAUSES] >> strip_tac
+  (* Now we know the lists have the same length. This makes it easier to induct
+     on them. *)
+  >> rpt (pop_assum mp_tac)
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘ls1’
+  >- simp[]
+  >> rpt strip_tac
+  (* Split up ls2 to match the way ls1 has been split up *)
+  >> namedCases_on ‘ls2’ ["", "h2 ls2"]
+  >- (‘F’ suffices_by strip_tac >> pop_assum mp_tac >> simp[])
+  (* The appropriate term to apply the inductive hypothesis to is the reduced
+     ls2, to match the reduced ls1. *)
+  >> last_x_assum $ qspec_then ‘ls2'’ assume_tac
+  (* Simplify *)
+  >> gvs[]
+  (* Handle the case where ls1 is the empty list. Once we've handled this case
+     and we know that ls1 is not the empty list, we'll be able to derive the
+     prerequisites to apply the inductive hypothesis *)
+  >> Cases_on ‘ls1 = []’
+  >- (gvs[]
+      >> REVERSE EQ_TAC
+      >- simp[]
+      (* cross_list [h] is an injection mapping each element x to [x], so
+         if the crosses are equal, the original sets are equal. *)
+      >> simp[cross_list_sing]
+      >> simp[EXTENSION]
+      >> strip_tac
+      >> gen_tac
+      >> pop_assum $ qspec_then ‘[x]’ assume_tac
+      >> gvs[]
+     )
+  (* Now we know ls1 is not the empty list, we are in the case where we can
+     apply the inductive hypothesis *)
+  >> sg ‘cross_list ls1 ≠ ∅ ∧
+         cross_list ls2' ≠ ∅’
+  >- (qpat_x_assum ‘_ ⇒ _ ⇒ _’ kall_tac
+      >> gvs[cross_list_cons_eq_empty])
+  >> gvs[]
+  (* Use the inductive hypothesis to bring the RHS closer to the LHS,
+     so that we only have to prove a single inductive step, adding a single
+     element to the head *)
+  >> qpat_x_assum ‘cross_list ls1 = cross_list ls2' ⇔ ls1 = ls2'’
+                  (fn th => PURE_ONCE_REWRITE_TAC[GSYM th])
+  (* *)
+  >> PURE_ONCE_REWRITE_TAC[cross_list_cons_eq]
+  >> PURE_ONCE_REWRITE_TAC[boolean_rearrangement_lemma_1]
+  >> disj2_tac
+  >> gvs[cross_list_eq_empty]
 QED
 
 val _ = export_theory();
