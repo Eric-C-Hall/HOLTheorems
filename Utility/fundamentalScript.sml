@@ -478,6 +478,28 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* A congruence rule which tells the simplifier to only simplify the          *)
+(* precondition of an implies                                                 *)
+(* -------------------------------------------------------------------------- *)
+Theorem PRE_CONG:
+  ∀PRE1 PRE2 POST.
+    PRE1 = PRE2 ⇒ (PRE1 ⇒ POST ⇔ PRE2 ⇒ POST)
+Proof
+  metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* A congruence rule which tells the simplifier to only simplify the          *)
+(* postcondition of an implies                                                *)
+(* -------------------------------------------------------------------------- *)
+Theorem POST_CONG:
+  ∀PRE POST1 POST2.
+    POST1 = POST2 ⇒ (PRE ⇒ POST1 ⇔ PRE ⇒ POST2)
+Proof
+  metis_tac[]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* A congruence rule which tells the simplifier to not simplify within an     *)
 (* equality.                                                                  *)
 (* -------------------------------------------------------------------------- *)
