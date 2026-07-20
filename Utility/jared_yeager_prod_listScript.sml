@@ -389,4 +389,14 @@ Proof
   >> gvs[cross_list_def, general_cross_def]
 QED
 
+Theorem m_space_prod_list:
+  ∀ls.
+    m_space (prod_list ls) = cross_list (MAP m_space ls)
+Proof
+  Induct_on ‘ls’
+  >- simp[prod_list_def, cross_list_def]
+  >> gen_tac
+  >> gvs[prod_list_def, cross_list_def, general_cross_def, general_prod_measure_space_def]
+QED
+
 val _ = export_theory();
