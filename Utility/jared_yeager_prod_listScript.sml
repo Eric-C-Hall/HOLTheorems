@@ -458,6 +458,13 @@ Proof
   >> simp[cross_list_def, general_cross_def, EXTENSION]
 QED
 
+Theorem boolean_rearrangement_lemma_1[local]:
+  ∀b1 b2.
+    (b1 ∨ b2 ⇔ b1) ⇔ b1 ∨ ¬b2
+Proof
+  metis_tac[]
+QED
+
 Theorem cross_list_cons_eq:
   ∀l1 ls1 l2 ls2.
     cross_list (l1::ls1) = cross_list (l2::ls2) ⇔
@@ -473,18 +480,37 @@ Proof
           >> gvs[cross_list_cons_eq_empty])
      )
   >> gvs[]
-  (* *)
+  >> gvs[GSYM cross_list_eq_empty]
+  (* Expand out the cons in the cross_list *)
   >> simp[cross_list_def, general_cross_def]
+  (* Prove easy direction *)
   >> REVERSE EQ_TAC
   >- simp[]
-  >> cheat
-QED
-
-Theorem boolean_rearrangement_lemma_1[local]:
-  ∀b1 b2.
-    (b1 ∨ b2 ⇔ b1) ⇔ b1 ∨ ¬b2
-Proof
-  metis_tac[]
+  (* Our set equality assumption says that if we have an element in l1 followed
+     by a list in cross_list ls1, this is an element in l2 followed by a list in
+     cross_list ls2, and vice versa.
+.
+     We have an element in l1 and and element in cross_list ls1, by our
+     assumptions. Therefore, these elements are in l2 and cross_list ls2,
+     respectively.
+.
+     Combining this fact with the previous fact, we can prove that any element
+     in l1 is in l2, and vice versa, and any element in cross_list ls1 is in
+     cross_list ls2, and vice versa. *)
+  >> ‘∃a. a ∈ l1’ by ASM_SET_TAC[]
+  >> ‘∃b. b ∈ cross_list ls1’ by ASM_SET_TAC[]
+  >> simp[EXTENSION]
+  >> strip_tac
+  >> sg ‘a ∈ l2 ∧ b ∈ cross_list ls2’
+  >- (pop_assum $ qspec_then ‘a::b’ assume_tac
+      >> gvs[])
+  >> conj_tac
+  >- (gen_tac
+      >> first_x_assum $ qspec_then ‘x::b’ assume_tac
+      >> gvs[])
+  >> gen_tac
+  >> first_x_assum $ qspec_then ‘a::x’ assume_tac
+  >> gvs[]
 QED
 
 Theorem cross_list_eq:
