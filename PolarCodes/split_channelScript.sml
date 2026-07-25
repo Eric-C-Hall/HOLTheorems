@@ -126,12 +126,7 @@ Proof
   >> conj_tac
   (* Every output space is a probability space *)
   >- (gen_tac
-      >> gvs[mcchannel0_def, split_channel0_def]
-      >> qmatch_goalsub_abbrev_tac ‘SND (_ argument)’
-      >> Cases_on ‘argument’
-      >> simp[]
-      >> gvs[]
-      >> 
+      >> simp[mcchannel0_split_channel0]
      )
 QED
 

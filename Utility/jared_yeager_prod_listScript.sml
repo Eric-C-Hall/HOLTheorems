@@ -349,7 +349,7 @@ QED
 (* ls: chosen list in the product                                             *)
 (* i: index                                                                   *)
 (* -------------------------------------------------------------------------- *)
-Theorem cross_list_el:
+Theorem in_cross_list_el:
   ∀ds ls i.
     ls ∈ cross_list ds ∧
     i < LENGTH ls ⇒
@@ -368,10 +368,10 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Extend cross_list_el to the situation where you don't know at which index  *)
-(* in the list your element is at                                             *)
+(* Extend in_cross_list_el to the situation where you don't know at which     *)
+(* index in the list your element is at                                       *)
 (* -------------------------------------------------------------------------- *)
-Theorem cross_list_mem:
+Theorem in_cross_list_mem:
   ∀ds ls l.
     ls ∈ cross_list ds ∧
     MEM l ls ⇒
@@ -384,7 +384,7 @@ Proof
   >> gvs[MEM_EL]
   >> qexists ‘n’
   >> simp[]
-  >> simp[cross_list_el]
+  >> simp[in_cross_list_el]
 QED
 
 Theorem length_in_cross_list:
@@ -597,5 +597,21 @@ Proof
   >> disj2_tac
   >> gvs[cross_list_eq_empty]
 QED
+
+Theorem cons_in_cross_list:
+  ∀l ls d ds.
+    (l::ls) ∈ cross_list (d::ds) ⇒ l ∈ d
+Proof
+  rpt gen_tac
+  >> qspecl_then [‘d::ds’, ‘l::ls’, ‘0’] assume_tac in_cross_list_el
+  >> gvs[]
+QED
+
+(*Theorem measurable_sets_prod_list:
+  ∀ls.
+    measurable_sets (prod_list ls) =
+    measurable_sets (sigma_list (MAP (λl. (m_space l, measurable_sets l)) ls))
+Proof
+QED*)
 
 val _ = export_theory();

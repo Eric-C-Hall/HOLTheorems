@@ -49,7 +49,7 @@ Proof
       >> gen_tac >> strip_tac
       >> last_x_assum (fn th => irule (cj 1 th))
       >> qpat_x_assum ‘∀x y. _ ∧ _ ⇒ m_space _ = m_space _ ∧ _’ kall_tac
-      >> drule_all cross_list_mem >> strip_tac
+      >> drule_all in_cross_list_mem >> strip_tac
       >> gvs[]
       >> ‘LENGTH x = n’ by (drule length_in_cross_list >> simp[])
       >> gvs[]
@@ -76,38 +76,35 @@ Proof
   (* Move the cons out, so that we can prove our result separately for the
      head and tail. *)
   >> simp[m_space_prod_list]
-  >> 
-         
-  >> simp[cross_list_eq]
-  >> simp[prod_list_def]
-  >> simp[general_prod_measure_space_def]
-  >> simp[general_cross_def]
-  >> simp[general_sigma_def]
-  >> simp[general_prod_def]
-
-         
-         
   >> conj_tac
+  (* Prove the spaces are equivalent; after this, we will prove that the
+     measurable sets are equivalent. *)
 
-  >- (simp[m_space_prod_list]
-      >> simp[cross_list_eq]
+  >- (simp[cross_list_eq]
       (* The spaces are individually the same, we don't need to rely on any
          spaces being empty *)
       >> disj1_tac
+      >> conj_tac
+      (* First, prove it for the head *)
+         
+      >- (qpat_x_assum ‘∀x y. _ ⇒ m_space _ = m_space _ ∧ _’
+                       $ qspecl_then [‘h’, ‘h'’] (fn th => irule (cj 1 th))
+          >> Cases_on ‘n’
+          >- gvs[]
+          >> gvs[]
+         )
+      (* Now prove it for the tail*)
       >> simp[MAP_MAP_o]
              
-      >> qpat_x_assum ‘∀x y. _ ⇒ m_space _ = m_space _ ∧ _’
-                      $ qspecl_then [‘h’, ‘h'’] assume_tac
-      >> pop_assum (fn th => irule (cj 1 th))
                    
       >> gen_tac
      )
   >> disj1_tac
   >> qspecl_then [‘m_space ∘ channel_func’, ‘m_space ∘ channel_func’] assume_tac MAP_EQ_f
-      >> irule (iffRL MAP_EQ_f)
-          >> conj_tac
-          >> 
-          >> 
+  >> irule (iffRL MAP_EQ_f)
+  >> conj_tac
+  >> 
+  >> 
      )
      
   >> cheat
