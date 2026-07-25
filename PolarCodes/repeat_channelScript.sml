@@ -1,8 +1,8 @@
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas interleave jared_yeager_prod_list lifting list measure memoryless_channel pispace pred_set probability rich_list sigma_algebra transfer trivial
+Ancestors arithmetic bitstring bxor_lemmas combin interleave jared_yeager_prod_list lifting list martingale measure memoryless_channel pispace pred_set probability rich_list sigma_algebra transfer trivial
 
-Libs dep_rewrite liftLib realLib transferLib;
+Libs ConseqConv dep_rewrite liftLib realLib transferLib;
 
 val _ = hide "W";
 
@@ -22,11 +22,19 @@ Definition repeat_channel0_def:
   : (α list -> bool) # (α list -> β list m_space)
 End
 
+Theorem mcdomain0_repeat_channel0:
+  ∀W n.
+    mcdomain0 (repeat_channel0 W n) = cross_list (REPLICATE n (mcdomain0 W))
+Proof
+  simp[mcdomain0_def, repeat_channel0_def]
+QED
+
 Theorem wf_memoryless_channel_repeat_channel0:
   ∀W n.
     wf_memoryless_channel W ⇒
     wf_memoryless_channel (repeat_channel0 W n)
 Proof
+  
   rpt gen_tac >> strip_tac
   >> namedCases_on ‘W’ ["channel_dom channel_func"]
   >> gvs[wf_memoryless_channel_def]
@@ -49,8 +57,59 @@ Proof
      )
   (* Each probability distribution has the same sample space and sigma algebra *)
   >> rpt gen_tac >> strip_tac
-  >> simp[repeat_channel0_def, mcchannel0_def]
+  >> gvs[mcdomain0_def, mcchannel0_def, repeat_channel0_def]
+  (* Prove that x and y have the same length, to help us when inducting on x,
+     so we can simultaneously break down y. *)
+  >> sg ‘LENGTH x = LENGTH y’
+  >- (NTAC 2 (dxrule length_in_cross_list)
+      >> simp[])
+  (* Induct on x *)
+  >> NTAC 3 (pop_assum mp_tac)
+  >> SPEC_ALL_TAC
+  >> Induct_on ‘x’
+  >- (Cases_on ‘y’ >> simp[])
+  >> rpt gen_tac
+  >> Cases_on ‘y’
+  >- simp[]
+  >> simp[]
+  >> NTAC 3 disch_tac
+  (* Move the cons out, so that we can prove our result separately for the
+     head and tail. *)
+  >> simp[m_space_prod_list]
+  >> 
+         
+  >> simp[cross_list_eq]
+  >> simp[prod_list_def]
+  >> simp[general_prod_measure_space_def]
+  >> simp[general_cross_def]
+  >> simp[general_sigma_def]
+  >> simp[general_prod_def]
+
+         
+         
   >> conj_tac
+
+  >- (simp[m_space_prod_list]
+      >> simp[cross_list_eq]
+      (* The spaces are individually the same, we don't need to rely on any
+         spaces being empty *)
+      >> disj1_tac
+      >> simp[MAP_MAP_o]
+             
+      >> qpat_x_assum ‘∀x y. _ ⇒ m_space _ = m_space _ ∧ _’
+                      $ qspecl_then [‘h’, ‘h'’] assume_tac
+      >> pop_assum (fn th => irule (cj 1 th))
+                   
+      >> gen_tac
+     )
+  >> disj1_tac
+  >> qspecl_then [‘m_space ∘ channel_func’, ‘m_space ∘ channel_func’] assume_tac MAP_EQ_f
+      >> irule (iffRL MAP_EQ_f)
+          >> conj_tac
+          >> 
+          >> 
+     )
+     
   >> cheat
 QED
 
