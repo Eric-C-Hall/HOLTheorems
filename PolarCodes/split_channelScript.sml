@@ -1,6 +1,6 @@
 Theory split_channel
 
-Ancestors arithmetic bitstring bxor_lemmas combine_channel interleave memoryless_channel
+Ancestors arithmetic bitstring bxor_lemmas combine_channel interleave measure memoryless_channel probability transfer
 
 Libs dep_rewrite realLib;
 
@@ -117,40 +117,52 @@ Proof
   >> simp[]
 QED
 
+(* -------------------------------------------------------------------------- *)
+(* TODO: do I really need to know that the split channel is a memoryless      *)
+(* channel in the sense that its outputs are probability spaces and its       *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
 Theorem wf_memoryless_channel_split_channel0:
   ∀W n i.
+    i < n ⇒
     wf_memoryless_channel (split_channel0 W n i)
 Proof
-  rpt gen_tac
+  rpt gen_tac >> strip_tac
   >> simp[wf_memoryless_channel_def]
   >> conj_tac
   (* Every output space is a probability space *)
   >- (gen_tac
       >> simp[mcchannel0_split_channel0]
+      >> simp[prob_space_def]
+      >> conj_tac
+      >- (cheat
+         )
+      >> cheat
      )
+  >> rpt gen_tac
+  >> cheat
 QED
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: Lifting when we have requirements on n and i?                        *)
 (* -------------------------------------------------------------------------- *)
 
-Theorem split_channel0_respects:
-  (memoryless_channelequiv ===> (=) ===> (=) ===> (memoryless_channelequiv))
-  split_channel0 split_channel0
+(*Theorem split_channel0_respects:
+  ((=) ===> (=) ===> (=) ===> (memoryless_channelequiv))
+    split_channel0 split_channel0
 Proof
   simp[FUN_REL_def]
   >> rpt gen_tac
   >> simp[memoryless_channelequiv_def, wf_memoryless_channel_split_channel0]
 QED
 
-val (repeat_channel_def, repeat_channel_relates) = liftdef repeat_channel0_respects "repeat_channel";
+val (split_channel_def, split_channel_relates) = liftdef split_channel0_respects "split_channel";*)
 
-
-
-Theorem mcoutput_space_split_channel:
+(*Theorem mcoutput_space_split_channel:
   ∀.
     mcoutput_space (split_channel W n i) =
     cross_list (REPLICATE num_inputs (mcoutput_space W))
                × (cross_list (REPLICATE i (mcdomain W)))
 Proof
 QED
+ *)
