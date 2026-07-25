@@ -79,26 +79,53 @@ Proof
   >> conj_tac
   (* Prove the spaces are equivalent; after this, we will prove that the
      measurable sets are equivalent. *)
-
   >- (simp[cross_list_eq]
-      (* The spaces are individually the same, we don't need to rely on any
-         spaces being empty *)
-      >> disj1_tac
+      (* We primarily want to prove that the spaces are individually the same,
+         since we know each individual space is the same.
+         Take the alternative disjunct as an assumption. *)
+      >> PURE_ONCE_REWRITE_TAC[DISJ_SYM]
+      >> PURE_ONCE_REWRITE_TAC[DISJ_EQ_IMP]
+      >> strip_tac
       >> conj_tac
       (* First, prove it for the head *)
-         
       >- (qpat_x_assum ‘∀x y. _ ⇒ m_space _ = m_space _ ∧ _’
                        $ qspecl_then [‘h’, ‘h'’] (fn th => irule (cj 1 th))
+          >> qpat_x_assum ‘¬(_ ∧ _)’ kall_tac (* We don't need this *)
           >> Cases_on ‘n’
           >- gvs[]
           >> gvs[]
+          >> NTAC 2 (dxrule cons_in_cross_list)
+          >> rpt (pop_assum kall_tac) >> simp[]
          )
-      (* Now prove it for the tail*)
-      >> simp[MAP_MAP_o]
-             
-                   
-      >> gen_tac
+      (* If n is zero, contradiction. So break down n. *)
+      >> Cases_on ‘n’
+      >- gvs[]
+      (* Now prove it for the tail. We use the inductive hypothesis.
+         Note that we have modified the conclusion by m_space_prod_list and
+         cross_list_eq, but haven't modified the inductive hypothesis
+         correspondingly.
+.
+         Instantiate the inductive hypothesis with the appropriate values *)
+      >> qpat_x_assum ‘∀n y. _ ⇒ _ ⇒ _ ⇒ _ ∧ _’
+                      (qspecl_then [‘n'’, ‘t’] assume_tac)
+      (* Simplify *)
+      >> gnvs[]
+      (* Apply m_space_prod_list and cross_list_eq to the inductive hypothesis
+         to ensure it matches with the conclusion we want to prove *)
+      >> gnvs[m_space_prod_list, cross_list_eq]
+      (* Prove preconditions of inductive hypothesis *)
+      >> sg ‘x ∈ cross_list (REPLICATE n' channel_dom) ∧
+             t ∈ cross_list (REPLICATE n' channel_dom)’
+      >- (pop_assum kall_tac >> pop_assum kall_tac
+          >> NTAC 2 (dxrule cons_in_cross_list)
+          >> rpt (pop_assum kall_tac)
+          >> simp[])
+      (* Simplify preconditions of inductive hypothesis *)
+      >> gnvs[]
+      (* *)
+      >> gvs[]
      )
+     
   >> disj1_tac
   >> qspecl_then [‘m_space ∘ channel_func’, ‘m_space ∘ channel_func’] assume_tac MAP_EQ_f
   >> irule (iffRL MAP_EQ_f)

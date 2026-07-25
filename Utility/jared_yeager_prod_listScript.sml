@@ -600,11 +600,15 @@ QED
 
 Theorem cons_in_cross_list:
   ∀l ls d ds.
-    (l::ls) ∈ cross_list (d::ds) ⇒ l ∈ d
+    (l::ls) ∈ cross_list (d::ds) ⇒
+    l ∈ d ∧ ls ∈ cross_list ds
 Proof
-  rpt gen_tac
-  >> qspecl_then [‘d::ds’, ‘l::ls’, ‘0’] assume_tac in_cross_list_el
-  >> gvs[]
+  rpt gen_tac >> strip_tac
+  >> conj_tac
+  (* The head case follows directly from in_cross_list_el*)
+  >- (qspecl_then [‘d::ds’, ‘l::ls’, ‘0’] assume_tac in_cross_list_el
+      >> gvs[])
+  >> gvs[cross_list_def, general_cross_def]
 QED
 
 (*Theorem measurable_sets_prod_list:
