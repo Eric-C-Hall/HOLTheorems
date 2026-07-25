@@ -39,7 +39,7 @@ Proof
   >> namedCases_on ‘W’ ["channel_dom channel_func"]
   >> gvs[wf_memoryless_channel_def]
   >> conj_tac
-  (* Each input is mapped to a probability distribution *)
+  (* Step 1: Prove that each input is mapped to a probability distribution *)
   >- (gen_tac
       >> gvs[repeat_channel0_def, mcchannel0_def, mcdomain0_def]
       >> strip_tac
@@ -55,8 +55,14 @@ Proof
       >> gvs[]
       >> gvs[EL_REPLICATE]
      )
-  (* Each probability distribution has the same sample space and sigma algebra *)
+  (* Step 2: Prove that each probability distribution has the same sample space
+     and sigma algebra *)
   >> rpt gen_tac >> strip_tac
+  (* We don't need to know that our inductive part is a probability space: we've
+     already proven that we have a probability space, now we are proving the
+     second part *)
+  >> qpat_x_assum ‘∀x. _ ⇒ prob_space _’ kall_tac
+  (* Expand basic relevant definitions, to simplify *)
   >> gvs[mcdomain0_def, mcchannel0_def, repeat_channel0_def]
   (* Prove that x and y have the same length, to help us when inducting on x,
      so we can simultaneously break down y. *)
@@ -73,68 +79,44 @@ Proof
   >- simp[]
   >> simp[]
   >> NTAC 3 disch_tac
-  (* Move the cons out, so that we can prove our result separately for the
-     head and tail. *)
-  >> simp[m_space_prod_list]
-  >> conj_tac
-  (* Prove the spaces are equivalent; after this, we will prove that the
-     measurable sets are equivalent. *)
-  >- (simp[cross_list_eq]
-      (* We primarily want to prove that the spaces are individually the same,
-         since we know each individual space is the same.
-         Take the alternative disjunct as an assumption. *)
-      >> PURE_ONCE_REWRITE_TAC[DISJ_SYM]
-      >> PURE_ONCE_REWRITE_TAC[DISJ_EQ_IMP]
-      >> strip_tac
-      >> conj_tac
-      (* First, prove it for the head *)
-      >- (qpat_x_assum ‘∀x y. _ ⇒ m_space _ = m_space _ ∧ _’
-                       $ qspecl_then [‘h’, ‘h'’] (fn th => irule (cj 1 th))
-          >> qpat_x_assum ‘¬(_ ∧ _)’ kall_tac (* We don't need this *)
-          >> Cases_on ‘n’
-          >- gvs[]
-          >> gvs[]
-          >> NTAC 2 (dxrule cons_in_cross_list)
-          >> rpt (pop_assum kall_tac) >> simp[]
-         )
-      (* If n is zero, contradiction. So break down n. *)
-      >> Cases_on ‘n’
-      >- gvs[]
-      (* Now prove it for the tail. We use the inductive hypothesis.
-         Note that we have modified the conclusion by m_space_prod_list and
-         cross_list_eq, but haven't modified the inductive hypothesis
-         correspondingly.
+  (* If n is zero, contradiction. So break down n. *)
+  >> Cases_on ‘n’
+  >- gvs[]
+  (* Instantiate the inductive hypothesis with the appropriate values *)
+  >> qpat_x_assum ‘∀n y. _ ⇒ _ ⇒ _ ⇒ _ ∧ _’
+                  (qspecl_then [‘n'’, ‘t’] assume_tac)
+  (* Simplify *)
+  >> gvs[]
+  (* Prove preconditions of inductive hypothesis *)
+  >> sg ‘x ∈ cross_list (REPLICATE n' channel_dom) ∧
+         t ∈ cross_list (REPLICATE n' channel_dom)’
+  >- (pop_assum kall_tac >> pop_assum kall_tac
+      >> NTAC 2 (dxrule cons_in_cross_list)
+      >> rpt (pop_assum kall_tac)
+      >> simp[])
+  (* Simplify preconditions of inductive hypothesis *)
+  >> gvs[]
+  (* Apply the fact that the individual channels are well-formed to the head,
+     so as to prove a single step of our induction *)
+  >> qpat_x_assum ‘∀x y. _ ⇒ m_space _ = m_space _ ∧ _’
+                  $ qspecl_then [‘h’, ‘h'’] assume_tac
+  (* Prove necessary prerequisites of this fact*)
+  >> sg ‘h ∈ channel_dom ∧ h' ∈ channel_dom’
+  >- (NTAC 2 (dxrule cons_in_cross_list)
+      >> rpt (pop_assum kall_tac) >> simp[])
+  (* Simplify prerequisites *)
+  >> gvs[]
+  (* Now we know that the inductive space and measurable sets are equal, and
+     the individual head space and measurable sets are equal. We just need to
+     use this to prove that cons-ing these together is equal.
 .
-         Instantiate the inductive hypothesis with the appropriate values *)
-      >> qpat_x_assum ‘∀n y. _ ⇒ _ ⇒ _ ⇒ _ ∧ _’
-                      (qspecl_then [‘n'’, ‘t’] assume_tac)
-      (* Simplify *)
-      >> gnvs[]
-      (* Apply m_space_prod_list and cross_list_eq to the inductive hypothesis
-         to ensure it matches with the conclusion we want to prove *)
-      >> gnvs[m_space_prod_list, cross_list_eq]
-      (* Prove preconditions of inductive hypothesis *)
-      >> sg ‘x ∈ cross_list (REPLICATE n' channel_dom) ∧
-             t ∈ cross_list (REPLICATE n' channel_dom)’
-      >- (pop_assum kall_tac >> pop_assum kall_tac
-          >> NTAC 2 (dxrule cons_in_cross_list)
-          >> rpt (pop_assum kall_tac)
-          >> simp[])
-      (* Simplify preconditions of inductive hypothesis *)
-      >> gnvs[]
-      (* *)
-      >> gvs[]
-     )
-     
-  >> disj1_tac
-  >> qspecl_then [‘m_space ∘ channel_func’, ‘m_space ∘ channel_func’] assume_tac MAP_EQ_f
-  >> irule (iffRL MAP_EQ_f)
+     First prove the spaces are equivalent, then that the measurable sets are
+     equivalent.
+   *)
   >> conj_tac
+  >- gvs[m_space_prod_list, cross_list_eq]
   >> 
-  >> 
-     )
-     
-  >> cheat
+  
 QED
 
 Theorem repeat_channel0_respects:
