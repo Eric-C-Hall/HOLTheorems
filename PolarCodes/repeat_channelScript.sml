@@ -34,7 +34,6 @@ Theorem wf_memoryless_channel_repeat_channel0:
     wf_memoryless_channel W ⇒
     wf_memoryless_channel (repeat_channel0 W n)
 Proof
-  
   rpt gen_tac >> strip_tac
   >> namedCases_on ‘W’ ["channel_dom channel_func"]
   >> gvs[wf_memoryless_channel_def]
@@ -115,8 +114,8 @@ Proof
    *)
   >> conj_tac
   >- gvs[m_space_prod_list, cross_list_eq]
-  >> 
-  
+  >> simp[prod_list_def]
+  >> simp[general_prod_measure_space_def]
 QED
 
 Theorem repeat_channel0_respects:
