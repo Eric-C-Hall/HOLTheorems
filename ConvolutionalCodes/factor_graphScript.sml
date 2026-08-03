@@ -1937,6 +1937,253 @@ Proof
   >> simp[variable_length_map_fg_add_variable_node0]
 QED
 
+Theorem get_variable_length_map_fg_add_n_variable_nodes:
+  ∀n l fg.
+    get_variable_length_map (fg_add_n_variable_nodes n l fg) =
+    FUN_FMAP
+    (λvar_node. l)
+    (IMAGE INR (range
+                (CARD (nodes (get_underlying_graph fg)))
+                (CARD (nodes (get_underlying_graph fg)) + n)
+               )
+    ) ⊌ get_variable_length_map fg
+Proof
+  Induct_on ‘n’ >> simp[fg_add_n_variable_nodes_def]
+  >> rpt gen_tac
+  >> simp[get_variable_length_map_fg_add_variable_node]
+  >> simp[GSYM FUNION_FUPDATE_1]
+  >> cong_tac (SOME 1)
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM FUN_FMAP_INSERT]
+  >> conj_tac
+  >- simp[range_def]
+  >> PURE_ONCE_REWRITE_TAC[GSYM IMAGE_INSERT]
+  >> DEP_PURE_ONCE_REWRITE_TAC[insert_range]
+  >> conj_tac >- simp[]
+  >> simp[ADD1]
+QED
+
+Theorem get_variable_length_map_fg_empty[simp]:
+  get_variable_length_map fg_empty = FEMPTY
+Proof
+  simp[fg_empty_def] >> simp[fg_empty0_def]
+QED
+
+Theorem fg_add_variable_node0_function_map[simp]:
+  ∀l fg.
+    (fg_add_variable_node0 l fg).function_map = fg.function_map
+Proof
+  rpt gen_tac >> simp[fg_add_variable_node0_def]
+QED
+
+Theorem get_function_map_fg_add_variable_node[simp]:
+  ∀l fg.
+    get_function_map (fg_add_variable_node l fg) = get_function_map fg
+Proof
+  rpt gen_tac
+  >> simp[get_function_map_def, fg_add_variable_node_def,
+          factor_graph_ABSREP, fg_add_variable_node0_wf]
+QED
+
+Theorem fg_empty0_function_map[simp]:
+  fg_empty0.function_map = FEMPTY
+Proof
+  simp[fg_empty0_def]
+QED
+
+Theorem get_function_map_fg_empty[simp]:
+  get_function_map fg_empty = FEMPTY
+Proof
+  simp[fg_empty_def, get_function_map_def]
+QED
+
+Theorem get_function_map_fg_add_n_variable_nodes[simp]:
+  ∀n l fg.
+    get_function_map (fg_add_n_variable_nodes n l fg) =
+    get_function_map fg
+Proof
+  rpt gen_tac
+  >> Induct_on ‘n’ >> simp[fg_add_n_variable_nodes_def]
+QED
+
+Theorem nodes_fg_add_function_node0:
+  ∀inputs fn fg.
+    nodes (fg_add_function_node0 inputs fn fg).underlying_graph =
+    if inputs ⊆ var_nodes fg
+    then
+      INR (order fg.underlying_graph) INSERT nodes fg.underlying_graph
+    else
+      nodes fg.underlying_graph
+Proof
+  rpt gen_tac
+  >> simp[fg_add_function_node0_def]
+  >> rw[gsize_def]
+QED
+
+Theorem nodes_fg_add_function_node:
+  ∀inputs fn fg.
+    nodes (get_underlying_graph (fg_add_function_node inputs fn fg)) =
+    IMAGE INR (count (order (get_underlying_graph fg) +
+                      if inputs ⊆ var_nodes fg then 1n else 0n))
+Proof
+  rpt gen_tac
+  >> simp[nodes_get_underlying_graph, order_fg_add_function_node]
+QED
+
+Theorem nodes_fg_add_function_node_alt:
+  ∀inputs fn fg.
+    nodes (get_underlying_graph (fg_add_function_node inputs fn fg)) =
+    if inputs ⊆ var_nodes fg
+    then
+      INR (CARD (nodes (get_underlying_graph fg))) INSERT nodes (get_underlying_graph fg)
+    else
+      nodes (get_underlying_graph fg)
+Proof
+  PURE_REWRITE_TAC[get_underlying_graph_def, fg_add_function_node_def]
+  >> simp[]
+  >> simp[nodes_fg_add_function_node0, gsize_def]
+QED
+
+Theorem adjacent_fg_add_variable_node0[simp]:
+  ∀l fg.
+    adjacent (fg_add_variable_node0 l fg).underlying_graph =
+    adjacent fg.underlying_graph
+Proof
+  rpt gen_tac
+  >> simp[fg_add_variable_node0_def]
+QED
+
+Theorem adjacent_fg_add_variable_node[simp]:
+  ∀l fg.
+    adjacent (get_underlying_graph (fg_add_variable_node l fg)) =
+    adjacent (get_underlying_graph fg)
+Proof
+  rpt gen_tac
+  >> simp[get_underlying_graph_def, fg_add_variable_node_def,
+          factor_graph_ABSREP, fg_add_variable_node0_wf]
+QED
+
+Theorem adjacent_fg_add_n_variable_nodes[simp]:
+  ∀n l fg.
+    adjacent (get_underlying_graph (fg_add_n_variable_nodes n l fg)) =
+    adjacent (get_underlying_graph fg)
+Proof
+  Induct_on ‘n’ >> simp[fg_add_n_variable_nodes_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Could potentially extend this theorem to work when fg is not necessarily   *)
+(* well-formed?                                                               *)
+(* -------------------------------------------------------------------------- *)
+Theorem adjacent_fg_add_function_node0_lemma[local]:
+  ∀inputs fn fg n1 n2.
+    wffactor_graph fg ∧
+    inputs ⊆ var_nodes fg ∧
+    n1 ∈ nodes (fg_add_function_node0 inputs fn fg).underlying_graph ∧
+    n2 ∈ nodes (fg_add_function_node0 inputs fn fg).underlying_graph ⇒
+    (adjacent (fg_add_function_node0 inputs fn fg).underlying_graph n1 n2 ⇔
+       (n1 = INR (CARD (nodes (fg.underlying_graph))) ∧ n2 ∈ inputs) ∨
+       (n2 = INR (CARD (nodes (fg.underlying_graph))) ∧ n1 ∈ inputs) ∨
+       adjacent fg.underlying_graph n1 n2
+    )
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[fg_add_function_node0_def]
+  >> EQ_TAC >> strip_tac >> gvs[]
+  >- (‘n2 = i’ by gvs[INSERT2_lemma]
+      >> gvs[])
+  >- (‘n1 = i’ by gvs[INSERT2_lemma]
+      >> gvs[])
+  >- gvs[INSERT2_lemma]
+  >- (gvs[nodes_fg_add_function_node0, gsize_def]
+      >- (gvs[SUBSET_DEF]
+          >> last_x_assum drule
+          >> qpat_x_assum ‘INR _ ∈ inputs’ kall_tac
+          >> strip_tac
+          >> gvs[wffactor_graph_def])
+      >> metis_tac[swap_edge]
+      >> qexists ‘n2’
+      >> simp[swap_edge])
+  (* Copy/pasted from above, but with n2 instead of n1*)
+  >> gvs[nodes_fg_add_function_node0, gsize_def]
+  >- (gvs[SUBSET_DEF]
+      >> last_x_assum drule
+      >> qpat_x_assum ‘INR _ ∈ inputs’ kall_tac
+      >> strip_tac
+      >> gvs[wffactor_graph_def])
+  >> metis_tac[swap_edge]
+  >> qexists ‘n1’
+  >> simp[swap_edge]
+QED
+
+Theorem adjacent_fg_add_function_node0:
+  ∀inputs fn fg n1 n2.
+    wffactor_graph fg ∧
+    inputs ⊆ var_nodes fg ⇒
+    (adjacent (fg_add_function_node0 inputs fn fg).underlying_graph n1 n2 ⇔
+       (n1 = INR (CARD (nodes (fg.underlying_graph))) ∧ n2 ∈ inputs) ∨
+       (n2 = INR (CARD (nodes (fg.underlying_graph))) ∧ n1 ∈ inputs) ∨
+       adjacent fg.underlying_graph n1 n2
+    )
+Proof
+  (* The additional assumption in adjacent_fg_add_function_node0_local is true
+   on both the LHS and RHS of the iff, therefore we can assume it is true. *)
+  rpt gen_tac >> strip_tac
+  >> EQ_TAC
+  >- (strip_tac
+      >> irule (iffLR adjacent_fg_add_function_node0_lemma)
+      >> simp[]
+      >> qexists ‘fn’
+      >> simp[]
+      >> drule adjacent_members
+      >> simp[])
+  >> disch_tac
+  >> irule (iffRL adjacent_fg_add_function_node0_lemma)
+  >> simp[]
+  >> simp[nodes_fg_add_function_node0]
+  >> gvs[gsize_def]
+  >- gvs[SUBSET_DEF]
+  >- gvs[SUBSET_DEF]
+  >> drule adjacent_members
+  >> simp[]
+QED
+
+Theorem adjacent_fg_add_function_node:
+  ∀inputs fn fg n1 n2.
+    inputs ⊆ var_nodes fg ⇒
+    (adjacent (get_underlying_graph (fg_add_function_node inputs fn fg)) n1 n2 ⇔
+       (n1 = INR (CARD (nodes (get_underlying_graph fg))) ∧ n2 ∈ inputs) ∨
+       (n2 = INR (CARD (nodes (get_underlying_graph fg))) ∧ n1 ∈ inputs) ∨
+       adjacent (get_underlying_graph fg) n1 n2)
+Proof
+  rpt gen_tac
+  >> PURE_REWRITE_TAC[get_underlying_graph_def, fg_add_function_node_def]
+  >> simp[Excl "nodes_factor_graph_REP"]
+  >> strip_tac
+  >> irule adjacent_fg_add_function_node0
+  >> gvs[]
+QED
+
+Theorem inr_card_nodes_in_nodes_fg_add_function_node[simp]:
+  ∀inputs fn fg.
+    inputs ⊆ var_nodes fg ⇒
+    INR (CARD (nodes (get_underlying_graph fg))) ∈
+        nodes (get_underlying_graph (fg_add_function_node inputs fn fg))
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[nodes_fg_add_function_node]
+  >> simp[gsize_def]
+QED
+
+Theorem inr_order_in_nodes_fg_add_function_node[simp]:
+  ∀inputs fn fg.
+    inputs ⊆ var_nodes fg ⇒
+    INR (order (get_underlying_graph fg)) ∈
+        nodes (get_underlying_graph (fg_add_function_node inputs fn fg))
+Proof
+  simp[gsize_def]
+QED
+
+
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
 (*                                                                            *)

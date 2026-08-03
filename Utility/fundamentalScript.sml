@@ -560,3 +560,25 @@ Proof
   >> simp[FUNION_DEF, FAPPLY_FUPDATE_THM]
   >> rw[] >> gvs[]
 QED
+
+Theorem FUN_FMAP_FUNION:
+  ∀f g S1 S2.
+    FINITE S1
+    ∧ FINITE S2 ⇒
+    FUN_FMAP f S1 ⊌ FUN_FMAP g S2 = FUN_FMAP
+                                    (λx. if x ∈ S1 then f x else g x)
+                                    (S1 ∪ S2)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[GSYM fmap_EQ_THM]
+  >> gen_tac >> strip_tac
+  >> simp[FUNION_DEF, FUN_FMAP_DEF]
+QED
+
+Theorem drag_and_out_of_iff:
+  ∀b1 b2 b3.
+    (b1 ∧ b2 ⇔ b1 ∧ b3) ⇔ (b1 ⇒ (b2 ⇔ b3))
+Proof
+  rpt gen_tac
+  >> Cases_on ‘b1’ >> simp[]
+QED
