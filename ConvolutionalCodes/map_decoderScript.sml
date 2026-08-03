@@ -3461,3 +3461,82 @@ Theorem map_decoder_bitwise_zero_n[simp]:
 Proof
   simp[map_decoder_bitwise_def, COUNT_LIST_def]
 QED
+
+Theorem event_input_string_starts_with_empty[simp]:
+  ∀n m.
+    event_input_string_starts_with n m [] = event_universal n m
+Proof
+  rpt gen_tac
+  >> simp[event_input_string_starts_with_def]
+QED
+
+
+Theorem event_universal_subset:
+  ∀n m p e.
+    e ∈ events (ecc_bsc_prob_space n m p) ⇒
+    (event_universal n m ⊆ e ⇔ e = event_universal n m)
+Proof
+  rpt gen_tac >> strip_tac
+  >> EQ_TAC >> strip_tac
+  >- (PURE_REWRITE_TAC[EXTENSION]
+      >> gen_tac
+      >> EQ_TAC >> strip_tac
+      >- (Cases_on ‘x’ >> simp[]
+          >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+          >> last_x_assum drule
+          >> simp[])
+      >> gvs[SUBSET_DEF])
+  >> gvs[]
+QED
+
+Theorem subset_event_universal:
+  ∀n m p e.
+    e ∈ events (ecc_bsc_prob_space n m p) ⇒
+    e ⊆ event_universal n m
+Proof
+  rpt gen_tac >> strip_tac
+  >> gvs[events_ecc_bsc_prob_space, POW_DEF, SUBSET_DEF]
+  >> gen_tac >> strip_tac
+  >> last_x_assum $ qspec_then ‘x’ assume_tac
+  >> gvs[]
+  >> Cases_on ‘x’ >> simp[]
+QED
+
+Theorem prob_ecc_bsc_prob_space_one:
+  ∀n m p e.
+    0 < p ∧
+    p < 1 ∧
+    e ∈ events (ecc_bsc_prob_space n m p) ⇒
+    (prob (ecc_bsc_prob_space n m p) e = 1 ⇔ e = event_universal n m)
+Proof
+  rpt gen_tac
+  >> strip_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
+  >> Q.SUBGOAL_THEN
+      ‘prob (ecc_bsc_prob_space n m p) e = 1 ⇔
+         prob (ecc_bsc_prob_space n m p) (event_universal n m DIFF e) = 0’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- (DEP_PURE_ONCE_REWRITE_TAC[PROB_DIFF_SUBSET]
+      >> conj_tac
+      >- (simp[]
+          >> irule subset_event_universal
+          >> qexists ‘p’
+          >> simp[])
+      >> simp[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[eq_sub_radd]
+      >> simp[]
+      >> irule PROB_FINITE
+      >> simp[]
+     )
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+  >> conj_tac
+  >- (simp[]
+      >> PURE_REWRITE_TAC[GSYM p_space_ecc_bsc_prob_space]
+      >> irule EVENTS_COMPL
+      >> simp[])
+  >> simp[SUBSET_DIFF_EMPTY]
+  >> irule event_universal_subset
+  >> qexists ‘p’
+  >> simp[]
+QED
+

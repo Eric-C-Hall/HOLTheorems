@@ -451,50 +451,6 @@ QED
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* A version of PROB_EMPTY which has been added to the stateful simpset       *)
-(* -------------------------------------------------------------------------- *)
-Theorem PROB_EMPTY_STATEFUL_SIMPSET[simp]:
-  ∀p. prob_space p ⇒ prob p ∅ = 0
-Proof
-  gvs[PROB_EMPTY]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* I'm surprised this theorem doesn't exist yet. Perhaps it could be added?   *)
-(* -------------------------------------------------------------------------- *)
-Theorem INTER_DIFF[simp]:
-  ∀S T.
-    S ∩ (S DIFF T) = S DIFF T
-Proof
-  ASM_SET_TAC[]
-QED
-
-Theorem INTER_INTER_L[simp]:
-  ∀S T.
-    S ∩ S ∩ T = S ∩ T
-Proof
-  ASM_SET_TAC[]
-QED
-
-Theorem INTER_INTER_R[simp]:
-  ∀S T.
-    S ∩ T ∩ T = S ∩ T
-Proof
-  ASM_SET_TAC[]
-QED
-
-Theorem COND_PROB_INTER_ID:
-  ∀sp e1 e2.
-    prob_space sp ∧
-    e1 INTER e2 IN events sp ∧
-    e2 IN events sp ==>
-    cond_prob sp (e1 INTER e2) e2 = cond_prob sp e1 e2
-Proof
-  rw[]
-  >> gvs[cond_prob_def]
-QED
-
-(* -------------------------------------------------------------------------- *)
 (* A simpler version of COND_PROB_EXTREAL_SUM_IMAGE_FN which is easier to     *)
 (* prove. In particular, this one requires us to know that                    *)
 (* p_space p ⊆ BIGUNION (IMAGE f s), which is a stronger condition than      *)
@@ -1447,27 +1403,6 @@ Theorem count1_count:
     count1 n = count (n + 1)
 Proof
   rw[]
-QED
-
-Theorem encode_recursive_parity_equation_take_el_sing:
-  ∀ps qs ts i bs x.
-    i + 1 ≤ LENGTH bs ⇒
-    encode_recursive_parity_equation
-    (ps,qs)
-    (encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs))
-    [EL i bs] =
-    [EL i (encode_recursive_parity_equation (ps,qs) ts bs)]
-Proof
-  rw[]
-  >> qspecl_then [‘i’,‘ps’, ‘qs’, ‘ts’, ‘TAKE (i + 1) bs’]
-                 assume_tac
-                 drop_encode_recursive_parity_equation
-  >> gvs[LENGTH_TAKE]
-  >> gvs[TAKE_TAKE,
-         DROP_TAKE]
-  >> pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
-  >> gvs[encode_recursive_parity_equation_take]
-  >> gvs[DROP_TAKE]
 QED
 
 Theorem event_srcc_parity_bit_takes_value_inter_input_state:
@@ -2570,4 +2505,53 @@ Proof
   >> simp[EXTENSION]
   >> qexists ‘(bs, REPLICATE m ARB)’
   >> simp[]
+QED
+
+Theorem encode_recursive_parity_equation_state_snoc:
+  ∀ps qs ts b bs.
+    encode_recursive_parity_equation_state (ps,qs) ts (SNOC b bs) =
+    encode_recursive_parity_equation_state
+    (ps,qs) (encode_recursive_parity_equation_state (ps,qs) ts bs) [b]
+Proof
+  rpt gen_tac
+  >> simp[SNOC_APPEND, GSYM encode_recursive_parity_equation_state_encode_recursive_parity_equation_state]
+QED
+
+Theorem encode_recursive_parity_equation_state_sequence_cons:
+  ∀ps qs ts b bs.
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts (b::bs) =
+    ts::encode_recursive_parity_equation_state_sequence
+      (ps,qs) (encode_recursive_parity_equation_state (ps,qs) ts [b]) bs
+Proof
+  rpt gen_tac
+  >> simp[encode_recursive_parity_equation_state_sequence_def,
+          encode_recursive_parity_equation_state_def]
+QED
+
+Theorem encode_recursive_parity_equation_state_sequence_append:
+  ∀ps qs ts bs1 bs2.
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts (bs1 ++ bs2) =
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts bs1 ++
+    TL (encode_recursive_parity_equation_state_sequence
+        (ps,qs) (encode_recursive_parity_equation_state (ps,qs) ts bs1) bs2)
+Proof
+  Induct_on ‘bs1’
+  >- (rpt gen_tac
+      >> simp[]
+      >> Cases_on ‘bs2’ >> simp[encode_recursive_parity_equation_state_sequence_def]
+     )
+  >> rpt gen_tac
+  >> simp[encode_recursive_parity_equation_state_sequence_cons]
+  >> simp[encode_recursive_parity_equation_state_def]
+QED
+
+Theorem encode_recursive_parity_equation_state_sequence_snoc:
+  ∀ps qs ts b bs.
+    encode_recursive_parity_equation_state_sequence (ps,qs) ts (SNOC b bs) =
+    (encode_recursive_parity_equation_state_sequence (ps,qs) ts bs) ++
+    TL (encode_recursive_parity_equation_state_sequence
+        (ps,qs) (encode_recursive_parity_equation_state (ps,qs) ts bs) [b])
+Proof
+  rpt gen_tac
+  >> simp[SNOC_APPEND, encode_recursive_parity_equation_state_sequence_append]
 QED

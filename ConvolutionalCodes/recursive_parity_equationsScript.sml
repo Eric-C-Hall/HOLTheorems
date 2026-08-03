@@ -427,6 +427,53 @@ Proof
   >> metis_tac[]
 QED
 
+Theorem length_el_encode_recursive_parity_equation_state_sequence[simp]:
+  ∀ps qs ts bs i.
+    i ≤ LENGTH bs ⇒
+    LENGTH (EL i (encode_recursive_parity_equation_state_sequence (ps,qs) ts bs)) =
+    LENGTH ts
+Proof
+  rpt gen_tac
+  >> Induct_on ‘i’
+  >- simp[]
+  >> strip_tac
+  >> simp[el_encode_recursive_parity_equation_state_sequence]
+QED
+
+Theorem encode_recursive_parity_equation_take_el_sing:
+  ∀ps qs ts i bs x.
+    i + 1 ≤ LENGTH bs ⇒
+    encode_recursive_parity_equation
+    (ps,qs)
+    (encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs))
+    [EL i bs] =
+    [EL i (encode_recursive_parity_equation (ps,qs) ts bs)]
+Proof
+  rw[]
+  >> qspecl_then [‘i’,‘ps’, ‘qs’, ‘ts’, ‘TAKE (i + 1) bs’]
+                 assume_tac
+                 drop_encode_recursive_parity_equation
+  >> gvs[LENGTH_TAKE]
+  >> gvs[TAKE_TAKE,
+         DROP_TAKE]
+  >> pop_assum (fn th => PURE_REWRITE_TAC[GSYM th])
+  >> gvs[encode_recursive_parity_equation_take]
+  >> gvs[DROP_TAKE]
+QED
+
+Theorem el_encode_recursive_parity_equation:
+  ∀ps qs ts bs i.
+    i + 1 ≤ LENGTH bs ⇒
+    EL i (encode_recursive_parity_equation (ps,qs) ts bs) =
+    HD (encode_recursive_parity_equation
+        (ps,qs)
+        (encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs))
+        [EL i bs])
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[encode_recursive_parity_equation_take_el_sing]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* -------------------------------------------------------------------------- *)
