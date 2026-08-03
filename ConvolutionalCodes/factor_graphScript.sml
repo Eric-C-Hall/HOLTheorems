@@ -428,6 +428,8 @@ exthm  = factor_graphs_exist,
 ABS = "factor_graph_ABS",
 REP = "factor_graph_REP"};
 
+val factor_graph_ABSREP = #termP_term_REP tydefrec
+
 (* -------------------------------------------------------------------------- *)
 (* Defines the equivalence class of graphs that are equivalent to a           *)
 (* well-formed graph, in this instance, we use ordinary equality.             *)
@@ -1852,6 +1854,45 @@ Theorem order_not_in_get_function_nodes[simp]:
   ∀fg. INR (order (get_underlying_graph fg)) ∉ get_function_nodes fg
 Proof
   simp[gsize_def]
+QED
+
+Theorem get_function_map_fg_add_function_node0:
+  ∀inputs fn fg.
+    wffactor_graph fg ⇒
+    (fg_add_function_node0 inputs fn fg).function_map =
+    if
+    inputs ⊆ var_nodes fg
+    then
+      fg.function_map |+
+        (INR (order fg.underlying_graph),
+         FUN_FMAP fn (var_assignments inputs fg.variable_length_map)
+        )
+    else
+      fg.function_map
+Proof
+  rpt gen_tac >> strip_tac
+  >> REVERSE $ Cases_on ‘inputs ⊆ var_nodes fg’ >> simp[]
+  >- simp[fg_add_function_node_def, fg_add_function_node0_def,
+          factor_graph_ABSREP]
+  >> simp[fg_add_function_node0_def, gsize_def]
+QED
+
+Theorem get_function_map_fg_add_function_node:
+  ∀inputs fn fg.
+    get_function_map (fg_add_function_node inputs fn fg) =
+    if
+    inputs ⊆ var_nodes fg
+    then
+      (get_function_map fg)
+      |+ (INR (order (get_underlying_graph fg)),
+          FUN_FMAP fn (var_assignments inputs (get_variable_length_map fg)))
+    else
+      get_function_map fg
+Proof
+  rpt gen_tac
+  >> PURE_ONCE_REWRITE_TAC[get_underlying_graph_def]
+  >> simp[fg_add_function_node_def, get_function_map_def, get_variable_length_map_def]
+  >> simp[get_function_map_fg_add_function_node0]
 QED
 
 (* -------------------------------------------------------------------------- *)
