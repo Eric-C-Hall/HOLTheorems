@@ -3454,3 +3454,10 @@ Proof
   >> gvs[]
 QED
  *)
+
+Theorem map_decoder_bitwise_zero_n[simp]:
+  ∀enc m p ds.
+    map_decoder_bitwise enc 0 m p ds = []
+Proof
+  simp[map_decoder_bitwise_def, COUNT_LIST_def]
+QED

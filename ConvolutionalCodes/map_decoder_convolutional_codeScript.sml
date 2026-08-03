@@ -9,6 +9,12 @@ Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite Conseq
 val _ = hide "S";
 
 (* -------------------------------------------------------------------------- *)
+(* Most important theorems:                                                   *)
+(* - map_decoder_bitwise_encode_recursive_parity_equation_with_systematic:    *)
+(*   rewrites MAP decoder into sum of products form                           *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* Add generally useful theorems to the simpset                               *)
 (* -------------------------------------------------------------------------- *)
 val _ = augment_srw_ss [rewrites[TAKE_TAKE,
@@ -2543,4 +2549,25 @@ Proof
   (* Finish the proof, now that the left hand side and right hand side
      are obviously equivalent. *)
   >> unabbrev_all_tac >> gvs[AC mul_assoc mul_comm]
+QED
+
+Theorem event_state_takes_value_inter_event_input_bit_takes_value_nonzero_prob:
+  ∀n m p ps qs ts i b σ.
+    0 < p ∧
+    p < 1 ∧
+    (∃bs. LENGTH bs = n ∧
+          EL i bs = b ∧
+          encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs) = σ) ⇒
+    prob (ecc_bsc_prob_space n m p)
+         (event_state_takes_value n m (ps,qs) ts i σ ∩
+                                  event_input_bit_takes_value n m i b) ≠ 0
+Proof
+  rpt gen_tac >> strip_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
+  >> simp[prob_ecc_bsc_prob_space_zero, EVENTS_INTER]
+  >> simp[event_state_takes_value_def,
+          event_input_bit_takes_value_def]
+  >> simp[EXTENSION]
+  >> qexists ‘(bs, REPLICATE m ARB)’
+  >> simp[]
 QED

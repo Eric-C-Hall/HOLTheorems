@@ -2551,16 +2551,6 @@ Proof
   >> simp[rcc_bcjr_fg_decode_def]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: Move to other file                                                   *)
-(* -------------------------------------------------------------------------- *)
-Theorem map_decoder_bitwise_zero_n[simp]:
-  ∀enc m p ds.
-    map_decoder_bitwise enc 0 m p ds = []
-Proof
-  simp[map_decoder_bitwise_def]
-QED
-
 Theorem EQ_INTER_SELF[simp]:
   ∀a b.
     a = a ∩ b ⇔ a ⊆ b
@@ -2685,11 +2675,6 @@ Proof
   >> simp[]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: probabilityTheory.COND_PROB_FINITE should have the +∞ and −∞ swapped *)
-(* in order to match mul_not_infty2, EXTREAL_PROD_IMAGE_NOT_INFTY,            *)
-(* PROB_FINITE, etc                                                           *)
-(* -------------------------------------------------------------------------- *)
 Theorem COND_PROB_FINITE_ALT:
   ∀p A B.
     prob_space p ∧ A ∈ events p ∧ B ∈ events p ∧ prob p B ≠ 0 ⇒
@@ -2701,26 +2686,6 @@ QED
 (* -------------------------------------------------------------------------- *)
 (* TODO: move to appropriate location                                         *)
 (* -------------------------------------------------------------------------- *)
-Theorem event_state_takes_value_inter_event_input_bit_takes_value_nonzero_prob:
-  ∀n m p ps qs ts i b σ.
-    0 < p ∧
-    p < 1 ∧
-    (∃bs. LENGTH bs = n ∧
-          EL i bs = b ∧
-          encode_recursive_parity_equation_state (ps,qs) ts (TAKE i bs) = σ) ⇒
-    prob (ecc_bsc_prob_space n m p)
-         (event_state_takes_value n m (ps,qs) ts i σ ∩
-                                  event_input_bit_takes_value n m i b) ≠ 0
-Proof
-  rpt gen_tac >> strip_tac
-  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
-  >> simp[prob_ecc_bsc_prob_space_zero, EVENTS_INTER]
-  >> simp[event_state_takes_value_def,
-          event_input_bit_takes_value_def]
-  >> simp[EXTENSION]
-  >> qexists ‘(bs, REPLICATE m ARB)’
-  >> simp[]
-QED
 
 Theorem event_input_string_starts_with_empty[simp]:
   ∀n m.
