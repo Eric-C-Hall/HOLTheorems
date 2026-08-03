@@ -539,3 +539,24 @@ Proof
   rpt gen_tac
   >> Cases_on ‘b’ >> simp[]
 QED
+
+Theorem FUNION_FUPDATE_SWAP:
+  ∀f g x.
+    (FST x ∈ FDOM f ⇒ f ' (FST x) = SND x) ⇒
+    f ⊌ (g |+ x) = (f |+ x) ⊌ g
+Proof
+  rpt gen_tac >> strip_tac
+  >> Cases_on ‘x’
+  >> simp[GSYM fmap_EQ_THM]
+  >> conj_tac
+  >- (simp[EXTENSION] >> gen_tac >> EQ_TAC >> disch_tac >> gvs[])
+  >> gen_tac >> strip_tac
+  >- (gvs[]
+      >> simp[FUNION_DEF]
+      >> Cases_on ‘q = x’ >> simp[FAPPLY_FUPDATE_THM]
+      >> gvs[])
+  >- (gvs[]
+      >> simp[FUNION_DEF, FAPPLY_FUPDATE_THM])
+  >> simp[FUNION_DEF, FAPPLY_FUPDATE_THM]
+  >> rw[] >> gvs[]
+QED

@@ -1895,6 +1895,48 @@ Proof
   >> simp[get_function_map_fg_add_function_node0]
 QED
 
+Theorem get_variable_length_map_fg_add_function_node0[simp]:
+  ∀inputs fn fg.
+    (fg_add_function_node0 inputs fn fg).variable_length_map =
+    fg.variable_length_map
+Proof
+  rpt gen_tac
+  >> simp[fg_add_function_node0_def]
+  >> rw[]
+QED
+
+Theorem get_variable_length_map_fg_add_function_node[simp]:
+  ∀inputs fn fg.
+    get_variable_length_map (fg_add_function_node inputs fn fg) =
+    get_variable_length_map fg
+Proof
+  rpt gen_tac
+  >> simp[get_variable_length_map_def,
+          get_variable_length_map_fg_add_function_node0,
+          fg_add_function_node_def]
+QED
+
+Theorem variable_length_map_fg_add_variable_node0:
+  ∀l fg.
+    wffactor_graph fg ⇒
+    (fg_add_variable_node0 l fg).variable_length_map =
+    fg.variable_length_map |+ (INR (CARD (nodes fg.underlying_graph)),l)
+Proof
+  rpt gen_tac >> strip_tac
+  >> simp[fg_add_variable_node0_def]
+QED
+
+Theorem get_variable_length_map_fg_add_variable_node:
+  ∀l fg.
+    get_variable_length_map (fg_add_variable_node l fg) =
+    get_variable_length_map fg |+ (INR (CARD (nodes (get_underlying_graph fg))),l)
+Proof
+  rpt gen_tac
+  >> simp[get_variable_length_map_def, fg_add_variable_node_def]
+  >> simp[factor_graph_ABSREP, fg_add_variable_node0_wf]
+  >> simp[variable_length_map_fg_add_variable_node0]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Example 2.2 from Modern Coding Theory:                                     *)
 (*                                                                            *)

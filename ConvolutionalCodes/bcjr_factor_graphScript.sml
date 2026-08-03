@@ -500,57 +500,6 @@ Proof
   >> decide_tac
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: Move to other file                                                   *)
-(* -------------------------------------------------------------------------- *)
-Theorem FUNION_FUPDATE_SWAP:
-  ∀f g x.
-    (FST x ∈ FDOM f ⇒ f ' (FST x) = SND x) ⇒
-    f ⊌ (g |+ x) = (f |+ x) ⊌ g
-Proof
-  rpt gen_tac >> strip_tac
-  >> Cases_on ‘x’
-  >> simp[GSYM fmap_EQ_THM]
-  >> conj_tac
-  >- (simp[EXTENSION] >> gen_tac >> EQ_TAC >> disch_tac >> gvs[])
-  >> gen_tac >> strip_tac
-  >- (gvs[]
-      >> simp[FUNION_DEF]
-      >> Cases_on ‘q = x’ >> simp[FAPPLY_FUPDATE_THM]
-      >> gvs[])
-  >- (gvs[]
-      >> simp[FUNION_DEF, FAPPLY_FUPDATE_THM])
-  >> simp[FUNION_DEF, FAPPLY_FUPDATE_THM]
-  >> rw[] >> gvs[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* TODO: Move to other file                                                   *)
-(* -------------------------------------------------------------------------- *)
-Theorem get_variable_length_map_fg_add_function_node0[simp]:
-  ∀inputs fn fg.
-    (fg_add_function_node0 inputs fn fg).variable_length_map =
-    fg.variable_length_map
-Proof
-  rpt gen_tac
-  >> simp[fg_add_function_node0_def]
-  >> rw[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* TODO: Move to other file                                                   *)
-(* -------------------------------------------------------------------------- *)
-Theorem get_variable_length_map_fg_add_function_node[simp]:
-  ∀inputs fn fg.
-    get_variable_length_map (fg_add_function_node inputs fn fg) =
-    get_variable_length_map fg
-Proof
-  rpt gen_tac
-  >> simp[get_variable_length_map_def,
-          get_variable_length_map_fg_add_function_node0,
-          fg_add_function_node_def]
-QED
-
 Theorem finite_func_node_state_adjacent_nodes[simp]:
   ∀n i.
     FINITE (func_node_state_adjacent_nodes n i)
@@ -1033,33 +982,6 @@ Proof
   >> rpt gen_tac >> strip_tac
   >> PURE_ONCE_REWRITE_TAC[rcc_factor_graph_add_func_nodes_input_sys_def]
   >> simp[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* TODO: Move to other file                                                   *)
-(* -------------------------------------------------------------------------- *)
-Theorem variable_length_map_fg_add_variable_node0:
-  ∀l fg.
-    wffactor_graph fg ⇒
-    (fg_add_variable_node0 l fg).variable_length_map =
-    fg.variable_length_map |+ (INR (CARD (nodes fg.underlying_graph)),l)
-Proof
-  rpt gen_tac >> strip_tac
-  >> simp[fg_add_variable_node0_def]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* TODO: Move to other file                                                   *)
-(* -------------------------------------------------------------------------- *)
-Theorem get_variable_length_map_fg_add_variable_node:
-  ∀l fg.
-    get_variable_length_map (fg_add_variable_node l fg) =
-    get_variable_length_map fg |+ (INR (CARD (nodes (get_underlying_graph fg))),l)
-Proof
-  rpt gen_tac
-  >> simp[get_variable_length_map_def, fg_add_variable_node_def]
-  >> simp[factor_graph_ABSREP, fg_add_variable_node0_wf]
-  >> simp[variable_length_map_fg_add_variable_node0]
 QED
 
 (* -------------------------------------------------------------------------- *)
