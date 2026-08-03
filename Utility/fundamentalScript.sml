@@ -582,3 +582,95 @@ Proof
   rpt gen_tac
   >> Cases_on ‘b1’ >> simp[]
 QED
+
+Theorem zero_div_alt:
+  ∀x y.
+    x = 0 ∧
+    y ≠ 0 ⇒
+    x / y = 0
+Proof
+  simp[zero_div]
+QED
+
+Theorem DRESTRICT_FUN_FMAP:
+  ∀f S1 S2.
+    FINITE S1 ∧
+    FINITE S2 ⇒
+    DRESTRICT (FUN_FMAP f S1) S2 = FUN_FMAP f (S1 ∩ S2)
+Proof
+  rpt gen_tac >> strip_tac
+  >> irule (iffLR fmap_EQ_THM)
+  >> conj_tac
+  >- (gen_tac >> strip_tac
+      >> gvs[FDOM_DRESTRICT, FUN_FMAP_DEF, DRESTRICT_DEF]
+     )
+  >> simp[FDOM_DRESTRICT]
+QED
+
+Theorem EXTREAL_PROD_IMAGE_MUL:
+  ∀s f g.
+    FINITE s ⇒
+    ∏ f s * ∏ g s = ∏ (λx. f x * g x) s
+Proof
+  rpt gen_tac >> strip_tac
+  >> Induct_on ‘s’ using FINITE_INDUCT
+  >> conj_tac
+  >- simp[]
+  >> gen_tac >> strip_tac >> gen_tac >> strip_tac
+  >> simp[EXTREAL_PROD_IMAGE_PROPERTY]
+  >> simp[DELETE_NON_ELEMENT_RWT]
+  >> simp[AC mul_assoc mul_comm]
+QED
+
+Theorem IFF_SYM:
+  ∀a b.
+    (a ⇔ b) ⇔ (b ⇔ a)
+Proof
+  rpt gen_tac
+  >> Cases_on ‘a’ >> simp[]
+QED
+
+
+(* -------------------------------------------------------------------------- *)
+(* A version of PROB_EMPTY which has been added to the stateful simpset       *)
+(* -------------------------------------------------------------------------- *)
+Theorem PROB_EMPTY_STATEFUL_SIMPSET[simp]:
+  ∀p. prob_space p ⇒ prob p ∅ = 0
+Proof
+  gvs[PROB_EMPTY]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* I'm surprised this theorem doesn't exist yet. Perhaps it could be added?   *)
+(* -------------------------------------------------------------------------- *)
+Theorem INTER_DIFF[simp]:
+  ∀S T.
+    S ∩ (S DIFF T) = S DIFF T
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem INTER_INTER_L[simp]:
+  ∀S T.
+    S ∩ S ∩ T = S ∩ T
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem INTER_INTER_R[simp]:
+  ∀S T.
+    S ∩ T ∩ T = S ∩ T
+Proof
+  ASM_SET_TAC[]
+QED
+
+Theorem COND_PROB_INTER_ID:
+  ∀sp e1 e2.
+    prob_space sp ∧
+    e1 INTER e2 IN events sp ∧
+    e2 IN events sp ==>
+    cond_prob sp (e1 INTER e2) e2 = cond_prob sp e1 e2
+Proof
+  rw[]
+  >> gvs[cond_prob_def]
+QED

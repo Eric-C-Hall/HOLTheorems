@@ -2,7 +2,7 @@
 
 Theory ecc_prob_space
 
-Ancestors arithmetic degenerate_distribution real list pred_set probability bitstring bxor_lemmas metric measure sigma_algebra extreal_base cardinal extreal combin iterate realax real_sigma rich_list pair relation wellorder martingale lebesgue prim_rec divides bit jared_yeager_prob_space_product_space
+Ancestors arithmetic degenerate_distribution fundamental real list pred_set probability bitstring bxor_lemmas metric measure sigma_algebra extreal_base cardinal extreal combin iterate realax real_sigma rich_list pair relation wellorder martingale lebesgue prim_rec probability divides bit jared_yeager_prob_space_product_space
 
 Libs extreal_to_realLib ConseqConv dep_rewrite simpLib realLib;
 
@@ -3587,3 +3587,73 @@ QED*)
     (measure (sym_err_chan_prob_space n p bs))
 Proof
 QED*)
+
+Theorem prob_inter_eq:
+  ∀n m p e1 e2.
+    0 < p ∧
+    p < 1 ∧
+    e1 ∈ events (ecc_bsc_prob_space n m p) ∧
+    e2 ∈ events (ecc_bsc_prob_space n m p) ⇒
+    (prob (ecc_bsc_prob_space n m p) (e1 ∩ e2) =
+     prob (ecc_bsc_prob_space n m p) e2 ⇔
+       e2 ⊆ e1)
+Proof
+  rpt gen_tac >> strip_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
+  >> qmatch_abbrev_tac ‘prob1 = prob2 ⇔ _’
+  >> sg ‘prob1 ≠ −∞ ∧ prob1 ≠ +∞’
+  >- (Q.UNABBREV_TAC ‘prob1’
+      >> irule PROB_FINITE
+      >> simp[EVENTS_INTER])
+  >> sg ‘prob2 ≠ −∞ ∧ prob2 ≠ +∞’
+  >- (Q.UNABBREV_TAC ‘prob2’
+      >> irule PROB_FINITE
+      >> simp[EVENTS_INTER])
+  >> Q.SUBGOAL_THEN ‘prob1 = prob2 ⇔ prob2 - prob1 = 0’
+      (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[eq_sub_radd, EQ_SYM_EQ]
+  >> unabbrev_all_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[GSYM PROB_DIFF_SUBSET]
+  >> conj_tac
+  >- simp[EVENTS_INTER]
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+  >> conj_tac
+  >- (simp[]
+      >> irule EVENTS_DIFF
+      >> simp[EVENTS_INTER])
+  >> simp[SUBSET_DIFF_EMPTY]
+QED
+
+Theorem cond_prob_one:
+  ∀n m p e1 e2.
+    0 < p ∧
+    p < 1 ∧
+    e1 ∈ events (ecc_bsc_prob_space n m p) ∧
+    e2 ∈ events (ecc_bsc_prob_space n m p) ∧
+    e2 ≠ ∅ ⇒
+    (cond_prob (ecc_bsc_prob_space n m p) e1 e2 = 1 ⇔ e2 ⊆ e1)
+Proof
+  rpt gen_tac >> strip_tac
+  >> ‘0 ≤ p ∧ p ≤ 1’ by simp[le_lt]
+  >> REVERSE EQ_TAC >> strip_tac
+  >- (DEP_PURE_ONCE_REWRITE_TAC[GSYM COND_PROB_INTER_ID]
+      >> conj_tac
+      >- simp[EVENTS_INTER]
+      >> drule (iffRL (cj 2 INTER_SUBSET_EQN))
+      >> simp[] >> strip_tac
+      >> irule COND_PROB_ITSELF
+      >> simp[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[prob_ecc_bsc_prob_space_zero]
+      >> simp[])
+  >> pop_assum mp_tac
+  >> PURE_REWRITE_TAC[cond_prob_def]
+  >> DEP_PURE_ONCE_REWRITE_TAC[ldiv_eq]
+  >> conj_tac
+  >- (conj_tac
+      >- (PURE_REWRITE_TAC[lt_le]
+          >> simp[prob_ecc_bsc_prob_space_zero, PROB_POSITIVE])
+      >> Cases_on ‘prob (ecc_bsc_prob_space n m p) e2’ >> simp[]
+      >> pop_assum mp_tac >> simp[PROB_FINITE])
+  >> simp[]
+  >> simp[prob_inter_eq]
+QED
