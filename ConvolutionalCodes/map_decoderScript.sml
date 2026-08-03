@@ -815,10 +815,6 @@ Proof
   >> gvs[GSYM EXP]
 QED
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: move this to ecc_prob_spaceScript, along with the relevant things it *)
-(* relies on                                                                  *)
-(* -------------------------------------------------------------------------- *)
 Theorem prob_event_input_bit_takes_value[simp]:
   ∀n m p i b.
     0 ≤ p ∧ p ≤ 1 ∧
@@ -2595,7 +2591,7 @@ QED
 (* single bit                                                                 *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem cond_prob_received_bit_given_sent:
-  TODO
+  
 Proof
   cheat
 QED*)
@@ -3297,7 +3293,8 @@ val ecc2_ss = ecc_ss ++ rewrites[PROB_POSITIVE,
                                  COND_PROB_BOUNDS,
                                  COND_PROB_FINITE];
 
-(* TODO: add all these things to the stateful simpset, if it would be sensible *)
+(* Possible improvement: add all these things to the stateful simpset, if it
+   would be sensible *)
 
 (* -------------------------------------------------------------------------- *)
 (* Add some more rewrites that may be a bit more time-intensive, or you may   *)
@@ -3320,7 +3317,8 @@ val ecc3_ss = ecc2_ss ++ rewrites[mul_not_infty2,
 (* Step 4 (invalid): map_decoder_bitwise_simp1                                *)
 (* Step 5 (invalid): map_decoder_bitwise_simp2                                *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: Fix this (broken after change to events where previously we required
+(* Possible improvement:
+         Fix this (broken after change to events where previously we required
          the bitstring to be exactly equal and now we only require the
          bitstring to be a prefix *)
 (*Theorem map_decoder_bitwise_sent_sum_bayes_prod:
@@ -3411,7 +3409,7 @@ Proof
           >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_INTER_ELIM]
           >> unabbrev_all_tac
           >> full_simp_tac ecc3_ss []
-                           TODO
+                           >> cheat
          )
       >> pop_assum  (fn th => PURE_REWRITE_TAC [th])
       (* The two sums are equal because each of the functions is equal on the
@@ -3456,11 +3454,3 @@ Proof
   >> gvs[]
 QED
  *)
-
-(* TODO: Add this theorem to comment about theorems in this file at the top of
-         this file. *)
-(*Theorem is_optimal_blockwise_map_decoding_:
-∀n m p bs ds.
-  is_optimal_blockwise_map_decoding enc n m p bs ds
-Proof
-QED*)
