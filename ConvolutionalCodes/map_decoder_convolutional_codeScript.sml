@@ -2189,7 +2189,8 @@ Proof
   (* More standard properties showing that p represents a probability *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
   (* Definition of bitwise decoder *)
-  >> gvs[map_decoder_bitwise_def]
+  >> simp[map_decoder_bitwise_def]
+  >> PURE_ONCE_REWRITE_TAC[prob_input_bit_given_received_string_partapp]
   (* We care about the inside of the MAP *)
   >> rw[MAP_EQ_f]
   (* Simplify assumption *)

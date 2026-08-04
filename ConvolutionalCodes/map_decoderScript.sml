@@ -181,6 +181,32 @@ Definition argmax_bool_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Returns the probability that a particular input bit takes a particular     *)
+(* value given that the received string starts with a particular prefix.      *)
+(*                                                                            *)
+(* enc: the encoding function                                                 *)
+(* n: the input length                                                        *)
+(* m: the output length                                                       *)
+(* p: the probability of error                                                *)
+(* ds: the received string                                                    *)
+(* i: the index at which to calculate the probability                         *)
+(* x: the value at that index to calculate the probability for                *)
+(*                                                                            *)
+(* Output: extreal representing the probability of the ith input bit taking   *)
+(* the value x given that the received string was received.                   *)
+(*                                                                            *)
+(* This function is partially applied in map_decoder_bitwise, so it may be    *)
+(* helpful to use prob_input_bit_given_received_string_partapp in order to    *)
+(* allow this function to be expanded even if it is partially applied         *)
+(* -------------------------------------------------------------------------- *)
+Definition prob_input_bit_given_received_string_def:
+  prob_input_bit_given_received_string enc n m p ds i x =
+  cond_prob (ecc_bsc_prob_space n m p)
+            (event_input_bit_takes_value n m i x)
+            (event_received_string_starts_with enc n m ds)
+End
+
+(* -------------------------------------------------------------------------- *)
 (* The bitwise MAP decoder chooses each returned bit such that it has maximal *)
 (* probability given the received message.                                    *)
 (*                                                                            *)
@@ -201,13 +227,8 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition map_decoder_bitwise_def:
   map_decoder_bitwise enc n m p ds =
-  let
-    map_decoder_bit_prob =
-    λi x. cond_prob (ecc_bsc_prob_space n m p)
-                    (event_input_bit_takes_value n m i x)
-                    (event_received_string_starts_with enc n m ds);
-  in
-    MAP (λi. argmax_bool (map_decoder_bit_prob i)) (COUNT_LIST n)
+  MAP (λi. argmax_bool (prob_input_bit_given_received_string enc n m p ds i))
+      (COUNT_LIST n)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -831,6 +852,20 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
+(* Expand prob_input_bit_given_received_string if it is partially applied,    *)
+(* because we can't use the _def to expand it in this case.                   *)
+(* -------------------------------------------------------------------------- *)
+Theorem prob_input_bit_given_received_string_partapp:
+  ∀enc n m p ds i x.
+    prob_input_bit_given_received_string enc n m p ds i =
+    λx. cond_prob (ecc_bsc_prob_space n m p)
+                  (event_input_bit_takes_value n m i x)
+                  (event_received_string_starts_with enc n m ds)                  
+Proof
+  rpt gen_tac >> simp[FUN_EQ_THM, prob_input_bit_given_received_string_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
 (* Finding the bits that maximize the probability of receiving that bit,      *)
 (* given that we received a particular message, is equivalent to finding the  *)
 (* bits that maximize the probability that we both received that bit and      *)
@@ -873,6 +908,7 @@ Proof
   >> gvs[map_decoder_bitwise_def, MAP_EQ_f]
   >> rw[]
   >> gvs[MEM_COUNT_LIST]
+  >> PURE_REWRITE_TAC[prob_input_bit_given_received_string_partapp]
   (* Use lemma which says that taking the argmax_bool of a condintional
      probability is equivalent to taking the argmax_bool of a probability *)
   >> irule argmax_bool_cond_prob
@@ -926,6 +962,7 @@ Proof
   >> gvs[map_decoder_bitwise_def]
   (* More common representation of probabilities *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
+  >> PURE_ONCE_REWRITE_TAC[prob_input_bit_given_received_string_partapp]
   (* The inner bit is the bit we need to prove equivalence of. We only need
      to prove equivalence for valid i, that is, i < n *)
   >> qmatch_goalsub_abbrev_tac ‘MAP f1 (COUNT_LIST n) = MAP f2 (COUNT_LIST n)’
@@ -1303,6 +1340,7 @@ Proof
   >> gvs[map_decoder_bitwise_def]
   (* More common representation of probabilities *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[le_lt]
+  >> PURE_ONCE_REWRITE_TAC[prob_input_bit_given_received_string_partapp]
   (* The inner bit is the bit we need to prove equivalence of. We only need
      to prove equivalence for valid i, that is, i < n *)
   >> qmatch_goalsub_abbrev_tac ‘MAP f1 (COUNT_LIST n) = MAP f2 (COUNT_LIST n)’
