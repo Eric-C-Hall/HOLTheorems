@@ -3209,17 +3209,16 @@ Proof
   >> gvs[events_ecc_bsc_prob_space, POW_DEF, bxor_length]
   (* Cancel out the multiplication *)
   >> DEP_PURE_ONCE_REWRITE_TAC[le_lmul]
-  >> rw[]
-  >- gvs[pow_pos_lt]
-  >- gvs[pow_not_infty]
+  >> conj_tac
+  >- simp[pow_pos_lt, pow_not_infty]
   (* Use expression for sym_noise_mass_func of bxor *)
-  >> gvs[sym_noise_mass_func_bxor]
+  >> simp[sym_noise_mass_func_bxor]
   (* Convert extreals to reals *)
   >> namedCases_on ‘p’ ["", "", "p'"] >> gvs[]
   >> qabbrev_tac ‘p = p'’ >> pop_assum kall_tac
   >> gvs[GSYM normal_1, extreal_sub_eq, extreal_pow_def, extreal_mul_def]
   (* Use pow_mul_sub_leq, which was written to solve the current proof state *)
-  >> gvs[hamming_distance_sym]
+  >> simp[hamming_distance_sym]
   >> irule REAL_POW_MUL_SUB_LEQ_REVERSE
   (* Solve preconditions for pow_mul_sub_leq*)
   >> gvs[hamming_distance_length]
