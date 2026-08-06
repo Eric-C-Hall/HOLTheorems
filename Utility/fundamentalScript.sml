@@ -674,3 +674,34 @@ Proof
   rw[]
   >> gvs[cond_prob_def]
 QED
+
+(* -------------------------------------------------------------------------- *)
+(* I think that it's better to have the preconditions x ≠ +∞ and x ≠ −∞ than  *)
+(* to require that the extreal has the form Normal r, because then I can use  *)
+(* it in situations where I have an arbitrary extreal in that position,       *)
+(* rather than having to have a Normal r in that position                     *)
+(* -------------------------------------------------------------------------- *)
+Theorem div_mul_refl_alt:
+  ∀a b : extreal.
+    b ≠ 0 ∧
+    b ≠ +∞ ∧
+    b ≠ −∞ ⇒
+    a / b * b = a
+Proof
+  rw[] >> Cases_on ‘b’ >> gvs[div_mul_refl]
+QED
+
+Theorem less_half_less_one_extreal:
+  ∀x : extreal.
+    x < 1 / 2 ⇒ x < 1
+Proof
+  gen_tac
+  >> Cases_on ‘x’ >> simp[]
+  >> Q.SUBGOAL_THEN ‘1 / 2 = Normal (1 / 2)’ (fn th => PURE_ONCE_REWRITE_TAC[th])
+  >- simp[GSYM extreal_div_eq, extreal_of_num_def]
+  >> PURE_ONCE_REWRITE_TAC[extreal_lt_eq]
+  >> strip_tac
+  >> irule REAL_LT_TRANS
+  >> qexists ‘1/2’
+  >> simp[]
+QED

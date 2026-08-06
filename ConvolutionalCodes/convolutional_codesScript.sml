@@ -2,7 +2,7 @@
 
 Theory convolutional_codes
 
-Ancestors arithmetic list marker rich_list infnum argmin hamming_distance useful_theorems state_machine trellis
+Ancestors arithmetic divides extreal fundamental list marker map_decoder rich_list infnum argmin hamming_distance useful_theorems state_machine trellis
 
 Libs dep_rewrite ConseqConv simpLib donotexpandLib useful_tacticsLib;
 
@@ -275,4 +275,46 @@ Proof
              )
           >> irule viterbi_correctness_general
   >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Viterbi decoding is equivalent to blockwise MAP decoding.                  *)
+(*                                                                            *)
+(* Possible improvement: generalise to work with arbitrary starting state,    *)
+(*                       not just a starting state of 0.                      *)
+(* -------------------------------------------------------------------------- *)
+Theorem vd_encode_map_encoder:
+  ∀n m p machine ds.
+    wfmachine machine ∧
+    0 < p ∧
+    p < 1 / 2 ∧
+    LENGTH ds = n * machine.output_length ⇒
+    is_optimal_blockwise_map_decoding
+    (λbs. vd_encode machine bs 0) n (n * machine.output_length) p
+    (vd_decode machine ds) ds
+Proof
+  rpt gen_tac >> strip_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[blockwise_map_decoding_hamming]
+  >> conj_tac
+  >- (simp[]
+      >> drule_then assume_tac less_half_less_one_extreal
+      >> simp[]
+      >> Cases_on ‘n = 0’
+      >- gvs[]
+      >> DEP_PURE_ONCE_REWRITE_TAC[vd_decode_length]
+      >> conj_tac
+      >- simp[output_length_nonzero]
+      >> simp[MULT_DIV]
+     )
+  >> gen_tac >> strip_tac
+  >> qspecl_then [‘machine’, ‘ds’, ‘bs’] mp_tac viterbi_correctness
+  >> simp[]
+
+         viterbi_correctness
+
+  >> simp[is_optimal_blockwise_map_decoding_def]
+  >> gen_tac >> strip_tac'
+  >>
+
+
 QED

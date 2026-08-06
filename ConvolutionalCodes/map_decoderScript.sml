@@ -1706,19 +1706,6 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* See comment above EXTREAL_SUM_IMAGE_CMUL_ALT                               *)
-(* -------------------------------------------------------------------------- *)
-Theorem div_mul_refl_alt:
-  ∀a b : extreal.
-    b ≠ 0 ∧
-    b ≠ +∞ ∧
-    b ≠ −∞ ⇒
-    a / b * b = a
-Proof
-  rw[] >> Cases_on ‘b’ >> gvs[div_mul_refl]
-QED
-
-(* -------------------------------------------------------------------------- *)
 (* Similar to EXTREAL_SUM_IMAGE_CMUL_ALT, it is better to have the            *)
 (* precondition n ≠ 0 than to require n to have the form SUC n, because then  *)
 (* I can match the theorem to an arbitrary expression, rather than only being *)

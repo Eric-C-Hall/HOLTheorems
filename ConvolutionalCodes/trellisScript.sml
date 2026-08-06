@@ -543,7 +543,7 @@ QED
 Theorem vd_decode_length[simp]:
   ∀m bs.
     wfmachine m ∧
-    divides (LENGTH bs) m.output_length ∧
+    divides m.output_length (LENGTH bs) ∧
     m.output_length ≠ 0 ⇒
     LENGTH (vd_decode m bs) = LENGTH bs DIV m.output_length
 Proof

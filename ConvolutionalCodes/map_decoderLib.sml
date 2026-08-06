@@ -6,6 +6,7 @@ open simpLib;
 open map_decoderTheory;
 open probabilityTheory;
 open extrealTheory;
+open fundamentalTheory;
 
 (* -------------------------------------------------------------------------- *)
 (* This is currently duplicated from map_decoderScript, which is undesirable, *)

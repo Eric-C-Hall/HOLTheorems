@@ -662,6 +662,15 @@ Proof
   >> gvs[]
 QED
 
+Theorem output_length_nonzero:
+  ∀m.
+    wfmachine m ⇒ m.output_length ≠ 0
+Proof
+  gen_tac >> strip_tac
+  >> dxrule (iffLR wfmachine_def)
+  >> simp[]
+QED
+
 (* -------------------------------------------------------------------------- *)
 (* Unit tests                                                                 *)
 (* (It makes sense for tests to be at the end because then they won't slow    *)
