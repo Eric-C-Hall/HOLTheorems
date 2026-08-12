@@ -309,16 +309,4 @@ Proof
   >> gen_tac >> strip_tac
   >> qspecl_then [‘machine’, ‘bs’, ‘ds’] mp_tac viterbi_correctness
   >> simp[]
-  >> strip_tac
-  >> pop_assum irule
-  >> Cases_on ‘machine.output_length = 1’ >> simp[]
-  >> strip_tac
-
-     viterbi_correctness
-
-  >> simp[is_optimal_blockwise_map_decoding_def]
-  >> gen_tac >> strip_tac'
-  >>
-
-
 QED
