@@ -2,7 +2,7 @@
 
 Theory ecc_prob_space
 
-Ancestors arithmetic degenerate_distribution fundamental real list pred_set probability bitstring bxor_lemmas metric measure sigma_algebra extreal_base cardinal extreal combin iterate realax real_sigma rich_list pair relation wellorder martingale lebesgue prim_rec probability divides bit jared_yeager_prob_space_product_space
+Ancestors arithmetic degenerate_distribution fundamental real list pred_set probability bitstring bxor_lemmas metric measure sigma_algebra extreal_base cardinal extreal combin iterate realax real_sigma rich_list pair relation wellorder martingale lebesgue prim_rec probability divides bit jared_yeager_prob_space_product_space hamming_distance
 
 Libs extreal_to_realLib ConseqConv dep_rewrite simpLib realLib;
 
@@ -1646,41 +1646,6 @@ QED
 (* subsets, space                                                             *)
 (* -------------------------------------------------------------------------- *)
 
-Definition hamming_distance_def:
-  hamming_distance (l1 : α list) (l2 : α list) = FOLDR ($+) 0n (MAP (λpair. if (FST pair = SND pair) then 0n else 1n) (ZIP (l1, l2)))
-End
-
-Definition hamming_distance_alt_def[simp]:
-  hamming_distance_alt [] (l2 : α list) = 0 ∧
-  hamming_distance_alt (h1::t1 : α list) (h2::t2 : α list) =
-  (if (h1 = h2) then 0n else 1n) + hamming_distance_alt t1 t2
-End
-
-Theorem hamming_distance_empty[simp]:
-  ∀cs. hamming_distance [] [] = 0
-Proof
-  gvs[hamming_distance_def]
-QED
-
-Theorem hamming_distance_cons[simp]:
-  ∀b bs c cs.
-    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
-Proof
-  rpt strip_tac
-  >> gvs[hamming_distance_def]
-QED
-
-Theorem hamming_distance_alt_equivalent:
-  ∀bs cs.
-    LENGTH bs = LENGTH cs ⇒
-    hamming_distance bs cs = hamming_distance_alt bs cs
-Proof
-  strip_tac
-  >> Induct_on ‘bs’ >> gvs[]
-  >> rpt strip_tac
-  >> Cases_on ‘cs’  >> gvs[]
-QED
-
 Definition length_n_codes_degenerate_prob_space_def:
   length_n_codes_degenerate_prob_space (n : num) (bs : bool list) =
   let s = length_n_codes n in
@@ -2515,18 +2480,6 @@ Proof
   >> gvs[]
 QED
 
-Theorem hamming_distance_append[simp]:
-  ∀bs cs ds es.
-    LENGTH bs = LENGTH ds ⇒
-    hamming_distance (bs ⧺ cs) (ds ⧺ es) = hamming_distance bs ds + hamming_distance cs es
-Proof
-  strip_tac
-  >> Induct_on ‘bs’ >> rpt strip_tac
-  >- gvs[hamming_distance_def]
-  >> Cases_on ‘ds’ >> gvs[]
-  >> gvs[hamming_distance_cons]
-QED
-
 Theorem n_repetition_bit_hamming_distance[simp]:
   ∀b b' n.
     hamming_distance (n_repetition_bit n b) (n_repetition_bit n b') = if b = b' then 0 else n
@@ -2630,63 +2583,6 @@ Proof
   >> Cases_on ‘h = h'’ >> gvs[]
 QED
 
-Theorem hamming_distance_positivity:
-  ∀bs cs.
-    LENGTH bs = LENGTH cs ⇒
-    0 ≤ hamming_distance bs cs ∧
-    (hamming_distance bs cs = 0 ⇔ bs = cs)
-Proof
-  rpt strip_tac
-  >- gvs[hamming_distance_def]
-  >> ‘∀cs. LENGTH bs = LENGTH cs ⇒ (hamming_distance bs cs = 0 ⇔ bs = cs)’ suffices_by gvs[]
-  >> pop_assum kall_tac
-  >> Induct_on ‘bs’ >> rpt strip_tac >> Cases_on ‘cs’ >> gvs[]
-  >> EQ_TAC >> rpt strip_tac >> gvs[]
-  >> Cases_on ‘h = h'’ >> gvs[]
-QED
-
-Theorem hamming_distance_sym:
-  ∀bs cs.
-    LENGTH bs = LENGTH cs ⇒
-    hamming_distance bs cs = hamming_distance cs bs
-Proof
-  strip_tac
-  >> Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
-  >> rpt strip_tac
-  >> first_x_assum $ qspec_then ‘t’ assume_tac
-  >> Cases_on ‘h = h'’ >> gvs[EQ_SYM]
-QED
-
-Theorem hamming_distance_same[simp]:
-  ∀bs. hamming_distance bs bs = 0
-Proof
-  rpt strip_tac
-  >> assume_tac hamming_distance_positivity
-  >> pop_assum $ qspecl_then [‘bs’, ‘bs’] assume_tac
-  >> gvs[]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* Initially I thought that the hamming distance between two points precisely *)
-(* satisfied the triangle equality if and only if the middle point was one    *)
-(* of the endpoints, but this is not necessarily the case.                    *)
-(*                                                                            *)
-(* hamming (0, 1) (1, 0) = 2                                                  *)
-(* hamming (0, 1) (0, 0) + hamming (0, 0) (1, 0) = 1 + 1 = 2                  *)
-(* -------------------------------------------------------------------------- *)
-Theorem hamming_distance_triangle_inequality:
-  ∀bs cs ds.
-    (LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds) ⇒
-    hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds
-Proof
-  rpt strip_tac
-  >> ‘∀bs ds. LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds ⇒ hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds’ suffices_by gvs[]
-  >> rpt $ pop_assum kall_tac
-  >> Induct_on ‘cs’ >> rpt strip_tac >> Cases_on ‘bs’ >> Cases_on ‘ds’ >> gvs[]
-  >> first_x_assum $ qspecl_then [‘t’, ‘t'’] assume_tac
-  >> Cases_on ‘h = h''’ >> Cases_on ‘h' = h’ >> Cases_on ‘h' = h''’ >> gvs[]
-QED
-
 (* MODEQ_REFL has two issues: firstly, it isn't in the simpset, when it would
    make sense for it to be. Secondly, the variable n isn't bound by a
    quantifier. *)
@@ -2728,7 +2624,6 @@ Proof
   >> Cases_on ‘h’ >> Cases_on ‘h'’ >> Cases_on ‘h''’ >> gvs[]
 QED
 
-
 Theorem length_n_repetition_code[simp]:
   ∀n bs.
     LENGTH (n_repetition_code n bs) = n * LENGTH bs
@@ -2763,19 +2658,6 @@ Proof
   rpt strip_tac
   >>
 QED*)
-
-Theorem hamming_distance_length:
-  ∀bs cs.
-    hamming_distance bs cs ≤ LENGTH bs
-Proof
-  strip_tac
-  >> gvs[hamming_distance_def]
-  >> Induct_on ‘bs’ >> gvs[ZIP_def]
-  >> strip_tac
-  >> Cases_on ‘cs’ >> gvs[ZIP_def]
-  >> pop_assum $ qspec_then ‘t’ assume_tac
-  >> Cases_on ‘h = h'’ >> gvs[]
-QED
 
 Theorem decode_nearest_neighbour_n_repetition_bit_unique:
   ∀n bs cs ds.
@@ -2820,20 +2702,6 @@ Proof
   >> ‘q ≤ 1’ by gvs[is_decoded_nearest_neighbour_def]
   >> gvs[]
 QED
-
-Theorem hamming_distance_latter_empty:
-  ∀bs. hamming_distance bs [] = 0
-Proof
-  gvs[hamming_distance_def, ZIP_def]
-QED
-
-Theorem hamming_distance_former_empty:
-  ∀bs. hamming_distance [] bs = 0
-Proof
-  gvs[hamming_distance_def, ZIP_def]
-QED
-
-
 
 (* -------------------------------------------------------------------------- *)
 (* Broken as a result of removal of donotexpand_tac/doexpand_tac, and not     *)
@@ -2969,19 +2837,6 @@ Proof
   gvs[SING_HD]
 QED
 
-Theorem hamming_distance_bnot[simp]:
-  ∀bs cs.
-    LENGTH bs = LENGTH cs ⇒
-    hamming_distance (bnot bs) (bnot cs) = hamming_distance bs cs
-Proof
-  strip_tac
-  >> Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
-  >> rpt strip_tac
-  >> last_x_assum $ qspec_then ‘t’ assume_tac
-  >> gvs[]
-  >> gvs[hamming_distance_cons]
-QED
-
 Theorem apply_noise_bnot_1:
   ∀ns bs.
     LENGTH ns = LENGTH bs ⇒
@@ -3053,22 +2908,6 @@ Theorem n_repetition_code_bnot[simp]:
 Proof
   Induct_on ‘n’ >> gvs[]
   >> Induct_on ‘bs’ >> gvs[]
-QED
-
-Theorem hamming_distance_bnot_1[simp]:
-  ∀bs.
-    hamming_distance (bnot bs) bs = LENGTH bs
-Proof
-  Induct_on ‘bs’ >> gvs[]
-QED
-
-Theorem hamming_distance_bnot_2[simp]:
-  ∀bs.
-    hamming_distance bs (bnot bs) = LENGTH bs
-Proof
-  rpt strip_tac
-  >> DEP_PURE_ONCE_REWRITE_TAC[hamming_distance_sym]
-  >> gvs[]
 QED
 
 (* -------------------------------------------------------------------------- *)

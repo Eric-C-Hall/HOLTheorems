@@ -1,6 +1,6 @@
 Theory hamming_distance
 
-Ancestors arithmetic bitstring list
+Ancestors arithmetic bitstring fundamental list
 
 Libs dep_rewrite;
 
@@ -9,6 +9,72 @@ Definition hamming_distance_def:
   hamming_distance bs [] = 0n ∧
   hamming_distance (b::bs) (c::cs) = hamming_distance bs cs + if b = c then 0n else 1n
 End
+
+(* -------------------------------------------------------------------------- *)
+(* I accidentally defined hamming distance again without realising that it    *)
+(* was already defined, so I moved it here                                    *)
+(* -------------------------------------------------------------------------- *)
+Definition hamming_distance_alt1_def:
+  hamming_distance_alt1 (l1 : α list) (l2 : α list) = FOLDR ($+) 0n (MAP (λpair. if (FST pair = SND pair) then 0n else 1n) (ZIP (l1, l2)))
+End
+
+(* -------------------------------------------------------------------------- *)
+(* I accidentally defined hamming distance again without realising that it    *)
+(* was already defined, so I moved it here                                    *)
+(* -------------------------------------------------------------------------- *)
+Definition hamming_distance_alt2_def[simp]:
+  hamming_distance_alt2 [] (l2 : α list) = 0 ∧
+  hamming_distance_alt2 (l1 : α list) [] = 0 ∧
+  hamming_distance_alt2 (h1::t1 : α list) (h2::t2 : α list) =
+  (if (h1 = h2) then 0n else 1n) + hamming_distance_alt2 t1 t2
+End
+
+Theorem hamming_distance_cons[simp]:
+  ∀b bs c cs.
+    hamming_distance (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance bs cs
+Proof
+  rpt strip_tac
+  >> gvs[hamming_distance_def]
+QED
+
+Theorem hamming_distance_alt1_cons:
+  ∀b bs c cs.
+    hamming_distance_alt1 (b::bs) (c::cs) = (if b = c then 0 else 1) + hamming_distance_alt1 bs cs
+Proof
+  rpt strip_tac
+  >> gvs[hamming_distance_alt1_def]
+QED
+
+Theorem hamming_distance_alt1_alt2_equivalent:
+  ∀bs cs.
+    hamming_distance_alt1 bs cs = hamming_distance_alt2 bs cs
+Proof
+  Induct_on ‘bs’
+  >- simp[hamming_distance_alt1_def, ZIP_def]
+  >> rpt gen_tac
+  >> Cases_on ‘cs’
+  >- simp[hamming_distance_alt2_def, hamming_distance_alt1_def, ZIP_def]
+  >> simp[hamming_distance_alt1_cons]
+QED
+
+Theorem hamming_distance_alt2_equivalent:
+  ∀bs cs.
+    hamming_distance_alt2 bs cs = hamming_distance bs cs
+Proof
+  Induct_on ‘bs’
+  >- simp[hamming_distance_def]
+  >> Cases_on ‘cs’
+  >- simp[hamming_distance_def]
+  >> gen_tac
+  >> simp[]
+QED
+
+Theorem hamming_distance_alt1_equivalent:
+  ∀bs cs.
+    hamming_distance_alt1 bs cs = hamming_distance bs cs
+Proof
+  metis_tac[hamming_distance_alt1_alt2_equivalent, hamming_distance_alt2_equivalent]
+QED
 
 Theorem hamming_distance_empty_left[simp]:
   ∀cs. hamming_distance [] cs = 0
@@ -136,16 +202,6 @@ Proof
   >> gvs[LENGTH_TAKE_EQ]
 QED
 
-(*Theorem hamming_distance_triangle_inequality:
-  ∀bs cs ds.
-  LENGTH bs = LENGTH cs ∧
-  LENGTH cs = LENGTH ds ⇒
-  hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds
-Proof
-  rpt strip_tac
-QED*)
-
-
 Theorem hamming_distance_append_left:
   ∀bs cs ds.
     LENGTH bs + LENGTH cs = LENGTH ds ⇒
@@ -166,6 +222,84 @@ Theorem hamming_distance_append_right:
     hamming_distance bs (cs ⧺ ds) = hamming_distance (TAKE (LENGTH cs) bs) cs + hamming_distance (DROP (LENGTH cs) bs) ds
 Proof
   metis_tac[hamming_distance_append_left, hamming_distance_symmetric]
+QED
+
+Theorem hamming_distance_positivity:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    0 ≤ hamming_distance bs cs ∧
+    (hamming_distance bs cs = 0 ⇔ bs = cs)
+Proof
+  rpt strip_tac
+  >- gvs[hamming_distance_def]
+  >> ‘∀cs. LENGTH bs = LENGTH cs ⇒ (hamming_distance bs cs = 0 ⇔ bs = cs)’ suffices_by gvs[]
+  >> pop_assum kall_tac
+  >> Induct_on ‘bs’ >> rpt strip_tac >> Cases_on ‘cs’ >> gvs[]
+  >> EQ_TAC >> rpt strip_tac >> gvs[]
+  >> Cases_on ‘h = h'’ >> gvs[]
+QED
+
+Theorem hamming_distance_length:
+  ∀bs cs.
+    hamming_distance bs cs ≤ LENGTH bs
+Proof
+  strip_tac
+  >> gvs[hamming_distance_def]
+  >> Induct_on ‘bs’ >> gvs[ZIP_def]
+  >> strip_tac
+  >> Cases_on ‘cs’ >> gvs[ZIP_def]
+  >> pop_assum $ qspec_then ‘t’ assume_tac
+  >> Cases_on ‘h = h'’ >> gvs[]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Initially I thought that the hamming distance between two points precisely *)
+(* satisfied the triangle equality if and only if the middle point was one    *)
+(* of the endpoints, but this is not necessarily the case.                    *)
+(*                                                                            *)
+(* hamming (0, 1) (1, 0) = 2                                                  *)
+(* hamming (0, 1) (0, 0) + hamming (0, 0) (1, 0) = 1 + 1 = 2                  *)
+(* -------------------------------------------------------------------------- *)
+Theorem hamming_distance_triangle_inequality:
+  ∀bs cs ds.
+    (LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds) ⇒
+    hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds
+Proof
+  rpt strip_tac
+  >> ‘∀bs ds. LENGTH bs = LENGTH cs ∧ LENGTH cs = LENGTH ds ⇒ hamming_distance bs ds ≤ hamming_distance bs cs + hamming_distance cs ds’ suffices_by gvs[]
+  >> rpt $ pop_assum kall_tac
+  >> Induct_on ‘cs’ >> rpt strip_tac >> Cases_on ‘bs’ >> Cases_on ‘ds’ >> gvs[]
+  >> first_x_assum $ qspecl_then [‘t’, ‘t'’] assume_tac
+  >> Cases_on ‘h = h''’ >> Cases_on ‘h' = h’ >> Cases_on ‘h' = h''’ >> gvs[]
+QED
+
+Theorem hamming_distance_bnot[simp]:
+  ∀bs cs.
+    LENGTH bs = LENGTH cs ⇒
+    hamming_distance (bnot bs) (bnot cs) = hamming_distance bs cs
+Proof
+  Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+  >> rpt strip_tac
+  >> last_x_assum $ qspec_then ‘t’ assume_tac
+  >> pop_assum (drule_then assume_tac)
+  >> simp[bnot_cons, hamming_distance_cons]
+QED
+
+Theorem hamming_distance_bnot_1[simp]:
+  ∀bs.
+    hamming_distance (bnot bs) bs = LENGTH bs
+Proof
+  Induct_on ‘bs’
+  >- simp[]
+  >> gen_tac
+  >> simp[bnot_cons]
+QED
+
+Theorem hamming_distance_bnot_2[simp]:
+  ∀bs.
+    hamming_distance bs (bnot bs) = LENGTH bs
+Proof
+  metis_tac[hamming_distance_symmetric, hamming_distance_bnot_1]
 QED
 
 (* -------------------------------------------------------------------------- *)

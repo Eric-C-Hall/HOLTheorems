@@ -705,3 +705,20 @@ Proof
   >> qexists ‘1/2’
   >> simp[]
 QED
+
+Theorem bnot_cons:
+  ∀b bs.
+    bnot (b::bs) = (¬b)::(bnot bs)
+Proof
+  rpt gen_tac
+  >> simp[bnot_def]
+QED
+
+(* ¬b ⇔ b doesn't seem to automatically simplify for some reason, so I add this
+   to ensure that it does *)
+Theorem not_b_iff_b[simp]:
+  ∀b.
+    (¬b ⇔ b) ⇔ F
+Proof
+  Cases_on ‘b’ >> simp[]
+QED
