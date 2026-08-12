@@ -159,6 +159,7 @@ Definition code_to_subset_def:
   code_to_subset (b::bs) = if b then ((LENGTH bs) INSERT (code_to_subset bs)) else (code_to_subset bs)
 End
 
+
 (* -------------------------------------------------------------------------- *)
 (* (subset_to_code n s) is the inverse function of (code_to_subset bs) for    *)
 (* length n codes                                                             *)
@@ -2502,11 +2503,11 @@ Theorem n_repetition_code_hamming_distance[simp]:
     LENGTH bs = LENGTH cs ⇒
     hamming_distance (n_repetition_code n bs) (n_repetition_code n cs) = n * hamming_distance bs cs
 Proof
-  strip_tac
-  >> Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
-  >> rpt strip_tac
-  >> last_x_assum $ qspecl_then [‘t’, ‘n’] assume_tac
-  >> gvs[]
+  Induct_on ‘bs’ >> Cases_on ‘cs’ >> gvs[]
+  >> rpt gen_tac >> strip_tac
+  >> last_x_assum $ drule_then assume_tac
+  >> pop_assum $qspec_then ‘n’ assume_tac
+  >> simp[hamming_distance_append]
   >> Cases_on ‘h' = h’ >> gvs[]
 QED
 
@@ -2694,7 +2695,7 @@ Proof
       >> sg ‘p’ >> unabbrev_all_tac
       >- gvs[]
       >> gvs[]
-      >> gvs[hamming_distance_sym]
+      >> gvs[hamming_distance_symmetric]
       >> drule $ iffLR MODEQ_THM >> strip_tac >> gvs[]
       >> gvs[ODD_MOD2_LEM])
   >> qspecl_then [‘n_repetition_code n cs’, ‘n_repetition_code n ds’] assume_tac hamming_distance_length
