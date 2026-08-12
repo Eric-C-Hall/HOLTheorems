@@ -2,7 +2,7 @@
 
 Theory map_decoder
 
-Ancestors ecc_prob_space argmin_extreal arithmetic bitstring bxor_lemmas pair pred_set probability extreal real rich_list sigma_algebra lebesgue list martingale measure topology fundamental
+Ancestors argmin_extreal arithmetic bitstring bxor_lemmas ecc_prob_space extreal fundamental hamming_distance lebesgue list martingale measure pair pred_set probability real rich_list sigma_algebra topology
 
 Libs extreal_to_realLib donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
 
@@ -3205,7 +3205,7 @@ Proof
   >> qabbrev_tac ‘p = p'’ >> pop_assum kall_tac
   >> gvs[GSYM normal_1, extreal_sub_eq, extreal_pow_def, extreal_mul_def]
   (* Use pow_mul_sub_leq, which was written to solve the current proof state *)
-  >> simp[hamming_distance_sym]
+  >> simp[hamming_distance_symmetric]
   >> irule REAL_POW_MUL_SUB_LEQ_REVERSE
   (* Solve preconditions for pow_mul_sub_leq*)
   >> gvs[hamming_distance_length]
