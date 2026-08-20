@@ -556,6 +556,48 @@ Termination
 End
 
 (* -------------------------------------------------------------------------- *)
+(* Used                                                                       *)
+(*                                                                            *)
+(* TODO: Do we need this? Check to ensure this is actually being used in the  *)
+(*       paper                                                                *)
+(* TODO: formally verify that this is equivalent to the relevant part of      *)
+(*       sp_message                                                           *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_message_func_def:
+  sp_message_func fg src dst =
+  FUN_FMAP
+  (λdst_val_map.
+     ∑ (λval_map.
+          (get_function_map fg) ' src ' val_map *
+          ∏ (λprev.
+               sp_message fg prev src ' (DRESTRICT val_map {prev})
+            ) {prev | prev ∈ adjacent_nodes fg src ∧
+                      prev ≠ dst})
+       (val_map_assignments fg (adjacent_nodes fg src) dst_val_map)
+  ) (val_map_assignments fg {dst} FEMPTY)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Used                                                                       *)
+(*                                                                            *)
+(* TODO: Do we need this? Check to ensure this is actually being used in the  *)
+(*       paper                                                                *)
+(* TODO: formally verify that this is equivalent to the relevant part of      *)
+(*       sp_message                                                           *)
+(* -------------------------------------------------------------------------- *)
+Definition sp_message_var_def:
+  sp_message_var fg src dst =
+  FUN_FMAP
+  (λsrc_val_map.
+     ∏ (λprev.
+          sp_message fg prev src ' src_val_map
+       )
+       {prev | prev ∈ adjacent_nodes fg src ∧
+               prev ≠ dst})
+  (val_map_assignments fg {src} FEMPTY)
+End
+
+(* -------------------------------------------------------------------------- *)
 (* Tells us if a set of nodes contains all variable nodes associated with     *)
 (* function nodes in the set of nodes                                         *)
 (* -------------------------------------------------------------------------- *)
