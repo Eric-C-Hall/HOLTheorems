@@ -2,7 +2,7 @@
 
 Theory map_decoder
 
-Ancestors argmin_extreal arithmetic bitstring bxor_lemmas ecc_prob_space extreal fundamental hamming_distance lebesgue list martingale measure pair pred_set probability real rich_list sigma_algebra topology
+Ancestors argmin_extreal argmax_bool arithmetic bitstring bxor_lemmas ecc_prob_space extreal fundamental hamming_distance lebesgue list martingale measure pair pred_set probability real rich_list sigma_algebra topology
 
 Libs extreal_to_realLib donotexpandLib useful_tacticsLib realLib dep_rewrite ConseqConv;
 
@@ -167,17 +167,6 @@ Definition event_sent_bit_takes_value_def:
   {(bs : bool list, ns : bool list) | LENGTH bs = n ∧
                                       LENGTH ns = m ∧
                                       EL i (enc bs) = c}
-End
-
-(* -------------------------------------------------------------------------- *)
-(* Choose the value of a bit which maximizes the value of an extreal-valued   *)
-(* function.                                                                  *)
-(*                                                                            *)
-(* f: the function to maximize (bool -> extreal)                              *)
-(* Output: the choice of bit which maximize that function                     *)
-(* -------------------------------------------------------------------------- *)
-Definition argmax_bool_def:
-  argmax_bool f = (f F ≤ f T : extreal)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -365,27 +354,6 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* Similar to ldiv_le_imp                                                     *)
-(* -------------------------------------------------------------------------- *)
-Theorem ldiv_le_iff:
-  ∀x y z.
-    0 < z ∧ z ≠ +∞ ⇒
-    (x / z ≤ y / z : extreal ⇔ x ≤ y)
-Proof
-  rw[]
-  >> REVERSE EQ_TAC >- metis_tac[ldiv_le_imp]
-  >> Cases_on ‘x’ >> Cases_on ‘y’ >> Cases_on ‘z’
-  >> gvs[infty_div, le_infty, extreal_div_eq, REAL_POS_NZ]
-QED
-
-Theorem le_div_alt:
-  ∀y z : extreal.
-    0 ≤ y ∧ 0 < z ∧ z ≠ +∞ ⇒ 0 ≤ y / z
-Proof
-  Cases_on ‘z’ >> rw[le_div]
-QED
-
-(* -------------------------------------------------------------------------- *)
 (* A theorem for finding an explicit formula for the symmetric noise mass     *)
 (*  function applied to the bitwise difference of two bitstrings              *)
 (* -------------------------------------------------------------------------- *)
@@ -436,20 +404,6 @@ Proof
   >> PURE_ONCE_REWRITE_TAC[pow_add]
   >> gvs[]
   >> metis_tac[mul_rone, le_mul2, pow_pos_le, le_01, le_trans]
-QED
-
-(* -------------------------------------------------------------------------- *)
-(* A division by a constant within an argmax_bool can be cancelled out        *)
-(* -------------------------------------------------------------------------- *)
-Theorem argmax_bool_div:
-  ∀P c.
-    0 < c ∧
-    c ≠ +∞ ⇒
-    argmax_bool (λb. P b / c) = argmax_bool P
-Proof
-  rw[]
-  >> gvs[argmax_bool_def]
-  >> gvs[ldiv_le_iff]
 QED
 
 (* -------------------------------------------------------------------------- *)
@@ -1349,18 +1303,6 @@ Proof
   >> gvs[MEM_COUNT_LIST]
   (* This follows from a lemma *)
   >>  gvs[cond_prob_event_input_string_starts_with_sum]
-QED
-
-Theorem argmax_bool_mul_const:
-  ∀f g c.
-    0 < c ∧
-    c ≠ +∞ ∧
-    (g = λx. c * f x)
-    ⇒ (argmax_bool f ⇔ argmax_bool g)
-Proof
-  rw[]
-  >> gvs[argmax_bool_def]
-  >> gvs[le_lmul]
 QED
 
 (* -------------------------------------------------------------------------- *)

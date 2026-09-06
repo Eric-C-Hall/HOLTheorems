@@ -2,7 +2,7 @@
 
 Theory bcjr_factor_graph
 
-Ancestors binary_symmetric_channel combin donotexpand ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine tree useful_theorems wf_state_machine
+Ancestors argmax_bool binary_symmetric_channel combin donotexpand ecc_prob_space extreal factor_graph finite_map fsgraph fundamental genericGraph map_decoder_convolutional_code marker message_passing list range rich_list partite_ea pred_set prim_rec probability recursive_parity_equations state_machine tree useful_theorems wf_state_machine
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 

@@ -2,7 +2,7 @@
 
 Theory map_decoder_convolutional_code
 
-Ancestors ecc_prob_space argmin_extreal fundamental map_decoder parity_equations recursive_parity_equations useful_theorems arithmetic bitstring extreal list pred_set probability real rich_list sigma_algebra martingale marker measure topology
+Ancestors ecc_prob_space argmin_extreal argmax_bool fundamental map_decoder parity_equations recursive_parity_equations useful_theorems arithmetic bitstring extreal list pred_set probability real rich_list sigma_algebra martingale marker measure topology
 
 Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite ConseqConv;
 

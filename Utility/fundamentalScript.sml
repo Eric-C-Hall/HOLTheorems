@@ -722,3 +722,10 @@ Theorem not_b_iff_b[simp]:
 Proof
   Cases_on ‘b’ >> simp[]
 QED
+
+Theorem le_div_alt:
+  ∀y z : extreal.
+    0 ≤ y ∧ 0 < z ∧ z ≠ +∞ ⇒ 0 ≤ y / z
+Proof
+  Cases_on ‘z’ >> rw[le_div]
+QED
