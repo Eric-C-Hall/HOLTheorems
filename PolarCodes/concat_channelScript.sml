@@ -21,7 +21,7 @@ Definition concat_channel0_def:
   : (α -> bool) # (α -> γ m_space)
 End
 
-Theorem wf_memoryless_channel_concat_channel0:
+(*Theorem wf_memoryless_channel_concat_channel0:
   ∀W1 W2.
     wf_memoryless_channel W1 ∧
     wf_memoryless_channel W2 ⇒
@@ -49,6 +49,8 @@ val (concat_channel_def, concat_channel_relates) =
 liftdef concat_channel0_respects "concat_channel";
 
 Overload "o" = “concat_channel”;
+
+ *)
 
 (* mcrange might be helpful in checking that the output of the first channel is
    in the domain of the second channel *)
