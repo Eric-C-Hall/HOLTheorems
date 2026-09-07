@@ -33,6 +33,7 @@ Libs dep_rewrite ConseqConv useful_tacticsLib;
 (* the shorter parity equations with F's at the end.                          *)
 (* -------------------------------------------------------------------------- *)
 
+(* TODO: Perhaps rename this constraint_length? *)
 Overload window_length = “\m. MAX_LIST (MAP LENGTH m)”
 
 (* -------------------------------------------------------------------------- *)
