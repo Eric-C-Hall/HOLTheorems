@@ -306,7 +306,8 @@ Proof
       >- simp[output_length_nonzero]
       >> simp[MULT_DIV]
      )
+  >> PURE_ONCE_REWRITE_TAC[is_optimal_minimum_distance_decoding_def]
   >> gen_tac >> strip_tac
-  >> qspecl_then [‘machine’, ‘bs’, ‘ds’] mp_tac viterbi_correctness
+  >> qspecl_then [‘machine’, ‘bs2’, ‘ds’] mp_tac viterbi_correctness
   >> simp[]
 QED

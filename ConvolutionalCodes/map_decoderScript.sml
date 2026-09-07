@@ -268,7 +268,7 @@ End
 (* -------------------------------------------------------------------------- *)
 (* Returns true if the given output bitstring is an optimal blockwise MAP     *)
 (* decoding of the given input bitstring, with respect to the binary          *)
-(* binary symmetric channel of probability p.                                 *)
+(* symmetric channel of probability p.                                        *)
 (*                                                                            *)
 (* We do this instead of defining a function which returns the optimal        *)
 (* decoding because there may be multiple bitstrings which are all optimal.   *)
@@ -286,6 +286,25 @@ Definition is_optimal_blockwise_map_decoding_def:
      LENGTH bs2 = n ⇒
      prob_input_string_given_received_string enc n m p bs2 ds ≤
      prob_input_string_given_received_string enc n m p bs ds
+  )
+End
+
+(* -------------------------------------------------------------------------- *)
+(* Returns true if the given output bitstring is an optimal minimum distance  *)
+(* decoding of the given input bitstring, with respect to the binary          *)
+(* symmetric channel of probability p.                                        *)
+(*                                                                            *)
+(* enc: the encoder we are using                                              *)
+(* n: the input length                                                        *)
+(* bs: the decoded string (bs is unencoded, cs is encoded, ds has noise)      *)
+(* ds: the string to decode (encoded, and with noise added)                   *)
+(* -------------------------------------------------------------------------- *)
+Definition is_optimal_minimum_distance_decoding_def:
+  is_optimal_minimum_distance_decoding enc n bs ds =
+  (∀bs2.
+     LENGTH bs2 = n ⇒
+     hamming_distance ds (enc bs) ≤
+     hamming_distance ds (enc bs2)
   )
 End
 
@@ -3100,13 +3119,10 @@ Theorem blockwise_map_decoding_hamming:
     LENGTH ds = m ∧
     (∀bs. LENGTH bs = n ⇒ LENGTH (enc bs) = m) ⇒
     (is_optimal_blockwise_map_decoding enc n m p bs ds ⇔
-       (∀bs2.
-          LENGTH bs2 = n ⇒
-          hamming_distance ds (enc bs) ≤
-          hamming_distance ds (enc bs2)
-       ))
+       is_optimal_minimum_distance_decoding enc n bs ds)
 Proof
   rw[]
+  >> PURE_ONCE_REWRITE_TAC[is_optimal_minimum_distance_decoding_def]
   >> ‘p < 1’ by simp[less_half_less_one_extreal]
   (* More useful expression for probabilities *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
