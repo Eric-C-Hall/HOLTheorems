@@ -3094,7 +3094,7 @@ QED
 
 Theorem blockwise_map_decoding_hamming:
   ∀enc n m p bs ds.
-    0 < p ∧ p < 1 ∧
+    0 < p ∧
     p < 1 / 2 ∧
     LENGTH bs = n ∧
     LENGTH ds = m ∧
@@ -3107,6 +3107,7 @@ Theorem blockwise_map_decoding_hamming:
        ))
 Proof
   rw[]
+  >> ‘p < 1’ by simp[less_half_less_one_extreal]
   (* More useful expression for probabilities *)
   >> ‘0 ≤ p ∧ p ≤ 1’ by gvs[lt_le]
   (* *)
