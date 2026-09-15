@@ -1,6 +1,6 @@
 Theory split_channel
 
-Ancestors arithmetic bitstring bxor_lemmas combine_channel interleave measure memoryless_channel probability transfer
+Ancestors arithmetic bitstring bxor_lemmas combine_channel interleave measure memoryless_channel polar_encode probability transfer
 
 Libs dep_rewrite realLib;
 
@@ -122,7 +122,7 @@ QED
 (* channel in the sense that its outputs are probability spaces and its       *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Theorem wf_memoryless_channel_split_channel0:
+(*Theorem wf_memoryless_channel_split_channel0:
   ∀W n i.
     i < n ⇒
     wf_memoryless_channel (split_channel0 W n i)
@@ -135,13 +135,13 @@ Proof
       >> simp[mcchannel0_split_channel0]
       >> simp[prob_space_def]
       >> conj_tac
-      >- (cheat
+      >- (cheat (* PURE_ONCE_REWRITE_TAC[combine_channel_alt] *)
          )
       >> cheat
      )
   >> rpt gen_tac
   >> cheat
-QED
+QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* TODO: Lifting when we have requirements on n and i?                        *)
