@@ -238,6 +238,26 @@ QED
 
 val (mcchannel_def, mcchannel_relates) = liftdef mcchannel0_respects "mcchannel";
 
+Theorem mcsigma0_respects:
+  (memoryless_channelequiv ===> (=)) mcsigma0 mcsigma0
+Proof
+  simp[FUN_REL_def]
+  >> rpt gen_tac
+  >> simp[memoryless_channelequiv_def]
+QED
+
+val (mcsigma_def, mcsigma_relates) = liftdef mcsigma0_respects "mcsigma";
+
+Theorem mcevents0_respects:
+  (memoryless_channelequiv ===> (=)) mcevents0 mcevents0
+Proof
+  simp[FUN_REL_def]
+  >> rpt gen_tac
+  >> simp[memoryless_channelequiv_def]
+QED
+
+val (mcevents_def, mcevents_relates) = liftdef mcevents0_respects "mcevents";
+
 Theorem mcrange0_respects:
   (memoryless_channelequiv ===> (=)) mcrange0 mcrange0
 Proof
@@ -258,32 +278,31 @@ End
 
 Definition binary_erasure_channel0_def:
   binary_erasure_channel0 (p : extreal)
-  : ((bool -> bool) # (bool -> erasure_bit m_space)) =
+  : (bool -> bool) # (erasure_bit algebra) # (bool -> erasure_bit measure) =
   ({T; F},
+   (𝕌(:erasure_bit), POW (𝕌(:erasure_bit))),
    (λinput.
-      (𝕌(:erasure_bit),
-       POW (𝕌(:erasure_bit)),
-       EXTREAL_SUM_IMAGE (λoutput. if output = Erasure
-                                   then p
-                                   else
-                                     if output = bool_to_erasure_bit input
-                                     then 1 - p
-                                     else 0)))
+      ∑ (λoutput.
+           if output = Erasure
+           then p
+           else
+             if output = bool_to_erasure_bit input
+             then 1 - p
+             else 0)
+   )
   )
 End
 
 Definition binary_symmetric_channel0_def:
   binary_symmetric_channel0 (p : extreal)
-  : (bool -> bool) # (bool -> bool m_space) =
+  : (bool -> bool) # (bool algebra) # (bool -> bool measure) =
   ({T;F},
+   (𝕌(:bool), POW (𝕌(:bool))),
    (λinput.
-      (𝕌(:bool),
-       POW (𝕌(:bool)),
-       EXTREAL_SUM_IMAGE (λoutput. if output ≠ input
-                                   then p
-                                   else 1 - p
-                         )
-      )
+      ∑ (λoutput. if output ≠ input
+                  then p
+                  else 1 - p
+        )
    )
   )
 End
@@ -336,54 +355,50 @@ Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
   >> simp[wf_memoryless_channel_def, mcdomain0_def, mcchannel0_def]
-  >> conj_tac
+  >> gen_tac >> strip_tac
   (* Each output is a probability space *)
-  >- (gen_tac >> strip_tac >> simp[binary_erasure_channel0_def]
-      >> simp[prob_space_def]
-      >> REVERSE conj_tac             
-      >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
-          >> sg ‘(∀x. f x ≠ +∞)’
-          >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
-              >> irule (cj 2 sub_not_infty)
-              >> simp[])
-          >> simp[EXTREAL_SUM_IMAGE_INSERT, DELETE_NON_ELEMENT_RWT]
-          >> Q.UNABBREV_TAC ‘f’
-          >> simp[]
-          >> Cases_on ‘x’ >> simp[bool_to_erasure_bit_def]
-         )
-      >> irule finite_additivity_sufficient_for_finite_spaces2
-      >> simp[m_space_def]
-      >> rpt conj_tac
-      >- (simp[additive_def]
-          >> rpt gen_tac >> strip_tac
-          >> sg ‘FINITE s ∧ FINITE t’
-          >- (gvs[POW_DEF]
-              >> metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT])
-          >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
-          >> conj_tac
-          >- (simp[]
-              >> disj2_tac
-              >> gen_tac >> strip_tac
-              >> rw[]
-              >> irule (cj 2 sub_not_infty)
-              >> simp[])
-          >> rw[])     
-      >- (simp[positive_def]
-          >> gen_tac >> strip_tac
-          >> irule EXTREAL_SUM_IMAGE_POS
-          >> gvs[POW_DEF]
-          >> REVERSE conj_tac
-          >- metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT]
+  >> simp[binary_erasure_channel0_def, mcrange0_def, mcevents0_def, mcsigma0_def]
+  >> simp[prob_space_def]
+  >> REVERSE conj_tac             
+  >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
+      >> sg ‘(∀x. f x ≠ +∞)’
+      >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
+          >> irule (cj 2 sub_not_infty)
+          >> simp[])
+      >> simp[EXTREAL_SUM_IMAGE_INSERT, DELETE_NON_ELEMENT_RWT]
+      >> Q.UNABBREV_TAC ‘f’
+      >> simp[]
+      >> Cases_on ‘x’ >> simp[bool_to_erasure_bit_def]
+     )
+  >> irule finite_additivity_sufficient_for_finite_spaces2
+  >> simp[m_space_def]
+  >> rpt conj_tac
+  >- (simp[additive_def]
+      >> rpt gen_tac >> strip_tac
+      >> sg ‘FINITE s ∧ FINITE t’
+      >- (gvs[POW_DEF]
+          >> metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT])
+      >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
+      >> conj_tac
+      >- (simp[]
+          >> disj2_tac
           >> gen_tac >> strip_tac
           >> rw[]
-          >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
-          >> simp[REAL_SUB_LE]
-         )
-      >> irule POW_SIGMA_ALGEBRA
+          >> irule (cj 2 sub_not_infty)
+          >> simp[])
+      >> rw[])     
+  >- (simp[positive_def]
+      >> gen_tac >> strip_tac
+      >> irule EXTREAL_SUM_IMAGE_POS
+      >> gvs[POW_DEF]
+      >> REVERSE conj_tac
+      >- metis_tac[SUBSET_FINITE, FINITE_UNIV_ERASURE_BIT_ALT]
+      >> gen_tac >> strip_tac
+      >> rw[]
+      >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
+      >> simp[REAL_SUB_LE]
      )
-  (* Each probability space has the same sample set and sigma algebra *)
-  >> rpt gen_tac >> strip_tac
-  >> gvs[binary_erasure_channel0_def]
+  >> irule POW_SIGMA_ALGEBRA
 QED
 
 Theorem wf_binary_symmetric_channel0:
@@ -394,59 +409,55 @@ Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
   >> simp[wf_memoryless_channel_def, mcchannel0_def, mcdomain0_def]
-  >> conj_tac
+  >> gen_tac >> strip_tac
   (* Each output is a probability space *)
-  >- (gen_tac >> strip_tac >> simp[binary_symmetric_channel0_def]
-      >> simp[prob_space_def]
-      >> REVERSE conj_tac
-      >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
-          >> sg ‘(∀x. f x ≠ +∞)’
-          >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
-              >> irule (cj 2 sub_not_infty)
-              >> simp[])
-          >> simp[EXTREAL_SUM_IMAGE_INSERT]
-          >> simp[DELETE_NON_ELEMENT_RWT]
-          >> Q.UNABBREV_TAC ‘f’
-          >> simp[]
-          >> rw[]
-          >> simp[sub_add2]
-         )
-      >> irule finite_additivity_sufficient_for_finite_spaces2
-      >> simp[m_space_def]
-      >> rpt conj_tac         
-      >- (simp[additive_def]
-          >> rpt gen_tac >> strip_tac
-          >> sg ‘FINITE s ∧ FINITE t’
-          >- (gvs[POW_DEF]
-              >> metis_tac[SUBSET_FINITE, finite_mathcal_2])
-          >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
-          >> conj_tac
-          >- (simp[]
-              >> disj2_tac
-              >> gen_tac >> strip_tac
-              >> rw[]
-              >> irule (cj 2 sub_not_infty)
-              >> simp[])
+  >> simp[binary_symmetric_channel0_def, mcrange0_def, mcevents0_def, mcsigma0_def]
+  >> simp[prob_space_def]
+  >> REVERSE conj_tac
+  >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
+      >> sg ‘(∀x. f x ≠ +∞)’
+      >- (gen_tac >> simp[Abbr ‘f’] >> rw[]
+          >> irule (cj 2 sub_not_infty)
+          >> simp[])
+      >> simp[EXTREAL_SUM_IMAGE_INSERT]
+      >> simp[DELETE_NON_ELEMENT_RWT]
+      >> Q.UNABBREV_TAC ‘f’
+      >> simp[]
+      >> rw[]
+      >> simp[sub_add2]
+     )
+  >> irule finite_additivity_sufficient_for_finite_spaces2
+  >> simp[m_space_def]
+  >> rpt conj_tac         
+  >- (simp[additive_def]
+      >> rpt gen_tac >> strip_tac
+      >> sg ‘FINITE s ∧ FINITE t’
+      >- (gvs[POW_DEF]
+          >> metis_tac[SUBSET_FINITE, finite_mathcal_2])
+      >> DEP_PURE_ONCE_REWRITE_TAC[EXTREAL_SUM_IMAGE_DISJOINT_UNION]
+      >> conj_tac
+      >- (simp[]
+          >> disj2_tac
+          >> gen_tac >> strip_tac
           >> rw[]
           >> irule (cj 2 sub_not_infty)
-          >> simp[]
-         )
-      >- (simp[positive_def]
-          >> gen_tac >> strip_tac
-          >> irule EXTREAL_SUM_IMAGE_POS
-          >> gvs[POW_DEF]
-          >> REVERSE conj_tac
-          >- metis_tac[SUBSET_FINITE, finite_mathcal_2]
-          >> gen_tac >> strip_tac
-          >> rw[]
-          >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
-          >> simp[REAL_SUB_LE]
-         )
-      >> irule POW_SIGMA_ALGEBRA
+          >> simp[])
+      >> rw[]
+      >> irule (cj 2 sub_not_infty)
+      >> simp[]
      )
-  (* Each probability space has the same sample set and sigma algebra *)
-  >> rpt gen_tac >> strip_tac
-  >> gvs[binary_symmetric_channel0_def]
+  >- (simp[positive_def]
+      >> gen_tac >> strip_tac
+      >> irule EXTREAL_SUM_IMAGE_POS
+      >> gvs[POW_DEF]
+      >> REVERSE conj_tac
+      >- metis_tac[SUBSET_FINITE, finite_mathcal_2]
+      >> gen_tac >> strip_tac
+      >> rw[]
+      >> simp[GSYM normal_1, GSYM normal_0, extreal_sub_def]
+      >> simp[REAL_SUB_LE]
+     )
+  >> irule POW_SIGMA_ALGEBRA
 QED
 
 (* I attempted to lift binary_erasure_channel0 and binary_symmetric_channel0,
