@@ -31,27 +31,12 @@ End*)
 Definition symmetric_capacity0_def:
   symmetric_capacity0 (W : (α -> bool) # (α -> β m_space)) =
   let
-    p =
+    p = (uniform_distribution (mcdomain0 W, POW (mcdomain0 W)))
+        × (mcrange0 W ) (* the range shouldn't vary with input, redefine memoryless channel to not produce a distinct sigma algebra per input *)
   in
-    mutual_information 2 (uniform_distribution (mcdomain0 W, POW (mcdomain0 W)))
-                     (POW (mcdomain0 W)) () I (λx. mcchannel0 W x)
+    mutual_information 2 
+                       (POW (mcdomain0 W)) () I (λx. mcchannel0 W x)
 End
-
-(* This definition was co-written with help from Gemini 3.8 Flash *)
-Definition symmetric_capacity0_def:
-  symmetric_capacity0 (W : ('a -> bool) # ('a -> 'b m_space)) =
-  let
-    p_X = uniform_distribution (mcdomain0 W, POW (mcdomain0 W));
-    S = mcdomain0 W × mcrange0 W;
-    p_joint = (S, POW S, (\A. SIGMA (\(x, y). p_X {x} * prob (mcchannel0 W x) {y}) A))
-  in
-    mutual_information 2 p_joint
-                           (mcdomain0 W, POW (mcdomain0 W))
-                           (mcrange0 W, POW (mcrange0 W))
-                           FST
-                           SND
-End
-
 
 (* -------------------------------------------------------------------------- *)
 (* The symmetric capacity is the mutual information between the input and     *)
@@ -73,5 +58,4 @@ Theorem symmetric_capacity0_alt:
      ) {T; F}
   ) (mcrange0 W)
 QED
-
 

@@ -38,4 +38,3 @@ QED
 
 val (deterministic_channel_def, deterministic_channel_relates) =
 liftdef deterministic_channel0_respects "deterministic_channel";
-

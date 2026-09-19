@@ -13,50 +13,52 @@ Libs dep_rewrite liftLib transferLib realLib;
 (* wf_memoryless_channel: is memoryless channel well-formed                   *)
 (* mcdomain: get domain of memoryless channel                                 *)
 (* mcchannel: get channel of memoryless channel                               *)
+(* mcsigma: get output sigma algebra                                          *)
+(* mcrange:                                                                   *)
 (* -------------------------------------------------------------------------- *)
 
 Definition mcdomain0_def:
-  mcdomain0 (W : (α -> bool) # (α -> β m_space)) = FST W
+  mcdomain0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = FST W
 End
 
 Definition mcchannel0_def:
-  mcchannel0 (W : (α -> bool) # (α -> β m_space)) = SND W
+  mcchannel0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = (SND (SND W))
 End
 
-(* Help from ChatGPT used for this definition (mcrange0) *)
+Definition mcsigma0_def:
+  mcsigma0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = FST (SND W)
+End
+
+Definition mcevents0_def:
+  mcevents0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = SND (mcsigma0 W)
+End
+
 Definition mcrange0_def:
-  mcrange0 (W : (α -> bool) # (α -> β m_space)) =
-  {y | ∃x. prob (mcchannel0 W x) {y} ≠ 0}
+  mcrange0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = FST (mcsigma0 W)
 End
-
-(* See also mcoutput_space_def and mcoutput_sigma_algebra0_def below *)
 
 (* -------------------------------------------------------------------------- *)
 (* A memoryless channel                                                       *)
 (* - Has a set representing the domain, of type α -> bool.                    *)
-(* - Maps each input in that domain to a probability distribution over        *)
-(*   outputs, of type α -> β m_space                                          *)
+(* - Has a sigma algebra repesenting the codomain and possible events on the  *)
+(*   codomain, of type β algebra                                              *)
+(* - Maps each input in the domain to a probability distribution over         *)
+(*   outputs, of type α -> β m_measure                                        *)
 (*                                                                            *)
 (* We require:                                                                *)
 (* - The output distribution associated with every input in the domain is a   *)
-(*   probability distribution.                                                *)
-(* - All output distributions have the same sample space and sigma algebra,   *)
-(*   i.e. the set of possible outputs is the same regardless of input         *)
-(*   (although some may have probability zero for some inputs)                *)
-(*   (I believe this helps somehow to define the split channel for polar      *)
-(*    codes, and it's natural that the set of possible outputs doesn't        *)
-(*    change)                                                                 *)
+(*   probability distribution, with respect to the codomain sigma-algebra     *)
+(*                                                                            *)
+(* Perhaps we should also require that the sigma algebra is a sigma algebra?  *)
+(* If the domain is nonempty, this is implied by the fact that the output is  *)
+(* a probability space, but if the domain is empty, this does not work.       *)
 (* -------------------------------------------------------------------------- *)
 (* Old: (FINITE (m_space (W x)) ⇒ measurable_sets (W x) =                     *)
 (* POW (m_space (W x))) ∧                                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition wf_memoryless_channel_def:
-  wf_memoryless_channel (W : (α -> bool) # (α -> β m_space)) ⇔
-    (∀x. (x ∈ mcdomain0 W) ⇒ prob_space ((mcchannel0 W) x)) ∧
-    (∀x y. (x ∈ mcdomain0 W) ∧ (y ∈ mcdomain0 W) ⇒
-           m_space ((mcchannel0 W) x) = m_space ((mcchannel0 W) y) ∧
-           measurable_sets ((mcchannel0 W) x) = measurable_sets ((mcchannel0 W) y)
-    )
+  wf_memoryless_channel (W : (α -> bool) # (β algebra) # (α -> β measure)) ⇔
+    (∀x. (x ∈ mcdomain0 W) ⇒ prob_space (mcrange0 W, mcevents0 W, (mcchannel0 W) x))
 End
 
 Theorem wf_memoryless_channels_exist[local]:
@@ -263,18 +265,6 @@ Proof
 QED
 
 val (mcrange_def, mcrange_relates) = liftdef mcrange0_respects "mcrange";
-
-(* The sample space of the output of the memoryless channel *)
-Definition mcoutput_space_def:
-  mcoutput_space (W : (α,β) memoryless_channel) =
-  m_space (mcchannel W (CHOICE (mcdomain W)))
-End
-
-(* The sigma algebra of the output of the memoryless channel *)
-Definition mcoutput_sigma_algebra_def:
-  mcoutput_sigma_algebra (W : (α,β) memoryless_channel) =
-  measurable_sets (mcchannel W (CHOICE (mcdomain W)))
-End
 
 Datatype:
   erasure_bit = E_T | E_F | Erasure
