@@ -2,7 +2,7 @@
 
 Theory memoryless_channel
 
-Ancestors arithmetic extreal lifting pair pred_set real measure sigma_algebra transfer probability
+Ancestors arithmetic extreal fundamental lifting pair pred_set real measure sigma_algebra transfer probability
 
 Libs dep_rewrite liftLib transferLib realLib;
 
@@ -65,54 +65,41 @@ Theorem wf_memoryless_channels_exist[local]:
   ∃x. wf_memoryless_channel x
 Proof
   qexists ‘({ARB},
-            λx. ({ARB}, {{};{ARB}}, λs. if s = {ARB} then 1 else 0))’
+            ({ARB}, {{};{ARB}}) ,
+            λx s. if s = {ARB} then 1 else 0)’
   >> simp[wf_memoryless_channel_def]
-  (* This was useful with old definition of a well-formed memoryless channel,
-     but it less useful now. However, it doesn't hurt, and it is a potentially
-     useful assumption (not sure if it is being used) *)
-  >> sg ‘POW {ARB : β} = {∅; {ARB}}’
-  >- (irule EQ_SYM
-      >> simp[POW_DEF, EXTENSION]
-      >> gen_tac >> EQ_TAC >> strip_tac
-      >- (Cases_on ‘x’ >> gvs[] >> metis_tac[])
-      >- (Cases_on ‘x’ >> gvs[]
-          >> Cases_on ‘t’ >> gvs[]
-          >> Cases_on ‘t'’ >> gvs[]
-          >> metis_tac[])
-      >> Cases_on ‘x’ >> gvs[])
-  >> conj_tac
-  (* First conjunct of wf_memoryless_channel: each output distribution is a
-     probabilitiy distribution *)
-  >- (simp[]
-      >> gen_tac >> strip_tac
-      >> DEP_PURE_ONCE_REWRITE_TAC[prob_on_finite_set]
-      >> simp[mcchannel0_def]
-      >> rpt conj_tac
-      >- (simp[positive_def]
-          >> gen_tac
-          >> Cases_on ‘s’ >> gvs[])
-      >- rw[prob_def, p_space_def]
-      >> simp[additive_def]
-      >> rpt gen_tac
-      >> Cases_on ‘s’ >> simp[]
-      >> REVERSE $ Cases_on ‘x' = ARB’
-      >- (sg ‘x' INSERT t' ≠ {ARB}’
-          >- (CCONTR_TAC >> gvs[]
-              >> sg ‘x' ∈ {ARB}’
-              >- ASM_SET_TAC[]
-              >> gvs[])
-          >> simp[]
-         )     
+  (* Each output distribution is a probabilitiy distribution *)
+  >> simp[]
+  >> gen_tac >> strip_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[prob_on_finite_set]
+  >> simp[mcchannel0_def, mcrange0_def, mcsigma0_def, mcevents0_def]
+  >> rpt conj_tac
+  >- simp[POW_SING]
+  >- (simp[positive_def]
+      >> gen_tac
+      >> Cases_on ‘s’ >> gvs[])
+  >- rw[prob_def, p_space_def]
+  >> simp[additive_def]
+  >> rpt gen_tac
+  >> Cases_on ‘s’ >> simp[]
+  >> REVERSE $ Cases_on ‘x' = ARB’
+  >- (sg ‘x' INSERT t' ≠ {ARB}’
+      >- (CCONTR_TAC >> gvs[]
+          >> sg ‘x' ∈ {ARB}’
+          >- ASM_SET_TAC[]
+          >> gvs[])
       >> simp[]
-      >> REVERSE $ Cases_on ‘t'’
-      >- (Cases_on ‘x'' = ARB’
-          >- (‘F’ suffices_by strip_tac >> gvs[])
-          >> sg ‘ARB INSERT x'' INSERT t'' ≠ {ARB}’
-          >- (simp[EXTENSION]
-              >> qexists ‘x''’
-              >> simp[])
-          >> simp[]
-         )
+     )     
+  >> simp[]
+  >> REVERSE $ Cases_on ‘t'’
+  >- (Cases_on ‘x'' = ARB’
+      >- (‘F’ suffices_by strip_tac >> gvs[])
+      >> sg ‘ARB INSERT x'' INSERT t'' ≠ {ARB}’
+      >- (simp[EXTENSION]
+          >> qexists ‘x''’
+          >> simp[])
+      >> simp[]
+     )
       >> simp[]
       >> Cases_on ‘t’ >> simp[]
       >> strip_tac
@@ -123,11 +110,6 @@ Proof
           >> simp[EXTENSION]
           >> disch_then $ qspec_then ‘x''’ assume_tac
           >> gvs[])
-     )
-  (* Conjunct 2 of wf_memoryless_channel: all output distributions have the
-     same sample space and sigma algebra *)
-  >> rpt gen_tac >> strip_tac
-  >> simp[mcchannel0_def]
 QED
 
 (* -------------------------------------------------------------------------- *)

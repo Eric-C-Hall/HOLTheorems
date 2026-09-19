@@ -729,3 +729,18 @@ Theorem le_div_alt:
 Proof
   Cases_on ‘z’ >> rw[le_div]
 QED
+
+Theorem POW_SING:
+  ∀x.
+    POW {x} = {∅; {x}}
+Proof
+  simp[POW_DEF, EXTENSION]
+  >> gen_tac >> gen_tac
+  >> EQ_TAC >> strip_tac
+  >- (Cases_on ‘x'’ >> gvs[])
+  >- (Cases_on ‘x'’ >> gvs[]
+      >> Cases_on ‘t’ >> gvs[]
+      >> Cases_on ‘t'’ >> gvs[]
+      >> metis_tac[])
+  >> simp[SUBSET_DEF]
+QED
