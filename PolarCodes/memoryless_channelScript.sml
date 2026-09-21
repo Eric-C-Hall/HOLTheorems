@@ -14,7 +14,9 @@ Libs dep_rewrite liftLib transferLib realLib;
 (* mcdomain: get domain of memoryless channel                                 *)
 (* mcchannel: get channel of memoryless channel                               *)
 (* mcsigma: get output sigma algebra                                          *)
-(* mcrange:                                                                   *)
+(* mcevents: get set of all events in output sigma algebra                    *)
+(* mccodomain: get codomain of memoryless channel (sample space of output     *)
+(*             sigma algebra)                                                 *)
 (* -------------------------------------------------------------------------- *)
 
 Definition mcdomain0_def:
@@ -33,8 +35,8 @@ Definition mcevents0_def:
   mcevents0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = SND (mcsigma0 W)
 End
 
-Definition mcrange0_def:
-  mcrange0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = FST (mcsigma0 W)
+Definition mccodomain0_def:
+  mccodomain0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = FST (mcsigma0 W)
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -58,7 +60,7 @@ End
 (* -------------------------------------------------------------------------- *)
 Definition wf_memoryless_channel_def:
   wf_memoryless_channel (W : (α -> bool) # (β algebra) # (α -> β measure)) ⇔
-    (∀x. (x ∈ mcdomain0 W) ⇒ prob_space (mcrange0 W, mcevents0 W, (mcchannel0 W) x))
+    (∀x. (x ∈ mcdomain0 W) ⇒ prob_space (mccodomain0 W, mcevents0 W, (mcchannel0 W) x))
 End
 
 Theorem wf_memoryless_channels_exist[local]:
@@ -72,7 +74,7 @@ Proof
   >> simp[]
   >> gen_tac >> strip_tac
   >> DEP_PURE_ONCE_REWRITE_TAC[prob_on_finite_set]
-  >> simp[mcchannel0_def, mcrange0_def, mcsigma0_def, mcevents0_def]
+  >> simp[mcchannel0_def, mccodomain0_def, mcsigma0_def, mcevents0_def]
   >> rpt conj_tac
   >- simp[POW_SING]
   >- (simp[positive_def]
@@ -258,15 +260,15 @@ QED
 
 val (mcevents_def, mcevents_relates) = liftdef mcevents0_respects "mcevents";
 
-Theorem mcrange0_respects:
-  (memoryless_channelequiv ===> (=)) mcrange0 mcrange0
+Theorem mccodomain0_respects:
+  (memoryless_channelequiv ===> (=)) mccodomain0 mccodomain0
 Proof
   simp[FUN_REL_def]
   >> rpt gen_tac
   >> simp[memoryless_channelequiv_def]
 QED
 
-val (mcrange_def, mcrange_relates) = liftdef mcrange0_respects "mcrange";
+val (mccodomain_def, mccodomain_relates) = liftdef mccodomain0_respects "mccodomain";
 
 Datatype:
   erasure_bit = E_T | E_F | Erasure
@@ -357,7 +359,7 @@ Proof
   >> simp[wf_memoryless_channel_def, mcdomain0_def, mcchannel0_def]
   >> gen_tac >> strip_tac
   (* Each output is a probability space *)
-  >> simp[binary_erasure_channel0_def, mcrange0_def, mcevents0_def, mcsigma0_def]
+  >> simp[binary_erasure_channel0_def, mccodomain0_def, mcevents0_def, mcsigma0_def]
   >> simp[prob_space_def]
   >> REVERSE conj_tac             
   >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
@@ -411,7 +413,7 @@ Proof
   >> simp[wf_memoryless_channel_def, mcchannel0_def, mcdomain0_def]
   >> gen_tac >> strip_tac
   (* Each output is a probability space *)
-  >> simp[binary_symmetric_channel0_def, mcrange0_def, mcevents0_def, mcsigma0_def]
+  >> simp[binary_symmetric_channel0_def, mccodomain0_def, mcevents0_def, mcsigma0_def]
   >> simp[prob_space_def]
   >> REVERSE conj_tac
   >- (qmatch_abbrev_tac ‘EXTREAL_SUM_IMAGE f _ = _’
