@@ -5,14 +5,22 @@ Ancestors arithmetic lifting list memoryless_channel probability rich_list trans
 Libs dep_rewrite liftLib realLib transferLib;
 
 (* -------------------------------------------------------------------------- *)
+(* Applies a deterministic function f to the input before feeding it into the *)
+(* channel W, producing a new channel.                                        *)
+(*                                                                            *)
 (* Concat channel is more general, but that also makes it more complicated,   *)
 (* harder to define and probably harder to write theorems about.              *)
+(*                                                                            *)
+(* f: the function to be applied prior to feeding the data through W          *)
+(* S: the domain to restrict the input to                                     *)
+(* W: the original channel                                                    *)
 (* -------------------------------------------------------------------------- *)
 Definition transform_input_channel0_def:
-  transform_input_channel0 (f : α -> β) (S : α -> bool) (W : (β -> bool) # (β -> γ m_space)) =
+  transform_input_channel0 (f : α -> β) (S : α -> bool) (W : (β -> bool) # (γ algebra) # (β -> γ measure)) =
   (S ∩ PREIMAGE f (mcdomain0 W),
+   mcsigma0 W,
    (mcchannel0 W) ∘ f
-  ) : (α -> bool) # (α -> γ m_space)
+  ) : (α -> bool) # γ algebra # (α -> γ measure)
 End
 
 Theorem wf_memoryless_channel_transform_input_channel0:
@@ -22,7 +30,7 @@ Theorem wf_memoryless_channel_transform_input_channel0:
 Proof
   rpt gen_tac >> strip_tac
   >> gvs[wf_memoryless_channel_def, transform_input_channel0_def,
-         mcdomain0_def, mcchannel0_def]
+         mcdomain0_def, mcchannel0_def, mccodomain0_def, mcevents0_def, mcsigma0_def]
 QED
 
 Theorem transform_input_channel0_respects:
