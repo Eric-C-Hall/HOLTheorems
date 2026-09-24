@@ -13,14 +13,12 @@ Ancestors arithmetic extreal lifting pair pred_set real measure sigma_algebra tr
 
 Libs dep_rewrite liftLib transferLib realLib;
 
-Definition bhattacharyya0_def:
-  bhattacharyya0 (W : (bool -> bool) # (β algebra) # (bool -> β measure))
+Definition bhattacharyya_def:
+  bhattacharyya (W : (bool, β) memoryless_channel)
   = EXTREAL_SUM_IMAGE
-    (λx. sqrt ((mcchannel0 W F) {x} * (mcchannel0 W T) {x}))
-    (mccodomain0 W)
+    (λx. sqrt ((mcchannel W F) {x} * (mcchannel W T) {x}))
+    (mccodomain W)
 End
-
-
 
 
 
