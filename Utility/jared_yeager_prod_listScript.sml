@@ -202,6 +202,11 @@ Definition prod_list_def:
   prod_list (mh::mt) = general_prod_measure_space CONS mh (prod_list mt)
 End
 
+(*Definition measure_list_def:
+  measure_list [] = ∧
+  measure_list (h::t) = general_prod_measure CONS h (measure_list t)
+End*)
+
 (* -------------------------------------------------------------------------- *)
 (* Input: list of sets                                                        *)
 (* Output: cross product of each set, represented as a list where the ith     *)
@@ -617,5 +622,25 @@ QED
     measurable_sets (sigma_list (MAP (λl. (m_space l, measurable_sets l)) ls))
 Proof
 QED*)
+
+Theorem fst_general_sigma:
+  ∀a b.
+    FST (general_sigma CONS a b) = general_cross CONS (FST a) (FST b)
+Proof
+  rpt gen_tac
+  >> simp[general_sigma_def, sigma_def]
+  >> Cases_on ‘a’ >> Cases_on ‘b’ >> simp[]
+QED
+
+Theorem fst_sigma_list:
+  ∀ls.
+    FST (sigma_list ls) = cross_list (MAP FST ls)
+Proof
+  Induct_on ‘ls’
+  >- simp[sigma_list_def]
+  >> gen_tac
+  >> simp[sigma_list_def, cross_list_def]
+  >> simp[fst_general_sigma]
+QED
 
 val _ = export_theory();

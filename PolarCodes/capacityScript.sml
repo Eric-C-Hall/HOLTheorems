@@ -29,7 +29,7 @@ End*)
 (* output of the channel when the input is given by the uniform distribution. *)
 (* -------------------------------------------------------------------------- *)
 Definition symmetric_capacity0_def:
-  symmetric_capacity0 (W : (α -> bool) # (α -> β m_space)) =
+  symmetric_capacity0 (W : (α -> bool) # (β algebra) # (α -> β measure)) =
   let
     p = (uniform_distribution (mcdomain0 W, POW (mcdomain0 W)))
         × (mcrange0 W ) (* the range shouldn't vary with input, redefine memoryless channel to not produce a distinct sigma algebra per input *)

@@ -39,6 +39,11 @@ Definition mccodomain0_def:
   mccodomain0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = FST (mcsigma0 W)
 End
 
+Definition mcprob_space0_def:
+  mcprob_space0 (W : (α -> bool) # (β algebra) # (α -> β measure)) (x : α)
+  = (mccodomain0 W, mcevents0 W, mcchannel0 W x)
+End
+
 (* -------------------------------------------------------------------------- *)
 (* A memoryless channel                                                       *)
 (* - Has a set representing the domain, of type α -> bool.                    *)
