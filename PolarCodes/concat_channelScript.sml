@@ -14,11 +14,11 @@ Libs dep_rewrite realLib liftLib transferLib;
 
 Definition concat_channel0_def:
   concat_channel0
-  (W1 : (α -> bool) # (α -> β m_space))
-  (W2 : (β -> bool) # (β -> γ m_space)) =
-  (mcdomain0 W1, ARB (*mcchannel0 W1
-                            mcchannel0 W2*))
-  : (α -> bool) # (α -> γ m_space)
+  (W1 : (α -> bool) # (β algebra) # (α -> β measure))
+  (W2 : (β -> bool) # (γ algebra) # (β -> γ measure)) =
+  (mcdomain0 W1, mcsigma0 W2,
+   ARB (*mcchannel0 W1 mcchannel0 W2*))
+  : (α -> bool) # (γ algebra) # (α -> γ measure)
 End
 
 (*Theorem wf_memoryless_channel_concat_channel0:
