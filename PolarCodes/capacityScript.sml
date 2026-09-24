@@ -28,6 +28,7 @@ End*)
 (* The symmetric capacity is the mutual information between the input and     *)
 (* output of the channel when the input is given by the uniform distribution. *)
 (* -------------------------------------------------------------------------- *)
+(*
 Definition symmetric_capacity0_def:
   symmetric_capacity0 (W : (α -> bool) # (β algebra) # (α -> β measure)) =
   let
@@ -37,11 +38,15 @@ Definition symmetric_capacity0_def:
     mutual_information 2 
                        (POW (mcdomain0 W)) () I (λx. mcchannel0 W x)
 End
+*)
 
 (* -------------------------------------------------------------------------- *)
 (* The symmetric capacity is the mutual information between the input and     *)
 (* output of the channel when the input is given by the uniform distribution. *)
+(*                                                                            *)
+(* Definition based on Arıkan's original polar codes paper                    *)
 (* -------------------------------------------------------------------------- *)
+(*
 Theorem symmetric_capacity0_alt:
   symmetric_capacity0 (W : (bool -> bool) # (bool -> β m_space)) =
   EXTREAL_SUM_IMAGE
@@ -58,4 +63,4 @@ Theorem symmetric_capacity0_alt:
      ) {T; F}
   ) (mcrange0 W)
 QED
-
+*)
