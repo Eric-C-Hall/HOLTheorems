@@ -413,6 +413,13 @@ Proof
   >> gvs[prod_list_def, cross_list_def, general_cross_def, general_prod_measure_space_def]
 QED
 
+Theorem p_space_prod_list:
+  ∀ls.
+    p_space (prod_list ls) = cross_list (MAP p_space ls)
+Proof
+  metis_tac[m_space_prod_list, p_space_def]
+QED
+
 Theorem cross_list_empty[simp]:
   cross_list [] = {[]}
 Proof

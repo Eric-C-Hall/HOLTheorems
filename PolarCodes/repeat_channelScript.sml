@@ -10,6 +10,12 @@ val _ = hide "W";
    pi_measure_space into their own file, perhaps *)
 
 (* -------------------------------------------------------------------------- *)
+(* Important theorems:                                                        *)
+(* - Definition of repeat channel (repeat_channel0_def)                       *)
+(* -                                                                          *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
 (* Given a memoryless channel, transform it into n parallel instances of that *)
 (* channel.                                                                   *)
 (* -------------------------------------------------------------------------- *)
@@ -30,7 +36,12 @@ Proof
   simp[mcdomain0_def, repeat_channel0_def]
 QED
 
-(* TODO: fix this
+Theorem event_space_prod_list:
+  ∀ls.
+    event_space (prod_list ls)
+Proof
+QED
+        
 Theorem wf_memoryless_channel_repeat_channel0:
   ∀W n.
     wf_memoryless_channel W ⇒
@@ -47,27 +58,60 @@ Proof
   >> gvs[repeat_channel0_def, mcchannel0_def, mcdomain0_def,
          mccodomain0_def, mcsigma0_def, mcprob_space0_def, mcevents0_def]
   >> strip_tac
-  >> simp[fst_sigma_list]
-(* OUTDATED
+  (* The inner bit here is just the product probability space *)
+  >> qmatch_goalsub_abbrev_tac ‘prob_space (_,_,prob measure_prob_space)’
+  >> qmatch_goalsub_abbrev_tac ‘prob_space prod_prob_space’
+  >> sg ‘prod_prob_space = measure_prob_space’
+  >- (simp[Abbr ‘prod_prob_space’]
+      >> qmatch_goalsub_abbrev_tac ‘FST (measure_prob_space_sigma)’
+      >> qsuff_tac ‘measure_prob_space_sigma = event_space measure_prob_space’
+      >- simp[PROB_SPACE_REDUCE]
+      >> simp[Abbr ‘measure_prob_space_sigma’, Abbr ‘measure_prob_space’]
+      >> simp[p_space_prod_list]
+      >> simp[MAP_MAP_o, mcprob_space0_def, o_DEF, mccodomain0_def,
+              mcevents0_def, mcsigma0_def, mcchannel0_def]
+      >> qmatch_goalsub_abbrev_tac ‘cross_list (MAP f _)’
+      >> sg ‘f = λx. channel_func x’
+      >- simp[Abbr ‘f’]
+            
+
+      >> PURE_ONCE_REWRITE_TAC[mcprob_space0_def]
+                              
+     )
+  >> simp[Abbr ‘prod_prob_space’, Abbr ‘measure_prob_space’]
+  >> pop_assum kall_tac
+  (* *)
   >> irule prob_space_prod_list
   >> simp[ALL_EL_MAP]
   >> simp[EVERY_MEM]
   >> gen_tac >> strip_tac
+  >> simp[mcprob_space0_def, mccodomain0_def, mcevents0_def, mcchannel0_def,
+          mcsigma0_def]
+  >> last_x_assum irule
+  >> drule_all in_cross_list_mem >> strip_tac
+  >> gvs[]
+  >> pop_assum mp_tac
+  >> DEP_PURE_ONCE_REWRITE_TAC[EL_REPLICATE]
+  >> conj_tac
+  >- (drule length_in_cross_list
+      >> simp[])
+  >> simp[]
+(* OUTDATED
   >> last_x_assum (fn th => irule (cj 1 th))
   >> qpat_x_assum ‘∀x y. _ ∧ _ ⇒ m_space _ = m_space _ ∧ _’ kall_tac
   >> drule_all in_cross_list_mem >> strip_tac
   >> gvs[]
   >> ‘LENGTH x = n’ by (drule length_in_cross_list >> simp[])
   >> gvs[]
-  >> gvs[EL_REPLICATE]
-  (* Step 2: Prove that each probability distribution has the same sample space
+          >> gvs[EL_REPLICATE]
+          (* Step 2: Prove that each probability distribution has the same sample space
      and sigma algebra *)
-  >> rpt gen_tac >> strip_tac
-  (* We don't need to know that our inductive part is a probability space: we've
+          >> rpt gen_tac >> strip_tac
+          (* We don't need to know that our inductive part is a probability space: we've
      already proven that we have a probability space, now we are proving the
      second part *)
-  >> qpat_x_assum ‘∀x. _ ⇒ prob_space _’ kall_tac
-  (* Expand basic relevant definitions, to simplify *)
+          >> qpat_x_assum ‘∀x. _ ⇒ prob_space _’ kall_tac
+          (* Expand basic relevant definitions, to simplify *)
                           >> gvs[mcdomain0_def, mcchannel0_def, repeat_channel0_def]
                           (* Prove that x and y have the same length, to help us when inducting on x,
      so we can simultaneously break down y. *)
