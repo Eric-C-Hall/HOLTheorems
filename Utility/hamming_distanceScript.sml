@@ -13,6 +13,10 @@ End
 (* -------------------------------------------------------------------------- *)
 (* I accidentally defined hamming distance again without realising that it    *)
 (* was already defined, so I moved it here                                    *)
+(*                                                                            *)
+(* TODO: check whether these two alternative definitions can be replaced by   *)
+(* theorems which relate the definition of hamming distance to the new        *)
+(* expression for it, without introducing a new definition                    *)
 (* -------------------------------------------------------------------------- *)
 Definition hamming_distance_alt1_def:
   hamming_distance_alt1 (l1 : α list) (l2 : α list) = FOLDR ($+) 0n (MAP (λpair. if (FST pair = SND pair) then 0n else 1n) (ZIP (l1, l2)))
