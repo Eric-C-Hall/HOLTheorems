@@ -744,3 +744,47 @@ Proof
       >> metis_tac[])
   >> simp[SUBSET_DEF]
 QED
+
+Theorem MAP_CONST:
+  ∀c ls.
+    MAP (λx. c) ls = REPLICATE (LENGTH ls) c
+Proof
+  rpt gen_tac
+  >> Induct_on ‘ls’
+  >- simp[]
+  >> gen_tac
+  >> simp[]
+QED
+
+Theorem ALGEBRA_CONG:
+  ∀s1 s2 sp1 sp2.
+    s1 = s2 ∧ sp1 = sp2 ⇒ (s1, sp1) : α algebra = (s2, sp2)
+Proof
+  simp[]
+QED
+
+Theorem ALGEBRA_CONG_ALT:
+  ∀x y.
+    space x = space y ∧ subsets x = subsets y ⇒ x : α algebra = y : α algebra
+Proof
+  rpt gen_tac
+  >> PairCases_on ‘x’ >> PairCases_on ‘y’
+  >> simp[]
+QED
+
+Theorem PROB_SPACE_CONG:
+  ∀sp1 sp2 sts1 sts2 ms1 ms2.
+    sp1 = sp2 ∧ sts1 = sts2 ∧ ms1 = ms2 ⇒ (sp1, sts1, ms1) : α m_space = (sp2, sts2, ms2)
+Proof
+  simp[]
+QED
+
+Theorem PROB_SPACE_CONG_ALT:
+  ∀sp1 sp2.
+    p_space sp1 = p_space sp2 ∧ events sp1 = events sp2 ∧ prob sp1 = prob sp2 ⇒
+    sp1 = sp2
+Proof
+  rpt gen_tac
+  >> PairCases_on ‘sp1’ >> PairCases_on ‘sp2’
+  >> simp[p_space_def, events_def, prob_def]
+QED

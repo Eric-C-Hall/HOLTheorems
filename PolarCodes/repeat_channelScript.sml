@@ -1,6 +1,6 @@
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas combin interleave jared_yeager_prod_list lifting list martingale measure memoryless_channel pispace pred_set probability rich_list sigma_algebra transfer trivial
+Ancestors arithmetic bitstring bxor_lemmas combin fundamental interleave jared_yeager_prod_list lifting list martingale measure memoryless_channel pispace pred_set probability rich_list sigma_algebra transfer trivial
 
 Libs ConseqConv dep_rewrite liftLib realLib transferLib;
 
@@ -38,15 +38,18 @@ QED
 
 Theorem event_space_prod_list:
   ∀ls.
-    event_space (prod_list ls)
+    event_space (prod_list ls) = ARB
 Proof
+  cheat
 QED
         
 Theorem wf_memoryless_channel_repeat_channel0:
   ∀W n.
     wf_memoryless_channel W ⇒
     wf_memoryless_channel (repeat_channel0 W n)
+
 Proof
+
   rpt gen_tac >> strip_tac
   (* Would be good but fails for some reason, so we instead do this manually
     >> namedCases_on ‘W’ ["channel_dom output_algebra channel_func"]*)
@@ -62,6 +65,7 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘prob_space (_,_,prob measure_prob_space)’
   >> qmatch_goalsub_abbrev_tac ‘prob_space prod_prob_space’
   >> sg ‘prod_prob_space = measure_prob_space’
+
   >- (simp[Abbr ‘prod_prob_space’]
       >> qmatch_goalsub_abbrev_tac ‘FST (measure_prob_space_sigma)’
       >> qsuff_tac ‘measure_prob_space_sigma = event_space measure_prob_space’
@@ -70,13 +74,9 @@ Proof
       >> simp[p_space_prod_list]
       >> simp[MAP_MAP_o, mcprob_space0_def, o_DEF, mccodomain0_def,
               mcevents0_def, mcsigma0_def, mcchannel0_def]
-      >> qmatch_goalsub_abbrev_tac ‘cross_list (MAP f _)’
-      >> sg ‘f = λx. channel_func x’
-      >- simp[Abbr ‘f’]
-            
-
-      >> PURE_ONCE_REWRITE_TAC[mcprob_space0_def]
-                              
+      >> simp[p_space_def]
+      >> simp[MAP_CONST]
+                 
      )
   >> simp[Abbr ‘prod_prob_space’, Abbr ‘measure_prob_space’]
   >> pop_assum kall_tac
