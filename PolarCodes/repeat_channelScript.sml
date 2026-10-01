@@ -35,21 +35,12 @@ Theorem mcdomain0_repeat_channel0:
 Proof
   simp[mcdomain0_def, repeat_channel0_def]
 QED
-
-Theorem event_space_prod_list:
-  ∀ls.
-    event_space (prod_list ls) = ARB
-Proof
-  cheat
-QED
         
 Theorem wf_memoryless_channel_repeat_channel0:
   ∀W n.
     wf_memoryless_channel W ⇒
     wf_memoryless_channel (repeat_channel0 W n)
-
 Proof
-
   rpt gen_tac >> strip_tac
   (* Would be good but fails for some reason, so we instead do this manually
     >> namedCases_on ‘W’ ["channel_dom output_algebra channel_func"]*)
@@ -65,7 +56,6 @@ Proof
   >> qmatch_goalsub_abbrev_tac ‘prob_space (_,_,prob measure_prob_space)’
   >> qmatch_goalsub_abbrev_tac ‘prob_space prod_prob_space’
   >> sg ‘prod_prob_space = measure_prob_space’
-
   >- (simp[Abbr ‘prod_prob_space’]
       >> qmatch_goalsub_abbrev_tac ‘FST (measure_prob_space_sigma)’
       >> qsuff_tac ‘measure_prob_space_sigma = event_space measure_prob_space’
@@ -76,7 +66,30 @@ Proof
               mcevents0_def, mcsigma0_def, mcchannel0_def]
       >> simp[p_space_def]
       >> simp[MAP_CONST]
-                 
+      >> irule ALGEBRA_CONG_ALT
+      >> conj_tac
+      >- (simp[space_sigma_list]
+          >> drule length_in_cross_list
+          >> simp[])
+      >> simp[events_prod_list, MAP_MAP_o, o_DEF]
+      >> qmatch_goalsub_abbrev_tac ‘_ = subsets (sigma_list (MAP f x))’
+      >> Q.SUBGOAL_THEN ‘f = λx. (output_space, output_algebra)’
+          (fn th => PURE_ONCE_REWRITE_TAC[th])
+      >- (simp[Abbr ‘f’]
+          >> simp[FUN_EQ_THM]
+          >> gen_tac
+          >> conj_tac
+          >- (gen_tac
+              >> simp[mcprob_space0_def, mccodomain0_def, mcevents0_def,
+                      mcchannel0_def, mcsigma0_def, p_space_def])
+          >> gen_tac
+          >> simp[mcprob_space0_def, mccodomain0_def, mcevents0_def,
+                  mcsigma0_def, mcchannel0_def, events_def]
+         )
+      >> simp[Abbr ‘f’]
+      >> simp[MAP_CONST]
+      >> drule length_in_cross_list
+      >> simp[]
      )
   >> simp[Abbr ‘prod_prob_space’, Abbr ‘measure_prob_space’]
   >> pop_assum kall_tac
@@ -179,4 +192,3 @@ Proof
 QED
 
 val (repeat_channel_def, repeat_channel_relates) = liftdef repeat_channel0_respects "repeat_channel";
-*)

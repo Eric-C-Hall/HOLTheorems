@@ -24,6 +24,7 @@ open borelTheory;
 open lebesgueTheory;
 open martingaleTheory;
 open probabilityTheory;
+open trivialTheory;
 
 open fundamentalTheory;
 
@@ -737,6 +738,28 @@ Theorem events_prod_list:
     subsets (sigma_list (MAP (λl. p_space l, events l) ls))
 Proof
   simp[events_def, p_space_def, measurable_sets_prod_list]
+QED
+
+Theorem measurable_space_prod_list:
+  ∀ls.
+    measurable_space (prod_list ls) =
+    (cross_list (MAP m_space ls),
+     subsets (sigma_list (MAP (λl. measurable_space l) ls)))
+Proof
+  gen_tac
+  >> irule ALGEBRA_CONG_ALT
+  >> simp[m_space_prod_list, p_space_def]
+  >> simp[measurable_sets_prod_list]
+QED
+
+Theorem event_space_prod_list:
+  ∀ls.
+    event_space (prod_list ls) =
+    (cross_list (MAP p_space ls), subsets (sigma_list (MAP (λl. event_space l) ls)))
+Proof
+  gen_tac
+  >> PURE_REWRITE_TAC[event_space_def, p_space_def]
+  >> irule measurable_space_prod_list
 QED
 
 val _ = export_theory();
