@@ -19,6 +19,8 @@ Libs dep_rewrite liftLib transferLib realLib;
 (*             sigma algebra)                                                 *)
 (* -------------------------------------------------------------------------- *)
 
+(* TODO: change memoryless channels to a record type. *)
+
 Definition mcdomain0_def:
   mcdomain0 (W : (α -> bool) # (β algebra) # (α -> β measure)) = FST W
 End
@@ -490,4 +492,12 @@ End
 
 Definition binary_symmetric_channel_def:
   binary_symmetric_channel p = memoryless_channel_ABS (binary_symmetric_channel0 p)
+End
+
+(* -------------------------------------------------------------------------- *)
+(*                                                                            *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition mc_output_distribution:
 End

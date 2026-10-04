@@ -18,27 +18,35 @@ Libs dep_rewrite liftLib transferLib realLib;
 (* output of the channel when maximizing over all possible input              *)
 (* distributions                                                              *)
 (* -------------------------------------------------------------------------- *)
-(*Definition channel_capacity0_def:
-  channel_capacity0 (W : (bool -> bool) # (bool -> β m_space)) =
-  ARB
-  mutual_information 2 ()
+(*Definition channel_capacity_def:
+  channel_capacity (W : (α,β) memoryless_channel) =
+  mutual_information
+  2 shared_prob_space sigma_algebra_first_var sigma_algebra_second_var first_var second_var
 End*)
 
 (* -------------------------------------------------------------------------- *)
 (* The symmetric capacity is the mutual information between the input and     *)
 (* output of the channel when the input is given by the uniform distribution. *)
+(*                                                                            *)
+(* Assumes the domain is discrete                                             *)
+(*                                                                            *)
+(* TODO: prob dist on input -> prob dist on output
+
+Output probability distribution has space which is space of input times space of output *)
 (* -------------------------------------------------------------------------- *)
-(*
-Definition symmetric_capacity0_def:
-  symmetric_capacity0 (W : (α -> bool) # (β algebra) # (α -> β measure)) =
+Definition symmetric_capacity_def:
+  symmetric_capacity (W : (α, β) memoryless_channel) =
   let
-    p = (uniform_distribution (mcdomain0 W, POW (mcdomain0 W)))
-        × (mcrange0 W ) (* the range shouldn't vary with input, redefine memoryless channel to not produce a distinct sigma algebra per input *)
+    p = TODO_TRANSFORM_VIA_CHANNEL_DISTRIBUTION
+        W
+        uniform_distribution (mcdomain W, POW (mcdomain W))
+
+        (uniform_distribution (mcdomain W, POW (mcdomain W)))
+        × (W )
   in
     mutual_information 2 
                        (POW (mcdomain0 W)) () I (λx. mcchannel0 W x)
 End
-*)
 
 (* -------------------------------------------------------------------------- *)
 (* The symmetric capacity is the mutual information between the input and     *)
