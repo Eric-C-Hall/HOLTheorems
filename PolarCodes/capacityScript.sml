@@ -30,6 +30,18 @@ End*)
 (*                                                                            *)
 (* Assumes the domain is discrete                                             *)
 (*                                                                            *)
+(* Probability space has                                                      *)
+(*                                                                            *)
+(*                                                                            *)
+(* The input and channel are the two sources of relevant randomness.          *)
+(*                                                                            *)
+(* Thus, our probab                                                           *)
+(* Probability space must include uniform distribution on input               *)
+(* Probability space must include output sigma algebra                        *)
+(*                                                                            *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+
 (* TODO: prob dist on input -> prob dist on output
 
 Output probability distribution has space which is space of input times space of output *)
@@ -37,15 +49,16 @@ Output probability distribution has space which is space of input times space of
 Definition symmetric_capacity_def:
   symmetric_capacity (W : (α, β) memoryless_channel) =
   let
+    input_distribution = uniform_distribution (mcdomain W, POW (mcdomain W));
+    input_prob_space = (mcdomain W, POW (mcdomain W));
+    output_prob_space = ;
+    
     p = TODO_TRANSFORM_VIA_CHANNEL_DISTRIBUTION
         W
-        uniform_distribution (mcdomain W, POW (mcdomain W))
-
-        (uniform_distribution (mcdomain W, POW (mcdomain W)))
-        × (W )
   in
-    mutual_information 2 
-                       (POW (mcdomain0 W)) () I (λx. mcchannel0 W x)
+    mutual_information 2
+                       input_distribution × output_distribution
+                       
 End
 
 (* -------------------------------------------------------------------------- *)

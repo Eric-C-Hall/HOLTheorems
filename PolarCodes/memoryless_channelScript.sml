@@ -499,5 +499,6 @@ End
 (*                                                                            *)
 (*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition mc_output_distribution:
+Definition mc_output_distribution_def:
+  mc_output_distribution = ARB
 End
