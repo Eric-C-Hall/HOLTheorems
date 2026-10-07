@@ -493,12 +493,3 @@ End
 Definition binary_symmetric_channel_def:
   binary_symmetric_channel p = memoryless_channel_ABS (binary_symmetric_channel0 p)
 End
-
-(* -------------------------------------------------------------------------- *)
-(*                                                                            *)
-(*                                                                            *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-Definition mc_output_distribution_def:
-  mc_output_distribution = ARB
-End

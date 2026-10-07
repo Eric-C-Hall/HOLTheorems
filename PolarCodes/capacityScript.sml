@@ -25,17 +25,28 @@ Libs dep_rewrite liftLib transferLib realLib;
 End*)
 
 (* -------------------------------------------------------------------------- *)
+(* The overall distribution obtained by applying a channel to a given         *)
+(* distribution.                                                              *)
+(*                                                                            *)
+(* -------------------------------------------------------------------------- *)
+Definition apply_channel_distribution_def:
+  apply_channel_distribution (W : (α,β) memoryless_channel)
+End
+
+(* -------------------------------------------------------------------------- *)
 (* The symmetric capacity is the mutual information between the input and     *)
 (* output of the channel when the input is given by the uniform distribution. *)
 (*                                                                            *)
 (* Assumes the domain is discrete                                             *)
 (*                                                                            *)
-(* Probability space has                                                      *)
+(* Our probability space first chooses an input uniformly at random from the  *)
+(* set of inputs, then chooses an output according to the probability         *)
+(* distribution for that input.                                               *)
 (*                                                                            *)
-(*                                                                            *)
-(* The input and channel are the two sources of relevant randomness.          *)
-(*                                                                            *)
-(* Thus, our probab                                                           *)
+(* Thus, our probability space chooses 
+
+
+ *)
 (* Probability space must include uniform distribution on input               *)
 (* Probability space must include output sigma algebra                        *)
 (*                                                                            *)
