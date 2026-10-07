@@ -18,30 +18,67 @@ Libs dep_rewrite liftLib transferLib realLib;
 (* output of the channel when maximizing over all possible input              *)
 (* distributions                                                              *)
 (* -------------------------------------------------------------------------- *)
-(*Definition channel_capacity0_def:
-  channel_capacity0 (W : (bool -> bool) # (bool -> β m_space)) =
-  ARB
-  mutual_information 2 ()
+(*Definition channel_capacity_def:
+  channel_capacity (W : (α,β) memoryless_channel) =
+  mutual_information
+  2 shared_prob_space sigma_algebra_first_var sigma_algebra_second_var first_var second_var
 End*)
 
 (* -------------------------------------------------------------------------- *)
-(* The symmetric capacity is the mutual information between the input and     *)
-(* output of the channel when the input is given by the uniform distribution. *)
+(* The overall distribution obtained by applying a channel to a given         *)
+(* distribution.                                                              *)
+(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
-Definition symmetric_capacity0_def:
-  symmetric_capacity0 (W : (α -> bool) # (α -> β m_space)) =
-  let
-    p = (uniform_distribution (mcdomain0 W, POW (mcdomain0 W)))
-        × (mcrange0 W ) (* the range shouldn't vary with input, redefine memoryless channel to not produce a distinct sigma algebra per input *)
-  in
-    mutual_information 2 
-                       (POW (mcdomain0 W)) () I (λx. mcchannel0 W x)
+Definition apply_channel_distribution_def:
+  apply_channel_distribution (W : (α,β) memoryless_channel)
 End
 
 (* -------------------------------------------------------------------------- *)
 (* The symmetric capacity is the mutual information between the input and     *)
 (* output of the channel when the input is given by the uniform distribution. *)
+(*                                                                            *)
+(* Assumes the domain is discrete                                             *)
+(*                                                                            *)
+(* Our probability space first chooses an input uniformly at random from the  *)
+(* set of inputs, then chooses an output according to the probability         *)
+(* distribution for that input.                                               *)
+(*                                                                            *)
+(* Thus, our probability space chooses 
+
+
+ *)
+(* Probability space must include uniform distribution on input               *)
+(* Probability space must include output sigma algebra                        *)
+(*                                                                            *)
+(*                                                                            *)
 (* -------------------------------------------------------------------------- *)
+
+(* TODO: prob dist on input -> prob dist on output
+
+Output probability distribution has space which is space of input times space of output *)
+(* -------------------------------------------------------------------------- *)
+Definition symmetric_capacity_def:
+  symmetric_capacity (W : (α, β) memoryless_channel) =
+  let
+    input_distribution = uniform_distribution (mcdomain W, POW (mcdomain W));
+    input_prob_space = (mcdomain W, POW (mcdomain W));
+    output_prob_space = ;
+    
+    p = TODO_TRANSFORM_VIA_CHANNEL_DISTRIBUTION
+        W
+  in
+    mutual_information 2
+                       input_distribution × output_distribution
+                       
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The symmetric capacity is the mutual information between the input and     *)
+(* output of the channel when the input is given by the uniform distribution. *)
+(*                                                                            *)
+(* Definition based on Arıkan's original polar codes paper                    *)
+(* -------------------------------------------------------------------------- *)
+(*
 Theorem symmetric_capacity0_alt:
   symmetric_capacity0 (W : (bool -> bool) # (bool -> β m_space)) =
   EXTREAL_SUM_IMAGE
@@ -58,4 +95,4 @@ Theorem symmetric_capacity0_alt:
      ) {T; F}
   ) (mcrange0 W)
 QED
-
+*)

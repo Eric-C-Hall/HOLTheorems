@@ -24,6 +24,7 @@ open borelTheory;
 open lebesgueTheory;
 open martingaleTheory;
 open probabilityTheory;
+open trivialTheory;
 
 open fundamentalTheory;
 
@@ -201,6 +202,11 @@ Definition prod_list_def:
   prod_list [] = ({[]}, POW {[]}, C 𝟙 []) ∧
   prod_list (mh::mt) = general_prod_measure_space CONS mh (prod_list mt)
 End
+
+(*Definition measure_list_def:
+  measure_list [] = ∧
+  measure_list (h::t) = general_prod_measure CONS h (measure_list t)
+End*)
 
 (* -------------------------------------------------------------------------- *)
 (* Input: list of sets                                                        *)
@@ -406,6 +412,13 @@ Proof
   >- simp[prod_list_def, cross_list_def]
   >> gen_tac
   >> gvs[prod_list_def, cross_list_def, general_cross_def, general_prod_measure_space_def]
+QED
+
+Theorem p_space_prod_list:
+  ∀ls.
+    p_space (prod_list ls) = cross_list (MAP p_space ls)
+Proof
+  metis_tac[m_space_prod_list, p_space_def]
 QED
 
 Theorem cross_list_empty[simp]:
@@ -617,5 +630,136 @@ QED
     measurable_sets (sigma_list (MAP (λl. (m_space l, measurable_sets l)) ls))
 Proof
 QED*)
+
+Theorem fst_general_sigma:
+  ∀a b.
+    FST (general_sigma CONS a b) = general_cross CONS (FST a) (FST b)
+Proof
+  rpt gen_tac
+  >> simp[general_sigma_def, sigma_def]
+  >> Cases_on ‘a’ >> Cases_on ‘b’ >> simp[]
+QED
+
+Theorem fst_sigma_list:
+  ∀ls.
+    FST (sigma_list ls) = cross_list (MAP FST ls)
+Proof
+  Induct_on ‘ls’
+  >- simp[sigma_list_def]
+  >> gen_tac
+  >> simp[sigma_list_def, cross_list_def]
+  >> simp[fst_general_sigma]
+QED
+
+Theorem measurable_sets_general_prod_measure_space:
+  ∀cons m1 m2.
+    measurable_sets (general_prod_measure_space cons m1 m2) =
+    subsets (general_sigma cons (measurable_space m1)
+                           (measurable_space m2))
+Proof
+  rpt gen_tac
+  >> PairCases_on ‘m1’ >> PairCases_on ‘m2’
+  >> simp[]
+  >> simp[general_prod_measure_space_def]
+QED
+
+Theorem events_general_prod_measure_space:
+  ∀cons m1 m2.
+    events (general_prod_measure_space cons m1 m2) =
+    subsets (general_sigma cons (measurable_space m1)
+                           (measurable_space m2))
+Proof
+  rpt gen_tac
+  >> simp[events_def, measurable_sets_general_prod_measure_space]
+QED
+
+Theorem space_general_sigma:
+  ∀cons A B.
+    space (general_sigma cons A B) = general_cross cons (space A) (space B)
+Proof
+  rpt gen_tac
+  >> simp[general_sigma_def]
+  >> simp[SPACE_SIGMA]
+QED
+
+Theorem space_sigma_list:
+  ∀ls.
+    space (sigma_list ls) = cross_list (MAP space ls)
+Proof
+  Induct_on ‘ls’
+  >- simp[sigma_list_def]
+  >> gen_tac
+  >> simp[sigma_list_def, cross_list_def]
+  >> simp[space_general_sigma]
+QED
+
+(* Can only be applied once to avoid infinite recursion. *)
+Theorem sigma_list_alt:
+  ∀ls.
+    sigma_list ls = (cross_list (MAP space ls), subsets (sigma_list ls))
+Proof
+  gen_tac
+  >> irule ALGEBRA_CONG_ALT
+  >> simp[space_sigma_list]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Taking the measurable sets of a product of probability space can be        *)
+(* achieved by taking the measurable sets from the product of sigma algebras  *)
+(* -------------------------------------------------------------------------- *)
+Theorem measurable_sets_prod_list:
+  ∀ls.
+    measurable_sets (prod_list ls) =
+    subsets (sigma_list (MAP (λl. m_space l, measurable_sets l) ls))
+Proof
+  gen_tac
+  >> Induct_on ‘ls’
+  >- (simp[prod_list_def, sigma_list_def]
+      >> simp[EXTENSION, POW_DEF, SUBSET_DEF]
+      >> metis_tac[])
+  >> gen_tac
+  >> simp[prod_list_def]
+  >> simp[measurable_sets_general_prod_measure_space]
+  >> simp[sigma_list_def]
+  >> cong_tac (SOME 2)
+  >> qmatch_goalsub_abbrev_tac ‘LHS = _’
+  >> PURE_ONCE_REWRITE_TAC[sigma_list_alt]
+  >> Q.UNABBREV_TAC ‘LHS’
+  >> irule ALGEBRA_CONG
+  >> simp[]
+  >> simp[MAP_MAP_o, o_DEF]
+  >> simp[m_space_prod_list]
+  >> cong_tac (SOME 2)
+QED
+
+Theorem events_prod_list:
+  ∀ls.
+    events (prod_list ls) = 
+    subsets (sigma_list (MAP (λl. p_space l, events l) ls))
+Proof
+  simp[events_def, p_space_def, measurable_sets_prod_list]
+QED
+
+Theorem measurable_space_prod_list:
+  ∀ls.
+    measurable_space (prod_list ls) =
+    (cross_list (MAP m_space ls),
+     subsets (sigma_list (MAP (λl. measurable_space l) ls)))
+Proof
+  gen_tac
+  >> irule ALGEBRA_CONG_ALT
+  >> simp[m_space_prod_list, p_space_def]
+  >> simp[measurable_sets_prod_list]
+QED
+
+Theorem event_space_prod_list:
+  ∀ls.
+    event_space (prod_list ls) =
+    (cross_list (MAP p_space ls), subsets (sigma_list (MAP (λl. event_space l) ls)))
+Proof
+  gen_tac
+  >> PURE_REWRITE_TAC[event_space_def, p_space_def]
+  >> irule measurable_space_prod_list
+QED
 
 val _ = export_theory();

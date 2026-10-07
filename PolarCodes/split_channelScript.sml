@@ -35,8 +35,9 @@ val _ = hide "W";
 (* - Returns a probability distribution over the outputs and the prior inputs *)
 (* - Averages over the future inputs.                                         *)
 (*                                                                            *)
-(* We assume that the input channel's domain is finite, so that we may use    *)
-(* the power set of the domain as the sigma algebra.                          *)
+(* We use the fact that the input channel's domain is finite (as we take      *)
+(* bools as input, so that we may use the power set of the domain as the      *)
+(* sigma algebra.                                                             *)
 (*                                                                            *)
 (* We assume that the output's sigma algebra includes any singleton set       *)
 (* containing an output, so that we may determine the probability of any      *)
@@ -50,30 +51,27 @@ val _ = hide "W";
 Definition split_channel0_def:
   split_channel0 (W : (bool, β) memoryless_channel)
   (num_inputs : num) (i : num) =
-  let
-    (output_sample_space, output_sigma_algebra) =
-    (sigma_list (REPLICATE num_inputs (mcoutput_space W, mcoutput_sigma_algebra W))
-                × sigma_list (REPLICATE i (mcdomain W, POW (mcdomain W)))
-    ) : (β list # bool list) algebra
-  in
     (𝕌(:bool),
+     (sigma_list (REPLICATE num_inputs (mccodomain W, mcevents W))
+                 × sigma_list (REPLICATE i (mcdomain W, POW (mcdomain W)))
+     )
+     : (β list # bool list) algebra,
      λcurrent_chosen_value.
-       (output_sample_space,
-        output_sigma_algebra,
-        EXTREAL_SUM_IMAGE
-        (λ(output, prior_chosen_values).
-           EXTREAL_SUM_IMAGE
-           (λlater_chosen_values.
-              (1 / 2 pow (num_inputs - 1)) *
-              (prob (mcchannel (combine_channel W num_inputs)
-                               (prior_chosen_values ++ [current_chosen_value] ++
-                                later_chosen_values))
-                    {output}
-              )
-           ) (cross_list (REPLICATE (num_inputs - i - 1) (mcdomain W)))
-        ) : (β list # bool list) measure
-       ) : (β list # bool list) m_space
-    ) : (bool -> bool) # (bool -> (β list # bool list) m_space)
+       EXTREAL_SUM_IMAGE
+       (λ(output, prior_chosen_values).
+          EXTREAL_SUM_IMAGE
+          (λlater_chosen_values.
+             (1 / 2 pow (num_inputs - 1)) *
+             (mcchannel (combine_channel W num_inputs)
+                        (prior_chosen_values ++ [current_chosen_value] ++
+                         later_chosen_values)
+                        {output}
+          )
+       ) (cross_list (REPLICATE (num_inputs - i - 1) (mcdomain W)))
+       ) : (β list # bool list) measure
+    ) : (bool -> bool)
+        # ((β list # bool list) algebra)
+        # (bool -> (β list # bool list) measure)
 End
 
 Theorem mcdomain0_split_channel0[simp]:
@@ -90,31 +88,22 @@ QED
 Theorem mcchannel0_split_channel0:
   ∀W n i.
     mcchannel0 (split_channel0 W n i) =
-    let
-      (output_sample_space, output_sigma_algebra) =
-      sigma_list (REPLICATE n (mcoutput_space W,mcoutput_sigma_algebra W)) ×
-                 sigma_list (REPLICATE i (mcdomain W,POW (mcdomain W)))
-    in
-      λcurrent_chosen_value.
-        (output_sample_space,
-         output_sigma_algebra,
-         ∑ (λ(output,prior_chosen_values).
-              ∑ (λlater_chosen_values.
-                   1 / 2 pow (n − 1)
-                   * prob (mcchannel (combine_channel W n)
-                                     (prior_chosen_values
-                                      ⧺ [current_chosen_value]
-                                      ⧺ later_chosen_values)
-                          ) {output}
-                ) (cross_list (REPLICATE (n − (i + 1)) (mcdomain W)))
-           )
-        )
+    λcurrent_chosen_value.
+      EXTREAL_SUM_IMAGE
+      (λ(output, prior_chosen_values).
+         EXTREAL_SUM_IMAGE
+         (λlater_chosen_values.
+            (1 / 2 pow (n - 1)) *
+            (mcchannel (combine_channel W n)
+                       (prior_chosen_values ++ [current_chosen_value] ++
+                        later_chosen_values)
+                       {output}
+            )
+         ) (cross_list (REPLICATE (n - i - 1) (mcdomain W)))
+      ) : (β list # bool list) measure
 Proof
   rpt gen_tac
-  >> simp[split_channel0_def, mcchannel0_def]
-  >> qmatch_abbrev_tac ‘SND (_ argument) = _’
-  >> Cases_on ‘argument’
-  >> simp[]
+  >> simp[mcchannel0_def, split_channel0_def]
 QED
 
 (* -------------------------------------------------------------------------- *)
