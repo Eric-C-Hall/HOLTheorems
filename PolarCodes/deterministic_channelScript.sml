@@ -17,9 +17,9 @@ Theorem wf_memoryless_channel_deterministic_channel0:
     wf_memoryless_channel (deterministic_channel0 f S)
 Proof
   rpt gen_tac
-  >> simp[deterministic_channel0_def, wf_memoryless_channel_def,
+  >> simp[deterministic_channel0_def, wf_memoryless_channel_def, mcprob_space0_def,
           mcdomain0_def, mccodomain0_def, mcchannel0_def, mcsigma0_def,
-          mcevents0_def]
+          mcevents0_def,sigma_algebraTheory.POW_SIGMA_ALGEBRA]
   >> gen_tac >> strip_tac
   >> PURE_ONCE_REWRITE_TAC[GSYM degenerate_prob_space_def]
   >> irule degenerate_prob_space_is_prob_space
