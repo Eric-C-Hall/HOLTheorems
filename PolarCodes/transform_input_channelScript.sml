@@ -29,7 +29,7 @@ Theorem wf_memoryless_channel_transform_input_channel0:
     wf_memoryless_channel (transform_input_channel0 f S W)
 Proof
   rpt gen_tac >> strip_tac
-  >> gvs[wf_memoryless_channel_def, transform_input_channel0_def,
+  >> gvs[wf_memoryless_channel_def, transform_input_channel0_def,mcprob_space0_def,
          mcdomain0_def, mcchannel0_def, mccodomain0_def, mcevents0_def, mcsigma0_def]
 QED
 
