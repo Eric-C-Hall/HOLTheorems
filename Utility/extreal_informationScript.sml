@@ -24,13 +24,16 @@ Libs
 (* ************************************************************************* *)
 
 (* NOTE: ‘RN_deriv u m’ (also written ‘u / m’) is the Radon-Nikodym derivative
-   of the measure ‘u’ w.r.t. the measure space ‘m’, i.e. du/dm. *)
+   of the measure ‘u’ w.r.t. the measure space ‘m’, i.e. du/dm.
+
+   Written by Claude *)
 Definition KL_divergence_def :
     KL_divergence b s u v =
-      integral (space s,subsets s,u)
-               (\x. logr b (RN_deriv u (space s,subsets s,v) x))
+    ∫ (space s,subsets s,u)
+             (\x. logr b (RN_deriv u (space s,subsets s,v) x))
 End
 
+(* Written by Claude *)
 Definition mutual_information_def :
     mutual_information b p s1 s2 X Y =
       let prod_space =
@@ -42,10 +45,12 @@ Definition mutual_information_def :
                         (measure prod_space)
 End
 
+(* Written by Claude *)
 Definition entropy_def :
     entropy b p s X = mutual_information b p s s X X
 End
 
+(* Written by Claude *)
 Definition conditional_mutual_information_def :
     conditional_mutual_information b p s1 s2 s3 X Y Z =
       let prod_space =
@@ -62,6 +67,7 @@ End
 (* Auxiliary lemmas                                                          *)
 (* ************************************************************************* *)
 
+(* Written by Claude *)
 Theorem IN_MEASURABLE_BOREL_POW[local] :
     !sp (f :'a -> extreal). f IN Borel_measurable (sp,POW sp)
 Proof
@@ -69,6 +75,7 @@ Proof
         subsets_def, IN_POW, INTER_SUBSET]
 QED
 
+(* Written by Claude *)
 Theorem prod_sigma_POW :
     !s1 s2. FINITE s1 /\ FINITE s2 ==>
             subsets ((s1,POW s1) CROSS (s2,POW s2)) = POW (s1 CROSS s2)
@@ -103,7 +110,9 @@ Proof
  >> METIS_TAC []
 QED
 
-(* The bridge between extreal terms ‘x * logr b (x / y)’ and real ones *)
+(* The bridge between extreal terms ‘x * logr b (x / y)’ and real ones.
+
+   Written by Claude *)
 Theorem mul_logr_normal[local] :
     !b x y. (y = 0 ==> x = 0) ==>
             Normal x * logr b (Normal x / Normal y) =
@@ -115,7 +124,9 @@ Proof
  >> rw [extreal_div_eq, extreal_logr_def, extreal_mul_def]
 QED
 
-(* For finite measures on a finite space with all subsets measurable *)
+(* For finite measures on a finite space with all subsets measurable.
+
+   Written by Claude *)
 Theorem finite_POW_measure_normal[local] :
     !sp m s. measure_space (sp,POW sp,m) /\ m sp <> PosInf /\ s SUBSET sp ==>
              ?r. 0 <= r /\ m s = Normal r
@@ -136,6 +147,7 @@ QED
 (* KL divergence on finite spaces                                            *)
 (* ************************************************************************* *)
 
+(* Written by Claude *)
 Theorem KL_divergence_finite_POW :
     !b sp u v.
        FINITE sp /\ measure_space (sp,POW sp,u) /\
@@ -262,10 +274,65 @@ Proof
  >> rw [extreal_div_eq, extreal_logr_def, extreal_mul_def, REAL_MUL_COMM]
 QED
 
+(* The measure induced by a nonnegative mass function on a finite alphabet.
+
+   Written by Claude *)
+Theorem measure_space_pmf_POW[local] :
+    !sp P. FINITE sp /\ (!x. x IN sp ==> 0 <= P x) ==>
+           measure_space (sp,POW sp,\s. SIGMA (\x. Normal (P x)) s)
+Proof
+    rpt STRIP_TAC
+ >> MATCH_MP_TAC finite_additivity_sufficient_for_finite_spaces2
+ >> rw [m_space_def, measurable_sets_def, POW_SIGMA_ALGEBRA, positive_def,
+        additive_def, measure_def, IN_POW]
+ >> ‘FINITE s’ by METIS_TAC [SUBSET_FINITE]
+ >- (MATCH_MP_TAC EXTREAL_SUM_IMAGE_POS \\
+     fs [SUBSET_DEF, extreal_of_num_def, extreal_le_eq])
+ >> ‘FINITE t’ by METIS_TAC [SUBSET_FINITE]
+ >> irule EXTREAL_SUM_IMAGE_DISJOINT_UNION
+ >> rw []
+QED
+
+(* The KL divergence agrees with the textbook definition (e.g. MacKay,
+   "Information Theory, Inference, and Learning Algorithms", eq. 2.45):
+
+     D_KL(P||Q) = SUM_x P(x) log (P(x) / Q(x))
+
+   where P and Q are probability distributions over the same finite alphabet
+   ‘sp’, viewed as (real) mass functions. The measures used by
+   ‘KL_divergence’ are the ones these mass functions induce on (sp,POW sp).
+   The condition ‘Q x = 0 ==> P x = 0’ (P is absolutely continuous w.r.t. Q)
+   is needed for D_KL(P||Q) to be finite. Note that the theorem does not need
+   P and Q to sum to 1.
+
+   Written by Claude *)
+Theorem KL_divergence_pmf :
+    !b sp P Q.
+       FINITE sp /\ (!x. x IN sp ==> 0 <= P x /\ 0 <= Q x) /\
+       (!x. x IN sp /\ Q x = 0 ==> P x = 0) ==>
+       KL_divergence b (sp,POW sp) (\s. SIGMA (\x. Normal (P x)) s)
+                                   (\s. SIGMA (\x. Normal (Q x)) s) =
+       Normal (SIGMA (\x. P x * logr b (P x / Q x)) sp)
+Proof
+    rpt STRIP_TAC
+ >> qmatch_goalsub_abbrev_tac ‘KL_divergence b (sp,POW sp) u v’
+ >> Know ‘KL_divergence b (sp,POW sp) u v =
+          SIGMA (\x. u {x} * logr b (u {x} / v {x})) sp’
+ >- (MATCH_MP_TAC KL_divergence_finite_POW \\
+     simp [Abbr ‘u’, Abbr ‘v’, EXTREAL_SUM_IMAGE_NORMAL] \\
+     rw [measure_space_pmf_POW, GSYM extreal_of_num_def] \\
+     fs [extreal_of_num_def])
+ >> Rewr
+ >> simp [Abbr ‘u’, Abbr ‘v’, GSYM EXTREAL_SUM_IMAGE_NORMAL]
+ >> irule EXTREAL_SUM_IMAGE_EQ' >> rw []
+ >> MATCH_MP_TAC mul_logr_normal >> rw []
+QED
+
 (* ************************************************************************* *)
 (* Mutual information on finite spaces                                       *)
 (* ************************************************************************* *)
 
+(* Written by Claude *)
 Theorem random_variable_POW[local] :
     !p X s. prob_space p /\ POW (p_space p) = events p /\
             (!x. x IN p_space p ==> X x IN s) ==>
@@ -277,12 +344,14 @@ Proof
  >> rw [IN_POW, INTER_SUBSET]
 QED
 
+(* Written by Claude *)
 Theorem random_variable_POW_IN[local] :
     !p X s x. random_variable X p (s,POW s) /\ x IN p_space p ==> X x IN s
 Proof
     rw [random_variable_def, IN_MEASURABLE, IN_FUNSET, space_def]
 QED
 
+(* Written by Claude *)
 Theorem finite_POW_prob_normal[local] :
     !p e. prob_space p /\ POW (p_space p) = events p /\
           e SUBSET p_space p ==> ?r. 0 <= r /\ r <= 1 /\ prob p e = Normal r
@@ -292,6 +361,7 @@ Proof
  >> METIS_TAC [prob_normal]
 QED
 
+(* Written by Claude *)
 Theorem distribution_normal[local] :
     !p X x. prob_space p /\ POW (p_space p) = events p ==>
             ?r. 0 <= r /\ r <= 1 /\ distribution p X {x} = Normal r
@@ -300,6 +370,7 @@ Proof
  >> MATCH_MP_TAC finite_POW_prob_normal >> rw [INTER_SUBSET]
 QED
 
+(* Written by Claude *)
 Theorem joint_distribution_normal[local] :
     !p X Y x. prob_space p /\ POW (p_space p) = events p ==>
               ?r. 0 <= r /\ r <= 1 /\ joint_distribution p X Y {x} = Normal r
@@ -308,6 +379,7 @@ Proof
  >> MATCH_MP_TAC finite_POW_prob_normal >> rw [INTER_SUBSET]
 QED
 
+(* Written by Claude *)
 Theorem joint_distribution_le_distribution[local] :
     !p X Y x y. prob_space p /\ POW (p_space p) = events p ==>
                 joint_distribution p X Y {(x,y)} <= distribution p X {x} /\
@@ -319,6 +391,7 @@ Proof
  >> rw [IN_POW, INTER_SUBSET, SUBSET_DEF, IN_PREIMAGE]
 QED
 
+(* Written by Claude *)
 Theorem joint_distribution_eq_0[local] :
     !p X Y x y. prob_space p /\ POW (p_space p) = events p /\
                 (distribution p X {x} = 0 \/ distribution p Y {y} = 0) ==>
@@ -333,7 +406,9 @@ Proof
      rw [IN_POW, INTER_SUBSET])
 QED
 
-(* The general form of [finite_mutual_information_reduce] *)
+(* The general form of [finite_mutual_information_reduce].
+
+   Written by Claude *)
 Theorem finite_mutual_information_reduce_POW :
     !b p s1 s2 X Y.
        prob_space p /\ FINITE (p_space p) /\ POW (p_space p) = events p /\
@@ -394,6 +469,7 @@ Proof
  >> (simp [FORALL_PROD, FINITE_CROSS] >> rw [])
 QED
 
+(* Written by Claude *)
 Theorem finite_mutual_information_reduce :
     !b p X Y.
        prob_space p /\ POW (p_space p) = events p /\
@@ -413,6 +489,7 @@ Proof
  >> rw [IMAGE_FINITE]
 QED
 
+(* Written by Claude *)
 Theorem finite_mutual_information_reduce2 :
     !b p X Y Z.
        prob_space p /\ POW (p_space p) = events p /\
@@ -451,6 +528,7 @@ QED
 (* Entropy on finite spaces                                                  *)
 (* ************************************************************************* *)
 
+(* Written by Claude *)
 Theorem finite_entropy_reduce :
     !b p X.
        prob_space p /\ POW (p_space p) = events p /\
@@ -531,6 +609,7 @@ QED
 (* Conditional mutual information on finite spaces                           *)
 (* ************************************************************************* *)
 
+(* Written by Claude *)
 Theorem marginal_distribution_POW[local] :
     !p X Y s2 x.
        prob_space p /\ POW (p_space p) = events p /\
@@ -559,7 +638,9 @@ Proof
  >> EQ_TAC >> rw []
 QED
 
-(* I(X;Y) = SIGMA p(x,y) log (p(x,y) / p(y)) - SIGMA p(x) log p(x) *)
+(* I(X;Y) = SIGMA p(x,y) log (p(x,y) / p(y)) - SIGMA p(x) log p(x).
+
+   Written by Claude *)
 Theorem finite_mutual_information_split[local] :
     !b p s1 s2 X Y.
        prob_space p /\ FINITE (p_space p) /\ POW (p_space p) = events p /\
@@ -665,6 +746,7 @@ Proof
  >> simp [extreal_11]
 QED
 
+(* Written by Claude *)
 Theorem EXTREAL_SUM_IMAGE_NORMAL_EXISTS[local] :
     !f s. FINITE s /\ (!x. x IN s ==> ?r. f x = Normal r) ==>
           ?r. SIGMA f s = Normal r
@@ -679,6 +761,7 @@ Proof
  >> METIS_TAC [extreal_cases]
 QED
 
+(* Written by Claude *)
 Theorem joint_logr_normal[local] :
     !b p X Y x y.
        prob_space p /\ POW (p_space p) = events p ==>
@@ -702,6 +785,7 @@ Proof
  >> MATCH_MP_TAC mul_logr_normal >> art []
 QED
 
+(* Written by Claude *)
 Theorem finite_conditional_mutual_information_reduce :
     !b p X Y Z.
        prob_space p /\ POW (p_space p) = events p /\
@@ -799,6 +883,7 @@ QED
 (* Bounds on entropy                                                         *)
 (* ************************************************************************* *)
 
+(* Written by Claude *)
 Theorem finite_entropy_certainty_eq_0 :
     !b p X. prob_space p /\ POW (p_space p) = events p /\
             random_variable X p
@@ -823,6 +908,7 @@ Proof
  >> rw [mul_lzero]
 QED
 
+(* Written by Claude *)
 Theorem finite_entropy_le_card_real[local] :
     !b s (q :'a -> real). 1 <= b /\ FINITE s /\ SIGMA q s = 1 /\
             (!x. x IN s ==> 0 <= q x /\ q x <= 1) ==>
@@ -863,6 +949,7 @@ Proof
  >> rw []
 QED
 
+(* Written by Claude *)
 Theorem finite_distribution_sum_1[local] :
     !p X. prob_space p /\ POW (p_space p) = events p /\
           random_variable X p
@@ -879,6 +966,7 @@ Proof
  >> rw [p_space_def, events_def, prob_def, IN_POW]
 QED
 
+(* Written by Claude *)
 Theorem finite_entropy_le_card :
     !b p X. 1 <= b /\ prob_space p /\ POW (p_space p) = events p /\
             random_variable X p
@@ -909,6 +997,7 @@ Proof
  >> MATCH_MP_TAC finite_entropy_le_card_real >> rw []
 QED
 
+(* Written by Claude *)
 Theorem finite_entropy_uniform_max :
     !b p X. prob_space p /\ POW (p_space p) = events p /\
             random_variable X p
