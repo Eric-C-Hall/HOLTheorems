@@ -25,8 +25,37 @@ Libs
 (* Basic Definitions                                                         *)
 (* ************************************************************************* *)
 
-(* NOTE: ‘RN_deriv u m’ (also written ‘u / m’) is the Radon-Nikodym derivative
-   of the measure ‘u’ w.r.t. the measure space ‘m’, i.e. du/dm.
+(* The Kullback-Leibler divergence (relative entropy) of ‘u’ from ‘v’ in base
+   ‘b’, i.e. the measure-theoretic definition
+
+     D_b(u||v) = ∫ log_b (du/dv) du
+
+   Arguments:
+   - ‘b’ : the base of the logarithm (a real, e.g. 2 for bits). Nothing here
+           requires 1 < b, but theorems about KL divergence will need it.
+   - ‘s’ : a sigma-algebra (sample space, measurable sets), shared by both
+           measures.
+   - ‘u’, ‘v’ : two measures (of type ‘α measure’) on ‘s’. Typically these are
+           probability distributions, e.g. ‘distribution p X’.
+
+   NOTE: ‘RN_deriv u m’ (also written ‘u / m’) is the Radon-Nikodym derivative
+   of the measure ‘u’ w.r.t. the measure space ‘m’, i.e. du/dm. On a finite
+   space with all subsets measurable it is x ↦ u {x} / v {x}, and the
+   definition reduces to the usual SUM_x u{x} log_b (u{x} / v{x}) (see
+   [KL_divergence_finite_POW] and [KL_divergence_pmf]).
+
+   Caveats (the definition is only meaningful under these conditions):
+   - ‘u’ must be absolutely continuous w.r.t. ‘v’ (u ≪ v) and ‘v’ must be
+     sigma-finite, otherwise the density du/dv does not exist. ‘RN_deriv’ is
+     defined by Hilbert choice, so KL_divergence is then unspecified, not
+     +∞ as in the textbook definition.
+   - ‘∫’ is the Lebesgue integral of the positive part minus that of the
+     negative part, and PosInf - PosInf is unspecified. For probability
+     measures the negative part is always finite, so KL_divergence is a
+     well-defined value in [0,+∞].
+   - ‘logr b 0’ is an unspecified real, not NegInf. This does not affect the
+     integral, since {x | du/dv x = 0} is a u-null set, but pointwise
+     reasoning must avoid such points.
 
    Written by Claude *)
 Definition KL_divergence_def :
