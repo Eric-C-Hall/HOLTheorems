@@ -35,7 +35,7 @@ Theorem mcdomain0_repeat_channel0:
 Proof
   simp[mcdomain0_def, repeat_channel0_def]
 QED
-        
+
 Theorem wf_memoryless_channel_repeat_channel0:
   ∀W n.
     wf_memoryless_channel W ⇒
@@ -47,7 +47,13 @@ Proof
   >> PairCases_on ‘W’
   >> rename1 ‘wf_memoryless_channel (channel_dom, (output_space, output_algebra), channel_func)’
   (* *)
-  >> gvs[wf_memoryless_channel_def]
+  >> gvs[wf_memoryless_channel_def,mcprob_space0_def]
+  >> conj_tac
+  >- (pop_assum kall_tac >> gs[mcsigma0_def,repeat_channel0_def]
+      >> Induct_on ‘n’ >> rw[sigma_list_def]
+      >- simp[GSYM fundamentalTheory.POW_SING,POW_SIGMA_ALGEBRA]
+      >> irule martingaleTheory.sigma_algebra_general_sigma
+      >> simp[SIGMA_ALGEBRA_SUBSET_CLASS])
   >> gen_tac
   >> gvs[repeat_channel0_def, mcchannel0_def, mcdomain0_def,
          mccodomain0_def, mcsigma0_def, mcprob_space0_def, mcevents0_def]

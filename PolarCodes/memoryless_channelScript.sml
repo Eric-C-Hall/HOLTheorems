@@ -6,6 +6,8 @@ Ancestors arithmetic extreal fundamental lifting pair pred_set real measure sigm
 
 Libs dep_rewrite liftLib transferLib realLib;
 
+val _ = hide "W";
+
 (* -------------------------------------------------------------------------- *)
 (* Important definitions:                                                     *)
 (*                                                                            *)
@@ -57,18 +59,34 @@ End
 (* We require:                                                                *)
 (* - The output distribution associated with every input in the domain is a   *)
 (*   probability distribution, with respect to the codomain sigma-algebra     *)
-(*                                                                            *)
-(* Perhaps we should also require that the sigma algebra is a sigma algebra?  *)
-(* If the domain is nonempty, this is implied by the fact that the output is  *)
-(* a probability space, but if the domain is empty, this does not work.       *)
+(* - The codomain is, in fact, a sigma algebra                                *)
+(*  (This is given from above iff the domain is non-empty)                    *)
 (* -------------------------------------------------------------------------- *)
 (* Old: (FINITE (m_space (W x)) ⇒ measurable_sets (W x) =                     *)
-(* POW (m_space (W x))) ∧                                                    *)
+(* POW (m_space (W x))) ∧                                                     *)
 (* -------------------------------------------------------------------------- *)
+(*
 Definition wf_memoryless_channel_def:
   wf_memoryless_channel (W : (α -> bool) # (β algebra) # (α -> β measure)) ⇔
     (∀x. (x ∈ mcdomain0 W) ⇒ prob_space (mccodomain0 W, mcevents0 W, (mcchannel0 W) x))
 End
+*)
+
+Definition wf_memoryless_channel_def:
+  wf_memoryless_channel (W : (α -> bool) # (β algebra) # (α -> β measure)) ⇔
+    sigma_algebra (mcsigma0 W) ∧ ∀x. x ∈ mcdomain0 W ⇒ prob_space (mcprob_space0 W x)
+End
+
+Theorem wf_memoryless_channel_nonempty:
+    ∀W. mcdomain0 W ≠ ∅ ∧ (∀x. x ∈ mcdomain0 W ⇒ prob_space (mcprob_space0 W x)) ⇒
+        wf_memoryless_channel W
+Proof
+    rw[wf_memoryless_channel_def,GSYM MEMBER_NOT_EMPTY] >>
+    pop_assum $ dxrule_then assume_tac >>
+    dxrule_then assume_tac EVENTS_SIGMA_ALGEBRA >>
+    gs[mcprob_space0_def,mcsigma0_def,p_space_def,m_space_def,events_def,measurable_sets_def,
+        mccodomain0_def,mcevents0_def]
+QED
 
 Theorem wf_memoryless_channels_exist[local]:
   ∃x. wf_memoryless_channel x
@@ -76,7 +94,9 @@ Proof
   qexists ‘({ARB},
             ({ARB}, {{};{ARB}}) ,
             λx s. if s = {ARB} then 1 else 0)’
-  >> simp[wf_memoryless_channel_def]
+  >> irule wf_memoryless_channel_nonempty
+  >> reverse conj_tac >- simp[mcdomain0_def]
+  >> simp[mcprob_space0_def]
   (* Each output distribution is a probabilitiy distribution *)
   >> simp[]
   >> gen_tac >> strip_tac
@@ -277,6 +297,61 @@ QED
 
 val (mccodomain_def, mccodomain_relates) = liftdef mccodomain0_respects "mccodomain";
 
+Theorem mcprob_space0_respects:
+  (memoryless_channelequiv ===> (=)) mcprob_space0 mcprob_space0
+Proof
+  simp[FUN_REL_def]
+  >> rpt gen_tac
+  >> simp[memoryless_channelequiv_def]
+QED
+
+val (mcprob_space_def, mcprob_space_relates) = liftdef mcprob_space0_respects "mcprob_space";
+
+(* -------------------------------------------------------------------------- *)
+(* Results to export for use in other Scripts                                 *)
+(* -------------------------------------------------------------------------- *)
+
+Theorem memoryless_channel_REP_alt:
+    ∀W. memoryless_channel_REP W = (mcdomain W,mcsigma W,mcchannel W)
+Proof
+    simp[mcdomain_def,mcsigma_def,mcchannel_def] >>
+    simp[mcdomain0_def,mcsigma0_def,mcchannel0_def]
+QED
+
+Theorem mcsigma_alt:
+    ∀W. mcsigma W = (mccodomain W,mcevents W)
+Proof
+    simp[mcsigma_def,mccodomain_def,mcevents_def] >>
+    simp[mcsigma0_def,mccodomain0_def,mcevents0_def]
+QED
+
+Theorem memoryless_channel_wf_sigma_algebra_property:
+    ∀W. sigma_algebra (mcsigma W)
+Proof
+    rw[] >> qspec_then ‘W’ mp_tac $ GEN_ALL $ #termP_term_REP tydefrec >>
+    simp[memoryless_channel_REP_alt,wf_memoryless_channel_def,mcsigma0_def]
+QED
+
+Theorem mcprob_space_alt:
+    ∀W x. mcprob_space W x = (mccodomain W,mcevents W,mcchannel W x)
+Proof
+    simp[mcprob_space_def,mccodomain_def,mcevents_def,mcchannel_def] >>
+    simp[mcprob_space0_def,mccodomain0_def,mcevents0_def,mcchannel0_def]
+QED
+
+Theorem memoryless_channel_wf_prob_space_property:
+    ∀W x. x ∈ mcdomain W ⇒ prob_space (mcprob_space W x)
+Proof
+    rw[mcprob_space_def] >>
+    qspec_then ‘W’ mp_tac $ GEN_ALL $ #termP_term_REP tydefrec >>
+    simp[memoryless_channel_REP_alt,wf_memoryless_channel_def,mcsigma_alt,
+        mcdomain0_def,mcsigma0_def,mccodomain0_def,mcevents0_def,mcchannel0_def]
+QED
+
+(* -------------------------------------------------------------------------- *)
+(* Making Channels                                                            *)
+(* -------------------------------------------------------------------------- *)
+
 Datatype:
   erasure_bit = E_T | E_F | Erasure
 End
@@ -363,7 +438,9 @@ Theorem wf_binary_erasure_channel0:
 Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
-  >> simp[wf_memoryless_channel_def, mcdomain0_def, mcchannel0_def]
+  >> irule wf_memoryless_channel_nonempty
+  >> reverse $ conj_tac >- simp[mcdomain0_def,binary_erasure_channel0_def]
+  >> simp[mcprob_space0_def, mcdomain0_def, mcchannel0_def]
   >> gen_tac >> strip_tac
   (* Each output is a probability space *)
   >> simp[binary_erasure_channel0_def, mccodomain0_def, mcevents0_def, mcsigma0_def]
@@ -417,7 +494,9 @@ Theorem wf_binary_symmetric_channel0:
 Proof
   gen_tac >> strip_tac
   >> Cases_on ‘p’ >> gvs[]
-  >> simp[wf_memoryless_channel_def, mcchannel0_def, mcdomain0_def]
+  >> irule wf_memoryless_channel_nonempty
+  >> reverse $ conj_tac >- simp[mcdomain0_def,binary_symmetric_channel0_def]
+  >> simp[mcprob_space0_def, mcchannel0_def, mcdomain0_def]
   >> gen_tac >> strip_tac
   (* Each output is a probability space *)
   >> simp[binary_symmetric_channel0_def, mccodomain0_def, mcevents0_def, mcsigma0_def]

@@ -1,4 +1,4 @@
-INCLUDES = ../PolarCodes ../../HOL-code/fundamental
+INCLUDES = ../PolarCodes ../../HOL4-Theorem-Library/fundamental
 
 all: $(DEFAULT_TARGETS)
 .PHONY: all

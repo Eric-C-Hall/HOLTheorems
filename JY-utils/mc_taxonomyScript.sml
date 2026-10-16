@@ -1,3 +1,4 @@
+
 (* Scratch work of Jared Yeager, for use in work with Eric Hall and Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -22,21 +23,58 @@ val _ = new_theory "mc_taxonomy";
 
 val _ = hide "W";
 
-(*** Memoryless channel probability ***)
-
+(* -------------------------------------------------------------------------- *)
+(* Memoryless channel probability                                             *)
+(*                                                                            *)
+(* Takes a channel c, input a, and output b, and returns the probability      *)
+(* of returning output b given input a.                                       *)
+(* -------------------------------------------------------------------------- *)
 Definition mcp_def:
-    mcp c a b = mcchannel c a ($= b)
+  mcp c a b = mcchannel c a {b}
 End
 
-(*** Binary and Discrete ***)
-
+(* -------------------------------------------------------------------------- *)
+(* Checks if a memoryless channel is a binary memoryless channel, i.e. it     *)
+(* has two possible inputs                                                    *)
+(* -------------------------------------------------------------------------- *)
 Definition binary_mc_def:
     binary_mc c ⇔ CARD (mcdomain c) = 2
 End
 
+(* -------------------------------------------------------------------------- *)
+(* Checks if a memoryless channel is a discrete memoryless channel.           *)
+(*                                                                            *)
+(* It should have a finite set of inputs, and a finite set of outputs         *)
+(*                                                                            *)
+(* We want to be able to specify the probability of each individual output    *)
+(* given each individual input, so we reqruire that each singleton is an      *)
+(* event.                                                                     *)
+(* -------------------------------------------------------------------------- *)
 Definition discrete_mc_def:
-    discrete_mc c ⇔ FINITE (mccodomain c)
+  discrete_mc c ⇔ FINITE (mcdomain c) ∧
+                  FINITE (mccodomain c) ∧
+                  ∀y. y ∈ mccodomain c ⇒ {y} ∈ mcevents c
 End
+
+Theorem discrete_mc_POW_sigma_algebra:
+    ∀c. discrete_mc c ⇒ mcsigma c = (mccodomain c,POW (mccodomain c))
+Proof
+    rw[discrete_mc_def] >>
+    qspec_then ‘c’ assume_tac memoryless_channel_wf_sigma_algebra_property >>
+    gs[mcsigma_alt] >> irule SUBSET_ANTISYM >> conj_tac
+    >- (simp[SUBSET_DEF] >> simp[IN_POW] >>
+        dxrule SIGMA_ALGEBRA_SUBSET_CLASS >> simp[subset_class_def]) >>
+    simp[SUBSET_DEF] >> simp[IN_POW] >>
+    qx_gen_tac ‘s’ >> strip_tac >>
+    dxrule SIGMA_ALGEBRA_COUNTABLE_UNION >> simp[subsets_def] >>
+    disch_then $ qspec_then ‘IMAGE (λx. {x}) s’ mp_tac >>
+    ‘BIGUNION (IMAGE (λx. {x}) s) = s’ by simp[Once EXTENSION,PULL_EXISTS] >>
+    pop_assum SUBST1_TAC >> disch_then irule >>
+    simp[SUBSET_DEF,PULL_EXISTS] >> reverse $ conj_tac
+    >- (rw[] >> first_x_assum irule >> gs[SUBSET_DEF]) >>
+    irule cardinalTheory.COUNTABLE_IMAGE >> irule finite_countable >>
+    simp[SUBSET_FINITE,SF SFY_ss]
+QED
 
 (*** Boolean reskins ***)
 
@@ -225,7 +263,26 @@ Definition pole_channel_def:
     pole_channel (POS::polet) W = positive_pole_channel (pole_channel polet W)
 End
 
-(* dip out of msp land *)
-(* conecting to encording *)
+(** dip out of msp land **)
+
+(*
+Theorem basic_fusion_channel_rep_discrete:
+    ∀W0 W1. discrete_mc W0 ∧ discrete_mc W1 ⇒ basic_fusion_channel_rep W0 W1 = (
+        general_cross $++ (mcdomain W0) (mcdomain W1),
+        general_sigma $++ (mcsigma W0) (mcsigma W1),
+        (λa01.
+            let
+                a0 = TAKE ((LENGTH a01) DIV 2) a01;
+                a1 = DROP ((LENGTH a01) DIV 2) a01
+            in
+                general_prod_measure $++
+                (mccodomain W0, mcevents W0, mcchannel W0 (MAP2 BIT_XOR a0 a1))
+                (mccodomain W1, mcevents W1, mcchannel W1 a1)))
+Proof
+    rw[] >> 
+QED
+*)
+
+(* conecting to encoding *)
 
 val _ = export_theory();
