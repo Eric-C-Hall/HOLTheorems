@@ -1,3 +1,4 @@
+
 (* Scratch work of Jared Yeager, for use in work with Eric Hall and Michael Norrish *)
 
 open HolKernel Parse boolLib bossLib;
@@ -22,21 +23,37 @@ val _ = new_theory "mc_taxonomy";
 
 val _ = hide "W";
 
-(*** Memoryless channel probability ***)
-
+(* -------------------------------------------------------------------------- *)
+(* Memoryless channel probability                                             *)
+(*                                                                            *)
+(* Takes a channel c, input a, and output b, and returns the probability      *)
+(* of returning output b given input a.                                       *)
+(* -------------------------------------------------------------------------- *)
 Definition mcp_def:
-    mcp c a b = mcchannel c a ($= b)
+  mcp c a b = mcchannel c a {b}
 End
 
-(*** Binary and Discrete ***)
-
+(* -------------------------------------------------------------------------- *)
+(* Checks if a memoryless channel is a binary memoryless channel, i.e. it     *)
+(* has two possible inputs                                                    *)
+(* -------------------------------------------------------------------------- *)
 Definition binary_mc_def:
     binary_mc c ⇔ CARD (mcdomain c) = 2
 End
 
-(* every atomic event is a proper event *)
+(* -------------------------------------------------------------------------- *)
+(* Checks if a memoryless channel is a discrete memoryless channel.           *)
+(*                                                                            *)
+(* It should have a finite set of inputs, and a finite set of outputs         *)
+(*                                                                            *)
+(* We want to be able to specify the probability of each individual output    *)
+(* given each individual input, so we reqruire that each singleton is an      *)
+(* event.                                                                     *)
+(* -------------------------------------------------------------------------- *)
 Definition discrete_mc_def:
-    discrete_mc c ⇔ FINITE (mccodomain c) ∧ ∀y. y ∈ mccodomain c ⇒ {y} ∈ mcevents c
+  discrete_mc c ⇔ FINITE (mcdomain c) ∧
+                  FINITE (mccodomain c) ∧
+                  ∀y. y ∈ mccodomain c ⇒ {y} ∈ mcevents c
 End
 
 Theorem discrete_mc_POW_sigma_algebra:
