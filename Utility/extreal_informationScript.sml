@@ -8,7 +8,8 @@
 (*                                                                           *)
 (*   This file was written by Claude.                                        *)
 (*                                                                           *)
-(*   This file has not yet been verified by a human.                         *)
+(*   Only some parts of this file have been validated by a human, indicated  *)
+(*   explicitly where this is the case.                                      *)
 (* ========================================================================= *)
 
 Theory extreal_information
@@ -64,7 +65,9 @@ Definition KL_divergence_def:
              (λx. logr b (RN_deriv u (space s,subsets s,v) x))
 End
 
-(* Written by Claude *)
+(* Non-discrete version of the mutual information
+.
+  Written by Claude *)
 Definition mutual_information_def:
     mutual_information b p s1 s2 X Y =
       let prod_space =
@@ -74,6 +77,21 @@ Definition mutual_information_def:
         KL_divergence b (m_space prod_space,measurable_sets prod_space)
                         (joint_distribution p X Y)
                         (measure prod_space)
+End
+
+(* The entropy H(P)
+.
+   b: the base of the logarithm
+   A: the finite alphabet (set of outcomes) over which P is defined
+   P: the mass function (extreal-valued)
+.
+   Terms with P x = 0 contribute 0 (i.e. 0 log 0 = 0), since 0 * y = 0 for
+   every extreal y. See entropy_discrete_eq for the relationship to the
+   non-discrete version.
+.
+   Written by Claude *)
+Definition entropy_discrete_def:
+    entropy_discrete b A (P : α -> extreal) = -∑ (λx. P x * logr b (P x)) A
 End
 
 (* Written by Claude *)
@@ -680,6 +698,21 @@ Proof
  >> DISJ2_TAC
  >> ‘q x / (q x) pow 2 = inv (q x)’ by rw [POW_2]
  >> rw [logr_inv]
+QED
+
+(* [entropy_def] agrees with [entropy_discrete_def] applied to the mass
+   function of X on its (finite) range.
+.
+   Written by Claude *)
+Theorem entropy_discrete_eq:
+    ∀b p X.
+       prob_space p ∧ POW (p_space p) = events p ∧
+       random_variable X p (IMAGE X (p_space p),POW (IMAGE X (p_space p))) ∧
+       FINITE (p_space p) ⇒
+       entropy b p (IMAGE X (p_space p),POW (IMAGE X (p_space p))) X =
+       entropy_discrete b (IMAGE X (p_space p)) (λx. distribution p X {x})
+Proof
+    rw [entropy_discrete_def, finite_entropy_reduce]
 QED
 
 (* ************************************************************************* *)
