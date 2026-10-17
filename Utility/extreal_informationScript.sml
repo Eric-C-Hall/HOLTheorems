@@ -25,16 +25,16 @@ Libs
 
 (* The KL divergence D_{KL}(P||Q)
 .
-   b:  the base of the logarithm
-   sp: the finite alphabet over which P and Q are defined
-   P:  the first mass function (extreal-valued)
-   Q:  the second mass function (extreal-valued)
+   b: the base of the logarithm
+   A: the finite alphabet (set of outcomes) over which P and Q are defined
+   P: the first mass function (extreal-valued)
+   Q: the second mass function (extreal-valued)
 .
    Written by Claude with supervision by Eric Hall *)
 Definition KL_divergence_discrete_def :
-    KL_divergence_discrete b sp (P :α -> extreal) (Q :α -> extreal) =
-      if ∃x. x ∈ sp ∧ Q x = 0 ∧ P x ≠ 0 then PosInf
-      else ∑ (λx. P x * logr b (P x / Q x)) sp
+    KL_divergence_discrete b A (P :α -> extreal) (Q :α -> extreal) =
+      if ∃x. x ∈ A ∧ Q x = 0 ∧ P x ≠ 0 then PosInf
+      else ∑ (λx. P x * logr b (P x / Q x)) A
 End
 
 (* The Kullback-Leibler divergence (relative entropy) of ‘u’ from ‘v’ in base
@@ -401,19 +401,19 @@ QED
 .
    Written by Claude *)
 Theorem KL_divergence_discrete_eq :
-    ∀b sp (P :α -> extreal) Q.
-       FINITE sp ∧
-       (∀x. x ∈ sp ⇒ 0 ≤ P x ∧ P x ≠ PosInf ∧ 0 ≤ Q x ∧ Q x ≠ PosInf) ∧
-       (∀x. x ∈ sp ∧ Q x = 0 ⇒ P x = 0) ⇒
-       KL_divergence b (sp,POW sp) (λs. ∑ P s) (λs. ∑ Q s) =
-       KL_divergence_discrete b sp P Q
+    ∀b A (P :α -> extreal) Q.
+       FINITE A ∧
+       (∀x. x ∈ A ⇒ 0 ≤ P x ∧ P x ≠ PosInf ∧ 0 ≤ Q x ∧ Q x ≠ PosInf) ∧
+       (∀x. x ∈ A ∧ Q x = 0 ⇒ P x = 0) ⇒
+       KL_divergence b (A,POW A) (λs. ∑ P s) (λs. ∑ Q s) =
+       KL_divergence_discrete b A P Q
 Proof
     rpt STRIP_TAC
- >> ‘¬∃x. x ∈ sp ∧ Q x = 0 ∧ P x ≠ 0’ by METIS_TAC []
+ >> ‘¬∃x. x ∈ A ∧ Q x = 0 ∧ P x ≠ 0’ by METIS_TAC []
  >> simp [KL_divergence_discrete_def]
- >> qmatch_goalsub_abbrev_tac ‘KL_divergence b (sp,POW sp) u v’
- >> Know ‘KL_divergence b (sp,POW sp) u v =
-          ∑ (λx. u {x} * logr b (u {x} / v {x})) sp’
+ >> qmatch_goalsub_abbrev_tac ‘KL_divergence b (A,POW A) u v’
+ >> Know ‘KL_divergence b (A,POW A) u v =
+          ∑ (λx. u {x} * logr b (u {x} / v {x})) A’
  >- (MATCH_MP_TAC KL_divergence_finite_POW \\
      simp [Abbr ‘u’, Abbr ‘v’, measure_space_extreal_pmf_POW] \\
      rw [EXTREAL_SUM_IMAGE_NOT_POSINF])
