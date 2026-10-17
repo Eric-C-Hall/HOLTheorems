@@ -33,12 +33,13 @@ Libs
 .
    Manually validated by Eric Hall: definition matches that provided in
    "Information Theory, Inference and Learning Algorithms" by David J. C.
-   MacKay, assuming validity of components such as logr.
+   MacKay, assuming validity of components such as logr. In the special case
+   of division by zero, we return positive infinity
 .        
    Written by Claude with supervision by Eric Hall *)
 Definition KL_divergence_discrete_def:
     KL_divergence_discrete b A (P : α -> extreal) (Q : α -> extreal) =
-      if ∃x. x ∈ A ∧ Q x = 0 ∧ P x ≠ 0 then PosInf
+      if ∃x. x ∈ A ∧ Q x = 0 ∧ P x ≠ 0 then +∞
       else ∑ (λx. P x * logr b (P x / Q x)) A
 End
 
@@ -175,7 +176,7 @@ QED
 .
    Written by Claude *)
 Theorem finite_POW_measure_normal[local]:
-    ∀sp m s. measure_space (sp,POW sp,m) ∧ m sp ≠ PosInf ∧ s ⊆ sp ⇒
+    ∀sp m s. measure_space (sp,POW sp,m) ∧ m sp ≠ +∞ ∧ s ⊆ sp ⇒
              ∃r. 0 ≤ r ∧ m s = Normal r
 Proof
     rpt STRIP_TAC
