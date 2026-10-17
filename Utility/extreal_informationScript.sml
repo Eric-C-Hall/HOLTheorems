@@ -6,7 +6,7 @@
 (*   theory (examples/probability/legacy), to the extreal-based measure and  *)
 (*   probability theories in src/probability.                                *)
 (*                                                                           *)
-(*   This file was written by Claude.                                        *)
+(*   This file was written by Claude, with close supervision by Eric Hall.   *)
 (*                                                                           *)
 (*   Only some parts of this file have been validated by a human, indicated  *)
 (*   explicitly where this is the case.                                      *)
@@ -24,7 +24,7 @@ Libs
 (* Basic Definitions                                                         *)
 (* ************************************************************************* *)
 
-(* The KL divergence D_{KL}(P||Q)
+(* The KL divergence D_{KL}(P||Q) of a pair of discrete distributions
 .
    b: the base of the logarithm
    A: the finite alphabet (set of outcomes) over which P and Q are defined
@@ -42,6 +42,17 @@ Definition KL_divergence_discrete_def:
       else ∑ (λx. P x * logr b (P x / Q x)) A
 End
 
+(* The entropy H(P) of a discrete distribution
+.
+   b: the base of the logarithm
+   A: the finite alphabet (set of outcomes) over which P is defined
+   P: the mass function (extreal-valued)
+.
+   Written by Claude *)
+Definition entropy_discrete_def:
+    entropy_discrete b A (P : α -> extreal) = ∑ (λx. P x * logr b (1 / P x)) A
+End
+        
 (* Non-discrete version of the KL divergence
    D_b(u||v) = ∫ log_b (du/dv) du (measure-theoretic)
 .
@@ -79,22 +90,9 @@ Definition mutual_information_def:
                         (measure prod_space)
 End
 
-(* The entropy H(P)
+(* entropy_discrete_eq may be helpful in validation.
 .
-   b: the base of the logarithm
-   A: the finite alphabet (set of outcomes) over which P is defined
-   P: the mass function (extreal-valued)
-.
-   Terms with P x = 0 contribute 0 (i.e. 0 log 0 = 0), since 0 * y = 0 for
-   every extreal y. See entropy_discrete_eq for the relationship to the
-   non-discrete version.
-.
-   Written by Claude *)
-Definition entropy_discrete_def:
-    entropy_discrete b A (P : α -> extreal) = -∑ (λx. P x * logr b (P x)) A
-End
-
-(* Written by Claude *)
+  Written by Claude *)
 Definition entropy_def:
     entropy b p s X = mutual_information b p s s X X
 End
@@ -720,6 +718,33 @@ Theorem entropy_discrete_eq:
        entropy_discrete b (IMAGE X (p_space p)) (λx. distribution p X {x})
 Proof
     rw [entropy_discrete_def, finite_entropy_reduce]
+ >> qabbrev_tac ‘sX = IMAGE X (p_space p)’
+ >> ‘FINITE sX’ by rw [Abbr ‘sX’, IMAGE_FINITE]
+ >> ‘∃q. ∀x. 0 ≤ q x ∧ q x ≤ 1 ∧ distribution p X {x} = Normal (q x)’
+      by (Q.EXISTS_TAC ‘λx. real (distribution p X {x})’ >> rw [] \\
+          Q.ISPECL_THEN [‘p’, ‘X’, ‘x’] MP_TAC distribution_normal \\
+          rw [] >> rw [real_normal])
+ >> ‘∑ (λx. distribution p X {x} * logr b (distribution p X {x})) sX =
+     ∑ (λx. Normal (q x * logr b (q x))) sX’
+      by (irule EXTREAL_SUM_IMAGE_EQ' >>
+          rw [extreal_logr_def, extreal_mul_def])
+ >> POP_ORW
+ >> ‘∑ (λx. distribution p X {x} * logr b (1 / distribution p X {x})) sX =
+     ∑ (λx. Normal (q x * logr b (1 / q x))) sX’
+      by (irule EXTREAL_SUM_IMAGE_EQ' >> rw [] \\
+          Cases_on ‘q x = 0’
+          >- rw [GSYM extreal_of_num_def, mul_lzero] \\
+          ‘(1 :extreal) / Normal (q x) = Normal (1 / q x)’
+             by rw [extreal_of_num_def, extreal_div_eq] \\
+          rw [extreal_logr_def, extreal_mul_def])
+ >> POP_ORW
+ >> rw [EXTREAL_SUM_IMAGE_NORMAL, extreal_ainv_def, extreal_11,
+        GSYM REAL_SUM_IMAGE_NEG]
+ >> MATCH_MP_TAC REAL_SUM_IMAGE_EQ
+ >> rw []
+ >> Cases_on ‘q x = 0’ >- rw []
+ >> ‘0 < q x’ by METIS_TAC [REAL_LT_LE]
+ >> rw [real_div, logr_inv]
 QED
 
 (* ************************************************************************* *)
