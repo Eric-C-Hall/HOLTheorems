@@ -31,8 +31,8 @@ Libs
    Q: the second mass function (extreal-valued)
 .
    Written by Claude with supervision by Eric Hall *)
-Definition KL_divergence_discrete_def :
-    KL_divergence_discrete b A (P :α -> extreal) (Q :α -> extreal) =
+Definition KL_divergence_discrete_def:
+    KL_divergence_discrete b A (P : α -> extreal) (Q : α -> extreal) =
       if ∃x. x ∈ A ∧ Q x = 0 ∧ P x ≠ 0 then PosInf
       else ∑ (λx. P x * logr b (P x / Q x)) A
 End
@@ -74,14 +74,14 @@ End
    version, although this also has not been validated.
 .
    Written by Claude *)
-Definition KL_divergence_def :
+Definition KL_divergence_def:
     KL_divergence b s u v =
     ∫ (space s,subsets s,u)
              (λx. logr b (RN_deriv u (space s,subsets s,v) x))
 End
 
 (* Written by Claude *)
-Definition mutual_information_def :
+Definition mutual_information_def:
     mutual_information b p s1 s2 X Y =
       let prod_space =
             prod_measure_space (space s1,subsets s1,distribution p X)
@@ -93,12 +93,12 @@ Definition mutual_information_def :
 End
 
 (* Written by Claude *)
-Definition entropy_def :
+Definition entropy_def:
     entropy b p s X = mutual_information b p s s X X
 End
 
 (* Written by Claude *)
-Definition conditional_mutual_information_def :
+Definition conditional_mutual_information_def:
     conditional_mutual_information b p s1 s2 s3 X Y Z =
       let prod_space =
             prod_measure_space (space s2,subsets s2,distribution p Y)
@@ -115,7 +115,7 @@ End
 (* ************************************************************************* *)
 
 (* Written by Claude *)
-Theorem IN_MEASURABLE_BOREL_POW[local] :
+Theorem IN_MEASURABLE_BOREL_POW[local]:
     ∀sp (f :'a -> extreal). f ∈ Borel_measurable (sp,POW sp)
 Proof
     rw [IN_MEASURABLE_BOREL, POW_SIGMA_ALGEBRA, IN_FUNSET, space_def,
@@ -123,7 +123,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem prod_sigma_POW :
+Theorem prod_sigma_POW:
     ∀s1 s2. FINITE s1 ∧ FINITE s2 ⇒
             subsets ((s1,POW s1) × (s2,POW s2)) = POW (s1 × s2)
 Proof
@@ -160,7 +160,7 @@ QED
 (* The bridge between extreal terms ‘x * logr b (x / y)’ and real ones.
 .
    Written by Claude *)
-Theorem mul_logr_normal[local] :
+Theorem mul_logr_normal[local]:
     ∀b x y. (y = 0 ⇒ x = 0) ⇒
             Normal x * logr b (Normal x / Normal y) =
             Normal (x * logr b (x / y))
@@ -174,7 +174,7 @@ QED
 (* For finite measures on a finite space with all subsets measurable.
 .
    Written by Claude *)
-Theorem finite_POW_measure_normal[local] :
+Theorem finite_POW_measure_normal[local]:
     ∀sp m s. measure_space (sp,POW sp,m) ∧ m sp ≠ PosInf ∧ s ⊆ sp ⇒
              ∃r. 0 ≤ r ∧ m s = Normal r
 Proof
@@ -195,7 +195,7 @@ QED
 (* ************************************************************************* *)
 
 (* Written by Claude *)
-Theorem KL_divergence_finite_POW :
+Theorem KL_divergence_finite_POW:
     ∀b sp u v.
        FINITE sp ∧ measure_space (sp,POW sp,u) ∧
        measure_space (sp,POW sp,v) ∧ u sp ≠ PosInf ∧ v sp ≠ PosInf ∧
@@ -324,7 +324,7 @@ QED
 (* The measure induced by a nonnegative mass function on a finite alphabet.
 .
    Written by Claude *)
-Theorem measure_space_pmf_POW[local] :
+Theorem measure_space_pmf_POW[local]:
     ∀sp P. FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x) ⇒
            measure_space (sp,POW sp,λs. ∑ (λx. Normal (P x)) s)
 Proof
@@ -344,7 +344,7 @@ QED
    alphabet.
 .
    Written by Claude *)
-Theorem measure_space_extreal_pmf_POW[local] :
+Theorem measure_space_extreal_pmf_POW[local]:
     ∀sp (P :α -> extreal). FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x) ⇒
                           measure_space (sp,POW sp,λs. ∑ P s)
 Proof
@@ -374,7 +374,7 @@ QED
    P and Q to sum to 1.
 .
    Written by Claude *)
-Theorem KL_divergence_pmf :
+Theorem KL_divergence_pmf:
     ∀b sp P Q.
        FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x ∧ 0 ≤ Q x) ∧
        (∀x. x ∈ sp ∧ Q x = 0 ⇒ P x = 0) ⇒
@@ -400,7 +400,7 @@ QED
    measures induced by ‘P’ and ‘Q’, when P is absolutely continuous w.r.t. Q.
 .
    Written by Claude *)
-Theorem KL_divergence_discrete_eq :
+Theorem KL_divergence_discrete_eq:
     ∀b A (P :α -> extreal) Q.
        FINITE A ∧
        (∀x. x ∈ A ⇒ 0 ≤ P x ∧ P x ≠ PosInf ∧ 0 ≤ Q x ∧ Q x ≠ PosInf) ∧
@@ -426,7 +426,7 @@ QED
 (* ************************************************************************* *)
 
 (* Written by Claude *)
-Theorem random_variable_POW[local] :
+Theorem random_variable_POW[local]:
     ∀p X s. prob_space p ∧ POW (p_space p) = events p ∧
             (∀x. x ∈ p_space p ⇒ X x ∈ s) ⇒
             random_variable X p (s,POW s)
@@ -438,14 +438,14 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem random_variable_POW_IN[local] :
+Theorem random_variable_POW_IN[local]:
     ∀p X s x. random_variable X p (s,POW s) ∧ x ∈ p_space p ⇒ X x ∈ s
 Proof
     rw [random_variable_def, IN_MEASURABLE, IN_FUNSET, space_def]
 QED
 
 (* Written by Claude *)
-Theorem finite_POW_prob_normal[local] :
+Theorem finite_POW_prob_normal[local]:
     ∀p e. prob_space p ∧ POW (p_space p) = events p ∧
           e ⊆ p_space p ⇒ ∃r. 0 ≤ r ∧ r ≤ 1 ∧ prob p e = Normal r
 Proof
@@ -455,7 +455,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem distribution_normal[local] :
+Theorem distribution_normal[local]:
     ∀p X x. prob_space p ∧ POW (p_space p) = events p ⇒
             ∃r. 0 ≤ r ∧ r ≤ 1 ∧ distribution p X {x} = Normal r
 Proof
@@ -464,7 +464,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem joint_distribution_normal[local] :
+Theorem joint_distribution_normal[local]:
     ∀p X Y x. prob_space p ∧ POW (p_space p) = events p ⇒
               ∃r. 0 ≤ r ∧ r ≤ 1 ∧ joint_distribution p X Y {x} = Normal r
 Proof
@@ -473,7 +473,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem joint_distribution_le_distribution[local] :
+Theorem joint_distribution_le_distribution[local]:
     ∀p X Y x y. prob_space p ∧ POW (p_space p) = events p ⇒
                 joint_distribution p X Y {(x,y)} ≤ distribution p X {x} ∧
                 joint_distribution p X Y {(x,y)} ≤ distribution p Y {y}
@@ -485,7 +485,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem joint_distribution_eq_0[local] :
+Theorem joint_distribution_eq_0[local]:
     ∀p X Y x y. prob_space p ∧ POW (p_space p) = events p ∧
                 (distribution p X {x} = 0 ∨ distribution p Y {y} = 0) ⇒
                 joint_distribution p X Y {(x,y)} = 0
@@ -502,7 +502,7 @@ QED
 (* The general form of [finite_mutual_information_reduce].
 .
    Written by Claude *)
-Theorem finite_mutual_information_reduce_POW :
+Theorem finite_mutual_information_reduce_POW:
     ∀b p s1 s2 X Y.
        prob_space p ∧ FINITE (p_space p) ∧ POW (p_space p) = events p ∧
        random_variable X p (s1,POW s1) ∧ random_variable Y p (s2,POW s2) ∧
@@ -563,7 +563,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem finite_mutual_information_reduce :
+Theorem finite_mutual_information_reduce:
     ∀b p X Y.
        prob_space p ∧ POW (p_space p) = events p ∧
        random_variable X p (IMAGE X (p_space p),POW (IMAGE X (p_space p))) ∧
@@ -583,7 +583,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem finite_mutual_information_reduce2 :
+Theorem finite_mutual_information_reduce2:
     ∀b p X Y Z.
        prob_space p ∧ POW (p_space p) = events p ∧
        random_variable X p (IMAGE X (p_space p),POW (IMAGE X (p_space p))) ∧
@@ -622,7 +622,7 @@ QED
 (* ************************************************************************* *)
 
 (* Written by Claude *)
-Theorem finite_entropy_reduce :
+Theorem finite_entropy_reduce:
     ∀b p X.
        prob_space p ∧ POW (p_space p) = events p ∧
        random_variable X p (IMAGE X (p_space p),POW (IMAGE X (p_space p))) ∧
@@ -703,7 +703,7 @@ QED
 (* ************************************************************************* *)
 
 (* Written by Claude *)
-Theorem marginal_distribution_POW[local] :
+Theorem marginal_distribution_POW[local]:
     ∀p X Y s2 x.
        prob_space p ∧ POW (p_space p) = events p ∧
        random_variable Y p (s2,POW s2) ∧ FINITE s2 ⇒
@@ -734,7 +734,7 @@ QED
 (* I(X;Y) = SIGMA p(x,y) log (p(x,y) / p(y)) - SIGMA p(x) log p(x).
 .
    Written by Claude *)
-Theorem finite_mutual_information_split[local] :
+Theorem finite_mutual_information_split[local]:
     ∀b p s1 s2 X Y.
        prob_space p ∧ FINITE (p_space p) ∧ POW (p_space p) = events p ∧
        random_variable X p (s1,POW s1) ∧ random_variable Y p (s2,POW s2) ∧
@@ -840,7 +840,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem EXTREAL_SUM_IMAGE_NORMAL_EXISTS[local] :
+Theorem EXTREAL_SUM_IMAGE_NORMAL_EXISTS[local]:
     ∀f s. FINITE s ∧ (∀x. x ∈ s ⇒ ∃r. f x = Normal r) ⇒
           ∃r. ∑ f s = Normal r
 Proof
@@ -855,7 +855,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem joint_logr_normal[local] :
+Theorem joint_logr_normal[local]:
     ∀b p X Y x y.
        prob_space p ∧ POW (p_space p) = events p ⇒
        ∃r. joint_distribution p X Y {(x,y)} *
@@ -879,7 +879,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem finite_conditional_mutual_information_reduce :
+Theorem finite_conditional_mutual_information_reduce:
     ∀b p X Y Z.
        prob_space p ∧ POW (p_space p) = events p ∧
        random_variable X p (IMAGE X (p_space p),POW (IMAGE X (p_space p))) ∧
@@ -977,7 +977,7 @@ QED
 (* ************************************************************************* *)
 
 (* Written by Claude *)
-Theorem finite_entropy_certainty_eq_0 :
+Theorem finite_entropy_certainty_eq_0:
     ∀b p X. prob_space p ∧ POW (p_space p) = events p ∧
             random_variable X p
               (IMAGE X (p_space p),POW (IMAGE X (p_space p))) ∧
@@ -1002,7 +1002,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem finite_entropy_le_card_real[local] :
+Theorem finite_entropy_le_card_real[local]:
     ∀b s (q :'a -> real). 1 ≤ b ∧ FINITE s ∧ ∑ q s = 1 ∧
             (∀x. x ∈ s ⇒ 0 ≤ q x ∧ q x ≤ 1) ⇒
             -∑ (λx. q x * logr b (q x)) s ≤
@@ -1043,7 +1043,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem finite_distribution_sum_1[local] :
+Theorem finite_distribution_sum_1[local]:
     ∀p X. prob_space p ∧ POW (p_space p) = events p ∧
           random_variable X p
             (IMAGE X (p_space p),POW (IMAGE X (p_space p))) ∧
@@ -1060,7 +1060,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem finite_entropy_le_card :
+Theorem finite_entropy_le_card:
     ∀b p X. 1 ≤ b ∧ prob_space p ∧ POW (p_space p) = events p ∧
             random_variable X p
               (IMAGE X (p_space p),POW (IMAGE X (p_space p))) ∧
@@ -1091,7 +1091,7 @@ Proof
 QED
 
 (* Written by Claude *)
-Theorem finite_entropy_uniform_max :
+Theorem finite_entropy_uniform_max:
     ∀b p X. prob_space p ∧ POW (p_space p) = events p ∧
             random_variable X p
               (IMAGE X (p_space p),POW (IMAGE X (p_space p))) ∧
