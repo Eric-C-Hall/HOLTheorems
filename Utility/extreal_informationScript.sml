@@ -33,8 +33,8 @@ Libs
 .
    Manually validated by Eric Hall: definition matches that provided in
    "Information Theory, Inference and Learning Algorithms" by David J. C.
-   MacKay, assuming validity of components such as logr. In the special case
-   of division by zero, we return positive infinity
+   MacKay, Equation 2.45 assuming validity of components such as logr. In
+   the special case of division by zero, we return positive infinity
 .        
    Written by Claude with supervision by Eric Hall *)
 Definition KL_divergence_discrete_def:
@@ -48,6 +48,10 @@ End
    b: the base of the logarithm
    A: the finite alphabet (set of outcomes) over which P is defined
    P: the mass function (extreal-valued)
+.
+   Manually validated by Eric Hall: definition matches that provided in
+   "Information Theory, Inference and Learning Algorithms" by David J. C.
+   MacKay, Equation 2.35 assuming validity of components such as logr.
 .
    Written by Claude *)
 Definition entropy_discrete_def:
