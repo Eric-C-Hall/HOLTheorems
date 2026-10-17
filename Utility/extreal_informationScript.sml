@@ -65,7 +65,7 @@ End
      negative part, and PosInf - PosInf is unspecified. For probability
      measures the negative part is always finite, so KL_divergence is a
      well-defined value in [0,+∞].
-   - ‘logr b 0’ is an unspecified real, not NegInf. This does not affect the
+   - ‘logr b 0’ is an unspecified real, not −∞. This does not affect the
      integral, since {x | du/dv x = 0} is a u-null set, but pointwise
      reasoning must avoid such points.
 .
@@ -198,7 +198,7 @@ QED
 Theorem KL_divergence_finite_POW:
     ∀b sp u v.
        FINITE sp ∧ measure_space (sp,POW sp,u) ∧
-       measure_space (sp,POW sp,v) ∧ u sp ≠ PosInf ∧ v sp ≠ PosInf ∧
+       measure_space (sp,POW sp,v) ∧ u sp ≠ +∞ ∧ v sp ≠ +∞ ∧
        (∀x. x ∈ sp ∧ v {x} = 0 ⇒ u {x} = 0) ⇒
        KL_divergence b (sp,POW sp) u v =
        ∑ (λx. u {x} * logr b (u {x} / v {x})) sp
@@ -403,7 +403,7 @@ QED
 Theorem KL_divergence_discrete_eq:
     ∀b A (P :α -> extreal) Q.
        FINITE A ∧
-       (∀x. x ∈ A ⇒ 0 ≤ P x ∧ P x ≠ PosInf ∧ 0 ≤ Q x ∧ Q x ≠ PosInf) ∧
+       (∀x. x ∈ A ⇒ 0 ≤ P x ∧ P x ≠ +∞ ∧ 0 ≤ Q x ∧ Q x ≠ +∞) ∧
        (∀x. x ∈ A ∧ Q x = 0 ⇒ P x = 0) ⇒
        KL_divergence b (A,POW A) (λs. ∑ P s) (λs. ∑ Q s) =
        KL_divergence_discrete b A P Q
@@ -845,7 +845,7 @@ Theorem EXTREAL_SUM_IMAGE_NORMAL_EXISTS[local]:
           ∃r. ∑ f s = Normal r
 Proof
     rpt STRIP_TAC
- >> ‘∑ f s ≠ NegInf ∧ ∑ f s ≠ PosInf’
+ >> ‘∑ f s ≠ −∞ ∧ ∑ f s ≠ +∞’
       by (CONJ_TAC
           >- (MATCH_MP_TAC (CONJUNCT1 (SPEC_ALL EXTREAL_SUM_IMAGE_NOT_INFTY)) \\
               METIS_TAC [extreal_not_infty]) \\
@@ -931,7 +931,7 @@ Proof
                    Abbr ‘S3’, FORALL_PROD] >> rw []) >> METIS_TAC []) \\
      ‘∀x w. joint_distribution p X YZ {(x,w)} *
             logr b (joint_distribution p X YZ {(x,w)} /
-                    distribution p YZ {w}) ≠ NegInf’
+                    distribution p YZ {w}) ≠ −∞’
         by (rpt GEN_TAC \\
             Q.ISPECL_THEN [‘b’, ‘p’, ‘X’, ‘YZ’, ‘x’, ‘w’] MP_TAC
                           joint_logr_normal \\
