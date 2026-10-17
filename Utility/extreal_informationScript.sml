@@ -26,12 +26,12 @@ Libs
 (* ************************************************************************* *)
 
 (* The KL divergence D_{KL}(P||Q)
-
+.
    b:  the base of the logarithm
    sp: the finite alphabet over which P and Q are defined
    P:  the first mass function (extreal-valued)
    Q:  the second mass function (extreal-valued)
-
+.
    Written by Claude with supervision by Eric Hall *)
 Definition KL_divergence_discrete_def :
     KL_divergence_discrete b sp (P :α -> extreal) (Q :α -> extreal) =
@@ -41,9 +41,9 @@ End
 
 (* The Kullback-Leibler divergence (relative entropy) of ‘u’ from ‘v’ in base
    ‘b’, i.e. the measure-theoretic definition
-
+.
      D_b(u||v) = ∫ log_b (du/dv) du
-
+.
    Arguments:
    - ‘b’ : the base of the logarithm (a real, e.g. 2 for bits). Nothing here
            requires 1 < b, but theorems about KL divergence will need it.
@@ -51,13 +51,13 @@ End
            measures.
    - ‘u’, ‘v’ : two measures (of type ‘α measure’) on ‘s’. Typically these are
            probability distributions, e.g. ‘distribution p X’.
-
+.
    NOTE: ‘RN_deriv u m’ (also written ‘u / m’) is the Radon-Nikodym derivative
    of the measure ‘u’ w.r.t. the measure space ‘m’, i.e. du/dm. On a finite
    space with all subsets measurable it is x ↦ u {x} / v {x}, and the
    definition reduces to the usual SUM_x u{x} log_b (u{x} / v{x}) (see
    [KL_divergence_finite_POW] and [KL_divergence_pmf]).
-
+.
    Caveats (the definition is only meaningful under these conditions):
    - ‘u’ must be absolutely continuous w.r.t. ‘v’ (u ≪ v) and ‘v’ must be
      sigma-finite, otherwise the density du/dv does not exist. ‘RN_deriv’ is
@@ -70,11 +70,11 @@ End
    - ‘logr b 0’ is an unspecified real, not NegInf. This does not affect the
      integral, since {x | du/dv x = 0} is a u-null set, but pointwise
      reasoning must avoid such points.
-
+.
    Has not been validated for correctness by a human.
    See KL_divergence_discrete_eq for theorem proving relationship to discrete
    version, although this also has not been validated.
-     
+.
    Written by Claude *)
 Definition KL_divergence_def :
     KL_divergence b s u v =
@@ -160,7 +160,7 @@ Proof
 QED
 
 (* The bridge between extreal terms ‘x * logr b (x / y)’ and real ones.
-
+.
    Written by Claude *)
 Theorem mul_logr_normal[local] :
     ∀b x y. (y = 0 ⇒ x = 0) ⇒
@@ -174,7 +174,7 @@ Proof
 QED
 
 (* For finite measures on a finite space with all subsets measurable.
-
+.
    Written by Claude *)
 Theorem finite_POW_measure_normal[local] :
     ∀sp m s. measure_space (sp,POW sp,m) ∧ m sp ≠ PosInf ∧ s ⊆ sp ⇒
@@ -324,7 +324,7 @@ Proof
 QED
 
 (* The measure induced by a nonnegative mass function on a finite alphabet.
-
+.
    Written by Claude *)
 Theorem measure_space_pmf_POW[local] :
     ∀sp P. FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x) ⇒
@@ -344,7 +344,7 @@ QED
 
 (* The measure induced by a nonnegative extreal mass function on a finite
    alphabet.
-
+.
    Written by Claude *)
 Theorem measure_space_extreal_pmf_POW[local] :
     ∀sp (P :α -> extreal). FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x) ⇒
@@ -365,16 +365,16 @@ QED
 
 (* The KL divergence agrees with the textbook definition (e.g. MacKay,
    "Information Theory, Inference, and Learning Algorithms", eq. 2.45):
-
+.
      D_KL(P||Q) = SUM_x P(x) log (P(x) / Q(x))
-
+.
    where P and Q are probability distributions over the same finite alphabet
    ‘sp’, viewed as (real) mass functions. The measures used by
    ‘KL_divergence’ are the ones these mass functions induce on (sp,POW sp).
    The condition ‘Q x = 0 ==> P x = 0’ (P is absolutely continuous w.r.t. Q)
    is needed for D_KL(P||Q) to be finite. Note that the theorem does not need
    P and Q to sum to 1.
-
+.
    Written by Claude *)
 Theorem KL_divergence_pmf :
     ∀b sp P Q.
@@ -400,7 +400,7 @@ QED
 
 (* [KL_divergence_def] agrees with [KL_divergence_discrete_def] on the
    measures induced by ‘P’ and ‘Q’, when P is absolutely continuous w.r.t. Q.
-
+.
    Written by Claude *)
 Theorem KL_divergence_discrete_eq :
     ∀b sp (P :α -> extreal) Q.
@@ -502,7 +502,7 @@ Proof
 QED
 
 (* The general form of [finite_mutual_information_reduce].
-
+.
    Written by Claude *)
 Theorem finite_mutual_information_reduce_POW :
     ∀b p s1 s2 X Y.
@@ -734,7 +734,7 @@ Proof
 QED
 
 (* I(X;Y) = SIGMA p(x,y) log (p(x,y) / p(y)) - SIGMA p(x) log p(x).
-
+.
    Written by Claude *)
 Theorem finite_mutual_information_split[local] :
     ∀b p s1 s2 X Y.
