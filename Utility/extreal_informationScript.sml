@@ -11,8 +11,6 @@
 (*   This file has not yet been verified by a human.                         *)
 (* ========================================================================= *)
 
-(* TODO: show equivalence between KL divergence and sum-based version in teh discrete case. In particular, show that it is equivalent to the version in the polar codes paper. *)
-
 Theory extreal_information
 Ancestors
   combin arithmetic pred_set pair real real_sigma transc
