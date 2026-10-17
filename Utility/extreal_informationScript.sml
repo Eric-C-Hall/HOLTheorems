@@ -31,9 +31,9 @@ Libs
    P: the first mass function (extreal-valued)
    Q: the second mass function (extreal-valued)
 .
-   Manually checked for validity by Eric Hall: definition matches that provided
-   in "Information Theory, Inference and Learning Algorithms" by David J. C. MacKay
-   assuming validity of components such as logr.
+   Manually validated by Eric Hall: definition matches that provided in
+   "Information Theory, Inference and Learning Algorithms" by David J. C.
+   MacKay, assuming validity of components such as logr.
 .        
    Written by Claude with supervision by Eric Hall *)
 Definition KL_divergence_discrete_def:
@@ -55,8 +55,8 @@ End
    exist and the value is unspecified, not +∞), and when the integral is not
    +∞ - +∞ (never the case for probability measures).
 .
-   Has not been validated for correctness by a human. KL_divergence_discrete_eq will
-   likely help in validation.
+   Has not been validated by a human. KL_divergence_discrete_eq will likely
+   help in validation.
 .
    Written by Claude *)
 Definition KL_divergence_def:
@@ -185,7 +185,8 @@ Proof
       by (Q.ISPECL_THEN [‘(sp,POW sp,m)’, ‘s’] MP_TAC MEASURE_POSITIVE \\
           rw [IN_POW])
  >> ‘m s ≤ m sp’
-      by (Q.ISPECL_THEN [‘(sp,POW sp,m)’, ‘s’, ‘sp’] MP_TAC MEASURE_INCREASING \\
+      by (Q.ISPECL_THEN [‘(sp,POW sp,m)’, ‘s’, ‘sp’] MP_TAC
+                        MEASURE_INCREASING \\
           rw [IN_POW])
  >> Cases_on ‘m s’ >> fs [extreal_of_num_def, extreal_le_eq]
  >> fs [GSYM lt_infty]
@@ -232,7 +233,8 @@ Proof
      ‘{x} ∈ measurable_sets (sp,POW sp,v)’ by rw [IN_POW] \\
      Cases_on ‘h x’
      >- fs [le_infty, extreal_of_num_def]
-     >- (Q.ISPECL_THEN [‘(sp,POW sp,v)’, ‘{x}’] MP_TAC pos_fn_integral_cmul_infty \\
+     >- (Q.ISPECL_THEN [‘(sp,POW sp,v)’, ‘{x}’] MP_TAC
+                       pos_fn_integral_cmul_infty \\
          rw []) \\
      fs [extreal_of_num_def, extreal_le_eq] \\
      Q.ISPECL_THEN [‘(sp,POW sp,v)’, ‘{x}’, ‘r’] MP_TAC
@@ -268,7 +270,8 @@ Proof
          ‘(f * (sp,POW sp,v)) s = ∑ (λx. f x * v {x}) s’
             by (FIRST_X_ASSUM MATCH_MP_TAC >> fs []) \\
          POP_ORW \\
-         Q.ISPECL_THEN [‘(sp,POW sp,u)’, ‘s’] MP_TAC MEASURE_EXTREAL_SUM_IMAGE \\
+         Q.ISPECL_THEN [‘(sp,POW sp,u)’, ‘s’] MP_TAC
+                       MEASURE_EXTREAL_SUM_IMAGE \\
          simp [IN_POW] \\
          impl_tac >- fs [SUBSET_DEF] >> Rewr \\
          irule EXTREAL_SUM_IMAGE_EQ' >> rw [Abbr ‘f’] \\
@@ -292,7 +295,8 @@ Proof
         by (MATCH_MP_TAC SUBSET_FINITE_I >> Q.EXISTS_TAC ‘sp’ \\
             rw [SUBSET_DEF]) \\
      rw [null_set_def, IN_POW, SUBSET_DEF]
-     >- (Q.ISPECL_THEN [‘(sp,POW sp,u)’, ‘{x | x ∈ sp ∧ a x = (0 :real)}’] MP_TAC
+     >- (Q.ISPECL_THEN [‘(sp,POW sp,u)’,
+                        ‘{x | x ∈ sp ∧ a x = (0 :real)}’] MP_TAC
                          MEASURE_EXTREAL_SUM_IMAGE \\
          rw [IN_POW, SUBSET_DEF] \\
          MATCH_MP_TAC EXTREAL_SUM_IMAGE_0 >> rw [extreal_of_num_def]) \\
@@ -309,7 +313,8 @@ Proof
             (Q.ISPEC_THEN ‘x’ MP_TAC) >> fs []) \\
           rw [extreal_div_eq, extreal_logr_def])
  >> Q.ISPECL_THEN [‘(sp,POW sp,u)’,
-                     ‘λx. if a x = (0 :real) then 0 else logr b (u {x} / v {x})’] MP_TAC
+                     ‘λx. if a x = (0 :real) then 0
+                          else logr b (u {x} / v {x})’] MP_TAC
                     finite_space_POW_integral_reduce
  >> simp []
  >> impl_tac
@@ -523,7 +528,8 @@ Proof
           >- (Q.ISPECL_THEN [‘p’, ‘X’, ‘(s1,POW s1)’] MP_TAC
                               distribution_prob_space \\
               rw [POW_SIGMA_ALGEBRA, space_def, subsets_def]) \\
-          Q.ISPECL_THEN [‘p’, ‘Y’, ‘(s2,POW s2)’] MP_TAC distribution_prob_space \\
+          Q.ISPECL_THEN [‘p’, ‘Y’, ‘(s2,POW s2)’] MP_TAC
+                        distribution_prob_space \\
           rw [POW_SIGMA_ALGEBRA, space_def, subsets_def])
  >> qabbrev_tac ‘M1 = (s1,POW s1,distribution p X)’
  >> qabbrev_tac ‘M2 = (s2,POW s2,distribution p Y)’
@@ -664,7 +670,8 @@ Proof
                        ‘λx y. Normal (if x = y then tt x else 0)’] MP_TAC
                       EXTREAL_SUM_IMAGE_SUM_IMAGE \\
      rw [extreal_not_infty] \\
-     irule EXTREAL_SUM_IMAGE_EQ' >> (simp [FORALL_PROD, FINITE_CROSS] >> rw []))
+     irule EXTREAL_SUM_IMAGE_EQ' \\
+     (simp [FORALL_PROD, FINITE_CROSS] >> rw []))
  >> Rewr
  >> Know ‘∀x. x ∈ sX ⇒
               ∑ (λy. Normal (if x = y then tt x else 0)) sX = Normal (tt x)’
@@ -779,7 +786,8 @@ Proof
           rw [] >> rw [real_normal])
  >> ‘∀x y. px x = 0 ∨ py y = 0 ⇒ j x y = 0’
       by (rpt STRIP_TAC \\
-          Q.ISPECL_THEN [‘p’, ‘X’, ‘Y’, ‘x’, ‘y’] MP_TAC joint_distribution_eq_0 \\
+          Q.ISPECL_THEN [‘p’, ‘X’, ‘Y’, ‘x’, ‘y’] MP_TAC
+                        joint_distribution_eq_0 \\
           rw [extreal_of_num_def])
  >> ‘∀x. ∑ (λy. j x y) s2 = px x’
       by (GEN_TAC \\
@@ -864,7 +872,8 @@ Proof
     rpt STRIP_TAC
  >> ‘∑ f s ≠ −∞ ∧ ∑ f s ≠ +∞’
       by (CONJ_TAC
-          >- (MATCH_MP_TAC (CONJUNCT1 (SPEC_ALL EXTREAL_SUM_IMAGE_NOT_INFTY)) \\
+          >- (MATCH_MP_TAC
+                (CONJUNCT1 (SPEC_ALL EXTREAL_SUM_IMAGE_NOT_INFTY)) \\
               METIS_TAC [extreal_not_infty]) \\
           MATCH_MP_TAC (CONJUNCT2 (SPEC_ALL EXTREAL_SUM_IMAGE_NOT_INFTY)) \\
           METIS_TAC [extreal_not_infty])
@@ -975,7 +984,8 @@ Proof
  >> ‘∃a. A' = Normal a’
       by (qunabbrev_tac ‘A'’ \\
           MATCH_MP_TAC EXTREAL_SUM_IMAGE_NORMAL_EXISTS \\
-          (simp [FORALL_PROD, FINITE_CROSS, IMAGE_FINITE, joint_logr_normal] >> rw []))
+          (simp [FORALL_PROD, FINITE_CROSS, IMAGE_FINITE, joint_logr_normal] \\
+           rw []))
  >> ‘∃c. B = Normal c’
       by (qunabbrev_tac ‘B’ \\
           MATCH_MP_TAC EXTREAL_SUM_IMAGE_NORMAL_EXISTS \\
@@ -1072,7 +1082,8 @@ Proof
  >> ‘FINITE sX’ by rw [Abbr ‘sX’, IMAGE_FINITE]
  >> Q.ISPECL_THEN [‘p’, ‘X’, ‘(sX,POW sX)’] MP_TAC distribution_prob_space
  >> rw [POW_SIGMA_ALGEBRA, space_def, subsets_def]
- >> Q.ISPEC_THEN ‘(sX,POW sX,distribution p X)’ MP_TAC PROB_EXTREAL_SUM_IMAGE_SPACE
+ >> Q.ISPEC_THEN ‘(sX,POW sX,distribution p X)’ MP_TAC
+                  PROB_EXTREAL_SUM_IMAGE_SPACE
  >> rw [p_space_def, events_def, prob_def, IN_POW]
 QED
 
