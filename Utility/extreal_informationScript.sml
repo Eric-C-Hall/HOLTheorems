@@ -57,6 +57,23 @@ End
 Definition entropy_discrete_def:
     entropy_discrete b A (P : α -> extreal) = ∑ (λx. P x * logr b (1 / P x)) A
 End
+
+(* The joint entropy H(X,Y) of a discrete joint distribution
+.
+   b: the base of the logarithm
+   A: the finite alphabet (set of outcomes) of the first component
+   B: the finite alphabet (set of outcomes) of the second component
+   P: the joint mass function (extreal-valued), P (x,y) = Pr(X = x, Y = y)
+.
+   Manually validated by Eric Hall: definition matches that provided in
+   "Information Theory, Inference and Learning Algorithms" by David J. C.
+   MacKay, Equation 2.38 assuming validity of components such as logr.
+.
+   Written by Claude *)
+Definition joint_entropy_discrete_def:
+    joint_entropy_discrete b A B (P : α # β -> extreal) =
+      ∑ (λ(x,y). P (x,y) * logr b (1 / P (x,y))) (A × B)
+End
         
 (* Non-discrete version of the KL divergence
    D_b(u||v) = ∫ log_b (du/dv) du (measure-theoretic)
