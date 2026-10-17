@@ -25,6 +25,20 @@ Libs
 (* Basic Definitions                                                         *)
 (* ************************************************************************* *)
 
+(* The KL divergence D_{KL}(P||Q)
+
+   b:  the base of the logarithm
+   sp: the finite alphabet over which P and Q are defined
+   P:  the first mass function (real-valued)
+   Q:  the second mass function (real-valued)
+
+   Written by Claude with supervision by Eric Hall *)
+Definition KL_divergence_discrete_def :
+    KL_divergence_discrete b sp P Q =
+      if ∃x. x ∈ sp ∧ Q x = 0 ∧ P x ≠ 0 then PosInf
+      else Normal (∑ (λx. P x * logr b (P x / Q x)) sp)
+End
+
 (* The Kullback-Leibler divergence (relative entropy) of ‘u’ from ‘v’ in base
    ‘b’, i.e. the measure-theoretic definition
 
@@ -57,6 +71,10 @@ Libs
      integral, since {x | du/dv x = 0} is a u-null set, but pointwise
      reasoning must avoid such points.
 
+   Has not been validated for correctness by a human.
+   See KL_divergence_discrete_eq for theorem proving relationship to discrete
+   version, although this also has not been validated.
+     
    Written by Claude *)
 Definition KL_divergence_def :
     KL_divergence b s u v =
@@ -357,6 +375,23 @@ Proof
  >> simp [Abbr ‘u’, Abbr ‘v’, GSYM EXTREAL_SUM_IMAGE_NORMAL]
  >> irule EXTREAL_SUM_IMAGE_EQ' >> rw []
  >> MATCH_MP_TAC mul_logr_normal >> rw []
+QED
+
+(* [KL_divergence_def] agrees with [KL_divergence_discrete_def] on the
+   measures induced by ‘P’ and ‘Q’, when P is absolutely continuous w.r.t. Q.
+
+   Written by Claude *)
+Theorem KL_divergence_discrete_eq :
+    ∀b sp P Q.
+       FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x ∧ 0 ≤ Q x) ∧
+       (∀x. x ∈ sp ∧ Q x = 0 ⇒ P x = 0) ⇒
+       KL_divergence b (sp,POW sp) (λs. ∑ (λx. Normal (P x)) s)
+                                   (λs. ∑ (λx. Normal (Q x)) s) =
+       KL_divergence_discrete b sp P Q
+Proof
+    rpt STRIP_TAC
+ >> rw [KL_divergence_discrete_def, KL_divergence_pmf]
+ >> METIS_TAC []
 QED
 
 (* ************************************************************************* *)
