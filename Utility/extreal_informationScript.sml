@@ -30,6 +30,10 @@ Libs
    P: the first mass function (extreal-valued)
    Q: the second mass function (extreal-valued)
 .
+   Manually checked for validity by Eric Hall: definition matches that provided
+   in "Information Theory, Inference and Learning Algorithms" by David J. C. MacKay
+   assuming validity of components such as logr.
+.        
    Written by Claude with supervision by Eric Hall *)
 Definition KL_divergence_discrete_def:
     KL_divergence_discrete b A (P : α -> extreal) (Q : α -> extreal) =
