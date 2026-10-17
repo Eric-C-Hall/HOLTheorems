@@ -29,14 +29,14 @@ Libs
 
    b:  the base of the logarithm
    sp: the finite alphabet over which P and Q are defined
-   P:  the first mass function (real-valued)
-   Q:  the second mass function (real-valued)
+   P:  the first mass function (extreal-valued)
+   Q:  the second mass function (extreal-valued)
 
    Written by Claude with supervision by Eric Hall *)
 Definition KL_divergence_discrete_def :
-    KL_divergence_discrete b sp P Q =
+    KL_divergence_discrete b sp (P :α -> extreal) (Q :α -> extreal) =
       if ∃x. x ∈ sp ∧ Q x = 0 ∧ P x ≠ 0 then PosInf
-      else Normal (∑ (λx. P x * logr b (P x / Q x)) sp)
+      else ∑ (λx. P x * logr b (P x / Q x)) sp
 End
 
 (* The Kullback-Leibler divergence (relative entropy) of ‘u’ from ‘v’ in base
@@ -342,6 +342,27 @@ Proof
  >> rw []
 QED
 
+(* The measure induced by a nonnegative extreal mass function on a finite
+   alphabet.
+
+   Written by Claude *)
+Theorem measure_space_extreal_pmf_POW[local] :
+    ∀sp (P :α -> extreal). FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x) ⇒
+                          measure_space (sp,POW sp,λs. ∑ P s)
+Proof
+    rpt STRIP_TAC
+ >> MATCH_MP_TAC finite_additivity_sufficient_for_finite_spaces2
+ >> rw [m_space_def, measurable_sets_def, POW_SIGMA_ALGEBRA, positive_def,
+        additive_def, measure_def, IN_POW]
+ >> ‘FINITE s’ by METIS_TAC [SUBSET_FINITE]
+ >- (MATCH_MP_TAC EXTREAL_SUM_IMAGE_POS \\
+     fs [SUBSET_DEF])
+ >> ‘FINITE t’ by METIS_TAC [SUBSET_FINITE]
+ >> irule EXTREAL_SUM_IMAGE_DISJOINT_UNION
+ >> rw [] >> DISJ1_TAC
+ >> rw [] >> MATCH_MP_TAC pos_not_neginf >> fs [SUBSET_DEF]
+QED
+
 (* The KL divergence agrees with the textbook definition (e.g. MacKay,
    "Information Theory, Inference, and Learning Algorithms", eq. 2.45):
 
@@ -382,16 +403,24 @@ QED
 
    Written by Claude *)
 Theorem KL_divergence_discrete_eq :
-    ∀b sp P Q.
-       FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x ∧ 0 ≤ Q x) ∧
+    ∀b sp (P :α -> extreal) Q.
+       FINITE sp ∧
+       (∀x. x ∈ sp ⇒ 0 ≤ P x ∧ P x ≠ PosInf ∧ 0 ≤ Q x ∧ Q x ≠ PosInf) ∧
        (∀x. x ∈ sp ∧ Q x = 0 ⇒ P x = 0) ⇒
-       KL_divergence b (sp,POW sp) (λs. ∑ (λx. Normal (P x)) s)
-                                   (λs. ∑ (λx. Normal (Q x)) s) =
+       KL_divergence b (sp,POW sp) (λs. ∑ P s) (λs. ∑ Q s) =
        KL_divergence_discrete b sp P Q
 Proof
     rpt STRIP_TAC
- >> rw [KL_divergence_discrete_def, KL_divergence_pmf]
- >> METIS_TAC []
+ >> ‘¬∃x. x ∈ sp ∧ Q x = 0 ∧ P x ≠ 0’ by METIS_TAC []
+ >> simp [KL_divergence_discrete_def]
+ >> qmatch_goalsub_abbrev_tac ‘KL_divergence b (sp,POW sp) u v’
+ >> Know ‘KL_divergence b (sp,POW sp) u v =
+          ∑ (λx. u {x} * logr b (u {x} / v {x})) sp’
+ >- (MATCH_MP_TAC KL_divergence_finite_POW \\
+     simp [Abbr ‘u’, Abbr ‘v’, measure_space_extreal_pmf_POW] \\
+     rw [EXTREAL_SUM_IMAGE_NOT_POSINF])
+ >> Rewr
+ >> simp [Abbr ‘u’, Abbr ‘v’]
 QED
 
 (* ************************************************************************* *)
