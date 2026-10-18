@@ -231,14 +231,12 @@ Definition sigma_list_def:
   sigma_list (h::t) = general_sigma CONS h (sigma_list t)
 End
 
-Theorem sigma_finite_measure_space_dirac_measure:
-    ∀sa x. sigma_algebra sa ⇒ sigma_finite_measure_space (space sa,subsets sa,C 𝟙 x)
-Proof
-    rw[sigma_finite_measure_space_def,measure_space_dirac_measure,sigma_finite_def] >>
-    qexists ‘K (space sa)’ >> simp[FUNSET,SIGMA_ALGEBRA_SPACE] >>
-    reverse conj_tac >- (rw[indicator_fn_def]) >>
-    rw[EXTENSION,IN_BIGUNION_IMAGE]
-QED
+(* sigma_finite_measure_space_dirac_measure, prob_space_dirac_measure and
+   prob_space_sigma_finite_measure_space used to be proved here, but they
+   duplicated (with identical statements) theorems in trivialTheory, which
+   this file opens. The local copies have been removed in favour of those.
+.
+   Edited by Claude *)
 
 Theorem sigma_finite_measure_space_prod_list:
   ∀ml. EVERY sigma_finite_measure_space ml ⇒ sigma_finite_measure_space (prod_list ml)
@@ -250,44 +248,6 @@ Proof
     rw[EVERY_DEF,prod_list_def] >> rename [‘_ CONS mh (_ mt)’] >>
     irule sigma_finite_measure_space_general_prod_measure >> gs[] >>
     irule_at Any pair_operation_CONS
-QED
-
-Theorem prob_space_dirac_measure:
-  ∀sa x.
-    sigma_algebra sa ∧
-    x ∈ space sa ⇒
-    prob_space (space sa,subsets sa,C 𝟙 x)
-Proof
-  rpt gen_tac >> strip_tac
-  >> simp[prob_space_def]
-  >> simp[measure_space_dirac_measure]
-  >> simp[indicator_fn_def]
-QED
-
-(* TODO: Add this to canon
-   Edit: apparently this may already be somewhere in HOL4-Theorem-Library? *)
-Theorem prob_space_sigma_finite_measure_space:
-  ∀p.
-    prob_space p ⇒ sigma_finite_measure_space p
-Proof
-  gen_tac
-  >> strip_tac
-  >> simp[sigma_finite_measure_space_def]
-  >> gvs[prob_space_def]
-  >> simp[sigma_finite_def]
-  >> qexists ‘λn. m_space p’
-  >> rpt conj_tac
-  >- simp[IN_FUNSET, MEASURE_SPACE_SPACE]
-  >- (gen_tac >> simp[SUBSET_DEF])
-  >- (simp[EXTENSION]
-      >> gen_tac
-      >> EQ_TAC
-      >- (strip_tac >> metis_tac[])
-      >> strip_tac
-      >> qexists ‘m_space p’
-      >> simp[])
-  >> gen_tac
-  >> simp[]
 QED
 
 (*Theorem measure_prod_list_m_space:
