@@ -24,6 +24,9 @@ Libs
 (* Basic Definitions                                                         *)
 (* ************************************************************************* *)
 
+(* TODO: Perhaps I should change this to use definitions like prob and
+   cond_prob rather than working directly with the distributions P and Q? *)
+
 (* The KL divergence D_{KL}(P||Q) of a pair of discrete distributions
 .
    b: the base of the logarithm
@@ -73,6 +76,32 @@ End
 Definition joint_entropy_discrete_def:
     joint_entropy_discrete b A B (P : α # β -> extreal) =
       ∑ (λ(x,y). P (x,y) * logr b (1 / P (x,y))) (A × B)
+End
+
+(* The conditional entropy H(X|Y) of a discrete joint distribution, i.e.
+   SUM_{x,y} P(x,y) log_b (1 / P(x|y)), where P(x|y) = P(x,y) / P(y) and
+   P(y) = SUM_x P(x,y) is the marginal of the second component.
+.
+   b: the base of the logarithm
+   A: the finite alphabet (set of outcomes) of the first component (X)
+   B: the finite alphabet (set of outcomes) of the second component (Y)
+   P: the joint mass function (extreal-valued), P (x,y) = Pr(X = x, Y = y)
+.
+   PY represents the probability of Y = y, obtained by marginalizing out X = x.
+   P(X|Y) = P(X,Y) / P(Y), and this is used in the definition
+.
+   Manually validated by Eric Hall: definition matches that provided in
+   "Information Theory, Inference and Learning Algorithms" by David J. C.
+   MacKay, Equation 8.3 assuming validity of components such as logr, if we
+   take into account the above observations regarding PY and P(X|Y).
+.
+   Written by Claude *)
+Definition conditional_entropy_discrete_def:
+    conditional_entropy_discrete b A B (P : α # β -> extreal) =
+    let
+      PY = λy. ∑ (λx. P (x,y)) A
+    in
+        ∑ (λ(x,y). P (x,y) * logr b (1 / (P (x,y) / PY y))) (A × B)
 End
         
 (* Non-discrete version of the KL divergence
