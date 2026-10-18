@@ -116,7 +116,11 @@ End
    mutual_information_discrete_alt shows that this agrees with the direct
    form SUM_{x,y} P(x,y) log_b (P(x,y) / (P(x) P(y))).
 .
-   Has not been validated by a human.
+   Manually validated by Eric Hall: definition matches that provided in
+   "Information Theory, Inference and Learning Algorithms" by David J. C.
+   MacKay, Equation 8.8 assuming validity of components: note that
+   marginalising out Y from P(X,Y) gives us P(X), which we provide as input to
+   entropy_discrete.
 .
    Written by Claude *)
 Definition mutual_information_discrete_def:
@@ -124,7 +128,6 @@ Definition mutual_information_discrete_def:
       entropy_discrete b A (λx. ∑ (λy. P (x,y)) B) -
       conditional_entropy_discrete b A B P
 End
-
         
 (* Non-discrete version of the KL divergence
    D_b(u||v) = ∫ log_b (du/dv) du (measure-theoretic)
