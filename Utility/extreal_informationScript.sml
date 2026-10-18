@@ -103,6 +103,8 @@ Definition conditional_entropy_discrete_def:
     in
         ∑ (λ(x,y). P (x,y) * logr b (1 / (P (x,y) / PY y))) (A × B)
 End
+
+
         
 (* Non-discrete version of the KL divergence
    D_b(u||v) = ∫ log_b (du/dv) du (measure-theoretic)
@@ -1238,4 +1240,127 @@ Proof
                             ‘inv (&CARD sX) * logr b (inv (&CARD sX))’] mp_tac)
  >> rw []
  >> rw [REAL_MUL_ASSOC, REAL_MUL_RINV, REAL_LT_IMP_NE, logr_inv]
+QED
+
+(* ************************************************************************* *)
+(* Chain rule for discrete entropy                                           *)
+(* ************************************************************************* *)
+
+(* The bridge between extreal terms ‘x * logr b (1 / x)’ and real ones.
+.
+   Written by Claude *)
+Theorem mul_logr_inv_normal[local]:
+    ∀b x. Normal x * logr b (1 / Normal x) = Normal (x * logr b (1 / x))
+Proof
+    rpt STRIP_TAC
+ >> Cases_on ‘x = 0’
+ >- fs [GSYM extreal_of_num_def, mul_lzero]
+ >> ‘(1 :extreal) / Normal x = Normal (1 / x)’
+      by rw [extreal_of_num_def, extreal_div_eq]
+ >> rw [extreal_logr_def, extreal_mul_def]
+QED
+
+(* The chain rule H(X,Y) = H(Y) + H(X|Y), MacKay Equation 2.47 / 8.5. No
+   assumption is made on the base b or on P summing to 1.
+.
+   Written by Claude *)
+Theorem joint_entropy_discrete_chain_rule:
+    ∀b A B (P :α # β -> extreal).
+       FINITE A ∧ FINITE B ∧
+       (∀x y. x ∈ A ∧ y ∈ B ⇒ 0 ≤ P (x,y) ∧ P (x,y) ≠ +∞) ⇒
+       joint_entropy_discrete b A B P =
+       entropy_discrete b B (λy. ∑ (λx. P (x,y)) A) +
+       conditional_entropy_discrete b A B P
+Proof
+    rw [joint_entropy_discrete_def, entropy_discrete_def,
+        conditional_entropy_discrete_def]
+ >> ‘∃j. ∀x y. x ∈ A ∧ y ∈ B ⇒ 0 ≤ j x y ∧ P (x,y) = Normal (j x y)’
+      by (Q.EXISTS_TAC ‘λx y. real (P (x,y))’ >> rpt GEN_TAC \\
+          STRIP_TAC \\
+          ‘0 ≤ P (x,y) ∧ P (x,y) ≠ +∞’ by rw [] \\
+          Cases_on ‘P (x,y)’ \\
+          fs [real_normal, extreal_of_num_def, extreal_le_eq])
+ >> qabbrev_tac ‘py = λy. ∑ (λx. j x y) A’
+ >> ‘∀y. y ∈ B ⇒ ∑ (λx. P (x,y)) A = Normal (py y)’
+      by (rw [Abbr ‘py’, GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+          irule EXTREAL_SUM_IMAGE_EQ' >> rw [])
+ >> ‘∀x y. x ∈ A ∧ y ∈ B ⇒ j x y ≤ py y’
+      by (rw [Abbr ‘py’] \\
+          Q.ISPECL_THEN [‘A’] MP_TAC REAL_SUM_IMAGE_POS_MEM_LE \\
+          rw [] >> first_x_assum (qspec_then ‘λx. j x y’ mp_tac) \\
+          rw [])
+ >> ‘FINITE (A × B)’ by rw [FINITE_CROSS]
+ >> ‘∑ (λ(x,y). P (x,y) * logr b (1 / P (x,y))) (A × B) =
+     Normal (∑ (λ(x,y). j x y * logr b (1 / j x y)) (A × B))’
+      by (rw [GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+          irule EXTREAL_SUM_IMAGE_EQ' \\
+          (simp [FORALL_PROD] >> rw [mul_logr_inv_normal]))
+ >> POP_ORW
+ >> ‘∑ (λy. ∑ (λx. P (x,y)) A * logr b (1 / ∑ (λx. P (x,y)) A)) B =
+     Normal (∑ (λy. py y * logr b (1 / py y)) B)’
+      by (rw [GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+          irule EXTREAL_SUM_IMAGE_EQ' >> rw [mul_logr_inv_normal])
+ >> POP_ORW
+ >> ‘∑ (λ(x,y). P (x,y) * logr b (1 / (P (x,y) / ∑ (λx. P (x,y)) A)))
+           (A × B) =
+     Normal (∑ (λ(x,y). j x y * logr b (1 / (j x y / py y))) (A × B))’
+      by (rw [GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+          irule EXTREAL_SUM_IMAGE_EQ' \\
+          (simp [FORALL_PROD] >> rw []) \\
+          Cases_on ‘j p_1 p_2 = 0’
+          >- rw [GSYM extreal_of_num_def, mul_lzero] \\
+          ‘0 < j p_1 p_2 ∧ 0 < py p_2’
+             by METIS_TAC [REAL_LT_LE, REAL_LTE_TRANS] \\
+          ‘(1 :extreal) / (Normal (j p_1 p_2) / Normal (py p_2)) =
+           Normal (1 / (j p_1 p_2 / py p_2))’
+             by rw [extreal_of_num_def, extreal_div_eq, REAL_LT_IMP_NE,
+                    REAL_LT_DIV] \\
+          rw [extreal_logr_def, extreal_mul_def])
+ >> POP_ORW
+ >> rw [extreal_add_def, extreal_11]
+ (* the rest is in real *)
+ >> ‘∑ (λ(x,y). j x y * logr b (1 / j x y)) (A × B) =
+     ∑ (λ(x,y). j x y * logr b (1 / py y) +
+                    j x y * logr b (1 / (j x y / py y))) (A × B)’
+      by (irule REAL_SUM_IMAGE_EQ >> (simp [FORALL_PROD] >> rw []) \\
+          Cases_on ‘j p_1 p_2 = 0’ >- rw [] \\
+          ‘0 < j p_1 p_2 ∧ 0 < py p_2’
+             by METIS_TAC [REAL_LT_LE, REAL_LTE_TRANS] \\
+          rw [GSYM REAL_ADD_LDISTRIB, REAL_EQ_LMUL] \\
+          rw [real_div, REAL_INV_MUL, REAL_INV_INV, logr_inv, logr_mul,
+              REAL_LT_IMP_NE] \\
+          REAL_ARITH_TAC)
+ >> POP_ORW
+ >> ‘∑ (λ(x,y). j x y * logr b (1 / py y) +
+                    j x y * logr b (1 / (j x y / py y))) (A × B) =
+     ∑ (λ(x,y). j x y * logr b (1 / py y)) (A × B) +
+     ∑ (λ(x,y). j x y * logr b (1 / (j x y / py y))) (A × B)’
+      by (rw [GSYM REAL_SUM_IMAGE_ADD] \\
+          irule REAL_SUM_IMAGE_EQ >> (simp [FORALL_PROD] >> rw []))
+ >> POP_ORW
+ >> Suff ‘∑ (λ(x,y). j x y * logr b (1 / py y)) (A × B) =
+          ∑ (λy. py y * logr b (1 / py y)) B’ >- rw []
+ (* nested sums *)
+ >> Q.ISPECL_THEN [‘λ(x,y). j x y * logr b (1 / py y)’, ‘A’, ‘B’] MP_TAC
+                   REAL_SUM_IMAGE_CROSS_SYM
+ >> rw [] >> POP_ORW
+ >> Know ‘Normal (∑ (λ(y,x). j x y * logr b (1 / py y)) (B × A)) =
+          ∑ (λy. ∑ (λx. Normal (j x y * logr b (1 / py y))) A) B’
+ >- (rw [GSYM EXTREAL_SUM_IMAGE_NORMAL, FINITE_CROSS] \\
+     Q.ISPECL_THEN [‘B’, ‘A’,
+                      ‘λy x. Normal (j x y * logr b (1 / py y))’] MP_TAC
+                     EXTREAL_SUM_IMAGE_SUM_IMAGE \\
+     rw [extreal_not_infty] \\
+     irule EXTREAL_SUM_IMAGE_EQ' >> (simp [FORALL_PROD] >> rw []))
+ >> ‘∀y. ∑ (λx. j x y * logr b (1 / py y)) A = py y * logr b (1 / py y)’
+      by (GEN_TAC \\
+          ‘(λx. j x y * logr b (1 / py y)) =
+           (λx. logr b (1 / py y) * j x y)’
+             by simp [FUN_EQ_THM, Once REAL_MUL_COMM] >> POP_ORW \\
+          simp [REAL_SUM_IMAGE_CMUL, Abbr ‘py’])
+ >> ‘∑ (λy. ∑ (λx. Normal (j x y * logr b (1 / py y))) A) B =
+     Normal (∑ (λy. py y * logr b (1 / py y)) B)’
+      by simp [EXTREAL_SUM_IMAGE_NORMAL]
+ >> POP_ORW
+ >> simp [extreal_11]
 QED
