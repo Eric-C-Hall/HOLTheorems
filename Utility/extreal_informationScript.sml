@@ -104,6 +104,26 @@ Definition conditional_entropy_discrete_def:
         ∑ (λ(x,y). P (x,y) * logr b (1 / (P (x,y) / PY y))) (A × B)
 End
 
+(* The mutual information I(X;Y) = H(X) - H(X|Y) of a discrete joint
+   distribution, defined as the difference between the entropy of the
+   marginal of the first component and the conditional entropy.
+.
+   b: the base of the logarithm
+   A: the finite alphabet (set of outcomes) of the first component (X)
+   B: the finite alphabet (set of outcomes) of the second component (Y)
+   P: the joint mass function (extreal-valued), P (x,y) = Pr(X = x, Y = y)
+.
+   mutual_information_discrete_alt shows that this agrees with the direct
+   form SUM_{x,y} P(x,y) log_b (P(x,y) / (P(x) P(y))).
+.
+   Has not been validated by a human.
+.
+   Written by Claude *)
+Definition mutual_information_discrete_def:
+    mutual_information_discrete b A B (P : α # β -> extreal) =
+      entropy_discrete b A (λx. ∑ (λy. P (x,y)) B) -
+      conditional_entropy_discrete b A B P
+End
 
         
 (* Non-discrete version of the KL divergence
@@ -1363,4 +1383,145 @@ Proof
       by simp [EXTREAL_SUM_IMAGE_NORMAL]
  >> POP_ORW
  >> simp [extreal_11]
+QED
+
+(* ************************************************************************* *)
+(* Mutual information as a difference of entropies                           *)
+(* ************************************************************************* *)
+
+(* Summing a term that depends only on the first component over a product
+   set reduces to summing it against the marginal.
+.
+   Written by Claude *)
+Theorem REAL_SUM_IMAGE_CROSS_MARGINAL[local]:
+    ∀A B (j :α -> β -> real) g f.
+       FINITE A ∧ FINITE B ∧ (∀x. x ∈ A ⇒ ∑ (λy. j x y) B = g x) ⇒
+       ∑ (λ(x,y). j x y * f x) (A × B) = ∑ (λx. g x * f x) A
+Proof
+    rpt STRIP_TAC
+ >> ‘FINITE (A × B)’ by rw [FINITE_CROSS]
+ >> Know ‘Normal (∑ (λ(x,y). j x y * f x) (A × B)) =
+          ∑ (λx. ∑ (λy. Normal (j x y * f x)) B) A’
+ >- (rw [GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+     Q.ISPECL_THEN [‘A’, ‘B’, ‘λx y. Normal (j x y * f x)’] MP_TAC
+                     EXTREAL_SUM_IMAGE_SUM_IMAGE \\
+     rw [extreal_not_infty] \\
+     irule EXTREAL_SUM_IMAGE_EQ' >> (simp [FORALL_PROD] >> rw []))
+ >> ‘∀x. x ∈ A ⇒ ∑ (λy. f x * j x y) B = f x * g x’
+      by simp [REAL_SUM_IMAGE_CMUL]
+ >> ‘∑ (λx. ∑ (λy. Normal (j x y * f x)) B) A =
+     Normal (∑ (λx. g x * f x) A)’
+      by (simp [EXTREAL_SUM_IMAGE_NORMAL, extreal_11] \\
+          irule REAL_SUM_IMAGE_EQ >> rw [])
+ >> POP_ORW
+ >> simp [extreal_11]
+QED
+
+(* The discrete mutual information I(X;Y) = H(X) - H(X|Y) in its direct
+   form SUM_{x,y} P(x,y) log_b (P(x,y) / (P(x) P(y))), where
+   P(x) = SUM_y P(x,y) and P(y) = SUM_x P(x,y) are the marginals of the two
+   components. No assumption is made on the base b or on P summing to 1.
+.
+   No special case for division by zero is needed: if PX x = 0 or PY y = 0
+   then (for nonnegative P) P (x,y) = 0, so the term vanishes, since
+   0 * _ = 0 in the extreals.
+.
+   Written by Claude *)
+Theorem mutual_information_discrete_alt:
+    ∀b A B (P :α # β -> extreal).
+       FINITE A ∧ FINITE B ∧
+       (∀x y. x ∈ A ∧ y ∈ B ⇒ 0 ≤ P (x,y) ∧ P (x,y) ≠ +∞) ⇒
+       mutual_information_discrete b A B P =
+       let
+         PX = λx. ∑ (λy. P (x,y)) B;
+         PY = λy. ∑ (λx. P (x,y)) A
+       in
+         ∑ (λ(x,y). P (x,y) * logr b (P (x,y) / (PX x * PY y))) (A × B)
+Proof
+    rw [mutual_information_discrete_def, entropy_discrete_def,
+        conditional_entropy_discrete_def]
+ >> ‘∃j. ∀x y. x ∈ A ∧ y ∈ B ⇒ 0 ≤ j x y ∧ P (x,y) = Normal (j x y)’
+      by (Q.EXISTS_TAC ‘λx y. real (P (x,y))’ >> rpt GEN_TAC \\
+          STRIP_TAC \\
+          ‘0 ≤ P (x,y) ∧ P (x,y) ≠ +∞’ by rw [] \\
+          Cases_on ‘P (x,y)’ \\
+          fs [real_normal, extreal_of_num_def, extreal_le_eq])
+ >> qabbrev_tac ‘px = λx. ∑ (λy. j x y) B’
+ >> qabbrev_tac ‘py = λy. ∑ (λx. j x y) A’
+ >> ‘∀x. x ∈ A ⇒ ∑ (λy. P (x,y)) B = Normal (px x)’
+      by (rw [Abbr ‘px’, GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+          irule EXTREAL_SUM_IMAGE_EQ' >> rw [])
+ >> ‘∀y. y ∈ B ⇒ ∑ (λx. P (x,y)) A = Normal (py y)’
+      by (rw [Abbr ‘py’, GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+          irule EXTREAL_SUM_IMAGE_EQ' >> rw [])
+ >> ‘∀x y. x ∈ A ∧ y ∈ B ⇒ j x y ≤ px x’
+      by (rw [Abbr ‘px’] \\
+          Q.ISPECL_THEN [‘B’] MP_TAC REAL_SUM_IMAGE_POS_MEM_LE \\
+          rw [] >> first_x_assum (qspec_then ‘λy. j x y’ mp_tac) \\
+          rw [])
+ >> ‘∀x y. x ∈ A ∧ y ∈ B ⇒ j x y ≤ py y’
+      by (rw [Abbr ‘py’] \\
+          Q.ISPECL_THEN [‘A’] MP_TAC REAL_SUM_IMAGE_POS_MEM_LE \\
+          rw [] >> first_x_assum (qspec_then ‘λx. j x y’ mp_tac) \\
+          rw [])
+ >> ‘FINITE (A × B)’ by rw [FINITE_CROSS]
+ >> ‘∑ (λx. ∑ (λy. P (x,y)) B * logr b (1 / ∑ (λy. P (x,y)) B)) A =
+     Normal (∑ (λx. px x * logr b (1 / px x)) A)’
+      by (rw [GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+          irule EXTREAL_SUM_IMAGE_EQ' >> rw [mul_logr_inv_normal])
+ >> POP_ORW
+ >> ‘∑ (λ(x,y). P (x,y) * logr b (1 / (P (x,y) / ∑ (λx. P (x,y)) A)))
+           (A × B) =
+     Normal (∑ (λ(x,y). j x y * logr b (1 / (j x y / py y))) (A × B))’
+      by (rw [GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+          irule EXTREAL_SUM_IMAGE_EQ' \\
+          (simp [FORALL_PROD] >> rw []) \\
+          Cases_on ‘j p_1 p_2 = 0’
+          >- rw [GSYM extreal_of_num_def, mul_lzero] \\
+          ‘0 < j p_1 p_2 ∧ 0 < py p_2’
+             by METIS_TAC [REAL_LT_LE, REAL_LTE_TRANS] \\
+          ‘(1 :extreal) / (Normal (j p_1 p_2) / Normal (py p_2)) =
+           Normal (1 / (j p_1 p_2 / py p_2))’
+             by rw [extreal_of_num_def, extreal_div_eq, REAL_LT_IMP_NE,
+                    REAL_LT_DIV] \\
+          rw [extreal_logr_def, extreal_mul_def])
+ >> POP_ORW
+ >> ‘∑ (λ(x,y). P (x,y) *
+                    logr b (P (x,y) /
+                            (∑ (λy. P (x,y)) B * ∑ (λx. P (x,y)) A)))
+           (A × B) =
+     Normal (∑ (λ(x,y). j x y * logr b (j x y / (px x * py y))) (A × B))’
+      by (rw [GSYM EXTREAL_SUM_IMAGE_NORMAL] \\
+          irule EXTREAL_SUM_IMAGE_EQ' \\
+          (simp [FORALL_PROD] >> rw []) \\
+          rw [extreal_mul_def] \\
+          MATCH_MP_TAC mul_logr_normal \\
+          rw [REAL_ENTIRE] \\
+          METIS_TAC [REAL_LE_ANTISYM])
+ >> POP_ORW
+ >> rw [extreal_sub_def, extreal_11]
+ (* the rest is in real *)
+ >> ‘∑ (λx. px x * logr b (1 / px x)) A =
+     ∑ (λ(x,y). j x y * logr b (1 / px x)) (A × B)’
+      by (ONCE_REWRITE_TAC [EQ_SYM_EQ] \\
+          Q.ISPECL_THEN [‘A’, ‘B’, ‘j’, ‘px’, ‘λx. logr b (1 / px x)’]
+                          MP_TAC REAL_SUM_IMAGE_CROSS_MARGINAL \\
+          impl_tac >- rw [Abbr ‘px’] \\
+          rw [])
+ >> POP_ORW
+ >> ‘∑ (λ(x,y). j x y * logr b (1 / px x)) (A × B) -
+     ∑ (λ(x,y). j x y * logr b (1 / (j x y / py y))) (A × B) =
+     ∑ (λ(x,y). j x y * logr b (1 / px x) -
+                    j x y * logr b (1 / (j x y / py y))) (A × B)’
+      by (rw [GSYM REAL_SUM_IMAGE_SUB] \\
+          irule REAL_SUM_IMAGE_EQ >> (simp [FORALL_PROD] >> rw []))
+ >> POP_ORW
+ >> irule REAL_SUM_IMAGE_EQ >> (simp [FORALL_PROD] >> rw [])
+ >> Cases_on ‘j p_1 p_2 = 0’ >- rw []
+ >> ‘0 < j p_1 p_2 ∧ 0 < px p_1 ∧ 0 < py p_2’
+      by METIS_TAC [REAL_LT_LE, REAL_LTE_TRANS]
+ >> rw [GSYM REAL_SUB_LDISTRIB, REAL_EQ_LMUL]
+ >> rw [real_div, REAL_INV_MUL, REAL_INV_INV, logr_inv, logr_mul,
+        REAL_LT_IMP_NE, REAL_LT_MUL]
+ >> REAL_ARITH_TAC
 QED
