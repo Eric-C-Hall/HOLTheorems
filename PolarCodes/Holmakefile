@@ -1,4 +1,4 @@
-INCLUDES = ../Utility ../../HOL4-Theorem-Library/fundamental $(HOLDIR)/examples/generic_graphs $(HOLDIR)/examples/diningcryptos
+INCLUDES = ../Utility ../../HOL4-Theorem-Library/fundamental $(HOLDIR)/examples/generic_graphs $(HOLDIR)/examples/probability
 
 all: $(DEFAULT_TARGETS)
 .PHONY: all

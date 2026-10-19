@@ -9,28 +9,53 @@
 
 Theory capacity
 
-Ancestors arithmetic extreal information lifting pair pred_set real measure sigma_algebra transfer memoryless_channel probability
+Ancestors arithmetic extreal extreal_information lifting pair pred_set real measure sigma_algebra transfer memoryless_channel probability
 
 Libs dep_rewrite liftLib transferLib realLib;
+
+(* -------------------------------------------------------------------------- *)
+(* The joint distribution on (input, output) obtained by drawing an input     *)
+(* according to P and then passing it through W.                              *)
+(*                                                                            *)
+(* Assumes the domain is finite, so that we may sum over it, and uses the     *)
+(* fact that every section {y | (x,y) ∈ s} of a product-measurable set s is  *)
+(* measurable in the output sigma algebra.                                    *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition apply_channel_distribution_def:
+  apply_channel_distribution (W : (α,β) memoryless_channel) (P : α measure) =
+  λs. ∑ (λx. P {x} * mcchannel W x {y | (x,y) ∈ s}) (mcdomain W)
+End
+
+(* -------------------------------------------------------------------------- *)
+(* The probability space which first chooses an input according to P, then    *)
+(* chooses an output according to the probability distribution for that       *)
+(* input. The sample space is the product of the input and output spaces.     *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition apply_channel_prob_space_def:
+  apply_channel_prob_space (W : (α,β) memoryless_channel) (P : α measure) =
+  (mcdomain W × mccodomain W,
+   subsets (prod_sigma (mcdomain W, POW (mcdomain W)) (mcsigma W)),
+   apply_channel_distribution W P)
+End
 
 (* -------------------------------------------------------------------------- *)
 (* The channel capacity is the mutual information between the input and       *)
 (* output of the channel when maximizing over all possible input              *)
 (* distributions                                                              *)
-(* -------------------------------------------------------------------------- *)
-(*Definition channel_capacity_def:
-  channel_capacity (W : (α,β) memoryless_channel) =
-  mutual_information
-  2 shared_prob_space sigma_algebra_first_var sigma_algebra_second_var first_var second_var
-End*)
-
-(* -------------------------------------------------------------------------- *)
-(* The overall distribution obtained by applying a channel to a given         *)
-(* distribution.                                                              *)
 (*                                                                            *)
+(* Assumes the domain is discrete                                             *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
 (* -------------------------------------------------------------------------- *)
-Definition apply_channel_distribution_def:
-  apply_channel_distribution (W : (α,β) memoryless_channel)
+Definition channel_capacity_def:
+  channel_capacity (W : (α,β) memoryless_channel) =
+  sup {mutual_information 2 (apply_channel_prob_space W P)
+                            (mcdomain W, POW (mcdomain W)) (mcsigma W) FST SND
+       | P | prob_space (mcdomain W, POW (mcdomain W), P)}
 End
 
 (* -------------------------------------------------------------------------- *)
@@ -39,37 +64,16 @@ End
 (*                                                                            *)
 (* Assumes the domain is discrete                                             *)
 (*                                                                            *)
-(* Our probability space first chooses an input uniformly at random from the  *)
-(* set of inputs, then chooses an output according to the probability         *)
-(* distribution for that input.                                               *)
-(*                                                                            *)
-(* Thus, our probability space chooses 
-
-
- *)
-(* Probability space must include uniform distribution on input               *)
-(* Probability space must include output sigma algebra                        *)
-(*                                                                            *)
-(*                                                                            *)
-(* -------------------------------------------------------------------------- *)
-
-(* TODO: prob dist on input -> prob dist on output
-
-Output probability distribution has space which is space of input times space of output *)
+(* Written by Claude                                                          *)
 (* -------------------------------------------------------------------------- *)
 Definition symmetric_capacity_def:
-  symmetric_capacity (W : (α, β) memoryless_channel) =
-  let
-    input_distribution = uniform_distribution (mcdomain W, POW (mcdomain W));
-    input_prob_space = (mcdomain W, POW (mcdomain W));
-    output_prob_space = ;
-    
-    p = TODO_TRANSFORM_VIA_CHANNEL_DISTRIBUTION
-        W
-  in
-    mutual_information 2
-                       input_distribution × output_distribution
-                       
+  symmetric_capacity (W : (α,β) memoryless_channel) =
+  mutual_information 2
+    (apply_channel_prob_space W
+       (uniform_distribution (mcdomain W, POW (mcdomain W))))
+    (mcdomain W, POW (mcdomain W))
+    (mcsigma W)
+    FST SND
 End
 
 (* -------------------------------------------------------------------------- *)
