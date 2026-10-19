@@ -148,9 +148,9 @@ Definition basic_fusion_channel_def:
 End
 
 Definition power_fusion_channel_def:
-    power_fusion_channel 0 W = list_lift_channel W ∧
-    power_fusion_channel (SUC n) W =
-        basic_fusion_channel (power_fusion_channel n W) (power_fusion_channel n W)
+    power_fusion_channel W 0 = list_lift_channel W ∧
+    power_fusion_channel W (SUC n) =
+        basic_fusion_channel (power_fusion_channel W n) (power_fusion_channel W n)
 End
 
 (*** Split Channels ***)
@@ -265,6 +265,23 @@ Proof
     rw[] >> 
 QED
 *)
+
+Definition GEN_LIST_SET_DEF:
+    GEN_LIST_SET s n = {l | LENGTH l = n ∧ ∀i. i < n ⇒ EL i l ∈ s}
+End
+
+Theorem power_fusion_channel_discrete_mcdomain:
+    ∀W. discrete_mc W ⇒ ∀n.
+        mcdomain (power_fusion_channel W n) = GEN_LIST_SET 𝕌(:BIT) (2 ** n) ∧
+        mccodomain (power_fusion_channel W n) = GEN_LIST_SET (mccodomain W) (2 ** n) ∧
+        mcevents (power_fusion_channel W n) = POW (GEN_LIST_SET (mccodomain W) (2 ** n)) ∧
+        ∀xl yls. xl ∈ mcdomain (power_fusion_channel W n) ∧
+            yls ∈ mcevents (power_fusion_channel W n) ⇒
+            mcchannel (power_fusion_channel W n) xl yls =
+                EXTREAL_SUM_IMAGE (λyl. EXTREAL_PROD_IMAGE (λi. mcp W (EL i xl) (EL i yl)) (count (2 ** n))) yls 
+Proof
+    cheat
+QED
 
 (* conecting to encoding *)
 
