@@ -1,4 +1,5 @@
-INCLUDES = $(HOLDIR)/examples/generic_graphs ../../HOL4-Theorem-Library/fundamental
+YEAGERLIBDIR_ = $(if $(YEAGERLIBDIR),$(YEAGERLIBDIR),../../HOL4-Theorem-Library)
+INCLUDES = $(HOLDIR)/examples/generic_graphs $(YEAGERLIBDIR_)/fundamental
 
 all: $(DEFAULT_TARGETS)
 .PHONY: all
