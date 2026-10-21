@@ -13,6 +13,8 @@ Ancestors arithmetic extreal extreal_information lifting pair pred_set real meas
 
 Libs dep_rewrite liftLib transferLib realLib;
 
+(* TODO: Note to AI: This is quite incomplete, and the definitions and theorems in this file will probably need substantial editing. *)
+
 (* -------------------------------------------------------------------------- *)
 (* The joint distribution on (input, output) obtained by drawing an input     *)
 (* according to P and then passing it through W.                              *)
