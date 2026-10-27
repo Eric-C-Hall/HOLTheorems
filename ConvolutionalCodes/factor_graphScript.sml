@@ -59,10 +59,6 @@ Datatype:
   |>
 End
 
-(* -------------------------------------------------------------------------- *)
-(* TODO: These overloads are perhaps legacy: now we should perhaps use the    *)
-(*       equivalent overloads for the abstract type version of factor graphs  *)
-(* -------------------------------------------------------------------------- *)
 Overload adjacent_nodes = “λfg cur_node.
                              {adj_node |
                              adj_node ∈ nodes fg.underlying_graph ∧
