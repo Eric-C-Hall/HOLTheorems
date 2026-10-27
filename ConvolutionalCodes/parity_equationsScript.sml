@@ -7,7 +7,7 @@ Libs dep_rewrite ConseqConv useful_tacticsLib;
 (* logroot: LOG2_LE_MONO *)
 (* numposrep: LENGTH_n2l *)
 
-(* TODO: In many instances, it may be possible to remove or
+(* Possible improvement: In many instances, it may be possible to remove or
    weaken the precondition 0 < MAX_LIST (MAP LENGTH ps) - 1. This is because
    this precondition has been weakened to 0 < LENGTH ps in the proof of the
    well-formedness of the state machine derived from parity equations. This was
@@ -21,7 +21,6 @@ Libs dep_rewrite ConseqConv useful_tacticsLib;
 (* CONVOLUTIONAL PARITY EQUATION ENCODING                                     *)
 (* -------------------------------------------------------------------------- *)
 
-(* TODO: elaborate: what do you mean by "is used in the parity equtaion *)
 (* -------------------------------------------------------------------------- *)
 (* A parity equation is represented as a bool list. The nth bit is true if    *)
 (* the nth bit in the sliding window is used in the linear equation.          *)
@@ -33,7 +32,7 @@ Libs dep_rewrite ConseqConv useful_tacticsLib;
 (* the shorter parity equations with F's at the end.                          *)
 (* -------------------------------------------------------------------------- *)
 
-(* TODO: Perhaps rename this constraint_length? *)
+(* Possible improvement: Perhaps rename this constraint_length? *)
 Overload window_length = “\m. MAX_LIST (MAP LENGTH m)”
 
 (* -------------------------------------------------------------------------- *)
@@ -280,10 +279,11 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: This theorem is designed to support legacy behaviour, specifically,  *)
-(* a change from the precondition 0 < MAX_LIST (MAP LENGTH ps) - 1 to the     *)
-(* precondition 0 < LENGTH ps. This legacy behaviour should probably be fixed *)
-(* and this theorem should be deleted                                         *)
+(* Possible improvement: This theorem is designed to support legacy           *)
+(* behaviour, specifically, a change from the precondition                    *)
+(* 0 < MAX_LIST (MAP LENGTH ps) - 1 to the precondition 0 < LENGTH ps. This   *)
+(* legacy behaviour should probably be fixed and this theorem should be       *)
+(* deleted.                                                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem legacy_precondition[simp]:
   ∀ps.
@@ -575,9 +575,9 @@ QED
 
 (* It's often conceptually simpler to have this definition which calculates
    the ith window of outputs in the output. *)
-(* TODO: Generalise this to state machines in general *)
-(* TODO: Alternatively, remove this entirely and just use TAKE and DROP *)
-(* TODO: Probably ought to have used chunks instead. *)
+(* Possible improvement: Generalise this to state machines in general.
+   Alternatively, remove this entirely and just use TAKE and DROP. Probably
+   ought to have used chunks instead. *)
 Definition ith_output_window_def:
   ith_output_window i ps bs = TAKE (LENGTH ps) (DROP (i * LENGTH ps) bs)
 End
@@ -757,29 +757,6 @@ Theorem ith_output_window_vd_encode_vd_encode_state:
 Proof
   rpt strip_tac
   >> Cases_on ‘bs = []’ >> gvs[]
-  (*
-  (* Here, we used to treat the special case of MAX_LIST (MAP LENGTH ps) = 0
-     separately, but now the special case includes MAX_LIST (MAP LENGTH ps) = 1,
-     so we can't prove it as trivially any more. *)
-  (* Treat special case separately *)
-  >> Cases_on ‘¬(0 < MAX_LIST (MAP LENGTH ps))’
-  (* TODO: This seems unnecessarily long *)
-  >- (gvs[]
-      >> gvs[ith_output_window_def]
-      >> gvs[TAKE_REPLICATE]
-      >> gvs[MIN_DEF]
-      >> rw[]
-      >> qmatch_goalsub_abbrev_tac ‘REPLICATE l1 _ = REPLICATE l2 _’
-      >> Cases_on ‘l1 = l2’ >> gvs[]
-      >> qsuff_tac ‘F’ >> gvs[]
-      >> sg ‘l1 < l2’ >> gvs[]
-      >> gvs[Abbr ‘l1’]
-      >> sg ‘l2 + i * l2 = (1 + i) * l2’
-      >- gvs[]
-      >> pop_assum (fn th => gvs[Once th])
-     )
-  >> gvs[]
-  *)
   >> sg ‘wfmachine (parity_equations_to_state_machine ps)’
   >- gvs[]
   >> qmatch_goalsub_abbrev_tac ‘_ = RHS’
@@ -852,12 +829,6 @@ Proof
   >> Cases_on ‘n ≤ LENGTH bs’ >> gvs[]
 QED
 
-(* TODO: Idea: would be helpful to have a more interactive way to see which
-     theorems were actually used for the purposes of simplification, without
-     failure, when applying the simplifier. Would be nice to see a nice
-     graphical tree of simplifications that occurred. *)
-
-
 (* Maybe this should be automatically provable somehow using
    wfmachine_transition_fn_destination_is_valid as well as
    the definition of parity_equations_to_state_machine and
@@ -873,8 +844,6 @@ Proof
   gvs[]
   >> rpt strip_tac
   >> gvs[]
-  (* TODO: IDEA: would be nice to be able to irule
-     wfmachine_transition_fn_destination_is_valid here, but i *)
   >> qspecl_then [‘parity_equations_to_state_machine ps’,
                   ‘i’,
                   ‘b’]
@@ -1324,8 +1293,7 @@ Proof
   >> simp[]
 QED
 
-(* TODO: Rename.
-   Alternative form of DIVISION theorem which I found more useful in my use
+(* Alternative form of DIVISION theorem which I found more useful in my use
    case. The form which gvs[] simplified to in my case was the form written
    in this theorem. *)
 Theorem DIVISION_2:
@@ -1408,7 +1376,6 @@ Proof
   >> gvs[MULT_TO_DIV]
 QED
 
-(* TODO: is there a pre-existing theorem along these lines? *)
 Theorem LIST_TRANSLATE:
   ∀ls ks d.
     LENGTH ls + d ≤ LENGTH ks ⇒
@@ -1418,12 +1385,7 @@ Proof
   rpt strip_tac
   >> EQ_TAC
   >- (rpt strip_tac
-      >> irule LIST_EQ (* TODO: Idea: It can be hard to search for this
-                          theorem. Perhaps we need to work out a better way
-                          of searching for such a theorem, if we don't know
-                          the precise statement it has. For example, I was
-                          expecting it to use an iff, and I forgot that it
-                          would require the precondition x < LENGTH l1. *)
+      >> irule LIST_EQ
       >> conj_tac
       >- (rpt strip_tac
           >> gvs[EL_TAKE, EL_DROP]
@@ -1550,8 +1512,8 @@ Proof
   gvs[APPEND_DONOTEXPAND_DEF]
 QED
 
-(* TODO: Is there a better way of avoiding infintie loops rather than using
-   APPEND_DONOTEXPAND? *)
+(* Possible improvement: Is there a better way of avoiding infintie loops
+   rather than using APPEND_DONOTEXPAND? *)
 Theorem convolve_parity_equations_append:
   ∀ps bs cs.
     0 < MAX_LIST (MAP LENGTH ps) - 1 ⇒
@@ -1569,8 +1531,6 @@ Proof
   >> gvs[TAKE_LENGTH_TOO_LONG]
 QED
 
-(* TODO: can this be generalized somehow to a more general state machine?
-         On the other hand, do we even want to bother? *)
 Theorem vd_encode_state_replicate_f[simp]:
   ∀ps n.
     vd_encode_state (parity_equations_to_state_machine ps) (REPLICATE n F) 0 = 0
@@ -1775,7 +1735,7 @@ Proof
   >> gvs[Abbr ‘padding’, convolve_parity_equations_length]
 QED
 
-(* TODO: this uses general state machines, which I no longer use in order to
+(* This uses general state machines, which I no longer use in order to
    reduce maintenance requiements.
 
 (* -------------------------------------------------------------------------- *)

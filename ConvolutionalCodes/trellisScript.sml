@@ -34,8 +34,8 @@ End
 (*                                                                            *)
 (* Output: the corresponding portion of the input bitstring.                  *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: this definition probably isn't worth making, because it adds         *)
-(* unnecessary symbols which confuse the proofs                               *)
+(* Possible improvement: this definition probably isn't worth making, because *)
+(* it adds unnecessary symbols which confuse the proofs                       *)
 (* -------------------------------------------------------------------------- *)
 Definition nth_chunk_def:
   nth_chunk m bs t = TAKE m.output_length
@@ -149,9 +149,9 @@ End
 (* Version of get_num_errors_after_step which works even if you do not provide*)
 (* it with the previous column of errors                                      *)
 (*                                                                            *)
-(* TODO: should this be removed, because it's not significant enough to be    *)
-(* worth adding a definition, which may cause duplication in necessary        *)
-(* theorems between this function and get_num_errors_after_step?              *)
+(* Possible improvement: should this be removed, because it's not significant *)
+(* enough to be worth adding a definition, which may cause duplication in     *)
+(* necessary theorems between this function and get_num_errors_after_step?    *)
 (* -------------------------------------------------------------------------- *)
 Definition get_num_errors_after_step_no_prev_data_def:
   get_num_errors_after_step_no_prev_data m bs 0 r = (if (FST (m.transition_fn r) = 0) then N0 else INFINITY) ∧
