@@ -200,7 +200,8 @@ End
 (* rs: the ultimately received data, after encoding and noise                 *)
 (* t: the time-step we are finding the a posteriori probability for           *)
 (*                                                                            *)
-(* TODO: Ensure that this correctly handles decoding of zero-tailed sequences.*)
+(* FIXME: Ensure that this correctly handles decoding of zero-tailed          *)
+(* sequences.                                                                 *)
 (* -------------------------------------------------------------------------- *)
 Definition bcjr_prob_wfm_def:
   bcjr_prob_wfm m p priors rs t s =
