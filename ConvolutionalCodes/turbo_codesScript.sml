@@ -87,8 +87,8 @@ End
 (*                                                                            *)
 (* Output: the a posteriori probabilities that a given input is 1.            *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: is the intrinsic information defined correctly?                      *)
-(* TODO: Define this                                                          *)
+(* FIXME: is the intrinsic information defined correctly?                     *)
+(* FIXME: Define this                                                         *)
 (* -------------------------------------------------------------------------- *)
 (*Definition parallel_turbo_code_a_posteriori_def:
   parallel_turbo_code_a_posteriori (ps, qs) perm p priors rs 0 = qs ∧
@@ -99,7 +99,7 @@ End
     rs_2 = EL 2 (deinterleave 3 rs);
     intermediate_probs = parallel_turbo_code_a_posteriori
                          (ps, qs) perm p priors rs i;
-    intrinsic_information = MAP (log_likelihood) (ARB (*TODO_INVOLVING_rs_s*));
+    intrinsic_information = MAP (log_likelihood) (ARB (*TO_DO_INVOLVING_rs_s*));
     m = recursive_parity_equations_to_state_machine (ps, qs);
     num_t = LENGTH rs;
     decode_1_probs = MAP (bcjr_prob_wfm m p intermediate_probs rs_1)
@@ -128,7 +128,7 @@ End*)
 (*                                                                            *)
 (* Output: the decoded bitstring                                              *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: Complete this                                                        *)
+(* FIXME: Complete this                                                       *)
 (* -------------------------------------------------------------------------- *)
 (*Definition decode_parallel_turbo_code_def:
   decode_parallel_turbo_code (ps, qs) perm p priors rs i =
@@ -143,7 +143,7 @@ End*)
 (* Encoding and decoding a recursive parity equation using the BCJR algorithm *)
 (* will return the original data again                                        *)
 (*                                                                            *)
-(* TODO: complete this                                                        *)
+(* FIXME: complete this                                                       *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem encode_decode_parallel_turbo_code:
   (encode_parallel_turbo_code rs) ∘
@@ -153,10 +153,10 @@ QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the decoding procedure for a recursive parity equation encoder *)
-(* implements an a posteriori encoder (TODO: check that I have my terminology *)
-(* correct)                                                                   *)
+(* implements an a posteriori encoder (FIXME: check that I have my            *)
+(* terminology correct)                                                       *)
 (*                                                                            *)
-(* TODO: complete this                                                        *)
+(* FIXME: complete this                                                       *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem decode_parallel_turbo_code_a_posteriori:
   (decode_parallel_turbo_code rs)

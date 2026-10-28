@@ -67,7 +67,7 @@ Libs extreal_to_realLib donotexpandLib map_decoderLib realLib dep_rewrite Conseq
 (* turbo code BCJR to use this.                                               *)
 (*                                                                            *)
 (*                                                                            *)
-(* TODO: implement this                                                       *)
+(* FIXME: implement this                                                      *)
 (* -------------------------------------------------------------------------- *)
 (*Definition state_machine_factor_graph_def:
   state_machine_factor_graph m = fg_add_n_variable_nodes () fg_empty
@@ -82,11 +82,11 @@ End*)
 (* p: the probability of an error when a bit is sent over the binary          *)
 (*    symmetric channel.                                                      *)
 (*                                                                            *)
-(* TODO: implement this                                                       *)
+(* FIXME: implement this                                                      *)
 (* -------------------------------------------------------------------------- *)
 (*Definition BCJR_decode_def:
   BCJR_decode m cs p = ARB
-                       (* TODO_message_passing applied to factor graph *)
+                       (* TO_DO_message_passing applied to factor graph *)
 End*)
 
 (* -------------------------------------------------------------------------- *)
@@ -2595,8 +2595,8 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: move to other file (possibly map_decoder_convolutional_codeScript,   *)
-(* as this expression occurs in                                               *)
+(* Possible improvement: move to other file (possibly                         *)
+(* map_decoder_convolutional_codeScript, as this expression occurs in         *)
 (*  map_decoder_bitwise_encode_recursive_parity_equation_with_systematic)     *)
 (*                                                                            *)
 (* Split P(ds_p,ds_s | bs) into P(ds_p | enc bs) * P(ds_s | bs)               *)
@@ -3124,7 +3124,7 @@ QED
 (* only up to a part of the state sequence, rather than the entire state      *)
 (* sequence.                                                                  *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: Finish this                                                          *)
+(* FIXME: Finish this                                                         *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem extreal_prod_image_state_given_input:
   ∀n m p ps qs ts bs σs l.
@@ -3135,7 +3135,7 @@ QED
     l = LENGTH bs ∧
     LENGTH bs ≤ n ⇒
     ∏ (λi.
-         (* TODO: consider uncommenting this if and else *)
+         (* FIXME: consider uncommenting this if and else *)
          (*if (event_state_takes_value n m (ps,qs) ts i (EL i σs))
              ∩ event_input_bit_takes_value n m i (EL i bs) ≠ ∅
          then*)
@@ -3298,7 +3298,7 @@ Proof
         >>
 QED*)
 
-(* TODO: Finish something along these lines *)
+(* FIXME: Finish something along these lines *)
 (*Theorem cond_prob_event_state_sequence_starts_with_event_input_string_starts_with:
   ∀n m p ps qs ts bs σs.
     cond_prob (ecc_bsc_prob_space n m p)
@@ -3313,9 +3313,9 @@ QED*)
 (* given by                                                                   *)
 (* map_decoder_bitwise_encode_recursive_parity_equation_with_systematic       *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: Can any theorems be extracted from here? e.g., if we have a valid    *)
-(* bs σs cs_p, then certain events take probability 1? if we have an invalid  *)
-(* bs σs cs_p, then certain events take probability 0?                        *)
+(* Possible improvement: Can any theorems be extracted from here? e.g., if we *)
+(* have a valid bs σs cs_p, then certain events take probability 1? if we     *)
+(* have an invalid bs σs cs_p, then certain events take probability 0?        *)
 (* In particular, would be nice to have a general theorem relating            *)
 (* probabilities in the factor graph world to probabilities in the            *)
 (* sum of products world.                                                     *)
@@ -3377,8 +3377,8 @@ Proof
   (* *)
   >> simp[nodes_rcc_factor_graph]
   >> simp[sum_prod_def]
-  (* TODO: Probably a bad idea to do this, because I would have to do this
-     on the right hand side as well. *)
+  (* Note: Probably a bad idea to do this, because I would have
+     to do this on the right hand side as well. *)
   (* Get rid of all the terms with invalid cs_p on the left hand side: in these
      cases, our sum will be zero *)
   (*>> qmatch_abbrev_tac ‘∑ f _ = RHS : extreal’

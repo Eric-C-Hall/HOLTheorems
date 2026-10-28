@@ -263,11 +263,6 @@ Definition vd_decode_def:
     vd_decode_to_state m bs best_state max_timestep
 End
 
-(* TODO: obsolete - remove *)
-Definition get_num_errors_obsolete_def:
-  get_num_errors_obsolete m rs bs s = hamming_distance rs (vd_encode m bs s)
-End
-
 Theorem best_origin_is_valid[simp]:
   ∀m bs prev_column t s.
     wfmachine m ∧
@@ -425,7 +420,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: use i instead of 0                                                   *)
+(* Possible improvement: use i instead of 0                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem is_reachable_viterbi_trellis_node_slow_num_errors:
   ∀m bs s t.
@@ -488,7 +483,7 @@ QED
 Theorem is_reachable_viterbi_trellis_node_slow_num_errors_imp[simp] = iffLR is_reachable_viterbi_trellis_node_slow_num_errors |> SRULE [AND_IMP_INTRO, GSYM RIGHT_FORALL_IMP_THM];
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: use i instead of 0                                                   *)
+(* Possible improvement: use i instead of 0                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem is_reachable_get_num_errors_after_step_slow:
   ∀m bs s t.
@@ -501,9 +496,9 @@ Proof
   >> gvs[viterbi_trellis_node_slow_def]
 QED
 
-(* TODO: rename get_num_errors to reflect the fact that now we are using hamming
-   distance of encode directly instead?
-
+(* Possible improvement: rename get_num_errors to reflect the fact that now we
+   are using hamming distance of encode directly instead?
+.
    This theorem in particular can probably be removed and simply replaced with
    doing vd_encode_append followed by hamming_distance_append_right
  *)
@@ -666,8 +661,7 @@ QED
 (* reachable but does not have a previous state. This is why we use SUC t     *)
 (* instead of t.                                                              *)
 (* -------------------------------------------------------------------------- *)
-(* -------------------------------------------------------------------------- *)
-(* TODO: use i instead of 0                                                   *)
+(* Possible improvement: use i instead of 0                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem is_reachable_viterbi_trellis_node_slow_prev_transition:
   ∀m bs s t.
@@ -708,7 +702,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: use i instead of 0                                                   *)
+(* Possible improvement: use i instead of 0                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem viterbi_trellis_node_slow_num_errors_is_reachable:
   ∀m bs s t.
@@ -748,7 +742,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: use i instead of 0                                                   *)
+(* Possible improvement: use i instead of 0                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem is_reachable_best_origin_slow[simp]:
   ∀m i bs s t.
@@ -904,7 +898,7 @@ QED
 (* the left hand side is negated.                                             *)
 (* -------------------------------------------------------------------------- *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: use i instead of 0                                                   *)
+(* Possible improvement: use i instead of 0                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem get_num_errors_after_step_slow_is_reachable:
   ∀m bs s t.
@@ -933,7 +927,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: use i instead of 0                                                   *)
+(* Possible improvement: use i instead of 0                                   *)
 (* -------------------------------------------------------------------------- *)
 Theorem vd_encode_state_vd_decode_to_state[simp]:
   ∀m bs s t.
@@ -965,11 +959,12 @@ QED
 (* s: the state we are aiming to end up in                                    *)
 (* t: the time-step we are aiming to end up in                                *)
 (* -------------------------------------------------------------------------- *)
+(* Possible improvement: use i instead of 0                                   *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: use i instead of 0                                                   *)
+(* Possible improvement: possibly rename to reflect the fact we are using     *)
+(* hamming_distance and vd_encode directly now instead of wrapping them in    *)
+(* get_num_errors                                                             *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: possibly rename to reflect the fact we are using hamming_distance and
-       vd_encode directly now instead of wrapping them in get_num_errors *)
 Theorem get_num_errors_get_num_errors_after_step_slow:
   ∀m bs s t.
     wfmachine m ∧
@@ -1157,8 +1152,8 @@ Proof
   >> gvs[]
   >> Cases_on ‘best_state = 0’ >> gvs[]
   >> Cases_on ‘best_state < SUC n’ >> gvs[]
-  >> gvs[MEM_MAP] (* TODO: Should this be in simp set? *)
-  >> gvs[MEM_COUNT_LIST] (* TODO: Should this be in simp set? *)
+  >> gvs[MEM_MAP] (* Possible improvement: Should this be in simp set? *)
+  >> gvs[MEM_COUNT_LIST] (* Possible improvement: Should this be in simp set? *)
 QED
 
 Theorem best_state_is_reachable[simp]:

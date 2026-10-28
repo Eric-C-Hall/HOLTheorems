@@ -6,7 +6,7 @@ Libs donotexpandLib dep_rewrite ConseqConv simpLib liftLib transferLib;
 
 val _ = hide "S";
 
-(* TODO: This is currently broken due to a change to the factor graphs code
+(* FIXME: This is currently broken due to a change to the factor graphs code
 
 (* -------------------------------------------------------------------------- *)
 (* This is largely based on "Modern Coding Theory" by Tom Richardson and      *)
@@ -14,8 +14,8 @@ val _ = hide "S";
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: this contains many duplicate functions that are also contained in    *)
-(* message_passingScript                                                      *)
+(* Possible improvement: this contains many duplicate functions that are also *)
+(* contained in message_passingScript                                         *)
 (* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
@@ -96,8 +96,8 @@ End
 (* where we aren't working with the message passing algorithm, so I hide it   *)
 (* before exporting the theory.                                               *)
 (*                                                                            *)
-(* TODO: update this in the same way as it has been updated in                *)
-(* message_passingScript                                                      *)
+(* Possible improvement: update this in the same way as it has been updated   *)
+(* in message_passingScript                                                   *)
 (* -------------------------------------------------------------------------- *)
 Overload message_domain = “λfg. {(n,m) | n ∈ nodes fg.underlying_graph ∧
                                          m ∈ nodes fg.underlying_graph ∧

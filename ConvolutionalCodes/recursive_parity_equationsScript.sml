@@ -177,10 +177,11 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: Encode the recursive parity equation in a way which is sensible, in  *)
-(* particular with regards to the ininitialization and termination schemes    *)
+(* Possible improvement: Encode the recursive parity equation in a way which  *)
+(* is sensible, in particular with regards to the ininitialization and        *)
+(* termination schemes                                                        *)
 (*                                                                            *)
-(* TODO: In particular, this should be the counterpart to                     *)
+(* Possible improvement: In particular, this should be the counterpart to     *)
 (* decode_recursive_parity_equation                                           *)
 (* -------------------------------------------------------------------------- *)
 (*Definition encode_recursive_parity_equation_def:
@@ -189,7 +190,7 @@ QED
 End*)
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: Decode a recursive parity equation encoded by                        *)
+(* FIXME: Decode a recursive parity equation encoded by                       *)
 (* encode_recursive_parity_equation                                           *)
 (* -------------------------------------------------------------------------- *)
 (*Definition decode_recursive_parity_equation_def:
@@ -200,7 +201,7 @@ End*)
 (* Encoding and decoding a recursive parity equation using the BCJR algorithm *)
 (* will return the original data again                                        *)
 (*                                                                            *)
-(* TODO: Main encoding/decoding theorom for recursive parity equations        *)
+(* FIXME: Main encoding/decoding theorom for recursive parity equations       *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem encode_decode_recursive_parity_equation:
   (encode_recursive_parity_equation rs) ∘
@@ -210,10 +211,10 @@ QED*)
 
 (* -------------------------------------------------------------------------- *)
 (* Ensure that the decoding procedure for a recursive parity equation encoder *)
-(* implements an a posteriori encoder (TODO: check that I have my terminology *)
-(* correct)                                                                   *)
+(* implements an a posteriori encoder (Possible improvement: check that I     *)
+(* have my terminology correct)                                               *)
 (*                                                                            *)
-(* TODO: implement this                                                       *)
+(* FIXME: implement this                                                      *)
 (* -------------------------------------------------------------------------- *)
 (*Theorem decode_recursive_parity_equation_a_posteriori:
   (decode_recursive_parity_equation rs) =

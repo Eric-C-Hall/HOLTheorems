@@ -57,9 +57,10 @@ End
 
 Overload length_n_state_sequences = “λn. {σs : bool list list | LENGTH σs = n}”;
 
-(* TODO: This only includes one requirement for validity. A valid sequence will
-         also require, for example, each state to be reachable from the
-         previous. So I should probably rename this to something *)
+(* Possible improvement:
+   This only includes one requirement for validity. A valid sequence will
+   also require, for example, each state to be reachable from the
+   previous. So I should probably rename this to something *)
 Overload valid_state_sequences = “λn. {σs : bool list list | ∀σ. MEM σ σs ⇒
                                                                  LENGTH σ = n}”;
 
@@ -1044,7 +1045,7 @@ QED
 (* need for converting between them. Maybe introducing all these definitions  *)
 (* is hurting more than it's helping.                                         *)
 (* -------------------------------------------------------------------------- *)
-(* TODO: fix this
+(* Posisble improvement: fix this
 Theorem mdr_summed_out_values_event_input_state_parity:
   ∀ps qs n m ts i x bs σs cs_p.
     (bs, σs, cs_p) ∈ mdr_summed_out_values (ps,qs) n ts i x ⇔
@@ -1077,7 +1078,7 @@ QED*)
 
 (* Possible improvement: remove assumption that LENGTH bs = n (also remove
    this assumption from theorems this depends on) *)
-(* TODO: Fix this
+(* Possible improvement: Fix this
 Theorem mdr_summed_out_values_event_input_state_parity_empty:
   ∀ps qs n m ts i x bs σs cs_p.
     LENGTH bs = n ⇒
@@ -1248,7 +1249,8 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: Add this better version of is_prefix_el to the library               *)
+(* Possible improvement: Add this better version of is_prefix_el to the       *)
+(* library                                                                    *)
 (* -------------------------------------------------------------------------- *)
 Theorem is_prefix_el_better:
   ∀n l1 l2.
@@ -1933,7 +1935,7 @@ Proof
 QED
 
 (* -------------------------------------------------------------------------- *)
-(* TODO: move to other file?                                                  *)
+(* Possible improvement: move to other file?                                  *)
 (* -------------------------------------------------------------------------- *)
 Theorem prob_received_given_sent_bit:
   ∀n m p enc bs ds.
@@ -1986,7 +1988,7 @@ Proof
   >> gvs[TAKE_LENGTH_TOO_LONG]
 QED
 
-(*Theorem prob_received_given_sent_bit_TODO_PARITY_ONLY:
+(*Theorem prob_received_given_sent_bit_TO_DO_PARITY_ONLY:
   ∀n m p ps qs ts bs ds.
   0 ≤ p ∧ p ≤ 1 ⇒
   ∏ (λj.
@@ -2375,7 +2377,7 @@ Proof
   >> qpat_x_assum ‘0 < val3’ kall_tac
   >> qpat_x_assum ‘Abbrev (val3 = _)’ kall_tac
   >> qpat_x_assum ‘val3 / val3 = 1’ kall_tac
-  (* TODO: we need to handle the case in which the
+  (* Possible improvement: we need to handle the case in which the
      input/state sequence/parity bits are invalid, in which case val2 is
      undefined *)
   (* ------------------------------------------------------------------------ *)
