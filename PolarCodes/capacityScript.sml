@@ -61,6 +61,27 @@ Definition channel_capacity_def:
 End
 
 (* -------------------------------------------------------------------------- *)
+(* A version of the channel capacity which uses the discrete mutual           *)
+(* information. The joint mass function of the input and output is            *)
+(* P(x,y) = P {x} * W(y|x), where W(y|x) is the probability that the channel  *)
+(* outputs y when given input x.                                              *)
+(*                                                                            *)
+(* Assumes both the domain and codomain are discrete (finite, and every       *)
+(* singleton of the codomain is an event)                                     *)
+(*                                                                            *)
+(* In process of manually validating this: it appears to be taking the input  *)
+(* and output independently, on first glance? Is this correct?                *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
+Definition channel_capacity_discrete_def:
+  channel_capacity_discrete (W : (α,β) memoryless_channel) =
+  sup {mutual_information_discrete 2 (mcdomain W) (mccodomain W)
+                                   (λ(x,y). P {x} * mcchannel W x {y})
+       | P | prob_space (mcdomain W, POW (mcdomain W), P)}
+End
+
+(* -------------------------------------------------------------------------- *)
 (* The symmetric capacity is the mutual information between the input and     *)
 (* output of the channel when the input is given by the uniform distribution. *)
 (*                                                                            *)
