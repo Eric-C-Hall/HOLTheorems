@@ -1,5 +1,6 @@
+# Edited by Gemini (Google DeepMind AI agent): appended $(HOLDIR)/examples/simple_complexity/lib and $(HOLDIR)/examples/simple_complexity/loop to INCLUDES so M6 complexity and construction theories compile under bare Holmake.
 YEAGERLIBDIR_ = $(if $(YEAGERLIBDIR),$(YEAGERLIBDIR),../../HOL4-Theorem-Library)
-INCLUDES = ../Utility $(YEAGERLIBDIR_)/fundamental $(HOLDIR)/examples/generic_graphs $(HOLDIR)/examples/probability
+INCLUDES = ../Utility $(YEAGERLIBDIR_)/fundamental $(HOLDIR)/examples/generic_graphs $(HOLDIR)/examples/probability $(HOLDIR)/examples/simple_complexity/lib $(HOLDIR)/examples/simple_complexity/loop
 
 all: $(DEFAULT_TARGETS)
 .PHONY: all

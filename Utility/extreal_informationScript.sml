@@ -1528,3 +1528,43 @@ Proof
         REAL_LT_IMP_NE, REAL_LT_MUL]
  >> REAL_ARITH_TAC
 QED
+
+(* [mutual_information_def] agrees with [mutual_information_discrete_def]
+   applied to the joint mass function of X and Y. Together with the latter
+   definition, this gives I(X;Y) = H(X) - H(X|Y), MacKay Equation 8.8.
+.
+   Written by Claude *)
+Theorem mutual_information_discrete_eq:
+    ∀b p s1 s2 X Y.
+       prob_space p ∧ FINITE (p_space p) ∧ POW (p_space p) = events p ∧
+       random_variable X p (s1,POW s1) ∧ random_variable Y p (s2,POW s2) ∧
+       FINITE s1 ∧ FINITE s2 ⇒
+       mutual_information b p (s1,POW s1) (s2,POW s2) X Y =
+       mutual_information_discrete b s1 s2
+         (λ(x,y). joint_distribution p X Y {(x,y)})
+Proof
+    rpt STRIP_TAC
+ >> ‘∀x. ∑ (λy. joint_distribution p X Y {(x,y)}) s2 = distribution p X {x}’
+      by METIS_TAC [marginal_distribution_POW]
+ >> ‘∀x y. joint_distribution p Y X {(y,x)} =
+           joint_distribution p X Y {(x,y)}’
+      by (rw [joint_distribution_def] \\
+          AP_TERM_TAC \\
+          rw [EXTENSION, IN_PREIMAGE, IN_INTER] \\
+          METIS_TAC [])
+ >> ‘∀y. ∑ (λx. joint_distribution p X Y {(x,y)}) s1 = distribution p Y {y}’
+      by (GEN_TAC \\
+          Q.ISPECL_THEN [‘p’, ‘Y’, ‘X’, ‘s1’, ‘y’] MP_TAC
+                        marginal_distribution_POW \\
+          rw [])
+ >> Q.ISPECL_THEN [‘b’, ‘s1’, ‘s2’,
+                   ‘λ(x,y). joint_distribution p X Y {(x,y)}’] MP_TAC
+                  mutual_information_discrete_alt
+ >> impl_tac
+ >- (rw [] \\
+     Q.ISPECL_THEN [‘p’, ‘X’, ‘Y’, ‘(x,y)’] MP_TAC
+                   joint_distribution_normal \\
+     rw [] >> rw [extreal_of_num_def, extreal_le_eq])
+ >> Rewr
+ >> simp [finite_mutual_information_reduce_POW]
+QED

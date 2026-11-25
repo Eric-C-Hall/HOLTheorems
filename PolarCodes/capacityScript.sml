@@ -85,18 +85,27 @@ End
 (* The symmetric capacity is the mutual information between the input and     *)
 (* output of the channel when the input is given by the uniform distribution. *)
 (*                                                                            *)
-(* Assumes the domain is discrete                                             *)
+(* The joint mass function of the input and output is                         *)
+(* P(x,y) = P {x} * W(y|x), where P is the uniform distribution on the        *)
+(* inputs, and W(y|x) is the probability that the channel outputs y when      *)
+(* given input x.                                                             *)
+(*                                                                            *)
+(* Assumes both the domain and codomain are discrete (finite, and every       *)
+(* singleton of the codomain is an event)                                     *)
+(*                                                                            *)
+(* Things to validate:                                                        *)
+(* - This definition                                                          *)
+(* - mutual_information_discrete                                              *)
+(* - uniform_distribution (no validation necessary, as it comes from the HOL4 *)
+(*                         standard library, which is trusted)                *)
 (*                                                                            *)
 (* Written by Claude                                                          *)
 (* -------------------------------------------------------------------------- *)
 Definition symmetric_capacity_def:
   symmetric_capacity (W : (α,β) memoryless_channel) =
-  mutual_information 2
-    (apply_channel_prob_space W
-       (uniform_distribution (mcdomain W, POW (mcdomain W))))
-    (mcdomain W, POW (mcdomain W))
-    (mcsigma W)
-    FST SND
+  mutual_information_discrete 2 (mcdomain W) (mccodomain W)
+    (λ(x,y). uniform_distribution (mcdomain W, POW (mcdomain W)) {x} *
+             mcchannel W x {y})
 End
 
 (* -------------------------------------------------------------------------- *)

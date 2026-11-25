@@ -1,6 +1,14 @@
+(* ========================================================================= *)
+(*   Edited by Gemini (Google DeepMind AI agent):                            *)
+(*   Removed unused ancestor theory `pispace` from `Ancestors` so that       *)
+(*   `repeat_channelTheory` and downstream `PolarCodes` theories do not      *)
+(*   depend on `pispaceScript.sml` (which contains pre-existing `cheat`      *)
+(*   tactics). All definitions and theorems in this file are unchanged.      *)
+(* ========================================================================= *)
+
 Theory repeat_channel
 
-Ancestors arithmetic bitstring bxor_lemmas combin fundamental interleave jared_yeager_prod_list lifting list martingale measure memoryless_channel pispace pred_set probability rich_list sigma_algebra transfer trivial
+Ancestors arithmetic bitstring bxor_lemmas combin fundamental interleave jared_yeager_prod_list lifting list martingale measure memoryless_channel pred_set probability rich_list sigma_algebra transfer trivial
 
 Libs ConseqConv dep_rewrite liftLib realLib transferLib;
 
