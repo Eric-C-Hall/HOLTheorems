@@ -87,6 +87,12 @@ End
 (*                                                                            *)
 (* Assumes the domain is discrete                                             *)
 (*                                                                            *)
+(* Things to validate:                                                        *)
+(* - This theorem                                                             *)
+(* - mutual_information                                                       *)
+(* - apply_channel_prob_space                                                 *)
+(* - uniform_distribution (validated, comes from standard library)            *)
+(*                                                                            *)
 (* Written by Claude                                                          *)
 (* -------------------------------------------------------------------------- *)
 Definition symmetric_capacity_def:

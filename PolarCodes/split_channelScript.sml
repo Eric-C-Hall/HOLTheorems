@@ -415,7 +415,12 @@ QED
 (* -------------------------------------------------------------------------- *)
 
 (* Abstract coordinate split channel W_N^(i) lifted via memoryless_channel_ABS.
-   Written by Gemini (Google DeepMind AI agent) *)
+   Written by Gemini (Google DeepMind AI agent)
+
+   Validated by Eric Hall: abstract type version of split_channel, using
+   human-written definition of split_channel0 and human-written type
+   memoryless_channel.
+ *)
 Definition split_channel_def:
   split_channel (W : (bool, β) memoryless_channel) (num_inputs : num) (i : num)
     : (bool, β list # bool list) memoryless_channel =

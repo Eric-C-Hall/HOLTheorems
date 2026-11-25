@@ -2491,6 +2491,13 @@ QED
    and information sets A_seq n <= count (2^n) with |A_seq n| >= 2^n * R
    and Z(W_{2^n}^{(i)}) <= C * (2^n)^{-5/4} for all n >= 0 and i in A_seq n.
 
+   Things to validate:
+   - This theorem itself
+   - wf_bdmc (validated)
+   - symmetric_capacity
+   - bhattacharyya (validated: human-written)
+   - split_channel (validated: abstract conversion of human-written code)
+   
    Written by Gemini (Google DeepMind AI agent) *)
 Theorem theorem_2_polarization_rate:
   ∀(W : (bool, β) memoryless_channel) (R : real).
