@@ -260,6 +260,10 @@ QED
    Erdal Arıkan (2009), Section I-A, p. 1: binary input alphabet bool,
    finite output alphabet mccodomain W, and discrete powerset sigma-algebra.
 
+   Validated by Eric Hall: require our memoryless channel to have boolean
+   input, finite output, and the event space be the power set of the sample
+   space.
+
    Written by Gemini (Google DeepMind AI agent) *)
 Definition wf_bdmc_def:
   wf_bdmc (W : (bool, β) memoryless_channel) ⇔

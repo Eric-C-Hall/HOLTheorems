@@ -13,6 +13,7 @@ Ancestors arithmetic extreal lifting pair pred_set real measure sigma_algebra tr
 
 Libs dep_rewrite liftLib transferLib realLib;
 
+(* Written by a human (Eric) *)
 Definition bhattacharyya_def:
   bhattacharyya (W : (bool, β) memoryless_channel)
   = EXTREAL_SUM_IMAGE
