@@ -678,9 +678,11 @@ Proof
 QED
 
 (* Specialization of prob_space_apply_channel_prob_space to the uniform input
-   distribution used in symmetric_capacity_def.
+   distribution.
 
-   Written by Gemini (Google DeepMind AI agent) *)
+   Written by Gemini (Google DeepMind AI agent)
+.
+   Edited by Claude: symmetric_capacity_def no longer uses this *)
 Theorem prob_space_apply_channel_uniform:
   ∀W : (bool, β) memoryless_channel.
     wf_bdmc W ⇒
@@ -767,10 +769,49 @@ Proof
       REAL_ASM_ARITH_TAC)
 QED
 
-(* Reduction of measure-theoretic symmetric_capacity W to Erdal Arıkan's
-   explicit double-sum formula (arXiv:0807.3917, Section I-A, p. 1).
+(* Marginals of the joint mass function used in symmetric_capacity_def.
+.
+   Written by Claude *)
+Theorem symmetric_capacity_marginals[local]:
+  ∀W : (bool, β) memoryless_channel.
+    wf_bdmc W ⇒
+    (∀x. ∑ (λy. (1 / 2) * mcchannel W x {y}) (mccodomain W) = 1 / 2) ∧
+    (∀y. y ∈ mccodomain W ⇒
+         ∑ (λx. (1 / 2) * mcchannel W x {y}) 𝕌(:bool) =
+         (1 / 2) * mcchannel W F {y} + (1 / 2) * mcchannel W T {y})
+Proof
+  rpt strip_tac
+  >- (‘FINITE (mccodomain W)’ by fs[wf_bdmc_def] >>
+      ‘(1 / 2 : extreal) = Normal (1 / 2)’
+        by simp[extreal_of_num_def, extreal_div_eq] >>
+      pop_assum SUBST1_TAC >>
+      qspecl_then [‘mccodomain W’] mp_tac EXTREAL_SUM_IMAGE_CMUL >>
+      simp[] >>
+      disch_then (qspecl_then [‘λy. mcchannel W x {y}’, ‘1 / 2’] mp_tac) >>
+      impl_tac
+      >- (disj1_tac >> rpt strip_tac >>
+          qspecl_then [‘W’, ‘x’, ‘x'’] mp_tac
+            wf_bdmc_mcchannel_singleton_normal >>
+          gvs[] >> rpt strip_tac >> gvs[]) >>
+      simp[wf_bdmc_mcchannel_sum_1])
+  >- (qspecl_then [‘W’, ‘T’, ‘y’] mp_tac wf_bdmc_mcchannel_singleton_normal >>
+      qspecl_then [‘W’, ‘F’, ‘y’] mp_tac wf_bdmc_mcchannel_singleton_normal >>
+      simp[] >> rpt strip_tac >>
+      DEP_REWRITE_TAC[EXTREAL_SUM_IMAGE_BOOL] >>
+      conj_tac
+      >- (Cases >> simp[extreal_of_num_def, extreal_div_eq, extreal_mul_eq]) >>
+      simp[extreal_of_num_def, extreal_div_eq, extreal_mul_eq,
+           extreal_add_eq] >>
+      REAL_ASM_ARITH_TAC)
+QED
 
-   Written by Gemini (Google DeepMind AI agent) *)
+(* Reduction of symmetric_capacity W to Erdal Arıkan's explicit double-sum
+   formula (arXiv:0807.3917, Section I-A, p. 1).
+
+   Written by Gemini (Google DeepMind AI agent)
+.
+   Edited by Claude: symmetric_capacity now uses the discrete mutual
+   information *)
 Theorem symmetric_capacity_bdmc_sum:
   ∀W : (bool, β) memoryless_channel.
     wf_bdmc W ⇒
@@ -783,33 +824,26 @@ Theorem symmetric_capacity_bdmc_sum:
         (mccodomain W)
 Proof
   rpt strip_tac >>
-  drule wf_bdmc_mcsigma >> strip_tac >>
-  drule prob_space_apply_channel_uniform >> strip_tac >>
+  drule symmetric_capacity_marginals >> strip_tac >>
   ‘mcdomain W = 𝕌(:bool) ∧ FINITE (mccodomain W)’ by fs[wf_bdmc_def] >>
-  qabbrev_tac ‘p = apply_channel_prob_space W
-                     (uniform_distribution (mcdomain W, POW (mcdomain W)))’ >>
-  ‘p_space p = {T; F} × mccodomain W ∧ events p = POW ({T; F} × mccodomain W)’
-    by (simp[Abbr ‘p’, apply_channel_prob_space_def, p_space_def, m_space_def,
-             events_def, measurable_sets_def] >>
-        gvs[prod_sigma_POW]) >>
-  ‘random_variable FST p ({T; F}, POW {T; F}) ∧
-   random_variable SND p (mccodomain W, POW (mccodomain W))’
-    by (rw[random_variable_def, IN_MEASURABLE, IN_FUNSET, space_def,
-           subsets_def, IN_POW, INTER_SUBSET] >>
-        Cases_on ‘x’ >> fs[]) >>
-  simp[symmetric_capacity_def] >>
-  ‘mutual_information 2 p ({T; F}, POW {T; F})
-      (mccodomain W, POW (mccodomain W)) FST SND =
-   ∑ (λ(x, y). joint_distribution p FST SND {(x, y)} *
-               logr 2 (joint_distribution p FST SND {(x, y)} /
-                       (distribution p FST {x} * distribution p SND {y})))
-     ({T; F} × mccodomain W)’
-    by (irule finite_mutual_information_reduce_POW >>
-        simp[FINITE_CROSS]) >>
-  ‘mcsigma W = (mccodomain W, POW (mccodomain W)) ∧
-   apply_channel_prob_space W (uniform_distribution ({T; F}, POW {T; F})) = p’
-    by gvs[Abbr ‘p’] >>
-  simp[] >>
+  ‘symmetric_capacity W =
+   ∑ (λ(x, y). (1 / 2) * mcchannel W x {y} *
+               logr 2 ((1 / 2) * mcchannel W x {y} /
+                       ((1 / 2) * ∑ (λx. (1 / 2) * mcchannel W x {y})
+                                    𝕌(:bool))))
+     (𝕌(:bool) × mccodomain W)’
+    by (PURE_REWRITE_TAC[symmetric_capacity_def] >>
+        asm_rewrite_tac[uniform_distribution_bool_singleton] >>
+        DEP_REWRITE_TAC[mutual_information_discrete_alt] >>
+        conj_tac
+        >- (simp[] >> qx_genl_tac [‘x’, ‘y’] >> strip_tac >>
+            qspecl_then [‘W’, ‘x’, ‘y’] mp_tac
+              wf_bdmc_mcchannel_singleton_normal >>
+            simp[] >> strip_tac >>
+            simp[extreal_of_num_def, extreal_div_eq, extreal_mul_eq,
+                 extreal_le_eq]) >>
+        simp[LET_THM]) >>
+  pop_assum SUBST1_TAC >>
   qabbrev_tac ‘g = λ(x : bool) (y : β).
                      (1 / 2) * mcchannel W x {y} *
                      logr 2 (mcchannel W x {y} /
@@ -828,15 +862,16 @@ Proof
         >- (Cases_on ‘x’ >>
             gvs[extreal_of_num_def, extreal_div_eq, extreal_mul_eq,
                 extreal_add_eq, extreal_logr_def])) >>
-  ‘∑ (λ(x, y). joint_distribution p FST SND {(x, y)} *
-               logr 2 (joint_distribution p FST SND {(x, y)} /
-                       (distribution p FST {x} * distribution p SND {y})))
-     ({T; F} × mccodomain W) =
+  ‘∑ (λ(x, y). (1 / 2) * mcchannel W x {y} *
+               logr 2 ((1 / 2) * mcchannel W x {y} /
+                       ((1 / 2) * ∑ (λx. (1 / 2) * mcchannel W x {y})
+                                    𝕌(:bool))))
+     (𝕌(:bool) × mccodomain W) =
    ∑ (λz. g (FST z) (SND z)) ({T; F} × mccodomain W)’
-    by (irule EXTREAL_SUM_IMAGE_EQ' >> simp[FINITE_CROSS, FORALL_PROD] >>
+    by (REWRITE_TAC[GSYM UNIV_BOOL] >>
+        irule EXTREAL_SUM_IMAGE_EQ' >> simp[FINITE_CROSS, FORALL_PROD] >>
         qx_genl_tac [‘x’, ‘y’] >> strip_tac >>
-        mp_tac (Q.SPECL [‘W’, ‘x’, ‘y’] apply_channel_uniform_dists) >>
-        simp[LET_THM, Abbr ‘g’] >> strip_tac >>
+        fs[Abbr ‘g’] >>
         qspecl_then [‘W’, ‘T’, ‘y’] mp_tac wf_bdmc_mcchannel_singleton_normal >>
         qspecl_then [‘W’, ‘F’, ‘y’] mp_tac wf_bdmc_mcchannel_singleton_normal >>
         simp[] >> rpt strip_tac >>
