@@ -27,75 +27,83 @@ Libs
 (* TODO: Perhaps I should change this to use definitions like prob and
    cond_prob rather than working directly with the distributions P and Q? *)
 
-(* The KL divergence D_{KL}(P||Q) of a pair of discrete distributions
-.
-   b: the base of the logarithm
-   A: the finite alphabet (set of outcomes) over which P and Q are defined
-   P: the first mass function (extreal-valued)
-   Q: the second mass function (extreal-valued)
-.
-   Manually validated by Eric Hall: definition matches that provided in
-   "Information Theory, Inference and Learning Algorithms" by David J. C.
-   MacKay, Equation 2.45 assuming validity of components such as logr. In
-   the special case of division by zero, we return positive infinity
-.        
-   Written by Claude with supervision by Eric Hall *)
+(* -------------------------------------------------------------------------- *)
+(* The KL divergence D_{KL}(P||Q) of a pair of discrete distributions         *)
+(*                                                                            *)
+(* b: the base of the logarithm                                               *)
+(* A: the finite alphabet (set of outcomes) over which P and Q are defined    *)
+(* P: the first mass function (extreal-valued)                                *)
+(* Q: the second mass function (extreal-valued)                               *)
+(*                                                                            *)
+(* Manually validated by Eric Hall: definition matches that provided in       *)
+(* "Information Theory, Inference and Learning Algorithms" by David J. C.     *)
+(* MacKay, Equation 2.45 assuming validity of components such as logr. In     *)
+(* the special case of division by zero, we return positive infinity          *)
+(*                                                                            *)
+(* Written by Claude with supervision by Eric Hall                            *)
+(* -------------------------------------------------------------------------- *)
 Definition KL_divergence_discrete_def:
     KL_divergence_discrete b A (P : α -> extreal) (Q : α -> extreal) =
       if ∃x. x ∈ A ∧ Q x = 0 ∧ P x ≠ 0 then +∞
       else ∑ (λx. P x * logr b (P x / Q x)) A
 End
 
-(* The entropy H(P) of a discrete distribution
-.
-   b: the base of the logarithm
-   A: the finite alphabet (set of outcomes) over which P is defined
-   P: the mass function (extreal-valued)
-.
-   Manually validated by Eric Hall: definition matches that provided in
-   "Information Theory, Inference and Learning Algorithms" by David J. C.
-   MacKay, Equation 2.35 assuming validity of components such as logr.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The entropy H(P) of a discrete distribution                                *)
+(*                                                                            *)
+(* b: the base of the logarithm                                               *)
+(* A: the finite alphabet (set of outcomes) over which P is defined           *)
+(* P: the mass function (extreal-valued)                                      *)
+(*                                                                            *)
+(* Manually validated by Eric Hall: definition matches that provided in       *)
+(* "Information Theory, Inference and Learning Algorithms" by David J. C.     *)
+(* MacKay, Equation 2.35 assuming validity of components such as logr.        *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Definition entropy_discrete_def:
     entropy_discrete b A (P : α -> extreal) = ∑ (λx. P x * logr b (1 / P x)) A
 End
 
-(* The joint entropy H(X,Y) of a discrete joint distribution
-.
-   b: the base of the logarithm
-   A: the finite alphabet (set of outcomes) of the first component
-   B: the finite alphabet (set of outcomes) of the second component
-   P: the joint mass function (extreal-valued), P (x,y) = Pr(X = x, Y = y)
-.
-   Manually validated by Eric Hall: definition matches that provided in
-   "Information Theory, Inference and Learning Algorithms" by David J. C.
-   MacKay, Equation 2.38 assuming validity of components such as logr.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The joint entropy H(X,Y) of a discrete joint distribution                  *)
+(*                                                                            *)
+(* b: the base of the logarithm                                               *)
+(* A: the finite alphabet (set of outcomes) of the first component            *)
+(* B: the finite alphabet (set of outcomes) of the second component           *)
+(* P: the joint mass function (extreal-valued), P (x,y) = Pr(X = x, Y = y)    *)
+(*                                                                            *)
+(* Manually validated by Eric Hall: definition matches that provided in       *)
+(* "Information Theory, Inference and Learning Algorithms" by David J. C.     *)
+(* MacKay, Equation 2.38 assuming validity of components such as logr.        *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Definition joint_entropy_discrete_def:
     joint_entropy_discrete b A B (P : α # β -> extreal) =
       ∑ (λ(x,y). P (x,y) * logr b (1 / P (x,y))) (A × B)
 End
 
-(* The conditional entropy H(X|Y) of a discrete joint distribution, i.e.
-   SUM_{x,y} P(x,y) log_b (1 / P(x|y)), where P(x|y) = P(x,y) / P(y) and
-   P(y) = SUM_x P(x,y) is the marginal of the second component.
-.
-   b: the base of the logarithm
-   A: the finite alphabet (set of outcomes) of the first component (X)
-   B: the finite alphabet (set of outcomes) of the second component (Y)
-   P: the joint mass function (extreal-valued), P (x,y) = Pr(X = x, Y = y)
-.
-   PY represents the probability of Y = y, obtained by marginalizing out X = x.
-   P(X|Y) = P(X,Y) / P(Y), and this is used in the definition
-.
-   Manually validated by Eric Hall: definition matches that provided in
-   "Information Theory, Inference and Learning Algorithms" by David J. C.
-   MacKay, Equation 8.3 assuming validity of components such as logr, if we
-   take into account the above observations regarding PY and P(X|Y).
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The conditional entropy H(X|Y) of a discrete joint distribution, i.e.      *)
+(* SUM_{x,y} P(x,y) log_b (1 / P(x|y)), where P(x|y) = P(x,y) / P(y) and      *)
+(* P(y) = SUM_x P(x,y) is the marginal of the second component.               *)
+(*                                                                            *)
+(* b: the base of the logarithm                                               *)
+(* A: the finite alphabet (set of outcomes) of the first component (X)        *)
+(* B: the finite alphabet (set of outcomes) of the second component (Y)       *)
+(* P: the joint mass function (extreal-valued), P (x,y) = Pr(X = x, Y = y)    *)
+(*                                                                            *)
+(* PY represents the probability of Y = y, obtained by marginalizing out      *)
+(* X = x. P(X|Y) = P(X,Y) / P(Y), and this is used in the definition          *)
+(*                                                                            *)
+(* Manually validated by Eric Hall: definition matches that provided in       *)
+(* "Information Theory, Inference and Learning Algorithms" by David J. C.     *)
+(* MacKay, Equation 8.3 assuming validity of components such as logr, if we   *)
+(* take into account the above observations regarding PY and P(X|Y).          *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Definition conditional_entropy_discrete_def:
     conditional_entropy_discrete b A B (P : α # β -> extreal) =
     let
@@ -104,57 +112,63 @@ Definition conditional_entropy_discrete_def:
         ∑ (λ(x,y). P (x,y) * logr b (1 / (P (x,y) / PY y))) (A × B)
 End
 
-(* The mutual information I(X;Y) = H(X) - H(X|Y) of a discrete joint
-   distribution, defined as the difference between the entropy of the
-   marginal of the first component and the conditional entropy.
-.
-   b: the base of the logarithm
-   A: the finite alphabet (set of outcomes) of the first component (X)
-   B: the finite alphabet (set of outcomes) of the second component (Y)
-   P: the joint mass function (extreal-valued), P (x,y) = Pr(X = x, Y = y)
-.
-   mutual_information_discrete_alt shows that this agrees with the direct
-   form SUM_{x,y} P(x,y) log_b (P(x,y) / (P(x) P(y))).
-.
-   Manually validated by Eric Hall: definition matches that provided in
-   "Information Theory, Inference and Learning Algorithms" by David J. C.
-   MacKay, Equation 8.8 assuming validity of components: note that
-   marginalising out Y from P(X,Y) gives us P(X), which we provide as input to
-   entropy_discrete.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The mutual information I(X;Y) = H(X) - H(X|Y) of a discrete joint          *)
+(* distribution, defined as the difference between the entropy of the         *)
+(* marginal of the first component and the conditional entropy.               *)
+(*                                                                            *)
+(* b: the base of the logarithm                                               *)
+(* A: the finite alphabet (set of outcomes) of the first component (X)        *)
+(* B: the finite alphabet (set of outcomes) of the second component (Y)       *)
+(* P: the joint mass function (extreal-valued), P (x,y) = Pr(X = x, Y = y)    *)
+(*                                                                            *)
+(* mutual_information_discrete_alt shows that this agrees with the direct     *)
+(* form SUM_{x,y} P(x,y) log_b (P(x,y) / (P(x) P(y))).                        *)
+(*                                                                            *)
+(* Manually validated by Eric Hall: definition matches that provided in       *)
+(* "Information Theory, Inference and Learning Algorithms" by David J. C.     *)
+(* MacKay, Equation 8.8 assuming validity of components: note that            *)
+(* marginalising out Y from P(X,Y) gives us P(X), which we provide as input   *)
+(* to entropy_discrete.                                                       *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Definition mutual_information_discrete_def:
     mutual_information_discrete b A B (P : α # β -> extreal) =
       entropy_discrete b A (λx. ∑ (λy. P (x,y)) B) -
       conditional_entropy_discrete b A B P
 End
         
-(* Non-discrete version of the KL divergence
-   D_b(u||v) = ∫ log_b (du/dv) du (measure-theoretic)
-.
-   b: the base of the logarithm
-   s: the sigma-algebra shared by both measures
-   u: the first measure, e.g. ‘distribution p X’
-   v: the second measure
-.
-   ‘RN_deriv u m’ (also written ‘u / m’) is the Radon-Nikodym derivative du/dm.
-   Only meaningful when u ≪ v and v is sigma-finite (otherwise du/dv does not
-   exist and the value is unspecified, not +∞), and when the integral is not
-   +∞ - +∞ (never the case for probability measures).
-.
-   Has not been validated by a human. KL_divergence_discrete_eq will likely
-   help in validation.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Non-discrete version of the KL divergence                                  *)
+(* D_b(u||v) = ∫ log_b (du/dv) du (measure-theoretic)                         *)
+(*                                                                            *)
+(* b: the base of the logarithm                                               *)
+(* s: the sigma-algebra shared by both measures                               *)
+(* u: the first measure, e.g. ‘distribution p X’                              *)
+(* v: the second measure                                                      *)
+(*                                                                            *)
+(* ‘RN_deriv u m’ (also written ‘u / m’) is the Radon-Nikodym derivative      *)
+(* du/dm. Only meaningful when u ≪ v and v is sigma-finite (otherwise du/dv   *)
+(* does not exist and the value is unspecified, not +∞), and when the         *)
+(* integral is not +∞ - +∞ (never the case for probability measures).         *)
+(*                                                                            *)
+(* Has not been validated by a human. KL_divergence_discrete_eq will likely   *)
+(* help in validation.                                                        *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Definition KL_divergence_def:
     KL_divergence b s u v =
     ∫ (space s,subsets s,u)
              (λx. logr b (RN_deriv u (space s,subsets s,v) x))
 End
 
-(* Non-discrete version of the mutual information
-.
-  Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Non-discrete version of the mutual information                             *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Definition mutual_information_def:
     mutual_information b p s1 s2 X Y =
       let prod_space =
@@ -166,14 +180,18 @@ Definition mutual_information_def:
                         (measure prod_space)
 End
 
-(* entropy_discrete_eq may be helpful in validation.
-.
-  Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* entropy_discrete_eq may be helpful in validation.                          *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Definition entropy_def:
     entropy b p s X = mutual_information b p s s X X
 End
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Definition conditional_mutual_information_def:
     conditional_mutual_information b p s1 s2 s3 X Y Z =
       let prod_space =
@@ -190,7 +208,9 @@ End
 (* Auxiliary lemmas                                                          *)
 (* ************************************************************************* *)
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem IN_MEASURABLE_BOREL_POW[local]:
     ∀sp (f :'a -> extreal). f ∈ Borel_measurable (sp,POW sp)
 Proof
@@ -198,7 +218,9 @@ Proof
         subsets_def, IN_POW, INTER_SUBSET]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem prod_sigma_POW:
     ∀s1 s2. FINITE s1 ∧ FINITE s2 ⇒
             subsets ((s1,POW s1) × (s2,POW s2)) = POW (s1 × s2)
@@ -233,9 +255,11 @@ Proof
  >> METIS_TAC []
 QED
 
-(* The bridge between extreal terms ‘x * logr b (x / y)’ and real ones.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The bridge between extreal terms ‘x * logr b (x / y)’ and real ones.       *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem mul_logr_normal[local]:
     ∀b x y. (y = 0 ⇒ x = 0) ⇒
             Normal x * logr b (Normal x / Normal y) =
@@ -247,9 +271,11 @@ Proof
  >> rw [extreal_div_eq, extreal_logr_def, extreal_mul_def]
 QED
 
-(* For finite measures on a finite space with all subsets measurable.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* For finite measures on a finite space with all subsets measurable.         *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_POW_measure_normal[local]:
     ∀sp m s. measure_space (sp,POW sp,m) ∧ m sp ≠ +∞ ∧ s ⊆ sp ⇒
              ∃r. 0 ≤ r ∧ m s = Normal r
@@ -271,7 +297,9 @@ QED
 (* KL divergence on finite spaces                                            *)
 (* ************************************************************************* *)
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem KL_divergence_finite_POW:
     ∀b sp u v.
        FINITE sp ∧ measure_space (sp,POW sp,u) ∧
@@ -402,9 +430,11 @@ Proof
  >> rw [extreal_div_eq, extreal_logr_def, extreal_mul_def, REAL_MUL_COMM]
 QED
 
-(* The measure induced by a nonnegative mass function on a finite alphabet.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The measure induced by a nonnegative mass function on a finite alphabet.   *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem measure_space_pmf_POW[local]:
     ∀sp P. FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x) ⇒
            measure_space (sp,POW sp,λs. ∑ (λx. Normal (P x)) s)
@@ -421,10 +451,12 @@ Proof
  >> rw []
 QED
 
-(* The measure induced by a nonnegative extreal mass function on a finite
-   alphabet.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The measure induced by a nonnegative extreal mass function on a finite     *)
+(* alphabet.                                                                  *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem measure_space_extreal_pmf_POW[local]:
     ∀sp (P :α -> extreal). FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x) ⇒
                           measure_space (sp,POW sp,λs. ∑ P s)
@@ -442,19 +474,21 @@ Proof
  >> rw [] >> MATCH_MP_TAC pos_not_neginf >> fs [SUBSET_DEF]
 QED
 
-(* The KL divergence agrees with the textbook definition (e.g. MacKay,
-   "Information Theory, Inference, and Learning Algorithms", eq. 2.45):
-.
-     D_KL(P||Q) = SUM_x P(x) log (P(x) / Q(x))
-.
-   where P and Q are probability distributions over the same finite alphabet
-   ‘sp’, viewed as (real) mass functions. The measures used by
-   ‘KL_divergence’ are the ones these mass functions induce on (sp,POW sp).
-   The condition ‘Q x = 0 ==> P x = 0’ (P is absolutely continuous w.r.t. Q)
-   is needed for D_KL(P||Q) to be finite. Note that the theorem does not need
-   P and Q to sum to 1.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The KL divergence agrees with the textbook definition (e.g. MacKay,        *)
+(* "Information Theory, Inference, and Learning Algorithms", eq. 2.45):       *)
+(*                                                                            *)
+(*   D_KL(P||Q) = SUM_x P(x) log (P(x) / Q(x))                                *)
+(*                                                                            *)
+(* where P and Q are probability distributions over the same finite alphabet  *)
+(* ‘sp’, viewed as (real) mass functions. The measures used by                *)
+(* ‘KL_divergence’ are the ones these mass functions induce on (sp,POW sp).   *)
+(* The condition ‘Q x = 0 ==> P x = 0’ (P is absolutely continuous w.r.t. Q)  *)
+(* is needed for D_KL(P||Q) to be finite. Note that the theorem does not need *)
+(* P and Q to sum to 1.                                                       *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem KL_divergence_pmf:
     ∀b sp P Q.
        FINITE sp ∧ (∀x. x ∈ sp ⇒ 0 ≤ P x ∧ 0 ≤ Q x) ∧
@@ -477,10 +511,12 @@ Proof
  >> MATCH_MP_TAC mul_logr_normal >> rw []
 QED
 
-(* [KL_divergence_def] agrees with [KL_divergence_discrete_def] on the
-   measures induced by ‘P’ and ‘Q’, when P is absolutely continuous w.r.t. Q.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* [KL_divergence_def] agrees with [KL_divergence_discrete_def] on the        *)
+(* measures induced by ‘P’ and ‘Q’, when P is absolutely continuous w.r.t. Q. *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem KL_divergence_discrete_eq:
     ∀b A (P :α -> extreal) Q.
        FINITE A ∧
@@ -506,7 +542,9 @@ QED
 (* Mutual information on finite spaces                                       *)
 (* ************************************************************************* *)
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem random_variable_POW[local]:
     ∀p X s. prob_space p ∧ POW (p_space p) = events p ∧
             (∀x. x ∈ p_space p ⇒ X x ∈ s) ⇒
@@ -518,14 +556,18 @@ Proof
  >> rw [IN_POW, INTER_SUBSET]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem random_variable_POW_IN[local]:
     ∀p X s x. random_variable X p (s,POW s) ∧ x ∈ p_space p ⇒ X x ∈ s
 Proof
     rw [random_variable_def, IN_MEASURABLE, IN_FUNSET, space_def]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_POW_prob_normal[local]:
     ∀p e. prob_space p ∧ POW (p_space p) = events p ∧
           e ⊆ p_space p ⇒ ∃r. 0 ≤ r ∧ r ≤ 1 ∧ prob p e = Normal r
@@ -535,7 +577,9 @@ Proof
  >> METIS_TAC [prob_normal]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem distribution_normal[local]:
     ∀p X x. prob_space p ∧ POW (p_space p) = events p ⇒
             ∃r. 0 ≤ r ∧ r ≤ 1 ∧ distribution p X {x} = Normal r
@@ -544,7 +588,9 @@ Proof
  >> MATCH_MP_TAC finite_POW_prob_normal >> rw [INTER_SUBSET]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem joint_distribution_normal[local]:
     ∀p X Y x. prob_space p ∧ POW (p_space p) = events p ⇒
               ∃r. 0 ≤ r ∧ r ≤ 1 ∧ joint_distribution p X Y {x} = Normal r
@@ -553,7 +599,9 @@ Proof
  >> MATCH_MP_TAC finite_POW_prob_normal >> rw [INTER_SUBSET]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem joint_distribution_le_distribution[local]:
     ∀p X Y x y. prob_space p ∧ POW (p_space p) = events p ⇒
                 joint_distribution p X Y {(x,y)} ≤ distribution p X {x} ∧
@@ -565,7 +613,9 @@ Proof
  >> rw [IN_POW, INTER_SUBSET, SUBSET_DEF, IN_PREIMAGE]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem joint_distribution_eq_0[local]:
     ∀p X Y x y. prob_space p ∧ POW (p_space p) = events p ∧
                 (distribution p X {x} = 0 ∨ distribution p Y {y} = 0) ⇒
@@ -580,9 +630,11 @@ Proof
      rw [IN_POW, INTER_SUBSET])
 QED
 
-(* The general form of [finite_mutual_information_reduce].
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The general form of [finite_mutual_information_reduce].                    *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_mutual_information_reduce_POW:
     ∀b p s1 s2 X Y.
        prob_space p ∧ FINITE (p_space p) ∧ POW (p_space p) = events p ∧
@@ -644,7 +696,9 @@ Proof
  >> (simp [FORALL_PROD, FINITE_CROSS] >> rw [])
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_mutual_information_reduce:
     ∀b p X Y.
        prob_space p ∧ POW (p_space p) = events p ∧
@@ -664,7 +718,9 @@ Proof
  >> rw [IMAGE_FINITE]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_mutual_information_reduce2:
     ∀b p X Y Z.
        prob_space p ∧ POW (p_space p) = events p ∧
@@ -703,7 +759,9 @@ QED
 (* Entropy on finite spaces                                                  *)
 (* ************************************************************************* *)
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_entropy_reduce:
     ∀b p X.
        prob_space p ∧ POW (p_space p) = events p ∧
@@ -781,10 +839,12 @@ Proof
  >> rw [logr_inv]
 QED
 
-(* [entropy_def] agrees with [entropy_discrete_def] applied to the mass
-   function of X on its (finite) range.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* [entropy_def] agrees with [entropy_discrete_def] applied to the mass       *)
+(* function of X on its (finite) range.                                       *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem entropy_discrete_eq:
     ∀b p X.
        prob_space p ∧ POW (p_space p) = events p ∧
@@ -827,7 +887,9 @@ QED
 (* Conditional mutual information on finite spaces                           *)
 (* ************************************************************************* *)
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem marginal_distribution_POW[local]:
     ∀p X Y s2 x.
        prob_space p ∧ POW (p_space p) = events p ∧
@@ -856,9 +918,11 @@ Proof
  >> EQ_TAC >> rw []
 QED
 
-(* I(X;Y) = SIGMA p(x,y) log (p(x,y) / p(y)) - SIGMA p(x) log p(x).
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* I(X;Y) = SIGMA p(x,y) log (p(x,y) / p(y)) - SIGMA p(x) log p(x).           *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_mutual_information_split[local]:
     ∀b p s1 s2 X Y.
        prob_space p ∧ FINITE (p_space p) ∧ POW (p_space p) = events p ∧
@@ -965,7 +1029,9 @@ Proof
  >> simp [extreal_11]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem EXTREAL_SUM_IMAGE_NORMAL_EXISTS[local]:
     ∀f s. FINITE s ∧ (∀x. x ∈ s ⇒ ∃r. f x = Normal r) ⇒
           ∃r. ∑ f s = Normal r
@@ -981,7 +1047,9 @@ Proof
  >> METIS_TAC [extreal_cases]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem joint_logr_normal[local]:
     ∀b p X Y x y.
        prob_space p ∧ POW (p_space p) = events p ⇒
@@ -1005,7 +1073,9 @@ Proof
  >> MATCH_MP_TAC mul_logr_normal >> art []
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_conditional_mutual_information_reduce:
     ∀b p X Y Z.
        prob_space p ∧ POW (p_space p) = events p ∧
@@ -1104,7 +1174,9 @@ QED
 (* Bounds on entropy                                                         *)
 (* ************************************************************************* *)
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_entropy_certainty_eq_0:
     ∀b p X. prob_space p ∧ POW (p_space p) = events p ∧
             random_variable X p
@@ -1129,7 +1201,9 @@ Proof
  >> rw [mul_lzero]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_entropy_le_card_real[local]:
     ∀b s (q :'a -> real). 1 ≤ b ∧ FINITE s ∧ ∑ q s = 1 ∧
             (∀x. x ∈ s ⇒ 0 ≤ q x ∧ q x ≤ 1) ⇒
@@ -1170,7 +1244,9 @@ Proof
  >> rw []
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_distribution_sum_1[local]:
     ∀p X. prob_space p ∧ POW (p_space p) = events p ∧
           random_variable X p
@@ -1188,7 +1264,9 @@ Proof
  >> rw [p_space_def, events_def, prob_def, IN_POW]
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_entropy_le_card:
     ∀b p X. 1 ≤ b ∧ prob_space p ∧ POW (p_space p) = events p ∧
             random_variable X p
@@ -1219,7 +1297,9 @@ Proof
  >> MATCH_MP_TAC finite_entropy_le_card_real >> rw []
 QED
 
-(* Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem finite_entropy_uniform_max:
     ∀b p X. prob_space p ∧ POW (p_space p) = events p ∧
             random_variable X p
@@ -1269,9 +1349,11 @@ QED
 (* Chain rule for discrete entropy                                           *)
 (* ************************************************************************* *)
 
-(* The bridge between extreal terms ‘x * logr b (1 / x)’ and real ones.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The bridge between extreal terms ‘x * logr b (1 / x)’ and real ones.       *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem mul_logr_inv_normal[local]:
     ∀b x. Normal x * logr b (1 / Normal x) = Normal (x * logr b (1 / x))
 Proof
@@ -1283,10 +1365,12 @@ Proof
  >> rw [extreal_logr_def, extreal_mul_def]
 QED
 
-(* The chain rule H(X,Y) = H(Y) + H(X|Y), MacKay Equation 2.47 / 8.5. No
-   assumption is made on the base b or on P summing to 1.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The chain rule H(X,Y) = H(Y) + H(X|Y), MacKay Equation 2.47 / 8.5. No      *)
+(* assumption is made on the base b or on P summing to 1.                     *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem joint_entropy_discrete_chain_rule:
     ∀b A B (P :α # β -> extreal).
        FINITE A ∧ FINITE B ∧
@@ -1392,10 +1476,12 @@ QED
 (* Mutual information as a difference of entropies                           *)
 (* ************************************************************************* *)
 
-(* Summing a term that depends only on the first component over a product
-   set reduces to summing it against the marginal.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Summing a term that depends only on the first component over a product     *)
+(* set reduces to summing it against the marginal.                            *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem REAL_SUM_IMAGE_CROSS_MARGINAL[local]:
     ∀A B (j :α -> β -> real) g f.
        FINITE A ∧ FINITE B ∧ (∀x. x ∈ A ⇒ ∑ (λy. j x y) B = g x) ⇒
@@ -1420,16 +1506,18 @@ Proof
  >> simp [extreal_11]
 QED
 
-(* The discrete mutual information I(X;Y) = H(X) - H(X|Y) in its direct
-   form SUM_{x,y} P(x,y) log_b (P(x,y) / (P(x) P(y))), where
-   P(x) = SUM_y P(x,y) and P(y) = SUM_x P(x,y) are the marginals of the two
-   components. No assumption is made on the base b or on P summing to 1.
-.
-   No special case for division by zero is needed: if PX x = 0 or PY y = 0
-   then (for nonnegative P) P (x,y) = 0, so the term vanishes, since
-   0 * _ = 0 in the extreals.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* The discrete mutual information I(X;Y) = H(X) - H(X|Y) in its direct       *)
+(* form SUM_{x,y} P(x,y) log_b (P(x,y) / (P(x) P(y))), where                  *)
+(* P(x) = SUM_y P(x,y) and P(y) = SUM_x P(x,y) are the marginals of the two   *)
+(* components. No assumption is made on the base b or on P summing to 1.      *)
+(*                                                                            *)
+(* No special case for division by zero is needed: if PX x = 0 or PY y = 0    *)
+(* then (for nonnegative P) P (x,y) = 0, so the term vanishes, since          *)
+(* 0 * _ = 0 in the extreals.                                                 *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem mutual_information_discrete_alt:
     ∀b A B (P :α # β -> extreal).
        FINITE A ∧ FINITE B ∧
@@ -1529,11 +1617,13 @@ Proof
  >> REAL_ARITH_TAC
 QED
 
-(* [mutual_information_def] agrees with [mutual_information_discrete_def]
-   applied to the joint mass function of X and Y. Together with the latter
-   definition, this gives I(X;Y) = H(X) - H(X|Y), MacKay Equation 8.8.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* [mutual_information_def] agrees with [mutual_information_discrete_def]     *)
+(* applied to the joint mass function of X and Y. Together with the latter    *)
+(* definition, this gives I(X;Y) = H(X) - H(X|Y), MacKay Equation 8.8.        *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem mutual_information_discrete_eq:
     ∀b p s1 s2 X Y.
        prob_space p ∧ FINITE (p_space p) ∧ POW (p_space p) = events p ∧

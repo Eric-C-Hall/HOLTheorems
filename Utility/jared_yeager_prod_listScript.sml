@@ -231,12 +231,14 @@ Definition sigma_list_def:
   sigma_list (h::t) = general_sigma CONS h (sigma_list t)
 End
 
-(* sigma_finite_measure_space_dirac_measure, prob_space_dirac_measure and
-   prob_space_sigma_finite_measure_space used to be proved here, but they
-   duplicated (with identical statements) theorems in trivialTheory, which
-   this file opens. The local copies have been removed in favour of those.
-.
-   Edited by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* sigma_finite_measure_space_dirac_measure, prob_space_dirac_measure and     *)
+(* prob_space_sigma_finite_measure_space used to be proved here, but they     *)
+(* duplicated (with identical statements) theorems in trivialTheory, which    *)
+(* this file opens. The local copies have been removed in favour of those.    *)
+(*                                                                            *)
+(* Edited by Claude                                                           *)
+(* -------------------------------------------------------------------------- *)
 
 Theorem sigma_finite_measure_space_prod_list:
   ∀ml. EVERY sigma_finite_measure_space ml ⇒ sigma_finite_measure_space (prod_list ml)

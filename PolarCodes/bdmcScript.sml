@@ -677,12 +677,14 @@ Proof
       irule EXTREAL_SUM_IMAGE_EQ' >> simp[])
 QED
 
-(* Specialization of prob_space_apply_channel_prob_space to the uniform input
-   distribution.
-
-   Written by Gemini (Google DeepMind AI agent)
-.
-   Edited by Claude: symmetric_capacity_def no longer uses this *)
+(* -------------------------------------------------------------------------- *)
+(* Specialization of prob_space_apply_channel_prob_space to the uniform input *)
+(* distribution.                                                              *)
+(*                                                                            *)
+(* Written by Gemini (Google DeepMind AI agent)                               *)
+(*                                                                            *)
+(* Edited by Claude: symmetric_capacity_def no longer uses this               *)
+(* -------------------------------------------------------------------------- *)
 Theorem prob_space_apply_channel_uniform:
   ∀W : (bool, β) memoryless_channel.
     wf_bdmc W ⇒
@@ -769,9 +771,11 @@ Proof
       REAL_ASM_ARITH_TAC)
 QED
 
-(* Marginals of the joint mass function used in symmetric_capacity_def.
-.
-   Written by Claude *)
+(* -------------------------------------------------------------------------- *)
+(* Marginals of the joint mass function used in symmetric_capacity_def.       *)
+(*                                                                            *)
+(* Written by Claude                                                          *)
+(* -------------------------------------------------------------------------- *)
 Theorem symmetric_capacity_marginals[local]:
   ∀W : (bool, β) memoryless_channel.
     wf_bdmc W ⇒
@@ -805,13 +809,15 @@ Proof
       REAL_ASM_ARITH_TAC)
 QED
 
-(* Reduction of symmetric_capacity W to Erdal Arıkan's explicit double-sum
-   formula (arXiv:0807.3917, Section I-A, p. 1).
-
-   Written by Gemini (Google DeepMind AI agent)
-.
-   Edited by Claude: symmetric_capacity now uses the discrete mutual
-   information *)
+(* -------------------------------------------------------------------------- *)
+(* Reduction of symmetric_capacity W to Erdal Arıkan's explicit double-sum    *)
+(* formula (arXiv:0807.3917, Section I-A, p. 1).                              *)
+(*                                                                            *)
+(* Written by Gemini (Google DeepMind AI agent)                               *)
+(*                                                                            *)
+(* Edited by Claude: symmetric_capacity now uses the discrete mutual          *)
+(* information                                                                *)
+(* -------------------------------------------------------------------------- *)
 Theorem symmetric_capacity_bdmc_sum:
   ∀W : (bool, β) memoryless_channel.
     wf_bdmc W ⇒
