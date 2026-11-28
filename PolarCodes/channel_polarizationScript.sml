@@ -2491,8 +2491,10 @@ QED
    and information sets A_seq n <= count (2^n) with |A_seq n| >= 2^n * R
    and Z(W_{2^n}^{(i)}) <= C * (2^n)^{-5/4} for all n >= 0 and i in A_seq n.
 
+   Not yet validated.
+   
    Things to validate:
-   - This theorem itself
+   - This theorem itself (not yet validated)
    - wf_bdmc (validated)
    - symmetric_capacity
    - bhattacharyya (validated: human-written)
